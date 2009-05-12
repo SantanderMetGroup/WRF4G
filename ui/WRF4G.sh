@@ -15,7 +15,8 @@ source source.it && rm source.it
 #
 #  Create WRF4G framework structure
 #
-vcp ${base_path}/Apps/WRF4G-${WRF4G_VERSION}.tar.gz  # !!! NO fona. No hay vcp!
+#vcp ${base_path}/Apps/WRF4G-${WRF4G_VERSION}.tar.gz . # !!! NO fona. No hay vcp!
+cp ${base_path}/Apps/WRF4G-${WRF4G_VERSION}.tar.gz . # !!! NO fona. No hay vcp!
 tar xzf WRF4G-${WRF4G_VERSION}.tar.gz
 #
 #  Load functions
