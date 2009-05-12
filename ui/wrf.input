@@ -1,0 +1,54 @@
+# WRF input for WRF (V3.0) simulations by Meteorology & Data Maining group of
+# Dept. de Matematica Aplicada de la Universidad de Cantabria. Lluis i Jesus
+# (March. 2009)
+#
+#   Software dependencies
+#
+base_path = "gridftp://MDM.UC"
+base_path = "/oceano/gmeteo/WORK/MDM.UC"
+foresthome = "/home/chus/zzsvn/lluis"     # Absolute path of directories forest (bats, AWK, ...)
+environment = "/oceano/gmeteo/users/lluis/lwrf/environmentCE01.bash"
+WRFhome = "/oceano/gmeteo/DATA/WRF/WRF_bin/3.0.1.1/CE01/mpich_1.2.7_pgi_gcc/WRFV3"
+WPShome = "/oceano/gmeteo/SCRATCH/lluis/WRFIII/WPS"
+wrf4g_tarball_path = "${base_path}/Apps/WRF4G-0.0.0.tar.gz"
+wrfbin_path = "${base_path}/Apps/WRFbin-3.1.tar.gz"
+job_type = "UC_Infiniband"
+number_of_nodes = 8     # number of nodes/TOTAL processes
+processes_per_node = 8  # number of threads per node
+#
+#   Experiment configuration
+#
+experiment_name = "CCCantabria"
+max_dom = 2
+domain_name = "Cantabria25a5"
+domain_path = "${base_path}/WRF/domains"
+global_name = "ECMWF"    # Vtables must exist as Vtable.[input_global]
+global_path = "${base_path}/Data/ECMWF/ERA40"
+global_interval = 21600   # Seconds between global analysis input times
+run_path = "."
+jobs_path = "."
+output_path = "${base_path}/WRF/experiments/${experiment_name}/output"
+start_date = "1995-01-01_18:00:00"
+end_date = "1995-01-05_00:00:00"
+simulation_interval_h = 24 
+simulation_length_h = 30
+is_continuous = 0
+is_restart = 0
+is_multiphysics = 0
+  multiphysics_variables = "mp_physics,cu_physics"
+  multiphysics_combinations = "3,2/3,3/3,4"
+#
+#   Override namelist.input variables here
+#
+# Single valued:
+#
+NI_restart_interval = 180
+#
+# One value per domain:
+#
+NIM_history_interval = 180
+NIM_frames_per_outfile = 8
+#
+# One value per domain; but all equal (provide a single value here):
+#
+NIN_mp_physics         = 4   # 1: Kessler, 2: Lin, 3: WRF S-M 3, 4: WRF S-M 5, 5: Eta, 6: WRF S-M 6, 7: Goddard, 8: Thompson, 10: Morrison

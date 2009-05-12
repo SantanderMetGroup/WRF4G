@@ -74,6 +74,10 @@ fi
 
 cd WPS || exit
   #
+  #   Must WPS run or are the boundaries available?
+  #
+  ####### TODO
+  #
   #   Get geo_em files and namelist.wps
   #
   vcp -r ${domain_path}/${domain_name}/'*' . 
@@ -88,20 +92,12 @@ cd WPS || exit
   #
   #   Preprocessor
   #
-  if [ -e preprocessor ]; then
-    timelog_init "preprocessor"
-    ./preprocessor ${syy}-${smm}-${sdd}T${shh}:00 ${fyy}-${fmm}-${fdd}T${fhh}:00 \
-        >& ${logdir}/preprocessor_${syy}${smm}${sdd}${shh}.out
-    timelog_end
-  fi
-  timelog_init "preprocess"
+  timelog_init "get boundaries"
     echo "Linking global data from: ${global_path}"
     mkdir -p grbData
     for yearmon in $(get_yearmons $iyy $imm $fyy $fmm) 
     do
-      ls -1 ${global_path}/${year}/*${yearmon}*.grb | while read file; do
-        ln -sf $file grbData/ 
-      done
+      vcp ${global_path}/${year}/*${yearmon}*.grb ln:///grbData/ 
     done
     ./link_grib.csh grbData/*.grb
   timelog_end
@@ -146,34 +142,48 @@ cd WPS || exit
     mv ${global_name}FIX* ${global_name}FIX || exit 71
   fi
   #
-  #   Use the main namelist for metgrid
-  #
-  cpp -P namelist.wps.in1 > namelist.wps
-  #   Clean a bit
-  rm -f namelist.wps.in1 namelist.wps.infix
-  #
   #   Run metgrid
   #
-  PrintTiming "metgrid"
-  ./metgrid/metgrid.exe >& ${logdir}/metgrid_${syy}${smm}${sdd}${shh}.out || exit 301
+  timelog_init "metgrid"
+    fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
+    fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
+    ./metgrid/metgrid.exe >& ${logdir}/metgrid_${syy}${smm}${sdd}${shh}.out || exit ${ERROR_METGRID_FAILED}
+  timelog_end
 cd ${ROOTDIR}/WRFV3/run || exit
   #------------------------------------------------------------------
   #                              WRF
   #------------------------------------------------------------------
-  PrintTiming "real"
-  unset WPSHOME
-  bash realwrapper_wps.sh || exit 401
-  if [ "$restart" = ".true." ]; then
-    sed -e 's/^\ *restart\ *=.*$/ restart  = .true./' namelist.input > namelist.input.$syy$smm
-    cp namelist.input.$syy$smm namelist.input
-  fi
-  PrintTiming "wrf"
-  $launcher ./wrf.exe >& ${logdir}/wrf_${syy}${smm}${sdd}${shh}.out || exit 501
-  for f in wrfout*
-  do
-    mv -f ${f} ${ROOTDIR}/output/${f/:*/}.nc
-  done
-  PrintTiming "wrf (end)"
+  timelog_init "real"
+    fix_ptop
+    cp ../../namelist.wps .
+    fortnml_varcopy namelist.wps   namelist.input parent_grid_ratio
+    fortnml_varcopy namelist.wps   namelist.input parent_grid_ratio parent_time_step_ratio
+    fortnml_varcopy namelist.wps   namelist.input i_parent_start
+    fortnml_varcopy namelist.wps   namelist.input j_parent_start
+    fortnml_varcopy namelist.wps   namelist.input e_we
+    fortnml_varcopy namelist.wps   namelist.input e_sn
+    fortnml_import_record namelist.wps geogrid > to.source
+    source to.source && rm -f to.source
+    alldx=""
+    thisdx=${dx}
+    for i in $(seq $max_dom)
+    do
+      thispgr=$(tuple_item $parent_grid_ratio ${i})
+      thisdx=$(echo "scale=5;${thisdx}/${thispgr}" | bc)
+      alldx="${alldx} ${thisdx}"
+    done
+    fortnml_setm namelist.input dx        $alldx
+    fortnml_setm namelist.input dy        $alldx
+    fortnml_set  namelist.input time_step $(get_timestep $dx)
+
+    $launcher ./real.exe || exit ${ERROR_REAL_FAILED}
+    if [ "$is_restart" = ".true." ]; then
+      fortnml_set namelist.input restart .true.
+    fi
+  timelog_end
+  timelog_init "wrf"
+    $launcher ./wrf.exe >& ${logdir}/wrf_${syy}${smm}${sdd}${shh}.out || exit ${ERROR_WRF_FAILED}
+  timelog_end
 cd ${ROOTDIR}
 
 
