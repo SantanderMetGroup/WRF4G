@@ -39,8 +39,6 @@
 &metgrid
  fg_name = 'FILE',
  io_form_metgrid = 2,
- opt_output_from_metgrid_path = '/oceano/gmeteo/DATA/WRF/domains/nino50/',
- opt_metgrid_tbl_path = '/oceano/gmeteo/DATA/WRF/domains/nino50/',
 /
 
 &mod_levs

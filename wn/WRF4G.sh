@@ -2,8 +2,6 @@
 #
 # WRF4G.sh
 #
-WRF_VERSION="3.1"
-WRF4G_VERSION="0.0.0"
 ROOTDIR=$(pwd)
 #
 #  Load functions and set the PATH
@@ -12,11 +10,12 @@ source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 export PATH="${ROOTDIR}/bin:$PATH"
 #
-#  Load wrf.input and wrf.chunk
+#  Load wrf4g.conf, wrf.chunk and wrf.input
 #
-sed -e 's/\ *=\ */=/' wrf.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
-source source.it && rm source.it
+source wrf4g.conf                                  || exit ${ERROR_MISSING_WRF4GCNF}
 sed -e 's/\ *=\ */=/' wrf.chunk > source.it        || exit ${ERROR_MISSING_WRFCHUNK}
+source source.it && rm source.it
+sed -e 's/\ *=\ */=/' wrf.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
 #
 # Running WRF
@@ -62,7 +61,7 @@ cd WPS || exit
   #
   #   Get geo_em files and namelist.wps
   #
-  vcp -r ${domain_path}/${domain_name}/'*' . 
+  vcp -r ${WRF4G_DOMAINPATH}/${domain_name}/'*' . 
   #
   #   Modify the namelist
   #
@@ -88,9 +87,10 @@ cd WPS || exit
   timelog_init "ungrib"
     ln -sf ungrib/Variable_Tables_WRF4G/Vtable.${global_name} Vtable
     ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_UNGRIB_FAILED}
-  timelog_end
+#  timelog_end
   #
   #   Check for other input namelists and apply them
+  #   TODO: This is not working in wrf4G
   #
   for ext in TSK SST SFC
   do
@@ -100,7 +100,7 @@ cd WPS || exit
        out_format = 'WPS'
        prefix = '${global_name}${ext}'
       /
-      End_of_nmlungrib
+	End_of_nmlungrib
       ln -sf Vtable.${global_name}${ext} Vtable
       cpp -P namelist.wps.in1 > namelist.wps
       ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}${ext}.out || exit 202
@@ -119,7 +119,7 @@ cd WPS || exit
        out_format = 'WPS'
        prefix = '${global_name}FIX'
       /
-      End_of_nmlungrib
+	End_of_nmlungrib
     ln -sf Vtable.${global_name}FIX Vtable
     cpp -P namelist.wps.infix > namelist.wps
     ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}FIX_${syy}${smm}${sdd}${shh}.out || exit 203
@@ -129,6 +129,8 @@ cd WPS || exit
   #   Run metgrid
   #
   timelog_init "metgrid"
+    fortnml_vardel namelist.wps opt_output_from_metgrid_path
+    fortnml_vardel namelist.wps opt_metgrid_tbl_path
     fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
     fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
     ./metgrid/metgrid.exe >& ${logdir}/metgrid_${syy}${smm}${sdd}${shh}.out || exit ${ERROR_METGRID_FAILED}
@@ -169,172 +171,3 @@ cd ${ROOTDIR}/WRFV3/run || exit
     $launcher ./wrf.exe >& ${logdir}/wrf_${syy}${smm}${sdd}${shh}.out || exit ${ERROR_WRF_FAILED}
   timelog_end
 cd ${ROOTDIR}
-
-
-
-
-
-
-
-  #
-  # preprocess
-  #
-  #
-  # ungrib.exe
-  #
-  timelog_init ungrib
-    /gpfs/ifca.es/meteo/DATA/WRF/WRF_bin/3.0.1/CE01/WPS/ungrib/src/ungrib.exe
-  timelog_end
-  rm -rf /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/AN  /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/GRIBFILE.*
-  #
-  # metgrid.exe
-  #
-  timelog_init metgrid
-    ./metgrid.exe
-    cp met_em.* /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations
-  timelog_end
-  cd /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300
-  rm GRIBFILE.* met_em* *:* >& /dev/null
-  rm *.exe 
-  rm Vtable.ECMWF* 
-  rm link_grib.csh
-fi
-
-if test $bit3 -eq 1
-then
-  if test -e /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/launcher_phases${WPS_WRFlabel}.inf
-  then
-    echo "real.exe        @ireal@  @ereal@ " >> /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/launcher_phases${WPS_WRFlabel}.inf
-  else
-    echo "real.exe        @ireal@  @ereal@ " > /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/launcher_phases${WPS_WRFlabel}.inf
-  fi
-  #
-  # Running WRF modules
-  #
-  cd /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300
-  update_ptop
-  restart=`(cat /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/wrf.input | grep RESTART= | awk '{print $2}')`
-  if test $restart = '.T.'; then
-    ln -sf /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/wrfrst* ./
-  fi
-  get_physics_tables 
-  for yearsmonths in 200101; do
-    year=`(expr substr $yearsmonths 1 4)`
-    month=`(expr substr $yearsmonths 5 2)`
-    ls -1 /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/met_em*.${year}-${month}-* | while read file;do
-      ln -sf $file ./
-    done
-  done
-  
-  cp /gpfs/ifca.es/meteo/DATA/WRF/WRF_bin/3.0.1.1/CE01/mpich_1.2.7_pgi_gcc/WRFV3/main/real.exe ./
-  #
-  # real.exe
-  #
-  initdate=`(date +%Y%m%d%H%M%S)`
-  ${foresthome}/bats/change_in_file.bash /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/launcher_phases${WPS_WRFlabel}.inf '@ireal@' $initdate
-  mpiexec -comm mpich-ib -npernode 8 ./real.exe
-  rm real.exe
-  rm met_em.*
-  enddate=`(date +%Y%m%d%H%M%S)`
-  ${foresthome}/bats/change_in_file.bash /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/launcher_phases${WPS_WRFlabel}.inf '@ereal@' $enddate
-  #
-  # Making copies of initial boundary conditions
-  # 
-  cp wrfinput* /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations
-  cp wrfbdy* /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations
-  if test -e tslist; then
-    cp wrflowinp* /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations
-  fi
-fi
-
-if test $bit4 -eq 1
-then
-  #
-  # Running WRF modules
-  #
-  cd /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300
-  if test "${is_restart}" -eq 1
-  then
-    ln -sf /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/wrfrst* ./
-  fi
-  clean_rsl
-  get_physics_tables
-  for yearsmonths in 200101 
-  do
-    year=`expr substr $yearsmonths 1 4`
-    month=`expr substr $yearsmonths 5 2`
-    ls -1 /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/met_em*.${year}-${month}-* | while read file;do
-      ln -sf $file ./
-    done
-  done
-  cp /gpfs/ifca.es/meteo/DATA/WRF/WRF_bin/3.0.1.1/CE01/mpich_1.2.7_pgi_gcc/WRFV3/main/wrf.exe ./
-  cp /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/wrfbdy* ./
-  cp /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/wrfinput* ./
-  if test -e tslist
-  then
-    cp /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/wrflowinp* ./
-  fi
-  if test $bit3 -eq 0; then
-    update_ptop
-  fi
-  #
-  # wrf.exe
-  #
-  LAUNCHER=$(eval echo ${LAUNCHER_TPL})
-  timelog_init wrf
-    $LAUNCHER ./wrf.exe
-    restartinterv=0
-    if test $restartinterv -ne 0
-    then
-      cp wrfrst* /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations
-    fi
-    rm wrf.exe
-    rm *.TBL 
-    rm *_DATA*
-    rm met_em*
-    rm wrfbdy* 
-    rm wrfinput* 
-    if test -e tslist; then
-      rm wrflowinp* 
-    fi
-  timelog_end
-  #
-  # OUTputting
-  #
-  cd $runhome
-  #rm wrfrst* >& /dev/null
-  chmod -w $runhome/wrfout_d*
-  chmod -w $runhome/namelist.output
-  if test ! $outputhome = $runhome
-  then
-    ( # Asyncronous copy...
-      ${foresthome}/bats/vcp ${run_path}/wrfout'*'       ${output_path}
-      ${foresthome}/bats/vcp ${run_path}/namelist.output ${output_path}
-      if test -e tslist; then
-        ${foresthome}/bats/vcp ${run_path}/'*'.TS        ${output_path}
-      fi
-      echo "Removing WRF outputs..."
-      rm -f wrfout_d*
-    ) &
-  fi
-  #
-  # Writting correct ending date in links file
-  #
-  ls -1 /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/wrfout_d01* > /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/outWRF_d01.inf
-  numouts=`(wc -l /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/outWRF_d01.inf | awk '{print $1}')`
-  if test $numouts -ne 0; then
-    lastoutfile=`(tail -n 1 /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/outWRF_d01.inf)`
-    $ncdump -v Times -l 10000 $lastoutfile > /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/Times.inf
-    simdate=`(tail -n 2  /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/Times.inf | head -n 1 | awk '{print substr($1,2,19)}')`
-    iyyyyfsim=`(expr substr $datefSIM 1 4)`
-    immfsim=`(expr substr $datefSIM 5 2)`
-    iddfsim=`(expr substr $datefSIM 7 2)`
-    ihhfsim=`(expr substr $datefSIM 9 2)`
-    imifsim=`(expr substr $datefSIM 11 2)`
-    if test $simdate = ${iyyyyfsim}-${immfsim}-${iddfsim}_${ihhfsim}:${imifsim}:00; then
-      ${foresthome}/bats/change_in_file.bash /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/lwrf_iteration/Iteration_state.inf '@endWRF.exe@' $datefSIMshort
-    fi
-    rm /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/outWRF_d01.inf
-  fi
-  rm /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/met_em*
-fi

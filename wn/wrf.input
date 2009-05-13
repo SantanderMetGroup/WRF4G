@@ -8,13 +8,13 @@ experiment_name = "seasonal_nino_01"
 max_dom = 2
 domain_name = "nino50"
 global_name = "ECMWF"    # Vtables must exist as Vtable.[input_global]
-global_path = "${WRF4G_INPUT}/Data/ECMWF/ERA40"
+global_path = "${WRF4G_INPUT}/ECMWF/ERA40"
 global_interval = 21600   # Seconds between global analysis input times
 # These are not expanded at this time! realization_name is not defined!
-WRF4G_DOMAINPATH = '${WRF4G_BASEPATH}/domains'
-WRF4G_OUTPUTPATH = '${WRF4G_BASEPATH}/WRF/experiments/${experiment_name}/${realization_name}/output'
-WRF4G_WPSOUTPATH = '${WRF4G_BASEPATH}/WRF/experiments/${experiment_name}/${realization_name}/output'
-WRF4G_RESTARTPATH = '${WRF4G_BASEPATH}/WRF/experiments/${experiment_name}/${realization_name}/restart'
+WRF4G_DOMAINPATH = ${WRF4G_BASEPATH}/domains
+WRF4G_OUTPUTPATH = ${WRF4G_BASEPATH}/WRF/experiments/${experiment_name}/${realization_name}/output
+WRF4G_WPSOUTPATH = ${WRF4G_BASEPATH}/WRF/experiments/${experiment_name}/${realization_name}/output
+WRF4G_RESTARTPATH = ${WRF4G_BASEPATH}/WRF/experiments/${experiment_name}/${realization_name}/restart
 
 start_date = "2001-01-01_18:00:00"
 end_date = "2001-01-30_00:00:00"

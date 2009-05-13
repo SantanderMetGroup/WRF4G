@@ -266,6 +266,13 @@ __EOF
   rm -f sedcmd
 }
 
+function fortnml_vardel(){
+  nmlfile=$1
+  param=$2
+  grep -v '\ *'${param}'\ *=' ${nmlfile} > ${nmlfile}.tmp
+  mv ${nmlfile}.tmp ${nmlfile}
+}
+
 function fortnml_set(){
   nmlfile=$1
   param=$2
