@@ -10,15 +10,15 @@ from os import getcwd
 from os.path import abspath
 from os.path import isdir
 
+URL_BAD_FORMED=1
+COPY_ERROR=2
+
 
 
 def parse_url(url):
   """From a url (rsync://valva@sipc18:80/etc) it returns an array with 
   the following field [protocol,user,computer,port,file]"""
   
-  URL_BAD_FORMED=1
-  COPY_ERROR=2
-
   url1=url.split(":",1)
   if len(url1) > 3 :
     print "The url is not well formed. Too many :"
