@@ -13,7 +13,13 @@ from os.path import isdir
 URL_BAD_FORMED=1
 COPY_ERROR=2
 
-
+class VCPURL:
+  def __init__(self):
+    self.protocol = ""
+    self.user = ""
+    self.computer = ""
+    self.port = ""
+    self.file = ""
 
 def parse_url(url):
   """From a url (rsync://valva@sipc18:80/etc) it returns an array with 
@@ -67,9 +73,9 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
   if orig[0] == "file" :
 
     if dest[0] == "file" :
-       if verbose :   flags="-v "
-       if recursive:  flags=flags + "-R "
-       command="cp " + flags + orig[4]+ " " + dest[4]
+       if verbose :   flags="-v"
+       if recursive:  flags=flags + "-R"
+       command="cp %s %s %s" % (flags, orig[4], dest[4])
 
     elif dest[0] == "ln" :
        if verbose :   flags="-v "
