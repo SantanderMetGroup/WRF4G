@@ -5,7 +5,7 @@
 #   Experiment configuration
 #
 experiment_name = "seasonal_nino_01"
-max_dom = 2
+max_dom = 1
 domain_name = "nino50"
 global_name = "ECMWF"    # Vtables must exist as Vtable.[input_global]
 global_path = "${WRF4G_INPUT}/ECMWF/ERA40"

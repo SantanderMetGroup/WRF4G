@@ -20,6 +20,8 @@ source source.it && rm source.it
 #
 # Running WRF
 #
+ulimit -s unlimited
+
 logdir=${ROOTDIR}
 function timelog_clean(){
   rm -f ${logdir}/time.log
@@ -43,6 +45,11 @@ function clean_wps(){
   rm -f ${global_name}*\:????-??-??_??   # Intermediate files
   rm -f ${global_name}FIX                # Intermediate files
   rm -f met_em.*                      # metgrid files
+}
+
+function clean_real(){
+  rm -f met_em.d??.????-??-??_??:00:00.nc
+  rm -f namelist.wps
 }
 
 timelog_clean
@@ -69,7 +76,7 @@ cd WPS || exit
   fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
   fortnml_set  namelist.wps interval_seconds      ${global_interval}
   fortnml_set  namelist.wps max_dom               ${max_dom}
-  fortnml_set  namelist.wps prefix                ${global_name}
+  fortnml_set  namelist.wps prefix                "'${global_name}'"
   #
   #   Preprocessor
   #
@@ -87,7 +94,7 @@ cd WPS || exit
   timelog_init "ungrib"
     ln -sf ungrib/Variable_Tables_WRF4G/Vtable.${global_name} Vtable
     ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_UNGRIB_FAILED}
-#  timelog_end
+  timelog_end
   #
   #   Check for other input namelists and apply them
   #   TODO: This is not working in wrf4G
@@ -122,7 +129,7 @@ cd WPS || exit
 	End_of_nmlungrib
     ln -sf Vtable.${global_name}FIX Vtable
     cpp -P namelist.wps.infix > namelist.wps
-    ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}FIX_${syy}${smm}${sdd}${shh}.out || exit 203
+    ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}FIX_${iyy}${imm}${idd}${ihh}.out || exit 203
     mv ${global_name}FIX* ${global_name}FIX || exit 71
   fi
   #
@@ -131,23 +138,39 @@ cd WPS || exit
   timelog_init "metgrid"
     fortnml_vardel namelist.wps opt_output_from_metgrid_path
     fortnml_vardel namelist.wps opt_metgrid_tbl_path
+    fortnml_set  namelist.wps fg_name               "'${global_name}'"
     fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
     fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
-    ./metgrid/metgrid.exe >& ${logdir}/metgrid_${syy}${smm}${sdd}${shh}.out || exit ${ERROR_METGRID_FAILED}
+    ./metgrid/metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_METGRID_FAILED}
   timelog_end
 cd ${ROOTDIR}/WRFV3/run || exit
   #------------------------------------------------------------------
   #                              WRF
   #------------------------------------------------------------------
   timelog_init "real"
+    clean_real
+    ln -s ../../WPS/met_em.d??.????-??-??_??:00:00.nc .
     fix_ptop
-    cp ../../namelist.wps .
+    ln -s ../../WPS/namelist.wps
+    fortnml_setn    namelist.input run_days    ${max_dom} 0
+    fortnml_setn    namelist.input run_hours   ${max_dom} 0
+    fortnml_setn    namelist.input run_minutes ${max_dom} 0
+    fortnml_setn    namelist.input run_seconds ${max_dom} 0
+    fortnml_setn    namelist.input start_year  ${max_dom} ${iyy}
+    fortnml_setn    namelist.input start_month ${max_dom} ${imm}
+    fortnml_setn    namelist.input start_day   ${max_dom} ${idd}
+    fortnml_setn    namelist.input start_hour  ${max_dom} ${ihh}
+    fortnml_setn    namelist.input end_year    ${max_dom} ${fyy}
+    fortnml_setn    namelist.input end_month   ${max_dom} ${fmm}
+    fortnml_setn    namelist.input end_day     ${max_dom} ${fdd}
+    fortnml_setn    namelist.input end_hour    ${max_dom} ${fhh}
     fortnml_varcopy namelist.wps   namelist.input parent_grid_ratio
     fortnml_varcopy namelist.wps   namelist.input parent_grid_ratio parent_time_step_ratio
     fortnml_varcopy namelist.wps   namelist.input i_parent_start
     fortnml_varcopy namelist.wps   namelist.input j_parent_start
     fortnml_varcopy namelist.wps   namelist.input e_we
     fortnml_varcopy namelist.wps   namelist.input e_sn
+    fortnml_set     namelist.input num_metgrid_levels $(get_num_metgrid_levels)
     fortnml_import_record namelist.wps geogrid > to.source
     source to.source && rm -f to.source
     alldx=""
@@ -161,13 +184,14 @@ cd ${ROOTDIR}/WRFV3/run || exit
     fortnml_setm namelist.input dx        $alldx
     fortnml_setm namelist.input dy        $alldx
     fortnml_set  namelist.input time_step $(get_timestep $dx)
+    fortnml_set  namelist.input max_dom   ${max_dom}
 
-    $launcher ./real.exe || exit ${ERROR_REAL_FAILED}
-    if [ "$is_restart" = ".true." ]; then
-      fortnml_set namelist.input restart .true.
-    fi
+    $launcher ./real.exe >& ${logdir}/wrf_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_REAL_FAILED}
+#    if [ "$is_restart" = ".true." ]; then
+#      fortnml_set namelist.input restart .true.
+#    fi
   timelog_end
   timelog_init "wrf"
-    $launcher ./wrf.exe >& ${logdir}/wrf_${syy}${smm}${sdd}${shh}.out || exit ${ERROR_WRF_FAILED}
+    $launcher ./wrf.exe >& ${logdir}/wrf_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_WRF_FAILED}
   timelog_end
 cd ${ROOTDIR}

@@ -1,8 +1,8 @@
 &share
  wrf_core = 'ARW',
-  max_dom = 2,
-  start_date =  '2001-01-01_00:00:00',  '2001-01-01_00:00:00', 
-  end_date =  '2001-01-02_00:00:00',  '2001-01-02_00:00:00', 
+  max_dom = 1,
+  start_date =  '2001-01-01_00:00:00', 
+  end_date =  '2001-01-02_00:00:00', 
   interval_seconds = 21600,
  io_form_geogrid = 2,
  opt_output_from_geogrid_path = '/oceano/gmeteo/DATA/WRF/domains/nino50/',
@@ -33,11 +33,11 @@
 
 &ungrib
  out_format = 'WPS',
-  prefix = ECMWF,
+  prefix = 'ECMWF',
 /
 
 &metgrid
- fg_name = 'FILE',
+  fg_name = 'ECMWF',
  io_form_metgrid = 2,
 /
 

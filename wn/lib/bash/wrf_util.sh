@@ -246,10 +246,9 @@ function fortnml_import_record(){
 }
 
 function get_num_metgrid_levels(){
-  metemfile=$1
-  ncdump -h $metemfile \
+  ncdump -h $(\ls -1 met_em*.nc | head -1) \
     | grep 'num_metgrid_levels =' \
-    | sed -e 's/^\t//'
+    | sed -e 's/^\t//' | tr '=;' '  ' | awk '{print $2}'
 }
 
 function fortnml_varcopy(){
@@ -335,7 +334,7 @@ function get_timestep(){
 }
 
 function get_ptop(){
-  ncdump -v PRES $(ls ${WPSHOME}/met_em.d??.????-??-??_??:00:00.nc | head -1) \
+  ncdump -v PRES $(ls met_em.d??.????-??-??_??:00:00.nc | head -1) \
     | tail -2 | head -1 \
     | tr -d ',;' \
     | awk '{printf "%d", $1}'
