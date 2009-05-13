@@ -492,7 +492,10 @@ SUBROUTINE write_ts( grid )
          CLOSE(UNIT=iunit)
 
       END DO
-
+#ifdef WRF4G
+! WRF4G-UC May.09
+       CALL system('$WRFGEL_SCRIPT ts *.TS')
+#endif
    END IF
 
    grid%next_ts_time = 1

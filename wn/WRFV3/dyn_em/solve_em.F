@@ -933,6 +933,8 @@ BENCH_START(set_phys_bc2_tim)
 BENCH_END(set_phys_bc2_tim)
      small_steps : DO iteration = 1 , number_of_small_timesteps
 
+! WRF4G-UC May.09
+
        ! Boundary condition time (or communication time).  
 #ifdef DM_PARALLEL
 #      include "PERIOD_BDY_EM_B.inc"
