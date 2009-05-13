@@ -29,6 +29,7 @@ cd ${tardir}
   ln -s ${basedir}/WPS/ungrib/Variable_Tables_WRF4G WPS/
   ln -s ${basedir}/WPS/link_grib.csh WPS/
   
+  ln -s ${basedir}/WRFV3/configure.wrf WRFV3
   ln -s ${basedir}/WRFV3/run/*.TBL WRFV3/run
   ln -s ${basedir}/WRFV3/run/*_DATA* WRFV3/run
   ln -s ${basedir}/WRFV3/run/*formatted WRFV3/run/
