@@ -1,37 +1,79 @@
 &share
  wrf_core = 'ARW',
- max_dom = 2,
- start_date = '2006-08-16_12:00:00','2006-08-16_12:00:00',
- end_date   = '2006-08-16_18:00:00','2006-08-16_12:00:00',
- interval_seconds = 21600
+  max_dom = 2,
+  start_date =  '2001-01-01_00:00:00',  '2001-01-01_00:00:00', 
+  end_date =  '2001-01-02_00:00:00',  '2001-01-02_00:00:00', 
+  interval_seconds = 21600,
  io_form_geogrid = 2,
+ opt_output_from_geogrid_path = '/oceano/gmeteo/DATA/WRF/domains/nino50/',
+ debug_level = 0,
 /
 
 &geogrid
- parent_id         =   1,   1,
- parent_grid_ratio =   1,   3,
- i_parent_start    =   1,  31,
- j_parent_start    =   1,  17,
- e_we              =  74, 112,
- e_sn              =  61,  97,
- geog_data_res     = '10m','2m',
- dx = 30000,
- dy = 30000,
- map_proj = 'lambert',
- ref_lat   =  34.83,
- ref_lon   = -81.03,
- truelat1  =  30.0,
- truelat2  =  60.0,
- stand_lon = -98.0,
- geog_data_path = '/mmm/users/wrfhelp/WPS_GEOG'
+ parent_id         = 1,1,
+ parent_grid_ratio = 1,3,
+ i_parent_start    = 1,24,
+ j_parent_start    = 1,55,
+ e_we          = 60,52,
+ e_sn          = 80,52,
+ geog_data_res = '10m','5m',
+ dx = 50000,
+ dy = 50000,
+ map_proj =  'mercator',
+ ref_lat   = -10,
+ ref_lon   = -80,
+ truelat1  = -10,
+ truelat2  = 0,
+ stand_lon = -80,
+ geog_data_path = '/oceano/gmeteo/DATA/WRF/wps_topo',
+ opt_geogrid_tbl_path = '/oceano/gmeteo/DATA/WRF/domains/nino50/',
+ ref_x = 30.0,
+ ref_y = 40.0,
 /
 
 &ungrib
  out_format = 'WPS',
- prefix = 'FILE',
+  prefix = ECMWF,
 /
 
 &metgrid
- fg_name = 'FILE'
- io_form_metgrid = 2, 
+ fg_name = 'FILE',
+ io_form_metgrid = 2,
+ opt_output_from_metgrid_path = '/oceano/gmeteo/DATA/WRF/domains/nino50/',
+ opt_metgrid_tbl_path = '/oceano/gmeteo/DATA/WRF/domains/nino50/',
+/
+
+&mod_levs
+ press_pa = 201300 , 200100 , 100000 ,
+             95000 ,  90000 ,
+             85000 ,  80000 ,
+             75000 ,  70000 ,
+             65000 ,  60000 ,
+             55000 ,  50000 ,
+             45000 ,  40000 ,
+             35000 ,  30000 ,
+             25000 ,  20000 ,
+             15000 ,  10000 ,
+              5000 ,   1000
+ /
+
+
+&domain_wizard
+ grib_data_path = 'null',
+ grib_vtable = 'null',
+ dwiz_name    =nino50
+ dwiz_desc    =Domain for ensemble study of 'El Nino' at 50 km ressolution
+ dwiz_user_rect_x1 =347
+ dwiz_user_rect_y1 =319
+ dwiz_user_rect_x2 =780
+ dwiz_user_rect_y2 =807
+ dwiz_show_political =true
+ dwiz_center_over_gmt =true
+ dwiz_latlon_space_in_deg =10
+ dwiz_latlon_linecolor =-8355712
+ dwiz_map_scale_pct =25
+ dwiz_map_vert_scrollbar_pos =357
+ dwiz_map_horiz_scrollbar_pos =162
+ dwiz_gridpt_dist_km =50.0
+ dwiz_mpi_command =null
 /

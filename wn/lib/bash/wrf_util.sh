@@ -352,3 +352,19 @@ function fix_ptop(){
   fi
 }
 
+function get_yearmons(){
+  yeari=$1
+  moni=$2
+  yearf=$3
+  monf=$4
+  yearmoni="$yeari$(echo $moni | awk '{printf "%02d",$1}')"
+  yearmonf="$yearf$(echo $monf | awk '{printf "%02d",$1}')"
+  for year in $(seq $yeari $yearf); do
+    for month in $(seq 1 12); do
+      thisyearmon="$year$(printf "%02d" $month)"
+      if test $thisyearmon -ge $yearmoni -a $thisyearmon -le $yearmonf; then
+        echo ${thisyearmon}
+      fi
+    done
+  done
+}

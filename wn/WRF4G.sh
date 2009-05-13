@@ -6,6 +6,12 @@ WRF_VERSION="3.1"
 WRF4G_VERSION="0.0.0"
 ROOTDIR=$(pwd)
 #
+#  Load functions and set the PATH
+#
+source ${ROOTDIR}/lib/bash/wrf_util.sh
+source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
+export PATH="${ROOTDIR}/bin:$PATH"
+#
 #  Load wrf.input and wrf.chunk
 #
 sed -e 's/\ *=\ */=/' wrf.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
@@ -13,47 +19,20 @@ source source.it && rm source.it
 sed -e 's/\ *=\ */=/' wrf.chunk > source.it        || exit ${ERROR_MISSING_WRFCHUNK}
 source source.it && rm source.it
 #
-#  Create WRF4G framework structure
-#
-#vcp ${base_path}/Apps/WRF4G-${WRF4G_VERSION}.tar.gz . # !!! NO fona. No hay vcp!
-cp ${base_path}/Apps/WRF4G-${WRF4G_VERSION}.tar.gz . # !!! NO fona. No hay vcp!
-tar xzf WRF4G-${WRF4G_VERSION}.tar.gz
-#
-#  Load functions
-#
-source ${ROOTDIR}/usr/lib/bash/wrf_util.sh
-#
-#  Get the standard WRF binaries
-#
-vcp ${base_path}/Apps/WRFbin-${WRF_VERSION}.tar.gz
-tar xzf WRFbin-${WRF_VERSION}.tar.gz
-#
 # Running WRF
 #
-
-function update_ptop(){
-  echo "Adding 'Zglobal' and 'Ptop' variables..."
-  ##Num vertical levels '@Zglobal@'
-  zglobal=$($ncdump -h /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/met_em.d01.2001-01-01_06:00:00.nc | grep 'num_metgrid_levels' | grep = | awk '{print $3}')
-  ##Ptop '@Ptop@'
-  ptop=$($ncdump -v PRES /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/met_em.d01.2001-01-01_06:00:00.nc | tail -2 | head -1 | tr -d ',;' | awk '{printf "%d", $1}')
-  ${foresthome}/bats/change_in_file.bash /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/namelist.input '@Zglobal@' $zglobal
-  ${foresthome}/bats/change_in_file.bash /gpfs/ifca.es/meteo/SCRATCH/scaling/cores8/simulations/2001010106_2001010300/namelist.input '@Ptop@' $ptop
-}
-
-function get_physics_tables(){
-  cp /gpfs/ifca.es/meteo/DATA/WRF/WRF_bin/3.0.1.1/CE01/mpich_1.2.7_pgi_gcc/WRFV3/run/*.TBL ./
-  cp /gpfs/ifca.es/meteo/DATA/WRF/WRF_bin/3.0.1.1/CE01/mpich_1.2.7_pgi_gcc/WRFV3/run/*_DATA* ./
-  cp /gpfs/ifca.es/meteo/DATA/WRF/WRF_bin/3.0.1.1/CE01/mpich_1.2.7_pgi_gcc/WRFV3/run/*formatted ./
+logdir=${ROOTDIR}
+function timelog_clean(){
+  rm -f ${logdir}/time.log
 }
 
 function timelog_end(){
-  date +%Y%m%d%H%M%S >> ${ROOTDIR}/time.log
+  date +%Y%m%d%H%M%S >> ${logdir}/time.log
 }
 
 function timelog_init(){
   item=$1
-  echo -n "$item $(date +%Y%m%d%H%M%S) " >> ${ROOTDIR}/time.log
+  echo -n "$(printf "%20s" "$item") $(date +%Y%m%d%H%M%S) " >> ${logdir}/time.log
 }
 
 function clean_rsl(){
@@ -67,17 +46,19 @@ function clean_wps(){
   rm -f met_em.*                      # metgrid files
 }
 
-read iyy imm idd ihh <<< $(echo ${chunk_start_date} | tr -d '_:T-')
-read fyy fmm fdd fhh <<< $(echo ${chunk_end_date}   | tr -d '_:T-')
-if test "${fyy}${fmm}${fdd}${fhh}" -gt "${eyy}${emm}${edd}${ehh}"; then
-  fyy=${eyy}; fmm=${emm}; fdd=${edd}; fhh=${ehh}
-fi
+timelog_clean
+#
+#  Get the 'a-priori' start (i**) and end (f**) dates for this chunk
+#
+read iyy imm idd ihh trash <<< $(echo ${chunk_start_date} | tr '_:T-' '    ')
+read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}   | tr '_:T-' '    ')
 
 cd WPS || exit
   #
   #   Must WPS run or are the boundaries available?
   #
   ####### TODO
+  clean_wps
   #
   #   Get geo_em files and namelist.wps
   #
@@ -98,13 +79,15 @@ cd WPS || exit
     mkdir -p grbData
     for yearmon in $(get_yearmons $iyy $imm $fyy $fmm) 
     do
-      vcp ${global_path}/${year}/*${yearmon}*.grb ln:///grbData/ 
+      year=${yearmon:0:4}
+      vcp ${global_path}/${year}/'*'${yearmon}'*'.grb ln://`pwd`/grbData 
+      #ln -s ${global_path}/${year}/*${yearmon}*.grb grbData/ 
     done
     ./link_grib.csh grbData/*.grb
   timelog_end
   timelog_init "ungrib"
-    ln -sf Vtable.${global_name} Vtable
-    ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}_${syy}${smm}${sdd}${shh}.out || exit ${ERROR_UNGRIB_FAILED}
+    ln -sf ungrib/Variable_Tables_WRF4G/Vtable.${global_name} Vtable
+    ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_UNGRIB_FAILED}
   timelog_end
   #
   #   Check for other input namelists and apply them
