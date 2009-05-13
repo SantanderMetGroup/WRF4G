@@ -14,80 +14,114 @@ URL_BAD_FORMED=1
 COPY_ERROR=2
 
 class VCPURL:
-  def __init__(self):
+  def __init__(self,url=None):
+    """From a url (rsync://valva@sipc18:80/etc) it returns an array with 
+    the following field [protocol,user,computer,port,file]"""
+ 
     self.protocol = ""
     self.user = ""
     self.computer = ""
     self.port = ""
     self.file = ""
-
-def parse_url(url):
-  """From a url (rsync://valva@sipc18:80/etc) it returns an array with 
-  the following field [protocol,user,computer,port,file]"""
   
-  url1=url.split(":",1)
-  if len(url1) > 3 :
-    print "The url is not well formed. Too many :"
-    exit(URL_BAD_FORMED)
- 
-  url_parsed=[url1[0],"","","",""]
- 
-  if  len(url1) != 1 :
-    position=url1[1].find('//')
-    if position == 0 :
-      g1=match("//([\w.@-]*):?(\d*)(/\S*)",url1[1])
- 
-      if g1 == None :
-        print  "The url is not well formed. //"
+    if url:
+      url1=url.split(":",1)
+      if len(url1) > 3 :
+        print "The url is not well formed. Too many :"
         exit(URL_BAD_FORMED)
-     
-      gs=g1.groups()
-      url_parsed[2:]=gs[:]
+      
+      self.protocol=url1[0] 
+      
+      # The url contains a protocol
+      if  len(url1) != 1 :
+        position=url1[1].find('//')
 
-      if gs[0].find("@")!= -1 :
-        g2=gs[0].split("@")
-        url_parsed[1:3]=g2[:]
-        #url_parsed[1]=g2[0]
-        #url_parsed[2]=g2[1]
- 
-    else :
-        #ln, lfn or file style
-        url_parsed[4]=url1[1]
+        if position == 0 :
+          g1=match("//([\w.@-]*):?(\d*)(/\S*)",url1[1])
     
-  else :
-  # FILE
-    url_parsed[0]="file"
-    url_parsed[4]=url1[0]
-  return url_parsed
+          if g1 == None :
+            print  "The url is not well formed. //"
+            exit(URL_BAD_FORMED)
+          
+          (self.computer,self.port,self.file)=g1.groups()
+          
+          if self.computer.find("@")!= -1 :
+            (self.user,self.computer)=self.computer.split("@")
+        
+        # This is for URL with the form: ln:/etc/passwd, lfn:/grid/eela
+        else :
+          self.file=url1[1]
+        
+      # The URL is a local file
+      else :
+        self.protocol="file"
+        self.file=url1[0]
 
+  def __str__(self):
+     """ It returns an url from a array with 
+     the following field [protocol,user,computer,port,file]"""
+    
+     # Fill the variables: protocol, user, computer, port and file 
+     
+     # user
+     if self.user !="" : user=self.user+"@"
+     else : user=""
+  
+     # computer 
+     computer = self.computer
+     
+     # port 
+     if self.port !="" or self.protocol == "rsync" : port=":" + self.port
+     else : port=""
+  
+     # file 
+     file = self.file
+ 
+     # protocol
+     if self.protocol=="rsync" : 
+        protocol=""
+ 
+     # Transform local path to file://. If the file is a directory we add / at the end because
+     # globus-url-copy works this way.
+     elif self.protocol=="file": 
+        protocol=self.protocol + "://"
+        file=abspath(file)
+     
+     else : protocol = self.protocol + "://"
+  
+     url= protocol + user + computer + port + file 
+     return url
+  
 
 
 def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
   """Copies origin in destination. Both are arrays containing 
    the following field [protocol,user,computer,port,file]"""
 
-  orig=parse_url(origin)
-  dest=parse_url(destination)
+  orig=VCPURL(origin)
+  dest=VCPURL(destination)
 
+  print orig.__dict__
+  print dest.__dict__
   flags=""
-  if orig[0] == "file" :
 
-    if dest[0] == "file" :
+  if orig.protocol == "file" :
+    if dest.protocol == "file" :
        if verbose :   flags="-v"
-       if recursive:  flags=flags + "-R"
-       command="cp %s %s %s" % (flags, orig[4], dest[4])
+       if recursive:  flags=flags + "R"
+       command="cp %s %s %s" % (flags, orig.file, dest.file)
 
-    elif dest[0] == "ln" :
-       if verbose :   flags="-v "
-       command="ln -s " + flags + orig[4]+ " " + dest[4]
+    elif dest.protocol == "ln" :
+       if verbose :   flags="-v"
+       command="ln -s %s %s %s" % (flags, orig.file, dest.file)
 
-    elif dest[0] == "rsync" :
-       if verbose :   flags="v"
-       command="rsync -au" + flags + " " + orig[4] + " " + create_url(dest)
+    elif dest.protocol == "rsync" :
+       if verbose :   flags="-v"
+       command="rsync -au %s %s %s" % (flags, orig.file, dest)
 
-    elif dest[0] == "gsiftp" :
-       destiny = create_url(dest)
-       origin = create_url(orig)
+    elif dest.protocol == "gsiftp" :
+       destiny = str(dest)
+       origin = str(orig)
        if verbose :   flags="-v "
        if recursive:  
           flags=flags + "-r -cd "
@@ -96,13 +130,13 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
        else : 
           if origin.find("*") != -1 : destiny = destiny + "/"
        
-       command="globus-url-copy " + flags + " " + origin + " " + destiny
+       command="globus-url-copy %s %s %s" % (flags, origin, destiny)
 
  
-  elif orig[0] == "gsiftp" :  
-     if dest[0] == "file" :
-       destiny = create_url(dest)
-       origin = create_url(orig)
+  elif orig.protocol == "gsiftp" :  
+     if dest.protocol == "file" :
+       destiny = str(dest)
+       origin = str(orig)
        if verbose :   flags="-v "
        if recursive:  
           flags=flags + "-r -cd "
@@ -111,53 +145,19 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
        else :
           if origin.find("*") != -1 : destiny = destiny + "/"
    
-       command="globus-url-copy " + flags + " " + origin + " " + destiny
+       command="globus-url-copy %s %s %s" % (flags, origin, destiny)
 
    # Execute the command that copy the files
   if verbose :    print command
   (err,out)=getstatusoutput(command)
 
+
   if err != 0 :
      print "Error copying file: " + str(err) + "\n" + out
      exit(COPY_ERROR)
+
+ 
   return out
-
-def create_url(url):
-   """ It returns an url from a array with 
-   the following field [protocol,user,computer,port,file]"""
-   
-  
-   # Fill the variables: protocol, user, computer, port and file 
-   
-   # user
-   if url[1] !="" : user=url[1]+"@"
-   else : user=""
- 
-   # computer 
-   computer = url[2]
-   
-   # port 
-   if url[3] !="" or url[0]=="rsync" : port=":" + url[3]
-   else : port=""
- 
-   # file 
-   file = url[4]
-   
-
-   # protocol
-   if url[0]=="rsync" : 
-      protocol=""
-
-   # Transform local path to file://. If the file is a directory we add / at the end because
-   # globus-url-copy works this way.
-   elif url[0]=="file": 
-      protocol=url[0] + "://"
-      file=abspath(file)
-   
-   else : protocol = url[0] + "://"
- 
-   url= protocol + user + computer + port + file 
-   return url
 
    
 
@@ -189,7 +189,7 @@ if __name__ == "__main__":
       parser.error("Incorrect number of arguments")
       exit(1)
    
-   a=copy_file(args[0],args[1],verbose=options.verbose,recursive=options.recursive,streams=options.streams)   
-   print "salida: " + a
+   output=copy_file(args[0],args[1],verbose=options.verbose,recursive=options.recursive,streams=options.streams)   
+   print output
    
 
