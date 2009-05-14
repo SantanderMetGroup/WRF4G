@@ -1,8 +1,8 @@
 
 
 Set in your PATH the User Interface (UI) scripts:
-
-export PATH=/oceano/gmeteo/users/chus/tmp/wrf4g/ui/scripts/:$PATH
+WRF4G_ROOT=/oceano/gmeteo/users/chus/tmp/wrf4g
+export PATH=$WRF4G_ROOT/ui/scripts/:$PATH
 
 Now you have access to the commands:
 
