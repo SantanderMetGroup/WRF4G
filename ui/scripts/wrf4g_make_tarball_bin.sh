@@ -1,19 +1,16 @@
 #!/bin/bash
 version="3.1"
-revision=`svn info | grep Revision: | awk '{print $2}'`
-ll1=`expr length $1`
-ll1=`expr $ll1 + 0`
-if test $ll1 -ne 0
-then
-basedir=$1
+thisdir=$(pwd)
+
+if test ${#} -gt 1; then
+  basedir=$1
 else
-basedir=.
+  basedir="$(dirname $(dirname $(dirname $0)))/wn"
 fi
 
-echo "basedir: "$basedir
-#exit
+echo "      <<<< BASEDIR: $basedir"
 
-thisdir=$(pwd)
+revision=`svn info ${basedir}/WRFV3 | grep 'Last Changed Rev:' | awk -F: '{print $2}' | tr -d ' '`
 
 tardir="tarball${RANDOM}"
 
@@ -22,7 +19,9 @@ cd ${tardir}
   mkdir -p WPS/metgrid
   mkdir -p WPS/ungrib
   mkdir -p WRFV3/run
-  
+
+  ln -s ${basedir}/bin .  
+
   ln -s ${basedir}/WPS/metgrid/metgrid.exe WPS/metgrid/metgrid.exe
   ln -s ${basedir}/WPS/metgrid/METGRID.TBL.ARW WPS/metgrid/METGRID.TBL
   ln -s ${basedir}/WPS/ungrib/ungrib.exe WPS/ungrib/ungrib.exe
@@ -34,8 +33,8 @@ cd ${tardir}
   ln -s ${basedir}/WRFV3/run/*_DATA* WRFV3/run
   ln -s ${basedir}/WRFV3/run/*formatted WRFV3/run/
   ln -s ${basedir}/WRFV3/run/tr* WRFV3/run
-  ln -s ${basedir}/WRFV3/main/real.exe WRFV3/run
-  ln -s ${basedir}/WRFV3/main/wrf.exe WRFV3/run 
+  ln -s ${basedir}/WRFV3/run/real.exe WRFV3/run
+  ln -s ${basedir}/WRFV3/run/wrf.exe WRFV3/run 
   
 
   tar czhv --exclude=".svn" \

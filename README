@@ -1,0 +1,24 @@
+
+
+Set in your PATH the User Interface (UI) scripts:
+
+export PATH=/oceano/gmeteo/users/chus/tmp/wrf4g/ui/scripts/:$PATH
+
+Now you have access to the commands:
+
+  wrf4g_make_tarball_bin.sh
+  wrf4g_make_tarball.sh
+  wrf4g_submitter.sh 
+
+Make a fresh directory for your experiment setup and create sample files:
+
+mkdir myexp
+cd myexp
+wrf4g_create_files
+
+Edit 'wrf4g.conf' to set the location of your input data, etc. Do not
+forget to set the appropriate version of the binaries you need.
+
+Edit 'wrf.input' to set up your experiment details
+
+

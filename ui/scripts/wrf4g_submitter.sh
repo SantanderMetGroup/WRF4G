@@ -69,20 +69,22 @@ EOF
     fi
     mkdir -p ${chunkdir}/WRFV3/run
     ln -s ${userdir}/namelist.input ${chunkdir}/WRFV3/run/namelist.input
-    ln -s ${userdir}/wrf.input ${chunkdir}/wrf.input
-    ln -s ${userdir}/wrf4g.conf ${chunkdir}/wrf4g.conf
+    ln -s ${userdir}/wrf.input      ${chunkdir}/wrf.input
+    ln -s ${userdir}/wrf4g.conf     ${chunkdir}/wrf4g.conf
     mkdir ${chunkdir}/bin
-    ln -s ${wrf4g_root}/wn/bin/vcp ${chunkdir}/bin/vcp
+    ln -s ${wrf4g_root}/wn/bin/vcp  ${chunkdir}/bin/vcp
+    ln -s ${wrf4g_root}/wn/WRF4G.sh ${chunkdir}/WRF4G.sh
+    ln -s ${wrf4g_root}/ui/scripts/WRF4G_ini.sh ${chunkdir}/WRF4G_ini.sh
     cd ${chunkdir}
       tar czhf sandbox.tar.gz *
       #
       #   Submit the job
       #
       cat << EOF > job.gw
-  EXECUTABLE = ${wrf4g_root}/ui/scripts/WRF4G_ini.sh
-  ARGUMENTS = ""
-  INPUT_FILES   = sandbox.tar.gz
-  REQUIREMENTS = HOSTNAME = "*.es";
+EXECUTABLE = /bin/sh 
+ARGUMENTS = "./WRF4G_ini.sh"
+INPUT_FILES   = "sandbox.tar.gz, WRF4G_ini.sh"
+REQUIREMENTS = HOSTNAME = "*.es";
 EOF
       if test $chunkno -ne 1; then
         depflag="-d ${lastchunkjid}"

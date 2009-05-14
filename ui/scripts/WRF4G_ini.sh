@@ -4,8 +4,6 @@
 #
 # WRF4G initializer
 #
-WRF_VERSION="3.1"
-WRF4G_VERSION="0.0.0"
 ROOTDIR=$(pwd)
 #
 #   Expand the sandbox files
@@ -15,6 +13,7 @@ export PATH="`pwd`/bin:${PATH}"
 #
 #  Load wrf.input and wrf.chunk
 #
+source wrf4g.conf                                  || exit ${ERROR_MISSING_WRF4GCNF}
 sed -e 's/\ *=\ */=/' wrf.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
 sed -e 's/\ *=\ */=/' wrf.chunk > source.it        || exit ${ERROR_MISSING_WRFCHUNK}
@@ -22,9 +21,9 @@ source source.it && rm source.it
 #
 #  Create WRF4G framework structure
 #
-vcp ${base_path}/Apps/WRF4G-${WRF4G_VERSION}.tar.gz .
+vcp ${WRF4G_APPS}/Apps/WRF4G-${WRF4G_VERSION}.tar.gz .
 tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz
-vcp ${base_path}/Apps/WRFbin-${WRF_VERSION}.tar.gz .
+vcp ${WRF4G_APPS}/Apps/WRFbin-${WRF_VERSION}.tar.gz .
 tar xzf WRFbin-${WRF_VERSION}.tar.gz && rm -f WRFbin-${WRF_VERSION}.tar.gz
 #
 #   Now run the WRF4G...
