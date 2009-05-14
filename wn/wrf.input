@@ -17,9 +17,12 @@ WRF4G_WPSOUTPATH = ${WRF4G_BASEPATH}/WRF/experiments/${experiment_name}/${realiz
 WRF4G_RESTARTPATH = ${WRF4G_BASEPATH}/WRF/experiments/${experiment_name}/${realization_name}/restart
 
 start_date = "2001-01-01_18:00:00"
-end_date = "2001-01-30_00:00:00"
-simulation_interval_h = 24 
-simulation_length_h = 30
+end_date = "2001-12-31_00:00:00"
+#simulation_interval_h = 24 
+#simulation_length_h = 30
+simulation_interval_h = 4320 # 180 days 
+simulation_length_h = 4320
+chunk_size_h = 240 # 10 days
 is_continuous = 0
 is_restart = 0
 is_multiphysics = 0

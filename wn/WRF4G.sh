@@ -22,7 +22,7 @@ source source.it && rm source.it
 #
 ulimit -s unlimited
 
-logdir=${ROOTDIR}
+logdir=${ROOTDIR}/log; mkdir -p ${logdir}
 function timelog_clean(){
   rm -f ${logdir}/time.log
 }
@@ -152,10 +152,10 @@ cd ${ROOTDIR}/WRFV3/run || exit
     ln -s ../../WPS/met_em.d??.????-??-??_??:00:00.nc .
     fix_ptop
     ln -s ../../WPS/namelist.wps
-    fortnml_setn    namelist.input run_days    ${max_dom} 0
-    fortnml_setn    namelist.input run_hours   ${max_dom} 0
-    fortnml_setn    namelist.input run_minutes ${max_dom} 0
-    fortnml_setn    namelist.input run_seconds ${max_dom} 0
+    fortnml_set    namelist.input run_days    0
+    fortnml_set    namelist.input run_hours   0
+    fortnml_set    namelist.input run_minutes 0
+    fortnml_set    namelist.input run_seconds 0
     fortnml_setn    namelist.input start_year  ${max_dom} ${iyy}
     fortnml_setn    namelist.input start_month ${max_dom} ${imm}
     fortnml_setn    namelist.input start_day   ${max_dom} ${idd}
@@ -186,7 +186,7 @@ cd ${ROOTDIR}/WRFV3/run || exit
     fortnml_set  namelist.input time_step $(get_timestep $dx)
     fortnml_set  namelist.input max_dom   ${max_dom}
 
-    $launcher ./real.exe >& ${logdir}/wrf_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_REAL_FAILED}
+    $launcher ./real.exe >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_REAL_FAILED}
 #    if [ "$is_restart" = ".true." ]; then
 #      fortnml_set namelist.input restart .true.
 #    fi
