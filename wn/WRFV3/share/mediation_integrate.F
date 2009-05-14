@@ -1239,19 +1239,15 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
   ! Local
    LOGICAL, EXTERNAL :: wrf_dm_on_monitor
    CHARACTER*80                           :: fname, n2
-#ifdef WRF4G
-! WRF4G-UC May.09
-   TYPE(domain) , POINTER                      :: parent
-   CHARACTER*256                               :: timestr
-   TYPE(WRFU_Time)                             :: strt_time, cur_time
-#endif 
 
    CHARACTER (LEN=256)                    :: message
    INTEGER                                :: ierr
 
 #ifdef WRF4G
 ! WRF4G-UC May.09
-   CALL domain_clock_get( parent, current_timestr=timestr, start_time=strt_time, current_time=cur_time )
+   CHARACTER*256                               :: timestr
+
+   CALL domain_clock_get( grid, current_timestr=timestr )
 #endif
 
    IF ( wrf_dm_on_monitor() ) THEN
