@@ -9,8 +9,6 @@ from sys import exit
 from re import search
 import datetime
 
-verbose=True
-
 
 WRF4G_CONF_FILE_NOT_DEFINED=1
 DATE_BAD_FORMED=2
@@ -22,9 +20,11 @@ Example: %prog seasonal_nino_01 seas01 /tmp/wrf4g.conf
 
 """
 # Check the Arguments
-parser = OptionParser(usage,version="%prog 1.0")
 
+parser = OptionParser(usage,version="%prog 1.0")
+parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
 (options, args) = parser.parse_args()
+
 
 if len(args) == 3 :
   type = args[0]

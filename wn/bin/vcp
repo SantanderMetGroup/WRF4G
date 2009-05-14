@@ -51,9 +51,6 @@ class VCPURL:
                 if self.computer.find("@")!= -1 :
                     (self.user,self.computer)=self.computer.split("@")
         
-         # This is for URL with the form: ln:/etc/passwd, lfn:/grid/eela
-         else :
-          self.file=url_list[1]
         
     
   def __str__(self):
@@ -160,6 +157,9 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
           origin = origin + "/"
        else :
           if origin.find("*") != -1 : destiny = destiny + "/"
+          if isdir(dest.file) :
+             dest_list=destiny.split("/")
+             destiny = destiny + "/" + dest_list[-1]
    
        command="globus-url-copy %s %s %s" % (flags, origin, destiny)
 
