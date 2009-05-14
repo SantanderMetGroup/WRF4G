@@ -9,6 +9,7 @@ from os import popen
 from os import getcwd
 from os.path import abspath
 from os.path import isdir
+import datetime
 
 URL_BAD_FORMED=1
 COPY_ERROR=2
@@ -90,13 +91,12 @@ class VCPURL:
      url= protocol + user + computer + port + file 
      return url
      
-  def ls(self):
+  def ls(self,file):
      """ List all the files under the directory """
      command_dict= {'file': 'ls -1', 'gsiftp': 'edg-gridftp-ls'}
      file_dict= {'file': self.file, 'gsiftp': str(self)}
 
-     command="%s %s" % (command_dict[self.protocol],file_dict[self.protocol])
-     print command
+     command="%s %s/%s" % (command_dict[self.protocol],file_dict[self.protocol],file)
      (err,out)=getstatusoutput(command)
      
      if err != 0 :
@@ -109,7 +109,7 @@ class VCPURL:
        if file2del in out_list:
          out_list.remove(file2del)
      
-     print out_list  
+     return out_list  
 
 
 def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
@@ -175,6 +175,16 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
  
   return out
 
+def datewrf2iso (datewrf):
+  g=match("(\d{4})-(\d{2})-(\d{2})_(\d{2}):(\d{2}):(\d{2})",datewrf)
+  if g is None :
+      print "Error: Date is not well formed"
+      exit(DATE_BAD_FORMED)
+  
+  date_tuple=g.groups()  
+  date_object=datetime.datetime(*tuple(map(int,date_tuple)))
+  date=date_object.strftime("%Y%m%dT%H%M%SZ")
+  return date  
    
 
 #***************************************************************************#

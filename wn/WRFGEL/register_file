@@ -1,0 +1,76 @@
+#!/usr/bin/python
+from vcp import datewrf2iso
+from vcp import copy_file
+from vcp import VCPURL       
+from os import getenv
+from commands import getstatusoutput
+from optparse import OptionParser
+from sys import exit   
+from re import search
+import datetime
+
+verbose=True
+
+
+WRF4G_CONF_FILE_NOT_DEFINED=1
+DATE_BAD_FORMED=2
+TOO_MANY_DATES=3
+
+usage="""%prog experiment realization [wrf4g.conf]
+
+Example: %prog seasonal_nino_01 seas01 /tmp/wrf4g.conf
+
+"""
+# Check the Arguments
+parser = OptionParser(usage,version="%prog 1.0")
+
+(options, args) = parser.parse_args()
+
+if len(args) == 3 :
+  type = args[0]
+  date = args[1]
+  file = args[2]
+  
+else :
+  parser.error("Incorrect number of arguments")
+  exit(1)
+
+# Check that the environment variables has been established and import their values
+env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
+for var in env_var.keys()  :
+  var_value = getenv( var ,"Error")
+  print var_value
+  if var_value  == "Error" :
+    print "Error: %s not defined. Define the environment variable or give it as an argument to this function." % var_value 
+    exit(1)
+  env_var[var]= var_value
+# Check the WRF4g_BASEPATH is established
+
+wrf4g_conf=env_var["WRF4G_CONF_FILE"]
+exec(open(wrf4g_conf).read())
+
+if WRF4G_BASEPATH in dir():
+  print "Error: WRF4G_BASEPATH is not defined"
+  exit(1)
+
+# Split basename from name of the file
+split_name=file.split("/")
+file_name=split_name[-1]
+
+# Change the name of the file in the repository (Change date to the iso format
+# and add .nc at the end of the name
+g=search("(.*)(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})",file_name)
+if g is None :
+  print "Error: The name of the file is not well formed"
+  exit(1)
+
+[base_file,date_file]=g.groups()
+date=datewrf2iso(date_file)
+
+dest_file = base_file + date + ".nc"
+ 
+type_list={"rst":"restart","out":"output" }
+dest="%s/experiments/%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type],dest_file)
+
+if verbose: print "origin: %s destiny: %s" % (file,dest) 
+output=copy_file(file,dest)
