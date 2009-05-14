@@ -25,38 +25,36 @@ class VCPURL:
     self.file = ""
   
     if url:
-      url1=url.split(":",1)
-      if len(url1) > 3 :
-        print "The url is not well formed. Too many :"
-        exit(URL_BAD_FORMED)
+      # Split the url if the begging is protocol:. 
+      g0= match("([a-z]+):(.+)", url)
       
-      self.protocol=url1[0] 
+      # There's no protocol in the url
+      if g0 == None :
+         self.protocol= "file"
+         self.file = url
       
-      # The url contains a protocol
-      if  len(url1) != 1 :
-        position=url1[1].find('//')
-
-        if position == 0 :
-          g1=match("//([\w.@-]*):?(\d*)(/\S*)",url1[1])
-    
-          if g1 == None :
-            print  "The url is not well formed. //"
-            exit(URL_BAD_FORMED)
-          
-          (self.computer,self.port,self.file)=g1.groups()
-          
-          if self.computer.find("@")!= -1 :
-            (self.user,self.computer)=self.computer.split("@")
-        
-        # This is for URL with the form: ln:/etc/passwd, lfn:/grid/eela
-        else :
-          self.file=url1[1]
-        
-      # The URL is a local file
       else :
-        self.protocol="file"
-        self.file=url1[0]
-
+        # The url contains a protocol
+         (self.protocol,self.file)=g0.groups()
+        
+         # This is from URL with the form: gsiftp://ce01.macc.unican.es   
+         position=self.file.find('//')
+         if position == 0 :
+           g1=match("//([\w.@-]*):?(\d*)(/\S*)",self.file)         
+           if g1 == None :
+                print  "The url is not well formed. //"
+                exit(URL_BAD_FORMED)
+           else :
+                (self.computer,self.port,self.file)=g1.groups()
+          
+                if self.computer.find("@")!= -1 :
+                    (self.user,self.computer)=self.computer.split("@")
+        
+         # This is for URL with the form: ln:/etc/passwd, lfn:/grid/eela
+         else :
+          self.file=url_list[1]
+        
+    
   def __str__(self):
      """ It returns an url from a array with 
      the following field [protocol,user,computer,port,file]"""
@@ -91,7 +89,27 @@ class VCPURL:
   
      url= protocol + user + computer + port + file 
      return url
-  
+     
+  def ls(self):
+     """ List all the files under the directory """
+     command_dict= {'file': 'ls -1', 'gsiftp': 'edg-gridftp-ls'}
+     file_dict= {'file': self.file, 'gsiftp': str(self)}
+
+     command="%s %s" % (command_dict[self.protocol],file_dict[self.protocol])
+     print command
+     (err,out)=getstatusoutput(command)
+     
+     if err != 0 :
+        print "Error listing file: " + str(err) + "\n" + out
+        exit(COPY_ERROR)
+     
+     out_list=out.split("\n")
+     
+     for file2del in [".",".."] :
+       if file2del in out_list:
+         out_list.remove(file2del)
+     
+     print out_list  
 
 
 def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
@@ -101,14 +119,12 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
   orig=VCPURL(origin)
   dest=VCPURL(destination)
 
-  print orig.__dict__
-  print dest.__dict__
   flags=""
 
   if orig.protocol == "file" :
     if dest.protocol == "file" :
-       if verbose :   flags="-v"
-       if recursive:  flags=flags + "R"
+       if verbose :   flags="-v "
+       if recursive:  flags=flags + "-R"
        command="cp %s %s %s" % (flags, orig.file, dest.file)
 
     elif dest.protocol == "ln" :
