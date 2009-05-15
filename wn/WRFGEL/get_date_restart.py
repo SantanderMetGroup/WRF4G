@@ -5,8 +5,14 @@ from os import getenv
 from commands import getstatusoutput
 from optparse import OptionParser
 from sys import exit   
+from re import search
+
+
+
 
 WRF4G_CONF_FILE_NOT_DEFINED=1
+DATE_BAD_FORMED=2
+TOO_MANY_DATES=3
 
 usage="""%prog experiment realization [wrf4g.conf]
 
@@ -15,8 +21,9 @@ Example: %prog seasonal_nino_01 seas01 /tmp/wrf4g.conf
 """
 # Check the Arguments
 parser = OptionParser(usage,version="%prog 1.0")
-
+parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
 (options, args) = parser.parse_args()
+
 
 if len(args) == 2 :
   experiment = args[0]
@@ -43,12 +50,26 @@ if WRF4G_BASEPATH in dir():
   exit(1)
 
 # Load the URL into the VCPURL class
-
 repo="%s/experiments/%s/%s/restart" % (WRF4G_BASEPATH,experiment,realization)
+if verbose: print repo
 
 list=VCPURL(repo)
-a=list.ls()
+restart_list=list.ls("*.nc")
 
+if len(restart_list) == 0 :
+  # There are not restart files
+  print "There are not restart files"
+  date=0
 
+elif len(restart_list) == 1:
+  g=search("(\d{8}T\d{6}Z)",restart_list[0])
+  if g is None :
+    print "Error: Date is not well formed"
+    exit(DATE_BAD_FORMED)
+  [date]=g.groups()  
+else :
+  print "Error: Problems getting date. Too many files"
+  exit(TOO_MANY_DATES)     
 
-#  (err,out)=getstatusoutput(command 
+print date
+

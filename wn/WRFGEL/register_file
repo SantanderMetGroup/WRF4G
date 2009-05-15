@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from vcp import import get_env_vars
 from vcp import datewrf2iso
 from vcp import copy_file
 from vcp import VCPURL       
@@ -37,18 +38,9 @@ else :
 
 # Check that the environment variables has been established and import their values
 env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
-for var in env_var.keys()  :
-  var_value = getenv( var ,"Error")
-  print var_value
-  if var_value  == "Error" :
-    print "Error: %s not defined. Define the environment variable or give it as an argument to this function." % var_value 
-    exit(1)
-  env_var[var]= var_value
-# Check the WRF4g_BASEPATH is established
-
-wrf4g_conf=env_var["WRF4G_CONF_FILE"]
-exec(open(wrf4g_conf).read())
-
+env_var=get_env_vars(env_var)
+exec(open(env_var["WRF4G_CONF_FILE"]).read())
+# List all the variables in the script and search WRF4G_BASEPATH
 if WRF4G_BASEPATH in dir():
   print "Error: WRF4G_BASEPATH is not defined"
   exit(1)
