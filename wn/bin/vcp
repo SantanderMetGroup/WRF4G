@@ -196,7 +196,7 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
           origin = origin + "/"
        else :
           if origin.find("*") != -1 : destiny = destiny + "/"
-          if isdir(dest.file) :
+          elif isdir(dest.file) :
              destiny = destiny + "/" + basename(origin)
    
        command="globus-url-copy %s %s %s" % (flags, origin, destiny)
