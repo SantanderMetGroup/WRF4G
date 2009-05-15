@@ -29,6 +29,7 @@ export WRF4G_REALIZATION="${realization_name}"
 ulimit -s unlimited
 
 logdir=${ROOTDIR}/log; mkdir -p ${logdir}
+VCPDEBUG="-v"
 
 function timelog_clean(){
   rm -f ${logdir}/time.log
@@ -75,7 +76,7 @@ cd WPS || exit
   #
   #   Get geo_em files and namelist.wps
   #
-  vcp -r ${WRF4G_DOMAINPATH}/${domain_name}/'*' . 
+  vcp -r ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/'*' . || exit ${ERROR_VCP_FAILED}
   #
   #   Modify the namelist
   #
@@ -93,7 +94,7 @@ cd WPS || exit
     for yearmon in $(get_yearmons $iyy $imm $fyy $fmm) 
     do
       year=${yearmon:0:4}
-      vcp ${global_path}/${year}/'*'${yearmon}'*'.grb ln://`pwd`/grbData 
+      vcp ${VCPDEBUG} ${global_path}/${year}/'*'${yearmon}'*'.grb ln://`pwd`/grbData 
       #ln -s ${global_path}/${year}/*${yearmon}*.grb grbData/ 
     done
     ./link_grib.csh grbData/*.grb

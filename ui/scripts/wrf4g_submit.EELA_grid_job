@@ -23,6 +23,6 @@ else
   depflag=""
 fi
 
-gwsubmit -v ${depflag} -t job.gw | cut -f2 -d':' | cut -f2 -d' '
+gwsubmit -v ${depflag} -t job.gw | awk -F: '/JOB ID/ {print $2}'
 
 
