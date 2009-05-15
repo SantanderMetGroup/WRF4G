@@ -1,13 +1,11 @@
 #!/usr/bin/python
-from vcp import import get_env_vars
-from vcp import datewrf2iso
-from vcp import copy_file
-from vcp import VCPURL       
+from vcp import *      
 from os import getenv
 from commands import getstatusoutput
 from optparse import OptionParser
 from sys import exit   
 from re import search
+from os.path import basename
 import datetime
 
 
@@ -15,23 +13,25 @@ WRF4G_CONF_FILE_NOT_DEFINED=1
 DATE_BAD_FORMED=2
 TOO_MANY_DATES=3
 
-usage="""%prog experiment realization [wrf4g.conf]
+usage="""%prog file_type date [file_name]
 
-Example: %prog seasonal_nino_01 seas01 /tmp/wrf4g.conf
+Example: %prog rst 1990-01-01_00:00:00 wrfrst_d01_1990-01-01_00:00:00
+         %prog out 1990-01-01_00:00:00 wpsout_d01_1990-01-01_00:00:00
+         %prog wps 1990-01-01_00:00:00
 
 """
 # Check the Arguments
-
 parser = OptionParser(usage,version="%prog 1.0")
 parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
 (options, args) = parser.parse_args()
 
-
-if len(args) == 3 :
-  type = args[0]
-  date = args[1]
-  file = args[2]
+type_list={"rst":"restart","out":"output" }
+if len(args) == 3 and args[0] in type_list.keys():
+  [type,date,file] = args
   
+elif len(args) ==2 and args[0] == "wps" :
+  [type,date] = args
+
 else :
   parser.error("Incorrect number of arguments")
   exit(1)
@@ -45,24 +45,23 @@ if WRF4G_BASEPATH in dir():
   print "Error: WRF4G_BASEPATH is not defined"
   exit(1)
 
-# Split basename from name of the file
-split_name=file.split("/")
-file_name=split_name[-1]
-
 # Change the name of the file in the repository (Change date to the iso format
 # and add .nc at the end of the name
-g=search("(.*)(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})",file_name)
-if g is None :
-  print "Error: The name of the file is not well formed"
-  exit(1)
-
-[base_file,date_file]=g.groups()
-date=datewrf2iso(date_file)
-
-dest_file = base_file + date + ".nc"
+if type in type_list.keys() :
+    file_o=wrffile(file)
+    dest_file=wrffile.file_name_iso()
  
-type_list={"rst":"restart","out":"output" }
-dest="%s/experiments/%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type],dest_file)
+    dest="%s/experiments/%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type],dest_file)
+    if options.verbose: print "origin: %s destiny: %s" % (file,dest) 
+    output=copy_file(file,dest)
 
-if verbose: print "origin: %s destiny: %s" % (file,dest) 
-output=copy_file(file,dest)
+else :    
+    ### wrfinput_d0?,wrfbdy_d0?,wrflowinp_d0?, upload_file wps 1990-01-01_00:00:00, subiria al catalogo: wrfinput_d01_19900101T000000 y
+    ### y get_file wps 1990-01-01_00:00:00 bajaria wrfinput_d01_19900101T000000 renombrando a wrfinput_d01
+    wps_dir=VCPURL(".")
+    wps_files=wps.ls("wrf[lbi]*_d0?")
+    sufix="_" + datetime2dateiso(datewrf2datetime(date))+ ".nc"
+    for wps_file in wps_files :
+        dest="%s/experiments/%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],wps,dest_file)
+        if options.verbose: print "origin: %s destiny: %s" % (file,dest) 
+            output=copy_file(wps_file,dest)  
