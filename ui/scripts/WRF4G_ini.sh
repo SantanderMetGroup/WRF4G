@@ -29,5 +29,4 @@ tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz && rm -f WRF4Gbin-${WRF_VERSION}.tar.gz
 #   Now run the WRF4G...
 #
 tar xzf sandbox.tar.gz # La namelist buena esta aqui!
-sleep 4999
 source WRF4G.sh

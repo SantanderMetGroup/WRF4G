@@ -44,22 +44,6 @@ function timelog_init(){
   echo -n "$(printf "%20s" "$item") $(date +%Y%m%d%H%M%S) " >> ${logdir}/time.log
 }
 
-function clean_rsl(){
-  rm -f rsl.error.* rsl.out.*
-}
-
-function clean_wps(){
-  rm -f GRIBFILE.[A-Z][A-Z][A-Z]      # Links to grib files
-  rm -f ${global_name}*\:????-??-??_??   # Intermediate files
-  rm -f ${global_name}FIX                # Intermediate files
-  rm -f met_em.*                      # metgrid files
-}
-
-function clean_real(){
-  rm -f met_em.d??.????-??-??_??:00:00.nc
-  rm -f namelist.wps
-}
-
 timelog_clean
 #
 #  Get the 'a-priori' start (i**) and end (f**) dates for this chunk
@@ -76,7 +60,7 @@ cd WPS || exit
   #
   #   Get geo_em files and namelist.wps
   #
-  vcp -r ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/'*' . || exit ${ERROR_VCP_FAILED}
+  vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/'*' . || exit ${ERROR_VCP_FAILED}
   #
   #   Modify the namelist
   #
@@ -145,7 +129,9 @@ cd WPS || exit
   #
   timelog_init "metgrid"
     fortnml_vardel namelist.wps opt_output_from_metgrid_path
+    fortnml_vardel namelist.wps opt_output_from_geogrid_path
     fortnml_vardel namelist.wps opt_metgrid_tbl_path
+    fortnml_vardel namelist.wps opt_geogrid_tbl_path
     fortnml_set  namelist.wps fg_name               "'${global_name}'"
     fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
     fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"

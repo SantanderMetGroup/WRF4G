@@ -235,6 +235,22 @@ function gmt_clean(){
   rm -f .gmtdefaults* .gmtcommands*  
 }
 
+function clean_rsl(){
+  rm -f rsl.error.* rsl.out.*
+}
+
+function clean_wps(){
+  rm -f GRIBFILE.[A-Z][A-Z][A-Z]      # Links to grib files
+  rm -f ${global_name}*\:????-??-??_??   # Intermediate files
+  rm -f ${global_name}FIX                # Intermediate files
+  rm -f met_em.*                      # metgrid files
+}
+
+function clean_real(){
+  rm -f met_em.d??.????-??-??_??:00:00.nc
+  rm -f namelist.wps
+}
+
 function fortnml_import_record(){
   nmlfile=$1
   recname=$2
