@@ -59,9 +59,12 @@ else :
     ### wrfinput_d0?,wrfbdy_d0?,wrflowinp_d0?, upload_file wps 1990-01-01_00:00:00, subiria al catalogo: wrfinput_d01_19900101T000000 y
     ### y get_file wps 1990-01-01_00:00:00 bajaria wrfinput_d01_19900101T000000 renombrando a wrfinput_d01
     wps_dir=VCPURL(".")
-    wps_files=wps.ls("wrf[lbi]*_d0?")
-    sufix="_" + datetime2dateiso(datewrf2datetime(date))+ ".nc"
+    wps_files=wps_dir.ls("wrf[lbi]*_d0?")
+    
+    suffix="_" + datetime2dateiso(datewrf2datetime(date))+ ".nc"
+
     for wps_file in wps_files :
-        dest="%s/experiments/%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],wps,dest_file)
+        dest_file=basename(wps_file)
+        dest="%s/experiments/%s/%s/%s/%s%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],wps,dest_file,suffix)
         if options.verbose: print "origin: %s destiny: %s" % (file,dest) 
             output=copy_file(wps_file,dest)  
