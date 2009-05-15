@@ -1,0 +1,28 @@
+#! /bin/bash
+#
+# Job submission abstraction layer
+#
+# These files (wrf4g_submit.*) are called with a 'jobfile' argument and an
+# optional job identification to set up dependencies.  The only standard output
+# should be a job identification for the job submitted (for its use on a
+# subsequent call to this script)
+#
+jobfile=$1
+depid=$2
+
+cat << EOF > job.gw
+EXECUTABLE = /bin/sh 
+ARGUMENTS = "./${jobfile}"
+INPUT_FILES   = "sandbox.tar.gz, ${jobfile}"
+REQUIREMENTS = HOSTNAME = "*.es";
+EOF
+
+if test -n "${depid}"; then
+  depflag="-d ${depid}"
+else
+  depflag=""
+fi
+
+gwsubmit -v ${depflag} -t job.gw | cut -f2 -d':' | cut -f2 -d' '
+
+

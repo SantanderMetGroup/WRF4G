@@ -2,19 +2,19 @@
 #
 # wrf4g_submitter
 #
-#
-# 
+# function get_nin_vars()
+# function get_nim_vars()
+# function cycle_chunks(ALGO_name, ALGO_start_date, ALGO_end_date)
+# function cycle_hindcasts(realization_name, start_date, end_date)
+# function cycle_time(realization_name, start_date, end_date)
 #
 userdir=`pwd`
 wrf4g_root=$(dirname $(dirname $(dirname $0)))
-
-function gwsubmit(){
-  # Until valva finishes...
-  echo $RANDOM
-} 
 #
 #  Load wrf.input et al.
 #
+sed -e 's/\ *=\ */=/' wrf4g.conf > source.it        || exit ${ERROR_MISSING_WRF4GCNF}
+source source.it && rm source.it
 sed -e 's/\ *=\ */=/' wrf.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
 #source ${wrf4g_root}/scheduler_headers/sched_headers.${job_type} || exit ${ERROR_MISSING_HEADERS}
@@ -74,31 +74,19 @@ EOF
     mkdir ${chunkdir}/bin
     ln -s ${wrf4g_root}/wn/bin/vcp  ${chunkdir}/bin/vcp
     ln -s ${wrf4g_root}/wn/WRF4G.sh ${chunkdir}/WRF4G.sh
-    ln -s ${wrf4g_root}/ui/scripts/WRF4G_ini.sh ${chunkdir}/WRF4G_ini.sh
     cd ${chunkdir}
       tar czhf sandbox.tar.gz *
       #
       #   Submit the job
       #
-      cat << EOF > job.gw
-EXECUTABLE = /bin/sh 
-ARGUMENTS = "./WRF4G_ini.sh"
-INPUT_FILES   = "sandbox.tar.gz, WRF4G_ini.sh"
-REQUIREMENTS = HOSTNAME = "*.es";
-EOF
-      if test $chunkno -ne 1; then
-        depflag="-d ${lastchunkjid}"
-      else
-        depflag=""
-      fi
-      chunkjid=$(gwsubmit ${depflag} job.gw)
+      ln -s ${wrf4g_root}/ui/scripts/WRF4G_ini.sh .
+      chunkjid=$(${wrf4g_root}/ui/scripts/wrf4g_submit.${JOB_TYPE} WRF4G_ini.sh ${chunkjid})
     cd ${userdir}
     #
     #  Cycle dates and jobids
     #
     current_date=${final_date}
     read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
-    lastchunkjid=${chunkjid}
     let chunkno++
   done
 }

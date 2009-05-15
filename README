@@ -1,4 +1,24 @@
 
+  ====================================================================
+                             WRF4G README
+  ====================================================================
+
+CONTENTS
+--------
+
+ o Execution tree
+ o Usage
+
+EXECUTION TREE
+--------------
+
+  wrf4g_submitter.sh             <- wrf.input, wrf4g.conf
+    `-- wrf4g_submit.[JOB_TYPE]
+          `-- WRF4G_ini.sh
+                `--WRF4G.sh
+
+USAGE
+-----
 
 Set in your PATH the User Interface (UI) scripts:
 

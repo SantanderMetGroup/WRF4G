@@ -18,11 +18,18 @@ source source.it && rm source.it
 sed -e 's/\ *=\ */=/' wrf.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
 #
+#  Export variables
+#
+export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
+export WRF4G_EXPERIMENT="${experiment_name}"
+export WRF4G_REALIZATION="${realization_name}"
+#
 # Running WRF
 #
 ulimit -s unlimited
 
 logdir=${ROOTDIR}/log; mkdir -p ${logdir}
+
 function timelog_clean(){
   rm -f ${logdir}/time.log
 }
