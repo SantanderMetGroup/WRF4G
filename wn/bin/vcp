@@ -97,7 +97,7 @@ class VCPURL:
      command_dict= {'file': 'ls -1', 'gsiftp': 'edg-gridftp-ls'}
      file_dict= {'file': self.file, 'gsiftp': str(self)}
 
-     command="%s %s/%s" % (command_dict[self.protocol],file_dict[self.protocol],file)
+     command="%s %s" % (command_dict[self.protocol],file_dict[self.protocol])
      (err,out)=getstatusoutput(command)
      
      if err != 0 :
@@ -106,11 +106,24 @@ class VCPURL:
      
      out_list=out.split("\n")
      
-     for file2del in [".",".."] :
-       if file2del in out_list:
-         out_list.remove(file2del)
+     pattern=file.replace(".","\.")
+     pattern=pattern.replace("*",".*")
+     pattern= pattern + "$"
+
      
-     return out_list  
+     file_list=[]
+     
+     try :
+         out_list.remove(".")
+         out_list.remove("..")
+     except ValueError: 
+         pass
+     
+     for file_name in out_list:
+         if match(pattern,file_name) :
+             file_list.append(file_name)
+      
+     return file_list  
 
 
 class wrffile :
@@ -122,10 +135,9 @@ class wrffile :
         """ Change the name of the file in the repository (Change date to the iso format
         and add .nc at the end of the name""" 
         # wrfrst_d01_1991-01-01_12:00:00
-        g=search("(.*)(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})",url)
-        if g is not None :
-            [base_file,date_file]=g.groups() 
-            self.date=datewrf2datetime(date_file)
+        if not search("(.*)(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})",url) :
+           [base_file,date_file]=g.groups() 
+           self.date=datewrf2datetime(date_file)
         else :
             # wrfrst_d01_19910101T120000Z.nc
             g=search("(.*)(\d{8}T\d{6}Z)",url)

@@ -1,12 +1,10 @@
 #!/usr/bin/python
 from vcp import *      
-from os import getenv
 from commands import getstatusoutput
 from optparse import OptionParser
 from sys import exit   
-from re import search
 from os.path import basename
-import datetime
+
 
 
 WRF4G_CONF_FILE_NOT_DEFINED=1
@@ -55,6 +53,7 @@ if type in type_list.keys() :
     dest="%s/experiments/%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type],dest_file)
     if options.verbose: print "origin: %s destiny: %s" % (file,dest) 
     output=copy_file(file,dest)
+    print out
 
 else :    
     ### wrfinput_d0?,wrfbdy_d0?,wrflowinp_d0?, upload_file wps 1990-01-01_00:00:00, subiria al catalogo: wrfinput_d01_19900101T000000 y
@@ -69,4 +68,4 @@ else :
         dest="%s/experiments/%s/%s/%s/%s%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],"wpsout",dest_file,suffix)
         if options.verbose: print "origin: %s destiny: %s" % (wps_file,dest) 
         output=copy_file(wps_file,dest) 
-print output
+        print output
