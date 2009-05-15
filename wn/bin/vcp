@@ -156,8 +156,9 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
           destiny = destiny + "/"
           origin = origin + "/"
        else :
-          if origin.find("*") != -1 : destiny = destiny + "/"
-          if isdir(dest.file) :
+          if origin.find("*") != -1 :
+             destiny = destiny + "/"
+          elif isdir(dest.file) :
              dest_list=origin.split("/")
              destiny = destiny + "/" + dest_list[-1]
    
