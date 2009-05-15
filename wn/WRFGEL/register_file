@@ -39,6 +39,7 @@ else :
 # Check that the environment variables has been established and import their values
 env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
 env_var=get_env_vars(env_var)
+
 exec(open(env_var["WRF4G_CONF_FILE"]).read())
 # List all the variables in the script and search WRF4G_BASEPATH
 if WRF4G_BASEPATH in dir():
@@ -49,7 +50,7 @@ if WRF4G_BASEPATH in dir():
 # and add .nc at the end of the name
 if type in type_list.keys() :
     file_o=wrffile(file)
-    dest_file=wrffile.file_name_iso()
+    dest_file=file_o.file_name_iso()
  
     dest="%s/experiments/%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type],dest_file)
     if options.verbose: print "origin: %s destiny: %s" % (file,dest) 
@@ -65,6 +66,7 @@ else :
 
     for wps_file in wps_files :
         dest_file=basename(wps_file)
-        dest="%s/experiments/%s/%s/%s/%s%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],wps,dest_file,suffix)
-        if options.verbose: print "origin: %s destiny: %s" % (file,dest) 
-            output=copy_file(wps_file,dest)  
+        dest="%s/experiments/%s/%s/%s/%s%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],"wpsout",dest_file,suffix)
+        if options.verbose: print "origin: %s destiny: %s" % (wps_file,dest) 
+        output=copy_file(wps_file,dest) 
+print output

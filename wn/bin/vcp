@@ -12,6 +12,7 @@ from os.path import abspath
 from os.path import isdir
 from os.path import basename
 from os.path import dirname
+from os import getenv
 import datetime
 
 URL_BAD_FORMED=1
@@ -112,7 +113,7 @@ class VCPURL:
      return out_list  
 
 
-class wrf_file :
+class wrffile :
     """ This class manage the restart and output files and the dates they represent.
     It recieves a file name with one of the following shapes: wrfrst_d01_1991-01-01_12:00:00 or
     wrfrst_d01_19910101T120000Z and it return the date of the file, the name,..."""
@@ -140,13 +141,13 @@ class wrf_file :
        
      
     def date_wrf(self):
-         return datetime2datewrf(self.date) + ".nc"
+         return datetime2datewrf(self.date)
     def date_iso(self):
          return datetime2dateiso(self.date)
     def file_name_wrf(self):
          return self.file_name + datetime2datewrf(self.date)
     def file_name_iso(self):
-         return self.file_name + datetime2dateiso(self.date)
+         return self.file_name + datetime2dateiso(self.date) + ".nc"
 
 def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
   """Copies origin in destination. Both are arrays containing 
@@ -243,13 +244,11 @@ def datetime2dateiso (date_object):
 def get_env_vars(var_list):
     for var in var_list.keys()  :
         var_value = getenv( var ,"Error")
-        print var_value
         if var_value  == "Error" :
             print "Error: %s not defined. Define the environment variable or give it as an argument to this function." % var_value 
             exit(1)            
         var_list[var]= var_value
-        return var_list
-
+    return var_list
 #***************************************************************************#
 #                  VCP (MAIN)                                               #
 #***************************************************************************#
