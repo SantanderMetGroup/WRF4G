@@ -390,3 +390,19 @@ function get_yearmons(){
     done
   done
 }
+
+function date_wrf2iso(){
+  echo $1 | tr -d ':-' | tr '_' 'T'
+}
+
+function date_iso2wrf(){
+  isodate=$1
+  local yyyy mm dd hh min sec
+  yyyy=${isodate:0:4}
+  mm=${isodate:4:2}
+  dd=${isodate:6:2}
+  hh=${isodate:9:2}
+  min=${isodate:11:2}
+  sec=${isodate:13:2}
+  echo "${yyyy}-${mm}-${dd}_${hh}:${min}:${sec}"
+}
