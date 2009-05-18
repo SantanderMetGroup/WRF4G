@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#! /usr/bin/python
 from vcp import *  
 from commands import getstatusoutput
 from optparse import OptionParser
@@ -29,7 +29,9 @@ if WRF4G_BASEPATH in dir():
   exit(1)
   
 # Load the URL into the VCPURL class
-repo="%s/experiments/%s/%s/wpsout" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"])
-if options.verbose: print repo
-list=VCPURL(repo)
-list.mkdir()
+for dir in ["output","restart","wpsout"]:
+  repo="%s/experiments/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],dir)
+  if options.verbose:
+    print repo
+  list=VCPURL(repo)
+  list.mkdir()

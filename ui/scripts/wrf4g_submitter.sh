@@ -20,6 +20,10 @@ source source.it && rm source.it
 #source ${wrf4g_root}/scheduler_headers/sched_headers.${job_type} || exit ${ERROR_MISSING_HEADERS}
 source ${wrf4g_root}/wn/lib/bash/wrf_util.sh       || exit ${ERROR_MISSING_WRFUTIL}
 
+function get_ni_vars(){
+  set | grep '^NI_' | sed -e 's/^NI_\(.*\)=.*$/\1/'
+}
+
 function get_nin_vars(){
   set | grep '^NIN_' | sed -e 's/^NIN_\(.*\)=.*$/\1/'
 }
@@ -149,6 +153,9 @@ function cycle_time(){
 #  Initial override of namelist values
 #
 cp ${userdir}/namelist.input ${userdir}/namelist.input.base
+for var in $(get_ni_vars); do
+  fortnml_set namelist.input.base $var $(eval echo \$NI_${var})
+done
 for var in $(get_nim_vars); do
   fortnml_setm namelist.input.base $var $(eval echo \$NIM_${var})
 done

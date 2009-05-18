@@ -91,8 +91,7 @@ read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}   | tr '_:T-' '    ')
 #
 #   Must WPS run or are the boundaries available?
 #
-#if test "$(exists_wps $(date_wrf2iso ${chunk_start_date}))" -eq "1"; then
-if false; then  #  exists_wps is not yet ready...
+if test "$(exist_wps $(date_wrf2iso ${chunk_start_date}))" -eq "1"; then
   wps_ran=0
   cd ${ROOTDIR}/WRFV3/run || exit
     ${ROOTDIR}/WRFGEL/download_file wps $(date_wrf2iso ${chunk_start_date})
