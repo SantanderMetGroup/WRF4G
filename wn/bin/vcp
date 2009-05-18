@@ -109,10 +109,8 @@ class VCPURL:
      pattern=file.replace(".","\.")
      pattern=pattern.replace("*",".*")
      pattern= pattern + "$"
-
      
      file_list=[]
-     
      try :
          out_list.remove(".")
          out_list.remove("..")
@@ -120,9 +118,10 @@ class VCPURL:
          pass
      
      for file_name in out_list:
+         print "pattern: " + pattern + " file: " + file_name
          if match(pattern,file_name) :
-             file_list.append(file_name)
-      
+             file_list.append(file_name)      
+     
      return file_list  
 
 
@@ -135,7 +134,9 @@ class wrffile :
         """ Change the name of the file in the repository (Change date to the iso format
         and add .nc at the end of the name""" 
         # wrfrst_d01_1991-01-01_12:00:00
-        if not search("(.*)(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})",url) :
+        
+        g=search("(.*)(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})",url) 
+        if g:
            [base_file,date_file]=g.groups() 
            self.date=datewrf2datetime(date_file)
         else :
@@ -257,12 +258,12 @@ def get_env_vars(var_list):
     for var in var_list.keys()  :
         var_value = getenv( var ,"Error")
         if var_value  == "Error" :
-            print "Error: %s not defined. Define the environment variable or give it as an argument to this function." % var_value 
+            print "Error: %s not defined. Define the environment variable or give it as an argument to this function." % var 
             exit(1)            
         var_list[var]= var_value
     return var_list
 #***************************************************************************#
-#                  VCP (MAIN)                                               #
+#                                        VCP (MAIN)                                                     #
 #***************************************************************************#
 
 if __name__ == "__main__":

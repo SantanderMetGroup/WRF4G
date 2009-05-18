@@ -1,0 +1,60 @@
+#!/usr/bin/python
+from vcp import *  
+from os import getenv
+from commands import getstatusoutput
+from optparse import OptionParser
+from sys import exit   
+from re import search
+import datetime
+
+WRF4G_CONF_FILE_NOT_DEFINED=1
+DATE_BAD_FORMED=2
+TOO_MANY_DATES=3
+
+usage="""%prog type date
+
+Example:    %prog rst 1990-01-01_00:00:00 
+            %prog wps 1990-01-01_00:00:00
+
+This command needs that the following environment variables have been established: WRF4G_EXPERIMENT, WRF4G_REALIZATION and WRF4G_CONF_FILE.
+"""
+
+# Check the Arguments
+parser = OptionParser(usage,version="%prog 1.0")
+parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
+(options, args) = parser.parse_args()
+
+if len(args) == 2 :
+  [ type, date ] = args
+else :
+  parser.error("Incorrect number of arguments")
+  exit(1)
+
+# Check that the environment variables has been established and import their values
+env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
+env_var=get_env_vars(env_var)
+exec(open(env_var["WRF4G_CONF_FILE"]).read())
+# List all the variables in the script and search WRF4G_BASEPATH
+if WRF4G_BASEPATH in dir():
+  print "Error: WRF4G_BASEPATH is not defined"
+  exit(1)
+
+
+type_list={"rst":"restart","wps":"wpsout" }
+pattern={"rst": "wrfrst*" + date + "*" ,"wps":"wrf[lbi]*_d\d\d_" + date + "*" } 
+
+orig_folder="%s/experiments/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
+orig_c=VCPURL(orig_folder)
+
+for file in  orig_c.ls(pattern[type]):
+    # file will follow the pattern: wrfrst_d01_19900101T000000Z.nc or wrflowinp_d08_19900101T000000Z.nc
+    file_c=wrffile(file)
+    if type == "rst" :
+        dest=file_c.file_name + file_c.date_wrf()
+    else: 
+        # From wrflowinp_d08_ we remove the _ at the end
+        dest=file_c.file_name[:-1]
+    if options.verbose: print "origin: %s destiny: %s" % (orig_folder + "/" + file ,dest)     
+    
+    output=copy_file( orig_folder + "/" + file ,dest, verbose=options.verbose)         
+    print output
