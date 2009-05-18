@@ -177,7 +177,7 @@ else
       fortnml_set  namelist.wps fg_name               "'${global_name}'"
       fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
       fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
-      ./metgrid/metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_METGRID_FAILED}
+      ${LAUNCHER_REAL} ./metgrid/metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_METGRID_FAILED}
     timelog_end
   cd ${ROOTDIR}/WRFV3/run || exit
     #------------------------------------------------------------------

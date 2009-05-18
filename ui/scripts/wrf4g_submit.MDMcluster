@@ -20,8 +20,8 @@ fi
 
 if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
   nodflag="-l nodes=${NUMBER_OF_NODES}:ppn=${PROCESSES_PER_NODE}"
-  echo "LAUNCHER_REAL=\"echo mpiexec -comm mpich-ib -npernode 2\""                    >> wrf.chunk
-  echo "LAUNCHER_WRF=\"echo mpiexec -comm mpich-ib -npernode ${PROCESSES_PER_NODE}\"" >> wrf.chunk
+  echo "LAUNCHER_REAL=\"mpiexec -npernode 2\""                    >> wrf.chunk
+  echo "LAUNCHER_WRF=\"mpiexec -npernode ${PROCESSES_PER_NODE}\"" >> wrf.chunk
 else
   nodflag=""
   echo "LAUNCHER_REAL=\"\""              >> wrf.chunk
@@ -46,4 +46,4 @@ mkdir -p ${rundir} || exit
 cp -L sandbox.tar.gz ${rundir}/
 cp -L WRF4G_ini.sh   ${rundir}/
 
-qsub -q globus ${depflag} ${nodflag} $jobfile | awk -F. '{print $1}'
+qsub -q macc ${depflag} ${nodflag} $jobfile | awk -F. '{print $1}'
