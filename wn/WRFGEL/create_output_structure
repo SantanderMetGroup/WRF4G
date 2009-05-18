@@ -1,16 +1,8 @@
 #!/usr/bin/python
-
-from vcp import *      
+from vcp import *  
 from commands import getstatusoutput
 from optparse import OptionParser
-from sys import exit   
-from os.path import basename 
-from re import search
-from os import getenv
 
-WRF4G_CONF_FILE_NOT_DEFINED=1
-DATE_BAD_FORMED=2
-TOO_MANY_DATES=3
 
 usage="""%prog 
 
@@ -27,7 +19,6 @@ parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default
 if len(args) != 0 :
   parser.error("Incorrect number of arguments. This script doesn't take any arguments.")
   exit(1)
-
 # Check that the environment variables has been established and import their values
 env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
 env_var=get_env_vars(env_var)
@@ -36,28 +27,9 @@ exec(open(env_var["WRF4G_CONF_FILE"]).read())
 if WRF4G_BASEPATH in dir():
   print "Error: WRF4G_BASEPATH is not defined"
   exit(1)
-
+  
 # Load the URL into the VCPURL class
-repo="%s/experiments/%s/%s/restart" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"])
-if verbose: print repo
+repo="%s/experiments/%s/%s/wpsout" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"])
+if options.verbose: print repo
 list=VCPURL(repo)
-restart_list=list.ls("*.nc")
-
-if len(restart_list) == 0 :
-  # There are not restart files
-  print "There are not restart files"
-  date=0
-
-elif len(restart_list) == 1:
-    # Here we suppose that there is just one file ending in .nc  
-    g=search("(\d{8}T\d{6}Z)",restart_list[0])
-    if g :
-        [date]=g.groups()  
-    else :
-        print "Error: Date is not well formed"
-        exit(DATE_BAD_FORMED)
-else :
-  print "Error: Problems getting date. Too many files"
-  exit(TOO_MANY_DATES)     
-
-print date
+list.mkdir()

@@ -17,6 +17,7 @@ import datetime
 
 URL_BAD_FORMED=1
 COPY_ERROR=2
+CREATE_DIR_ERROR=3
 
 class VCPURL:
   def __init__(self,url=None):
@@ -118,12 +119,24 @@ class VCPURL:
          pass
      
      for file_name in out_list:
-         print "pattern: " + pattern + " file: " + file_name
          if match(pattern,file_name) :
              file_list.append(file_name)      
      
      return file_list  
 
+  def mkdir(self):
+     """ List all the files under the directory """
+     command_dict= {'file': 'mkdir -p', 'gsiftp': 'edg-gridftp-mkdir --parents'}
+     file_dict= {'file': self.file, 'gsiftp': str(self)}
+
+     command="%s %s" % (command_dict[self.protocol],file_dict[self.protocol])
+     print command
+     (err,out)=getstatusoutput(command)
+     
+     if err != 0 :
+        print "Error creating dir: " + str(err) + "\n" + out
+        exit(CREATE_DIR_ERROR)
+     return  
 
 class wrffile :
     """ This class manage the restart and output files and the dates they represent.

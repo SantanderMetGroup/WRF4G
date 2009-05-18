@@ -12,10 +12,9 @@ WRF4G_CONF_FILE_NOT_DEFINED=1
 DATE_BAD_FORMED=2
 TOO_MANY_DATES=3
 
-usage="""%prog 
-
-Example: %prog 
-
+usage="""%  prog date 
+        % prog 19910101T120000Z
+        
 This command needs that the following environment variables have been established: WRF4G_EXPERIMENT, 
 WRF4G_REALIZATION and WRF4G_CONF_FILE.
 """
@@ -24,9 +23,11 @@ parser = OptionParser(usage,version="%prog 1.0")
 parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
 (options, args) = parser.parse_args()
 
-if len(args) != 0 :
+if len(args) != 1 :
   parser.error("Incorrect number of arguments. This script doesn't take any arguments.")
   exit(1)
+  
+date=args[0]
 
 # Check that the environment variables has been established and import their values
 env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
@@ -38,26 +39,18 @@ if WRF4G_BASEPATH in dir():
   exit(1)
 
 # Load the URL into the VCPURL class
-repo="%s/experiments/%s/%s/restart" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"])
-if verbose: print repo
+repo="%s/experiments/%s/%s/wpsout" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"])
+if options.verbose: print repo
 list=VCPURL(repo)
-restart_list=list.ls("*.nc")
 
-if len(restart_list) == 0 :
+# List all the wps files for this date
+restart_list=list.ls("wrf[lbi]*_d\d\d_" + date + "*")
+
+if len(restart_list)  in [0, 1]:
   # There are not restart files
-  print "There are not restart files"
-  date=0
-
-elif len(restart_list) == 1:
-    # Here we suppose that there is just one file ending in .nc  
-    g=search("(\d{8}T\d{6}Z)",restart_list[0])
-    if g :
-        [date]=g.groups()  
-    else :
-        print "Error: Date is not well formed"
-        exit(DATE_BAD_FORMED)
+    if options.verbose: print "There are not wps files for this date"
+    date=0
 else :
-  print "Error: Problems getting date. Too many files"
-  exit(TOO_MANY_DATES)     
-
-print date
+    date=1
+    
+if options.verbose: print date
