@@ -8,6 +8,7 @@ CONTENTS
 
  o Execution tree
  o Usage
+ o WRF4G.sh logic
 
 EXECUTION TREE
 --------------
@@ -48,4 +49,37 @@ Run the experiment with:
 
 wrf4g_submitter.sh
 
+WRF4G.sh LOGIC
+--------------
 
+if exists_wps
+  wps_ran=0
+  get_files_wpsout
+else
+  wps_ran=0
+  run_wps
+  run_real
+  file_register wps
+fi
+
+if not wps_ran
+  get_date_restart
+  if not restart_date
+    set restart false or exit
+  elif restart_date >= end_date
+    exit
+  elif restart_date < start_date
+    exit
+  else
+    get_files_restart
+    set restart true
+  fi
+  setup_namelist restart_date
+else
+  if chunk_is_restart
+    get_files_restart
+  fi
+  set restart true/false
+fi
+
+run_wrf

@@ -14,7 +14,7 @@ cat << EOF > job.gw
 EXECUTABLE = /bin/sh 
 ARGUMENTS = "./${jobfile}"
 INPUT_FILES   = "sandbox.tar.gz, ${jobfile}"
-REQUIREMENTS = HOSTNAME = "*.es";
+REQUIREMENTS = HOSTNAME = "*.unican.es";
 EOF
 
 if test -n "${depid}"; then
@@ -22,6 +22,11 @@ if test -n "${depid}"; then
 else
   depflag=""
 fi
+
+#
+#   Pack the sandbox
+#
+tar czh --exclude ${jobfile} -f sandbox.tar.gz *
 
 gwsubmit -v ${depflag} -t job.gw | awk -F: '/JOB ID/ {print $2}'
 

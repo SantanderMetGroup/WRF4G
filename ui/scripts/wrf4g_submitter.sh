@@ -4,7 +4,7 @@
 #
 # function get_nin_vars()
 # function get_nim_vars()
-# function cycle_chunks(ALGO_name, ALGO_start_date, ALGO_end_date)
+# function cycle_chunks(realization_name, realization_start_date, realization_end_date)
 # function cycle_hindcasts(realization_name, start_date, end_date)
 # function cycle_time(realization_name, start_date, end_date)
 #
@@ -29,44 +29,53 @@ function get_nim_vars(){
 }
 
 function cycle_chunks(){
-  ALGO_name=$1
-  ALGO_start_date=$2
-  ALGO_end_date=$3
+  realization_name=$1
+  realization_start_date=$2
+  realization_end_date=$3
   local eyy emm edd ehh 
   local cyy cmm cdd chh current_date
   local fyy fmm fdd fhh final_date
-  echo "---> cycle_chunks: ${ALGO_name} ${ALGO_start_date} ${ALGO_end_date}"
+  echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}"
   #
-  mkdir -p ALGOs/${ALGO_name}
-  current_date=${ALGO_start_date}
+  mkdir -p realizations/${realization_name}
+  current_date=${realization_start_date}
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
-  read eyy emm edd ehh trash <<< $(echo ${ALGO_end_date} | tr '_:T-' '    ')
+  read eyy emm edd ehh trash <<< $(echo ${realization_end_date} | tr '_:T-' '    ')
   chunkno=1
   while test ${cyy}${cmm}${cdd}${chh} -lt ${eyy}${emm}${edd}${ehh}
   do
-    chunkdir="${userdir}/ALGOs/${ALGO_name}/$(printf "%04d" ${chunkno})"
+    chunkdir="${userdir}/realizations/${realization_name}/$(printf "%04d" ${chunkno})"
     mkdir -p ${chunkdir}
     hours=`(expr ${chh} + ${chunk_size_h})`
     final_date=`(date +%Y-%m-%d_%H:%M:%S -u -d"${cyy}${cmm}${cdd} $hours hours")`
     read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     if test ${fyy}${fmm}${fdd}${fhh} -gt ${eyy}${emm}${edd}${ehh}; then
-      final_date=${ALGO_end_date}
+      final_date=${realization_end_date}
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
     echo "  ---> chunk: ${chunkno} - ${current_date} -> ${final_date}"
+    if test ${chunkno} -eq 1; then
+      restart_flag=".F."
+    else
+      restart_flag=".T."
+    fi
     cat << EOF > ${chunkdir}/wrf.chunk
-realization_name="${ALGO_name}"
+realization_name="${realization_name}"
+chunk_name="$(printf "%04d" ${chunkno})"
 chunk_start_date="${current_date}"
 chunk_end_date="${final_date}"
+chunk_is_restart="${restart_flag}"
 EOF
+    #
+    #  Export variables
+    #
+    export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
+    export WRF4G_EXPERIMENT="${experiment_name}"
+    export WRF4G_REALIZATION="${realization_name}"
+    export WRF4G_CHUNK="$(printf "%04d" ${chunkno})"
     #
     #  Create the sandbox file
     #
-    if test ${chunkno} -eq 1; then
-      fortnml_set namelist.input restart .F.
-    else
-      fortnml_set namelist.input restart .T.
-    fi
     mkdir -p ${chunkdir}/WRFV3/run
     ln -s ${userdir}/namelist.input ${chunkdir}/WRFV3/run/namelist.input
     ln -s ${userdir}/wrf.input      ${chunkdir}/wrf.input
@@ -74,12 +83,11 @@ EOF
     mkdir ${chunkdir}/bin
     ln -s ${wrf4g_root}/wn/bin/vcp  ${chunkdir}/bin/vcp
     ln -s ${wrf4g_root}/wn/WRF4G.sh ${chunkdir}/WRF4G.sh
+    cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh ${chunkdir}/WRF4G_ini.sh
     cd ${chunkdir}
-      tar czhf sandbox.tar.gz *
       #
       #   Submit the job
       #
-      ln -s ${wrf4g_root}/ui/scripts/WRF4G_ini.sh .
       chunkjid=$(${wrf4g_root}/ui/scripts/wrf4g_submit.${JOB_TYPE} WRF4G_ini.sh ${chunkjid})
     cd ${userdir}
     #

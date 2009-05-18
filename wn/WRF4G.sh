@@ -91,10 +91,11 @@ read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}   | tr '_:T-' '    ')
 #
 #   Must WPS run or are the boundaries available?
 #
-if test "$(exists_wps $(date_wrf2iso ${chunk_start_date}))" -eq "1"; then
+#if test "$(exists_wps $(date_wrf2iso ${chunk_start_date}))" -eq "1"; then
+if false; then  #  exists_wps is not yet ready...
   wps_ran=0
   cd ${ROOTDIR}/WRFV3/run || exit
-    ${ROOTDIR}/WRFGEL/get_files_wpsout $(date_wrf2iso ${chunk_start_date})
+    ${ROOTDIR}/WRFGEL/download_file wps $(date_wrf2iso ${chunk_start_date})
   cd ${ROOTDIR}
 else
   wps_ran=1
@@ -137,11 +138,11 @@ else
     do
       if [ -e Vtable.${global_name}${ext} ]; then
         cat <<- End_of_nmlungrib > namelist.ungrib
-        &ungrib
-         out_format = 'WPS'
-         prefix = '${global_name}${ext}'
-        /
-  	End_of_nmlungrib
+	&ungrib
+	 out_format = 'WPS'
+	 prefix = '${global_name}${ext}'
+	/
+	End_of_nmlungrib
         ln -sf Vtable.${global_name}${ext} Vtable
         cpp -P namelist.wps.in1 > namelist.wps
         ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}${ext}.out || exit 202
@@ -156,11 +157,11 @@ else
           -e 's/@interval_seconds@/'${interval_seconds}'/g' \
           namelist.wps.in > namelist.wps.infix
       cat <<- End_of_nmlungrib > namelist.ungrib
-        &ungrib
-         out_format = 'WPS'
-         prefix = '${global_name}FIX'
-        /
-  	End_of_nmlungrib
+	&ungrib
+	 out_format = 'WPS'
+	 prefix = '${global_name}FIX'
+	/
+	End_of_nmlungrib
       ln -sf Vtable.${global_name}FIX Vtable
       cpp -P namelist.wps.infix > namelist.wps
       ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}FIX_${iyy}${imm}${idd}${ihh}.out || exit 203
@@ -191,12 +192,13 @@ else
       ${LAUNCHER_REAL} ./real.exe >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_REAL_FAILED}
     timelog_end
     #
-    #  Upload the wpsout files:
+    #  Upload the wpsout files (create the output structure if necessary):
     #
     #    wrfinput_d0?
     #    wrfbdy_d0?
     #    wrflowinp_d0?
     #
+    ${ROOTDIR}/WRFGEL/create_output_structure
     ${WRFGEL_SCRIPT} wps "${chunk_start_date}"
   cd ${ROOTDIR} || exit
 fi
@@ -207,16 +209,32 @@ fi
 cd ${ROOTDIR}/WRFV3/run || exit
   if test ${wps_ran} -eq 0; then
     restart_date=$(${ROOTDIR}/WRFGEL/get_date_restart)
-    if test "${restart_date}" = "$(date_wrf2iso ${chunk_end_date})"; then
+    if test "${restart_date}" = "-1"; then
+      if test "${chunk_is_restart}" = ".T."; then
+        echo "Something went wrong! (the restart file is not available and the chunk is a restart...)"
+        exit ${EXIT_RESTART_MISMATCH}
+      fi
+      fortnml_set namelist.input restart ${chunk_is_restart}
+    elif test "$(date2int ${restart_date})" -ge "$(date2int ${chunk_end_date})"; then
       exit ${EXIT_CHUNK_ALREADY_FINISHED}
-    elif test "${restart_date}" != "-1"; then
+    elif test "$(date2int ${restart_date})" -lt "$(date2int ${chunk_start_date})"; then
+      exit ${EXIT_CHUNK_CANNOT_RUN}
+    else
       timelog_init "rst download"
-        ${ROOTDIR}/WRFGEL/get_files_restart ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
+        ${ROOTDIR}/WRFGEL/download_file rst ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
         read iyy imm idd ihh trash <<< $(date_iso2wrf ${restart_date} | tr '_:T-' '    ')
-        fortnml_set namelist.input restart .true.
+        fortnml_set namelist.input restart .T.
       timelog_end
     fi
-    setup_namelist_input
+    #
+    #  Set the start and end dates in the namelist
+    #
+    setup_namelist_input 
+  else
+    if test "${chunk_is_restart}" = ".T."; then
+      ${ROOTDIR}/WRFGEL/download_file rst $(date_wrf2iso ${chunk_start_date}) || exit ${ERROR_RST_DOWNLOAD_FAILED}
+    fi
+    fortnml_set namelist.input restart ${chunk_is_restart}
   fi
   timelog_init "wrf"
     ${LAUNCHER_WRF} ./wrf.exe >& ${logdir}/wrf_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_WRF_FAILED}
