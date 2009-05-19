@@ -51,7 +51,7 @@ if type in type_list.keys() :
     dest="%s/experiments/%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type],dest_file)
     if options.verbose: print "origin: %s destiny: %s" % (file,dest) 
     output=copy_file(file,dest)
-    print out
+    print output
 
 else :    
     # If the files are WPS, add the date to the name. Three files have to be uploaded: wrfinput_d0?,wrfbdy_d0? and wrflowinp_d0?
