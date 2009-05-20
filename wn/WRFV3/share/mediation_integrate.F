@@ -1206,7 +1206,7 @@ RECURSIVE SUBROUTINE med_restart_out ( grid , config_flags )
    CALL close_dataset ( rid , config_flags , "DATASET=RESTART" )
 #ifdef WRF4G
 ! WRF4G-UC May.09
-           write(6,*)'$WRFGEL_SCRIPT rst '//timestr//' '//TRIM(rstname)
+           print *,'$WRFGEL_SCRIPT rst '//timestr//' '//TRIM(rstname)
            CALL system('$WRFGEL_SCRIPT rst '//timestr//' '//TRIM(rstname))
 #endif
    ! call recursively for children, (if any)
@@ -1245,9 +1245,11 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
 
 #ifdef WRF4G
 ! WRF4G-UC May.09
-   CHARACTER*256                               :: timestr
-
-   CALL domain_clock_get( grid, current_timestr=timestr )
+   TYPE(WRFU_Time)                          :: CT, ET
+   CHARACTER*256                            :: timestr
+   CHARACTER*80                             :: timestrOUT, &
+                                     fnameOUT 
+   REAL                                     :: minSinceStr
 #endif
 
    IF ( wrf_dm_on_monitor() ) THEN
@@ -1263,68 +1265,95 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
      CASE ( 0 )
        CALL open_hist_w( grid, config_flags, stream, HISTORY_ALARM, &
                          config_flags%history_outname, grid%oid,    &
-                         output_history, fname, n2, ierr )
+                         output_history, fname, n2, &
+                         timestrOUT, ierr )
        CALL output_history ( grid%oid, grid , config_flags , ierr )
      CASE ( 1 )
        CALL open_hist_w( grid, config_flags, stream, AUXHIST1_ALARM,       &
                          config_flags%auxhist1_outname, grid%auxhist1_oid, &
-                         output_aux_hist1, fname, n2, ierr )
+                         output_aux_hist1, fname, n2, &
+                         timestrOUT, ierr )
        CALL output_aux_hist1 ( grid%auxhist1_oid, grid , config_flags , ierr )
      CASE ( 2 )
        CALL open_hist_w( grid, config_flags, stream, AUXHIST2_ALARM,       &
                          config_flags%auxhist2_outname, grid%auxhist2_oid, &
-                         output_aux_hist2, fname, n2, ierr )
+                         output_aux_hist2, fname, n2, &
+                         timestrOUT, ierr )
        CALL output_aux_hist2 ( grid%auxhist2_oid, grid , config_flags , ierr )
      CASE ( 3 )
        CALL open_hist_w( grid, config_flags, stream, AUXHIST3_ALARM,       &
                          config_flags%auxhist3_outname, grid%auxhist3_oid, &
-                         output_aux_hist3, fname, n2, ierr )
+                         output_aux_hist3, fname, n2, &
+                         timestrOUT, ierr )
        CALL output_aux_hist3 ( grid%auxhist3_oid, grid , config_flags , ierr )
      CASE ( 4 )
        CALL open_hist_w( grid, config_flags, stream, AUXHIST4_ALARM,       &
                          config_flags%auxhist4_outname, grid%auxhist4_oid, &
-                         output_aux_hist4, fname, n2, ierr )
+                         output_aux_hist4, fname, n2, &
+                         timestrOUT, ierr )
        CALL output_aux_hist4 ( grid%auxhist4_oid, grid , config_flags , ierr )
      CASE ( 5 )
        CALL open_hist_w( grid, config_flags, stream, AUXHIST5_ALARM,       &
                          config_flags%auxhist5_outname, grid%auxhist5_oid, &
-                         output_aux_hist5, fname, n2, ierr )
+                         output_aux_hist5, fname, n2, &
+                         timestrOUT, ierr )
        CALL output_aux_hist5 ( grid%auxhist5_oid, grid , config_flags , ierr )
      CASE ( 6 )
        CALL open_hist_w( grid, config_flags, stream, AUXHIST6_ALARM,       &
                          config_flags%auxhist6_outname, grid%auxhist6_oid, &
-                         output_aux_hist6, fname, n2, ierr )
+                         output_aux_hist6, fname, n2, &
+                         timestrOUT, ierr )
        CALL output_aux_hist6 ( grid%auxhist6_oid, grid , config_flags , ierr )
      CASE ( 7 )
        CALL open_hist_w( grid, config_flags, stream, AUXHIST7_ALARM,       &
                          config_flags%auxhist7_outname, grid%auxhist7_oid, &
-                         output_aux_hist7, fname, n2, ierr )
+                         output_aux_hist7, fname, n2, &
+                         timestrOUT, ierr )
        CALL output_aux_hist7 ( grid%auxhist7_oid, grid , config_flags , ierr )
      CASE ( 8 )
        CALL open_hist_w( grid, config_flags, stream, AUXHIST8_ALARM,       &
                          config_flags%auxhist8_outname, grid%auxhist8_oid, &
-                         output_aux_hist8, fname, n2, ierr )
+                         output_aux_hist8, fname, n2, &
+                         timestrOUT, ierr )
        CALL output_aux_hist8 ( grid%auxhist8_oid, grid , config_flags , ierr )
      CASE ( 9 )
        CALL open_hist_w( grid, config_flags, stream, AUXHIST9_ALARM,       &
                          config_flags%auxhist9_outname, grid%auxhist9_oid, &
-                         output_aux_hist9, fname, n2, ierr )
+                         output_aux_hist9, fname, n2, &
+                         timestrOUT, ierr )
        CALL output_aux_hist9 ( grid%auxhist9_oid, grid , config_flags , ierr )
      CASE ( 10 )
        CALL open_hist_w( grid, config_flags, stream, AUXHIST10_ALARM,        &
                          config_flags%auxhist10_outname, grid%auxhist10_oid, &
-                         output_aux_hist10, fname, n2, ierr )
+                         output_aux_hist10, fname, n2, &
+                         timestrOUT, ierr )
        CALL output_aux_hist10 ( grid%auxhist10_oid, grid , config_flags , ierr )
      CASE ( 11 )
        CALL open_hist_w( grid, config_flags, stream, AUXHIST11_ALARM,        &
                          config_flags%auxhist11_outname, grid%auxhist11_oid, &
-                         output_aux_hist11, fname, n2, ierr )
+                         output_aux_hist11, fname, n2, &
+                         timestrOUT, ierr )
        CALL output_aux_hist11 ( grid%auxhist11_oid, grid , config_flags , ierr )
    END SELECT
 
    WRITE(message,*)'med_hist_out: opened ',TRIM(fname),' as ',TRIM(n2)
    CALL wrf_debug( 1, message )
-
+#ifdef WRF4G
+! WRF4G-UC May.09
+   CALL domain_clock_get( grid, current_time=CT, stop_time=ET, &
+         current_timestr=timestr, minutesSinceSimulationStart=minSinceStr )
+   IF ( minSinceStr .lt. &
+     (config_flags%frames_per_outfile-1)*config_flags%history_interval) THEN
+     CALL domain_clock_get (grid, start_timestr=timestrOUT)
+     PRINT *,'First file  timestr:',TRIM(timestr),' timestrOUT:',TRIM(timestrOUT)
+   ENDIF
+   IF ( CT .eq. ET) THEN
+     PRINT *,'Last file timestr:',TRIM(timestr)
+     CALL construct_filename2a ( fnameOUT , config_flags%history_outname , grid%id , 2 , timestr ) 
+     print *,'$WRFGEL_SCRIPT out '//TRIM(timestrOUT)//' '//TRIM(fnameOUT)
+     CALL system('$WRFGEL_SCRIPT out '//TRIM(timestrOUT)//' '//TRIM(fnameOUT))
+   ENDIF
+#endif
      grid%nframes(stream) = grid%nframes(stream) + 1
 
      SELECT CASE( stream )
@@ -1333,8 +1362,9 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
            CALL close_dataset ( grid%oid , config_flags , n2 ) 
 #ifdef WRF4G
 ! WRF4G-UC May.09
-         write(6,*)'$WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname)
-         CALL system('$WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname))
+                CALL construct_filename2a ( fnameOUT , config_flags%history_outname , grid%id , 2 , timestrOUT )
+                print *,'$WRFGEL_SCRIPT out '//TRIM(timestrOUT)//' '//TRIM(fnameOUT)
+                CALL system('$WRFGEL_SCRIPT out '//TRIM(timestrOUT)//' '//TRIM(fnameOUT))
 #endif
            grid%oid = 0
            grid%nframes(stream) = 0
@@ -1344,6 +1374,7 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
            CALL close_dataset ( grid%auxhist1_oid , config_flags , n2 ) 
 #ifdef WRF4G
 ! WRF4G-UC May.09
+         print *,'1: $WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname)
          CALL system('$WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname))
 #endif
            grid%auxhist1_oid = 0
@@ -1354,6 +1385,7 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
            CALL close_dataset ( grid%auxhist2_oid , config_flags , n2 ) 
 #ifdef WRF4G
 ! WRF4G-UC May.09
+         print *,'2: $WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname)
          CALL system('$WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname))
 #endif
            grid%auxhist2_oid = 0
@@ -1364,6 +1396,7 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
            CALL close_dataset ( grid%auxhist3_oid , config_flags , n2 ) 
 #ifdef WRF4G
 ! WRF4G-UC May.09
+         print *,'3: $WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname)
          CALL system('$WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname))
 #endif
            grid%auxhist3_oid = 0
@@ -1374,6 +1407,7 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
            CALL close_dataset ( grid%auxhist4_oid , config_flags , n2 ) 
 #ifdef WRF4G
 ! WRF4G-UC May.09
+         print *,'4: $WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname)
          CALL system('$WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname))
 #endif
            grid%auxhist4_oid = 0
@@ -1384,6 +1418,7 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
            CALL close_dataset ( grid%auxhist5_oid , config_flags , n2 ) 
 #ifdef WRF4G
 ! WRF4G-UC May.09
+         print *,'5: $WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname)
          CALL system('$WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname))
 #endif
            grid%auxhist5_oid = 0
@@ -1394,6 +1429,7 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
            CALL close_dataset ( grid%auxhist6_oid , config_flags , n2 ) 
 #ifdef WRF4G
 ! WRF4G-UC May.09
+         print *,'6: $WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname)
          CALL system('$WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname))
 #endif
            grid%auxhist6_oid = 0
@@ -1404,6 +1440,7 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
            CALL close_dataset ( grid%auxhist7_oid , config_flags , n2 ) 
 #ifdef WRF4G
 ! WRF4G-UC May.09
+         print *,'7: $WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname)
          CALL system('$WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname))
 #endif
            grid%auxhist7_oid = 0
@@ -1414,6 +1451,7 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
            CALL close_dataset ( grid%auxhist8_oid , config_flags , n2 ) 
 #ifdef WRF4G
 ! WRF4G-UC May.09
+         print *,'8: $WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname)
          CALL system('$WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname))
 #endif
            grid%auxhist8_oid = 0
@@ -1424,6 +1462,7 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
            CALL close_dataset ( grid%auxhist9_oid , config_flags , n2 ) 
 #ifdef WRF4G
 ! WRF4G-UC May.09
+         print *,'9: $WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname)
          CALL system('$WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname))
 #endif
            grid%auxhist9_oid = 0
@@ -1434,6 +1473,7 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
            CALL close_dataset ( grid%auxhist10_oid , config_flags , n2 ) 
 #ifdef WRF4G
 ! WRF4G-UC May.09
+         print *,'10: $WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname)
          CALL system('$WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname))
 #endif
            grid%auxhist10_oid = 0
@@ -1444,6 +1484,7 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
            CALL close_dataset ( grid%auxhist11_oid , config_flags , n2 ) 
 #ifdef WRF4G
 ! WRF4G-UC May.09
+         print *,'11: $WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname)
          CALL system('$WRFGEL_SCRIPT out '//TRIM(timestr)//' '//TRIM(fname))
 #endif
            grid%auxhist11_oid = 0
@@ -1964,7 +2005,8 @@ SUBROUTINE open_aux_u ( grid , config_flags, stream, alarm_id, &
 END SUBROUTINE open_aux_u
 
 SUBROUTINE open_hist_w ( grid , config_flags, stream, alarm_id, &
-                         hist_outname, oid, outsub, fname, n2, ierr )
+                         hist_outname, oid, outsub, fname, n2, & 
+                         timestrOUT, ierr )
   ! Driver layer
    USE module_domain
    USE module_io_domain
@@ -1990,6 +2032,9 @@ SUBROUTINE open_hist_w ( grid , config_flags, stream, alarm_id, &
    CHARACTER*80                           :: timestr
    TYPE(WRFU_Time)                        :: ST,CT
    LOGICAL                                :: adjust
+#ifdef WRF4G
+   CHARACTER*80    ,         INTENT(OUT)  :: timestrOUT
+#endif
 
    IF ( stream .LT. 0 .OR. stream .GT. 11 ) THEN
      WRITE(message,*)'open_hist_w: invalid history stream ',stream
@@ -2022,6 +2067,11 @@ SUBROUTINE open_hist_w ( grid , config_flags, stream, alarm_id, &
    WRITE(n2(len_n2+1:len_n2+19),'(",REAL_OUTPUT_SIZE=4")')
 #endif
    IF ( oid .eq. 0 ) THEN
+#ifdef WRF4G
+     IF ( CT .ne. ST ) THEN
+     timestrOUT=timestr
+     ENDIF
+#endif
      WRITE ( message , '("open_hist_w : opening ",A," for writing. ")') TRIM ( fname )
      CALL wrf_debug( 1, message )
 !<DESCRIPTION>
