@@ -53,4 +53,4 @@ if len(restart_list)  in [0, 1]:
 else :
     date=1
     
-if options.verbose: print date
+print date

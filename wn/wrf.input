@@ -18,16 +18,15 @@ WRF4G_RESTARTPATH = ${WRF4G_BASEPATH}/WRF/experiments/${experiment_name}/${reali
 
 start_date = "2001-01-01_18:00:00"
 end_date = "2001-01-05_18:00:00"
-#simulation_interval_h = 24 
-#simulation_length_h = 30
-simulation_interval_h = 4320 # 180 days 
-simulation_length_h = 4320
 chunk_size_h = 48 # 10 days
 is_continuous = 1
+  simulation_interval_h = 4320 # 180 days 
+  simulation_length_h = 4320
 is_restart = 0
 is_multiphysics = 0
   multiphysics_variables = "mp_physics,cu_physics"
   multiphysics_combinations = "3,2/3,3/3,4"
+  multiphysics_nitems = "${max_dom},${max_dom}" # Set to 1 for single-valued items
 #
 #   Override namelist.input variables here
 #

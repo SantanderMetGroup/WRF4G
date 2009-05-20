@@ -8,7 +8,7 @@ ROOTDIR=$(pwd)
 #
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
-export PATH="${ROOTDIR}/bin:$PATH"
+export PATH="${ROOTDIR}/bin:${ROOTDIR}/WRFGEL:$PATH"
 #
 #  Load wrf4g.conf, wrf.chunk and wrf.input
 #
@@ -94,7 +94,7 @@ read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}   | tr '_:T-' '    ')
 if test "$(exist_wps $(date_wrf2iso ${chunk_start_date}))" -eq "1"; then
   wps_ran=0
   cd ${ROOTDIR}/WRFV3/run || exit
-    ${ROOTDIR}/WRFGEL/download_file wps $(date_wrf2iso ${chunk_start_date})
+    download_file wps $(date_wrf2iso ${chunk_start_date})
   cd ${ROOTDIR}
 else
   wps_ran=1
@@ -177,7 +177,7 @@ else
       fortnml_set  namelist.wps fg_name               "'${global_name}'"
       fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
       fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
-      ${LAUNCHER_REAL} ./metgrid/metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_METGRID_FAILED}
+      ${LAUNCHER_METGRID} ./metgrid/metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_METGRID_FAILED}
     timelog_end
   cd ${ROOTDIR}/WRFV3/run || exit
     #------------------------------------------------------------------
@@ -197,7 +197,7 @@ else
     #    wrfbdy_d0?
     #    wrflowinp_d0?
     #
-    ${ROOTDIR}/WRFGEL/create_output_structure
+    create_output_structure
     ${WRFGEL_SCRIPT} wps "${chunk_start_date}"
   cd ${ROOTDIR} || exit
 fi
@@ -207,7 +207,7 @@ fi
 #------------------------------------------------------------------
 cd ${ROOTDIR}/WRFV3/run || exit
   if test ${wps_ran} -eq 0; then
-    restart_date=$(${ROOTDIR}/WRFGEL/get_date_restart)
+    restart_date=$(get_date_restart)
     if test "${restart_date}" = "-1"; then
       if test "${chunk_is_restart}" = ".T."; then
         echo "Something went wrong! (the restart file is not available and the chunk is a restart...)"
@@ -217,10 +217,10 @@ cd ${ROOTDIR}/WRFV3/run || exit
     elif test "$(date2int ${restart_date})" -ge "$(date2int ${chunk_end_date})"; then
       exit ${EXIT_CHUNK_ALREADY_FINISHED}
     elif test "$(date2int ${restart_date})" -lt "$(date2int ${chunk_start_date})"; then
-      exit ${EXIT_CHUNK_CANNOT_RUN}
+      exit ${EXIT_CHUNK_SHOULD_NOT_RUN}
     else
       timelog_init "rst download"
-        ${ROOTDIR}/WRFGEL/download_file rst ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
+        download_file rst ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
         read iyy imm idd ihh trash <<< $(date_iso2wrf ${restart_date} | tr '_:T-' '    ')
         fortnml_set namelist.input restart .T.
       timelog_end
@@ -231,7 +231,9 @@ cd ${ROOTDIR}/WRFV3/run || exit
     setup_namelist_input 
   else
     if test "${chunk_is_restart}" = ".T."; then
-      ${ROOTDIR}/WRFGEL/download_file rst $(date_wrf2iso ${chunk_start_date}) || exit ${ERROR_RST_DOWNLOAD_FAILED}
+      timelog_init "rst download"
+        download_file rst $(date_wrf2iso ${chunk_start_date}) || exit ${ERROR_RST_DOWNLOAD_FAILED}
+      timelog_end
     fi
     fortnml_set namelist.input restart ${chunk_is_restart}
   fi

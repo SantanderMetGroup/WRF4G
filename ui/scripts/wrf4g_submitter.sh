@@ -2,6 +2,7 @@
 #
 # wrf4g_submitter
 #
+# function get_ni_vars()
 # function get_nin_vars()
 # function get_nim_vars()
 # function cycle_chunks(realization_name, realization_start_date, realization_end_date)
@@ -46,6 +47,7 @@ function cycle_chunks(){
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
   read eyy emm edd ehh trash <<< $(echo ${realization_end_date} | tr '_:T-' '    ')
   chunkno=1
+  chunkjid=""
   while test ${cyy}${cmm}${cdd}${chh} -lt ${eyy}${emm}${edd}${ehh}
   do
     chunkdir="${userdir}/realizations/${realization_name}/$(printf "%04d" ${chunkno})"
@@ -152,6 +154,7 @@ function cycle_time(){
 #
 #  Initial override of namelist values
 #
+cp ${userdir}/namelist.input ${userdir}/namelist.input.orig # save
 cp ${userdir}/namelist.input ${userdir}/namelist.input.base
 for var in $(get_ni_vars); do
   fortnml_set namelist.input.base $var $(eval echo \$NI_${var})
@@ -171,7 +174,8 @@ if test "${is_multiphysics}" -ne "0"; then
     cp namelist.input.base namelist.input
     iphys=1
     for var in $(echo ${multiphysics_variables} | tr ',' ' '); do
-      fortnml_setn namelist.input $var $max_dom $(tuple_item ${mpid} ${iphys})
+      nitems=$(tuple_item ${multiphysics_nitems} ${iphys})
+      fortnml_setn namelist.input $var ${nitems} $(tuple_item ${mpid} ${iphys})
       let iphys++
     done
     cycle_time "${experiment_name}__${mpid/,/_}" ${start_date} ${end_date}
