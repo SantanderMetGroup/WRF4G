@@ -411,3 +411,13 @@ function date2int(){
   # Converts a wrf or iso date to integer for ease of comparison
   echo $1 | tr -d ' :_TZ-'
 }
+
+function datediff_s(){
+  date1=$(date2int $1)
+  date2=$(date2int $2)
+  seconds1=$(echo 3600\*${date1:8:2}+60*${date1:10:2}+${date1:12:2} | bc -l)
+  seconds2=$(echo 3600\*${date2:8:2}+60*${date2:10:2}+${date2:12:2} | bc -l)
+  date1sec=$(date +%s -u -d "${date1:0:8} ${seconds1} seconds")
+  date2sec=$(date +%s -u -d "${date2:0:8} ${seconds2} seconds")
+  echo ${date1sec}-${date2sec} | bc -l
+}

@@ -1,0 +1,188 @@
+#! /usr/bin/python
+import sys
+
+def listify(item):
+  if type(item) == type([]):
+    return item
+  else:
+    return [item,]
+
+def math_expansion(expr):
+  try:
+    exec("rval=%s" % expr)
+    return "%s" % rval
+  except:
+    return expr
+
+def coerce_value_list(vlist):
+  vlist = map(math_expansion, vlist)
+  try:
+    values=[int(element) for element in vlist]
+  except ValueError:
+    try:
+      values=[float(element) for element in vlist]
+    except ValueError:
+      values=[value.strip() for value in vlist]
+  return values
+
+class FortranNamelistRecord:
+  def __init__(self, name):
+    self.name = name
+    self.data = {}
+    self.ordered_keys = []
+  def setValue(self, variable, value):
+    self.data[variable] = listify(value)
+    if not variable in self.ordered_keys:
+      self.ordered_keys.append(variable)
+  def delValue(self, variable):
+    if variable in self.ordered_keys:
+      del self.data[variable]
+      self.ordered_keys.remove(variable)
+  def appendValue(self, variable, value):
+    self.data[variable].extend(listify(value))
+  def hasVariable(self, var):
+    return var in self.ordered_keys
+  def __str__(self):
+    rval = "&%s\n" % self.name
+    for key in self.ordered_keys:
+      thisvar = "  %-24s =" % key
+      for item in self.data[key]:
+        if type(item) == type("hello"):
+          if not item.startswith("'") and not item.startswith("."):
+            item = "'%s'" % item
+        if len(thisvar) < 75:
+          thisvar += " %s," % item
+        else:
+          rval += "%s\n" % thisvar
+          thisvar = 28*" "
+      rval += "%s\n" % thisvar
+    rval += "/\n"
+    return rval
+
+class FortranNamelist:
+  def __init__(self, namelist_file):
+    """read contents of namelist file and return dictionary containing all options
+    
+    Created 20/01/08 by Thom Chubb.
+    Modified 20/01/08 by Thom Chubb and Valerio Bisignesi
+    Modified 20/05/09 by Jesus Fernandez (Implemented as a class)
+    """
+    self.namelist_file = namelist_file
+    fid=open(namelist_file, 'r')
+    data = fid.readlines()
+    fid.close()
+    self.record_dict={}
+    self.ordered_records=[]
+    for line in data:
+      if '&' in line:
+        # Then this line is a namelist title
+        is_comment=False
+        current_label = line.strip().lstrip('&')
+        self.record_dict[current_label] = FortranNamelistRecord(current_label)
+        if not current_label in self.ordered_records:
+          self.ordered_records.append(current_label)
+      elif '/' in line:
+        # Then lines following this are comments until the next '&'
+        is_comment=True
+      elif '=' in line:
+        # Then this line contains variable information to be stored
+        if not is_comment:
+          variable,values = line.split('=')
+          values = values.strip().rstrip(',')
+          values = coerce_value_list(values.split(','))
+          self.record_dict[current_label].setValue(variable.strip(), values)
+      else:
+        if not is_comment:
+          # This line contains variable information to be added to the last variable read
+          values = line.strip().rstrip(',')
+          values = coerce_value_list(values.split(','))
+          self.record_dict[current_label].appendValue(variable.strip(), values)
+  def __getitem__(self, item):
+    return self.record_dict[item]
+  def printNamelist(self):
+    rval = ""
+    for rec in self.ordered_records:
+      rval += "%s\n" % str(self.record_dict[rec])
+    return rval
+  def setValue(self, variable, value, record=""):
+    if record:
+      self[record].setValue(variable, value)
+    else:
+      gotit=False
+      for rec in self.ordered_records:
+        if self[rec].hasVariable(variable):
+          self[rec].setValue(variable, value)
+          gotit=True
+          break
+      if not gotit:
+        raise KeyError, "The variable was not found and no record was specified!"
+  def addValue(self, variable, value, record=""):
+    if record:
+      self[record].appendValue(variable, value)
+    else:
+      for rec in self.ordered_records:
+        if self[rec].hasVariable(variable):
+          self[rec].appendValue(variable, value)
+          break
+  def delValue(self, variable, record=""):
+    if record:
+      self[record].delValue(variable)
+    else:
+      for rec in self.ordered_records:
+        if self[rec].hasVariable(variable):
+          self[rec].delValue(variable)
+          break
+  def overWriteNamelist(self):
+    fid = open(self.namelist_file, 'w')
+    fid.write(self.printNamelist())
+    fid.close()
+
+if __name__ == "__main__":
+  namelist=""
+  setmode = False
+  addmode = False
+  delmode = False
+  ovrmode = False
+  addvar = ""
+  addrecord = ""
+  argc = 1
+  while 1:
+    if argc >= len(sys.argv):
+      break
+    elif sys.argv[argc] == "-nml":
+      namelist = sys.argv[argc+1]
+      argc+=2
+    elif sys.argv[argc] == "-wrt":
+      ovrmode = True
+      argc+=1
+    elif sys.argv[argc] in ["-set", "-add", "-del"]:
+      if sys.argv[argc]=="-set": setmode = True
+      elif sys.argv[argc]=="-del": delmode = True
+      else:                      addmode = True
+      addvar = sys.argv[argc+1]
+      argc+=2
+      if '@' in addvar: addvar, addrecord = addvar.split('@')
+      addvalues = []
+      while argc < len(sys.argv) and not sys.argv[argc].startswith('-'):
+        addvalues.append(sys.argv[argc])
+        argc+=1
+    else:
+      print "Unknown option: %s" % sys.argv[argc]
+      usage()
+      exit()
+
+  if not namelist:
+    print "Missing namelist argument!"
+    usage()
+    exit()
+  nml = FortranNamelist(namelist)
+  if setmode:
+    nml.setValue(addvar, coerce_value_list(addvalues), addrecord)
+  if addmode:
+    nml.addValue(addvar, coerce_value_list(addvalues), addrecord)
+  if delmode:
+    nml.delValue(addvar, addrecord)
+  if ovrmode:
+    nml.overWriteNamelist()
+  else:
+    print nml.printNamelist()

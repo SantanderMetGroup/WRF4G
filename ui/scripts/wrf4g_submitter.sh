@@ -178,7 +178,7 @@ if test "${is_multiphysics}" -ne "0"; then
       fortnml_setn namelist.input $var ${nitems} $(tuple_item ${mpid} ${iphys})
       let iphys++
     done
-    cycle_time "${experiment_name}__${mpid/,/_}" ${start_date} ${end_date}
+    cycle_time "${experiment_name}__${mpid//,/_}" ${start_date} ${end_date}
   done
 else
   echo "---> Single physics run"
