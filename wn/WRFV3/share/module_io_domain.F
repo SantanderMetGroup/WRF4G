@@ -90,6 +90,7 @@ CONTAINS
 
   SUBROUTINE close_dataset( id , config_flags, sysdepinfo ) 
    IMPLICIT NONE
+
    INTEGER id , ierr
    LOGICAL , EXTERNAL :: wrf_dm_on_monitor
    TYPE(grid_config_rec_type),  INTENT(IN   )    :: config_flags
@@ -97,6 +98,7 @@ CONTAINS
    CHARACTER*128             :: DataSet
    LOGICAL                   :: anyway
    CALL wrf_ioclose( id , ierr )
+  
   END SUBROUTINE close_dataset
 
 
