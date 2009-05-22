@@ -178,6 +178,10 @@ else
       fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
       fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
       ${LAUNCHER_METGRID} ./metgrid/metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_METGRID_FAILED}
+      # Clean
+      rm -f GRIBFILE.*
+      rm -rf grbData
+      rm -rf ${global_name}\:*
     timelog_end
   cd ${ROOTDIR}/WRFV3/run || exit
     #------------------------------------------------------------------
@@ -189,6 +193,11 @@ else
       fix_ptop
       setup_namelist_input
       ${LAUNCHER_REAL} ./real.exe >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_REAL_FAILED}
+      # Clean
+      mkdir -p rsl_real
+      mv rsl.* rsl_real/
+      rm -f met_em*
+      rm -f ../../WPS/met_em*
     timelog_end
     #
     #  Upload the wpsout files (create the output structure if necessary):

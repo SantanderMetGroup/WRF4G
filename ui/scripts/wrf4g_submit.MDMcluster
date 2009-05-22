@@ -18,11 +18,14 @@ else
   depflag=""
 fi
 
+mpiexec="/software/ScientificLinux/4.6/mpiexec/bin/mpiexec"
+wpsproc=${PROCESSES_PER_NODE}
+
 if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
   nodflag="-l nodes=${NUMBER_OF_NODES}:ppn=${PROCESSES_PER_NODE}"
-  echo "LAUNCHER_METGRID=\"\""                 >> wrf.chunk
-  echo "LAUNCHER_REAL=\"mpiexec -npernode 2\""                    >> wrf.chunk
-  echo "LAUNCHER_WRF=\"mpiexec -npernode ${PROCESSES_PER_NODE}\"" >> wrf.chunk
+  echo "LAUNCHER_METGRID=\"$mpiexec -npernode ${wpsproc}\""                 >> wrf.chunk
+  echo "LAUNCHER_REAL=\"$mpiexec -npernode ${wpsproc}\""                    >> wrf.chunk
+  echo "LAUNCHER_WRF=\"$mpiexec -npernode ${PROCESSES_PER_NODE}\"" >> wrf.chunk
 else
   nodflag=""
   echo "LAUNCHER_METGRID=\"\""              >> wrf.chunk

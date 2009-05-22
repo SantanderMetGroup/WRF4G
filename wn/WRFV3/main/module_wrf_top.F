@@ -224,6 +224,12 @@ CONTAINS
 ! 
 !</DESCRIPTION>
    CALL       wrf_message ( program_name )
+#ifdef WRF4G
+   CALL       wrf_message ( '  *** WRF4G code enabled' )
+#endif
+#ifdef CLWRF
+   CALL       wrf_message ( '  *** CLWRF code enabled' )
+#endif
    CALL       wrf_debug ( 100 , 'wrf: calling alloc_and_configure_domain ' )
    CALL alloc_and_configure_domain ( domain_id  = 1 ,                  &
                                      grid       = head_grid ,          &

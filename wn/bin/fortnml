@@ -58,6 +58,8 @@ class FortranNamelistRecord:
       rval += "%s\n" % thisvar
     rval += "/\n"
     return rval
+  def __getitem__(self, item):
+    return self.data[item]
 
 class FortranNamelist:
   def __init__(self, namelist_file):
@@ -78,6 +80,7 @@ class FortranNamelist:
         # Then this line is a namelist title
         is_comment=False
         current_label = line.strip().lstrip('&')
+        current_label = current_label.lower()
         self.record_dict[current_label] = FortranNamelistRecord(current_label)
         if not current_label in self.ordered_records:
           self.ordered_records.append(current_label)
@@ -88,6 +91,7 @@ class FortranNamelist:
         # Then this line contains variable information to be stored
         if not is_comment:
           variable,values = line.split('=')
+          variable = variable.lower()
           values = values.strip().rstrip(',')
           values = coerce_value_list(values.split(','))
           self.record_dict[current_label].setValue(variable.strip(), values)
@@ -116,6 +120,28 @@ class FortranNamelist:
           break
       if not gotit:
         raise KeyError, "The variable was not found and no record was specified!"
+  def getValue(self, variable, record=""):
+    if record:
+      return self[record][variable]
+    else:
+      gotit=False
+      for rec in self.ordered_records:
+        if self[rec].hasVariable(variable):
+          return self[rec][variable]
+          gotit=True
+          break
+      if not gotit:
+        raise KeyError, "The variable was not found and no record was specified!"
+  def hasVariable(self, variable, record=""):
+    if record:
+      return self[record].hasVariable(variable)
+    else:
+      rval = False
+      for rec in self.ordered_records:
+        if self[rec].hasVariable(variable):
+          rval = True
+          break
+      return rval
   def addValue(self, variable, value, record=""):
     if record:
       self[record].appendValue(variable, value)
@@ -137,12 +163,52 @@ class FortranNamelist:
     fid.write(self.printNamelist())
     fid.close()
 
+class WrfNamelist(FortranNamelist):
+  MAX_DOM_VARIABLES = [
+    "e_we", "e_sn", "e_vert", "dx", "dy", "grid_id",
+    "parent_id", "i_parent_start", "j_parent_start",
+    "parent_grid_ratio", "parent_time_step_ratio"
+  ]
+  def __init__(self, namelist_file):
+    FortranNamelist.__init__(self, namelist_file)
+  def setMaxDomValue(self, variable, value, record=""):
+    mxd = self['domains']['max_dom'][0]
+    if record:
+      self[record].setValue(variable, coerce_value_list(mxd*[value,]))
+    else:
+      gotit=False
+      for rec in self.ordered_records:
+        if self[rec].hasVariable(variable):
+          self[rec].setValue(variable, coerce_value_list(mxd*[value,]))
+          gotit=True
+          break
+      if not gotit:
+        raise KeyError, "The variable was not found and no record was specified!"
+  def trimMaxDom(self):
+    mxd = self['domains']['max_dom'][0]
+    for var in self.MAX_DOM_VARIABLES:
+      self.setValue(var, self.getValue(var)[:mxd])
+  def wrfCheck(self):
+    tsratio = self.getValue('time_step')[0] * 1000 / self.getValue('dx')[0]
+    if   tsratio > 6: print "WRF Check Warning: Time step is larger than 6 times dx (%f)" % tsratio
+    elif tsratio < 5: print "WRF Check Warning: Time step is shorter than 5 times dx (%f)" % tsratio
+    raratio = self.getValue('radt')[0] * 1000 / self.getValue('dx')[0]
+    if   raratio > 1.1: print "WRF Check Warning: radt is larger than dx (%f)" % raratio
+    if   raratio < 0.9: print "WRF Check Warning: radt is shorter than dx (%f)" % raratio
+    if self.hasVariable('sst_update', 'physics'):
+      if self.getValue('sst_update','physics')[0] == 1 and not self.hasVariable('auxinput4_inname', 'time_control'):
+         print "WRF Check Warning: sst_update enabled but auxinput4_inname not defined!" 
+
 if __name__ == "__main__":
   namelist=""
   setmode = False
   addmode = False
   delmode = False
   ovrmode = False
+  nopmode = False
+  wrfmode = False
+  mxdmode = False
+  trmmode = False
   addvar = ""
   addrecord = ""
   argc = 1
@@ -155,10 +221,21 @@ if __name__ == "__main__":
     elif sys.argv[argc] == "-wrt":
       ovrmode = True
       argc+=1
-    elif sys.argv[argc] in ["-set", "-add", "-del"]:
+    elif sys.argv[argc] == "-wrf":
+      wrfmode = True
+      argc+=1
+    elif sys.argv[argc] == "-nop":
+      nopmode = True
+      argc+=1
+    elif sys.argv[argc] == "-trm":
+      trmmode = True
+      wrfmode = True
+      argc+=1
+    elif sys.argv[argc] in ["-set", "-add", "-del", "-mxd"]:
       if sys.argv[argc]=="-set": setmode = True
       elif sys.argv[argc]=="-del": delmode = True
-      else:                      addmode = True
+      elif sys.argv[argc]=="-mxd": mxdmode = True; wrfmode = True
+      else: addmode = True
       addvar = sys.argv[argc+1]
       argc+=2
       if '@' in addvar: addvar, addrecord = addvar.split('@')
@@ -175,14 +252,22 @@ if __name__ == "__main__":
     print "Missing namelist argument!"
     usage()
     exit()
-  nml = FortranNamelist(namelist)
+  if wrfmode:
+    nml = WrfNamelist(namelist)
+    nml.wrfCheck()
+  else:
+    nml = FortranNamelist(namelist)
+  if trmmode:
+    nml.trimMaxDom()
   if setmode:
     nml.setValue(addvar, coerce_value_list(addvalues), addrecord)
   if addmode:
     nml.addValue(addvar, coerce_value_list(addvalues), addrecord)
+  if mxdmode:
+    nml.setMaxDomValue(addvar, addvalues[0], addrecord)
   if delmode:
     nml.delValue(addvar, addrecord)
   if ovrmode:
     nml.overWriteNamelist()
-  else:
+  elif not nopmode:
     print nml.printNamelist()
