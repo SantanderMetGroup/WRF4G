@@ -1352,12 +1352,12 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
 ! WRF4G-UC May.09
    CALL domain_clock_get( grid, current_timestr=timestr, minutesSinceSimulationStart=minSinceStr)
    IF ( minSinceStr .lt. (config_flags%frames_per_outfile-1)*config_flags%history_interval) THEN
-     IF ( wrf_dm_on_monitor() ) THEN
+    IF ( wrf_dm_on_monitor() ) THEN
        PRINT *,'First file  timestr:',TRIM(timestr),' timestrOUT:',TRIM(timestrOUT)
      ENDIF
    ENDIF
    IF ( domain_clockisstoptime(grid) .eq. .TRUE. ) THEN
-     CALL wrfgel_file (timestr, 'out', config_flags%history_outname, grid%id)
+!     CALL wrfgel_file (timestr, 'out', config_flags%history_outname, grid%id)
      IF ( wrf_dm_on_monitor() ) THEN
        PRINT *,'Last file timestr:',TRIM(timestr)
      ENDIF
