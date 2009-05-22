@@ -18,6 +18,7 @@ import datetime
 URL_BAD_FORMED=1
 COPY_ERROR=2
 CREATE_DIR_ERROR=3
+DELETE_FILE_ERROR=3
 
 class VCPURL:
   def __init__(self,url=None):
@@ -137,6 +138,38 @@ class VCPURL:
         print "Error creating dir: " + str(err) + "\n" + out
         exit(CREATE_DIR_ERROR)
      return  
+ 
+  def rm(self):
+     """ Delete a file or folder """
+     # For the moment this command only delete files
+     command_dict= {'file': 'rm -f' , 'gsiftp': 'edg-gridftp-rmdir'}
+     file_dict= {'file': self.file, 'gsiftp': str(self)}
+
+     command="%s %s" % (command_dict[self.protocol],file_dict[self.protocol])
+     print command
+     (err,out)=getstatusoutput(command)
+     
+     if err != 0 :
+        print "Error deleting file: " + str(err) + "\n" + out
+        exit(DELETE_FILE_ERROR)
+     return  
+ 
+  def mv(self,newname):
+     """ Move or rename self into newurl """
+     command_dict= {'file': 'mv', 'gsiftp': 'edg-gridftp-rename'}
+     file_dict= {'file': self.file, 'gsiftp': str(self)}
+     
+     # Make sure that origin and destiny protocols are the same
+     origin=file_dict[self.protocol]
+     dest_folder=dirname(origin)
+     
+     command="%s %s %s" % (command_dict[self.protocol],origin,dest_folder + "/" + newname)
+     (err,out)=getstatusoutput(command)
+     
+     if err != 0 :
+        print "Error listing file: " + str(err) + "\n" + out
+        exit(7)
+     
 
 class wrffile :
     """ This class manage the restart and output files and the dates they represent.
