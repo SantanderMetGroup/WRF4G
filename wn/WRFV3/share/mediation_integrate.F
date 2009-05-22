@@ -1266,12 +1266,12 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
      CASE ( 0 )
 #ifdef WRF4G
 ! WRF4G-UC May.09
-       IF (grid%oid .eq. 0) THEN
-         CALL domain_clock_get(grid, current_timestr=timestrOUT)
-!         IF ( wrf_dm_on_monitor() ) THEN
+       IF ( wrf_dm_on_monitor() ) THEN
+         IF (grid%oid .eq. 0) THEN
+           CALL domain_clock_get(grid, current_timestr=timestrOUT)
 !           print *,'New file___________________ '
 !           print *,'grid%oid:',grid%oid
-!         ENDIF
+         ENDIF
        ENDIF
 #endif
        CALL open_hist_w( grid, config_flags, stream, HISTORY_ALARM, &
@@ -1350,15 +1350,12 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
    CALL wrf_debug( 1, message )
 #ifdef WRF4G
 ! WRF4G-UC May.09
-   CALL domain_clock_get( grid, current_timestr=timestr, minutesSinceSimulationStart=minSinceStr)
-   IF ( minSinceStr .lt. (config_flags%frames_per_outfile-1)*config_flags%history_interval) THEN
-    IF ( wrf_dm_on_monitor() ) THEN
-       PRINT *,'First file  timestr:',TRIM(timestr),' timestrOUT:',TRIM(timestrOUT)
+   IF ( wrf_dm_on_monitor() ) THEN
+     CALL domain_clock_get( grid, current_timestr=timestr, minutesSinceSimulationStart=minSinceStr)
+     IF ( minSinceStr .lt. (config_flags%frames_per_outfile-1)*config_flags%history_interval) THEN
+         PRINT *,'First file  timestr:',TRIM(timestr),' timestrOUT:',TRIM(timestrOUT)
      ENDIF
-   ENDIF
-   IF ( domain_clockisstoptime(grid) .eq. .TRUE. ) THEN
-!     CALL wrfgel_file (timestr, 'out', config_flags%history_outname, grid%id)
-     IF ( wrf_dm_on_monitor() ) THEN
+     IF ( domain_clockisstoptime(grid) .eq. .TRUE. ) THEN
        PRINT *,'Last file timestr:',TRIM(timestr)
      ENDIF
    ENDIF
@@ -1371,7 +1368,9 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
            CALL close_dataset ( grid%oid , config_flags , n2 ) 
 #ifdef WRF4G
 ! WRF4G-UC May.09
-              CALL wrfgel_file (timestrOUT, 'out', config_flags%history_outname, grid%id)
+              IF ( wrf_dm_on_monitor() ) THEN
+                CALL wrfgel_file (timestrOUT, 'out', config_flags%history_outname, grid%id)
+              ENDIF
 #endif
            grid%oid = 0
            grid%nframes(stream) = 0
@@ -2971,10 +2970,10 @@ SUBROUTINE wrfgel_file (timestrOUT, kind, filename, idOUT )
       LOGICAL, EXTERNAL                         :: wrf_dm_on_monitor
       CHARACTER*80                              :: fnameOUT
 
-    CALL construct_filename2a ( fnameOUT , filename , idOUT , 2 , timestrOUT )
-     IF ( wrf_dm_on_monitor() ) THEN
-       print *,'$WRFGEL_SCRIPT '//kind//' '//TRIM(timestrOUT)//' '//TRIM(fnameOUT)
-       CALL system('$WRFGEL_SCRIPT '//kind//' '//TRIM(timestrOUT)//' '//TRIM(fnameOUT))
-     ENDIF
+    IF ( wrf_dm_on_monitor() ) THEN
+      CALL construct_filename2a ( fnameOUT , filename , idOUT , 2 , timestrOUT )
+        print *,'$WRFGEL_SCRIPT '//kind//' '//TRIM(timestrOUT)//' '//TRIM(fnameOUT)
+        CALL system('$WRFGEL_SCRIPT '//kind//' '//TRIM(timestrOUT)//' '//TRIM(fnameOUT))
+    ENDIF
 END SUBROUTINE wrfgel_file
 #endif
