@@ -11,14 +11,14 @@
 #
 userdir=`pwd`
 wrf4g_root=$(dirname $(dirname $(dirname $0)))
+export PATH="${wrf4g_root}/wn/bin:${PATH}"
 #
 #  Load wrf.input et al.
 #
-sed -e 's/\ *=\ */=/' wrf4g.conf > source.it        || exit ${ERROR_MISSING_WRF4GCNF}
+sed -e 's/\ *=\ */=/' wrf4g.conf > source.it       || exit ${ERROR_MISSING_WRF4GCNF}
 source source.it && rm source.it
 sed -e 's/\ *=\ */=/' wrf.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
-#source ${wrf4g_root}/scheduler_headers/sched_headers.${job_type} || exit ${ERROR_MISSING_HEADERS}
 source ${wrf4g_root}/wn/lib/bash/wrf_util.sh       || exit ${ERROR_MISSING_WRFUTIL}
 
 function get_ni_vars(){
@@ -42,6 +42,12 @@ function cycle_chunks(){
   local fyy fmm fdd fhh final_date
   echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}"
   #
+  if test -d realizations/${realization_name}; then
+    echo ""
+    echo "    >>>   THE REALIZATION ALREADY EXISTS!! ABORTING...   <<<"
+    echo ""
+    exit
+  fi
   mkdir -p realizations/${realization_name}
   current_date=${realization_start_date}
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
@@ -154,16 +160,19 @@ function cycle_time(){
 #
 #  Initial override of namelist values
 #
-cp ${userdir}/namelist.input ${userdir}/namelist.input.orig # save
-cp ${userdir}/namelist.input ${userdir}/namelist.input.base
+cp ${wrf4g_root}/wn/WRFV3/run/namelist.input ${userdir}/namelist.input.base
+fortnml -wof namelist.input.base -s max_dom ${max_dom}
 for var in $(get_ni_vars); do
-  fortnml_set namelist.input.base $var $(eval echo \$NI_${var})
+  var=${var/__/@}
+  fortnml -wof namelist.input.base -s $var $(eval echo \$NI_${var})
 done
 for var in $(get_nim_vars); do
-  fortnml_setm namelist.input.base $var $(eval echo \$NIM_${var})
+  var=${var/__/@}
+  fortnml -wof namelist.input.base -s $var $(eval echo \$NIM_${var})
 done
 for var in $(get_nin_vars); do
-  fortnml_setn namelist.input.base $var $max_dom $(eval echo \$NIN_${var})
+  var=${var/__/@}
+  fortnml -wof namelist.input.base -m $var $(eval echo \$NIN_${var})
 done
 #
 #  Multiphysics support. Physical parameters overwritten!

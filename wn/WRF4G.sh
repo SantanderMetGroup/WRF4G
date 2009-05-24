@@ -64,6 +64,10 @@ function setup_namelist_input(){
   fortnml_setm namelist.input dy        $alldx
   fortnml_set  namelist.input time_step $(get_timestep $dx)
   fortnml_set  namelist.input max_dom   ${max_dom}
+  #
+  # A final sanity check...
+  #
+  fortnml --wrf --trim --overwrite -f namelist.input
 }
 
 logdir=${ROOTDIR}/log; mkdir -p ${logdir}
