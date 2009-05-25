@@ -52,7 +52,7 @@ if type in type_list.keys() :
     dest= dest_folder + "/" + dest_file
     
     #In the case of restart move the previous restart file to the .bak and the delete the old one  
-    if type =="rst" : 
+    """if type =="rst" : 
        
         dest_bak=VCPURL(dest_folder)
         back_list=dest_bak.ls("*")
@@ -74,19 +74,11 @@ if type in type_list.keys() :
             if options.verbose: print "Deleting from local disk: %s" % file 
             # Delete the old .bak file
             VCPURL(file2del).rm()
-    
-    
+    """
+    output=copy_file(file,dest)
     input=VCPURL(file)
     # Delete the file from local disk 
     input.rm()
-    
-
-
-        
-        
-        
-        
-
 
 else :    
     # If the files are WPS, add the date to the name. Three files have to be uploaded: wrfinput_d0?,wrfbdy_d0? and wrflowinp_d0?

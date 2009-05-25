@@ -56,12 +56,10 @@ class VCPURL:
           
                 if self.computer.find("@")!= -1 :
                     (self.user,self.computer)=self.computer.split("@")
-        
-        
-    
+                  
   def __str__(self):
-     """ It returns an url from a array with 
-     the following field [protocol,user,computer,port,file]"""
+     """ eturns an url from a array with 
+     the following fields [protocol,user,computer,port,file]"""
     
      # Fill the variables: protocol, user, computer, port and file 
      
@@ -213,7 +211,7 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
    the following field [protocol,user,computer,port,file]"""
 
   orig=VCPURL(origin)
-  dest=VCPURL(destination)
+  dest=VCPURL(destination + ".bak")
 
   flags=""
 
@@ -242,8 +240,7 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
        else : 
           if origin.find("*") != -1 : destiny = destiny + "/"
        
-       command="globus-url-copy %s %s %s" % (flags, origin, destiny)
-
+       command="globus-url-copy %s %s %s" % (flags, origin, destiny )
  
   elif orig.protocol == "gsiftp" :  
      if dest.protocol == "file" :
@@ -264,14 +261,16 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
    # Execute the command that copy the files
   if verbose :    print command
   (err,out)=getstatusoutput(command)
-
+  
 
   if err != 0 :
-     print "Error copying file: " + str(err) + "\n" + out
-     exit(COPY_ERROR)
+      print "Error copying file: " + str(err) + "\n" + out
+      exit(COPY_ERROR)
+  else :
+      VCPURL(destination + ".bak").mv(basename(destination))
 
- 
-  return out
+  if verbose :
+    return out
 
 #    FUNCTIONS FOR MANAGE DATES      #
 def datewrf2datetime (datewrf):
