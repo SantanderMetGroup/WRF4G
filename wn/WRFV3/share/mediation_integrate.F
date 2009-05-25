@@ -1092,6 +1092,14 @@ SUBROUTINE med_last_solve_io ( grid , config_flags )
    TYPE (grid_config_rec_type) , INTENT(IN)   :: config_flags
   ! Local
    INTEGER                                    :: rc
+#ifdef WRF4G
+! WRF4G-UC May.09
+   LOGICAL , EXTERNAL                       :: wrf_dm_on_monitor
+
+   CHARACTER*256                            :: timestr
+   CHARACTER*80                             :: fnameOUT
+   CHARACTER*80                             :: timestrOUT
+#endif
 
 #if (EM_CORE == 1)
    IF( WRFU_AlarmIsRinging( grid%alarms( HISTORY_ALARM ), rc=rc ) .AND. &
@@ -1149,7 +1157,25 @@ SUBROUTINE med_last_solve_io ( grid , config_flags )
 
    ! Write out time series
    CALL write_ts( grid )
-
+#ifdef WRF4G
+! WRF4G-UC May.09
+      IF ( wrf_dm_on_monitor() ) THEN
+        CALL domain_clock_get( grid, current_timestr=timestrOUT)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%history_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'ts', config_flags%history_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist1_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist2_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist3_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist4_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist5_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist6_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist7_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist8_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist9_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist10_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist11_outname, grid%id)
+      ENDIF
+#endif
    RETURN
 END SUBROUTINE med_last_solve_io
 
@@ -2971,9 +2997,14 @@ SUBROUTINE wrfgel_file (timestrOUT, kind, filename, idOUT )
       CHARACTER*80                              :: fnameOUT
 
     IF ( wrf_dm_on_monitor() ) THEN
-      CALL construct_filename2a ( fnameOUT , filename , idOUT , 2 , timestrOUT )
+      IF ( kind .eq. 'ts') THEN
+        print *,'$WRFGEL_SCRIPT '//kind//' '//TRIM(timestrOUT)//' *.TS'
+        CALL system('$WRFGEL_SCRIPT '//kind//' '//TRIM(timestrOUT)//' *.TS')
+      ELSE
+        CALL construct_filename2a ( fnameOUT , filename , idOUT , 2 , timestrOUT )
         print *,'$WRFGEL_SCRIPT '//kind//' '//TRIM(timestrOUT)//' '//TRIM(fnameOUT)
         CALL system('$WRFGEL_SCRIPT '//kind//' '//TRIM(timestrOUT)//' '//TRIM(fnameOUT))
+      ENDIF
     ENDIF
 END SUBROUTINE wrfgel_file
 #endif
