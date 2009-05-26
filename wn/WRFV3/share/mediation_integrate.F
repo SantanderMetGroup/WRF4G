@@ -1099,6 +1099,10 @@ SUBROUTINE med_last_solve_io ( grid , config_flags )
    CHARACTER*256                            :: timestr
    CHARACTER*80                             :: fnameOUT
    CHARACTER*80                             :: timestrOUT
+
+    IF ( wrf_dm_on_monitor() ) THEN
+      CALL domain_clock_get( grid, current_timestr=timestrOUT)
+    ENDIF
 #endif
 
 #if (EM_CORE == 1)
@@ -1157,25 +1161,6 @@ SUBROUTINE med_last_solve_io ( grid , config_flags )
 
    ! Write out time series
    CALL write_ts( grid )
-#ifdef WRF4G
-! WRF4G-UC May.09
-      IF ( wrf_dm_on_monitor() ) THEN
-        CALL domain_clock_get( grid, current_timestr=timestrOUT)
-        CALL wrfgel_file (timestrOUT, 'out', config_flags%history_outname, grid%id)
-        CALL wrfgel_file (timestrOUT, 'ts', config_flags%history_outname, grid%id)
-        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist1_outname, grid%id)
-        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist2_outname, grid%id)
-        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist3_outname, grid%id)
-        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist4_outname, grid%id)
-        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist5_outname, grid%id)
-        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist6_outname, grid%id)
-        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist7_outname, grid%id)
-        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist8_outname, grid%id)
-        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist9_outname, grid%id)
-        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist10_outname, grid%id)
-        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist11_outname, grid%id)
-      ENDIF
-#endif
    RETURN
 END SUBROUTINE med_last_solve_io
 
@@ -1233,8 +1218,7 @@ RECURSIVE SUBROUTINE med_restart_out ( grid , config_flags )
 #ifdef WRF4G
 ! WRF4G-UC May.09
       IF ( wrf_dm_on_monitor() ) THEN
-           print *,'$WRFGEL_SCRIPT rst '//timestr//' '//TRIM(rstname)
-           CALL system('$WRFGEL_SCRIPT rst '//timestr//' '//TRIM(rstname))
+        CALL wrfgel_file(timestr, 'rst', config_flags%rst_outname, grid%id)
       ENDIF
 #endif
    ! call recursively for children, (if any)
@@ -1295,8 +1279,6 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
        IF ( wrf_dm_on_monitor() ) THEN
          IF (grid%oid .eq. 0) THEN
            CALL domain_clock_get(grid, current_timestr=timestrOUT)
-!           print *,'New file___________________ '
-!           print *,'grid%oid:',grid%oid
          ENDIF
        ENDIF
 #endif
@@ -1379,10 +1361,12 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
    IF ( wrf_dm_on_monitor() ) THEN
      CALL domain_clock_get( grid, current_timestr=timestr, minutesSinceSimulationStart=minSinceStr)
      IF ( minSinceStr .lt. (config_flags%frames_per_outfile-1)*config_flags%history_interval) THEN
-         PRINT *,'First file  timestr:',TRIM(timestr),' timestrOUT:',TRIM(timestrOUT)
+         PRINT *,'First file timestr:',TRIM(timestr),' timestrOUT:',TRIM(timestrOUT)
      ENDIF
-     IF ( domain_clockisstoptime(grid) .eq. .TRUE. ) THEN
+!     IF ( domain_clockisstoptime(grid) .eq. .TRUE. ) THEN
+     IF ( domain_clockisstoptime(grid) ) THEN
        PRINT *,'Last file timestr:',TRIM(timestr)
+!       CALL wrfgel_file (timestr, 'out', config_flags%history_outname, grid%id)
      ENDIF
    ENDIF
 #endif

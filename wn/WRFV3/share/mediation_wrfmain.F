@@ -177,6 +177,19 @@ SUBROUTINE med_shutdown_io ( grid , config_flags )
   ! Local
    CHARACTER (LEN=80)      :: message
    INTEGER                 :: ierr
+#ifdef WRF4G
+! WRF4G-UC May.09
+   LOGICAL , EXTERNAL                         :: wrf_dm_on_monitor
+
+   CHARACTER*80                               :: timestrOUT
+
+    IF ( wrf_dm_on_monitor() ) THEN
+    WRITE (message,*)'We are in med_shutdown_io__________________'
+    CALL wrf_debug( 1, message )
+      CALL domain_clock_get( grid, current_timestr=timestrOUT)
+    ENDIF
+#endif
+
 
    IF ( grid%oid > 0 ) CALL close_dataset ( grid%oid , config_flags , "DATASET=HISTORY" )
    IF ( grid%auxhist1_oid > 0 ) CALL close_dataset ( grid%auxhist1_oid , config_flags , "DATASET=AUXHIST1" )
@@ -184,6 +197,19 @@ SUBROUTINE med_shutdown_io ( grid , config_flags )
    IF ( grid%auxhist3_oid > 0 ) CALL close_dataset ( grid%auxhist3_oid , config_flags , "DATASET=AUXHIST3" )
    IF ( grid%auxhist4_oid > 0 ) CALL close_dataset ( grid%auxhist4_oid , config_flags , "DATASET=AUXHIST4" )
    IF ( grid%auxhist5_oid > 0 ) CALL close_dataset ( grid%auxhist5_oid , config_flags , "DATASET=AUXHIST5" )
+#ifdef WRF4G
+! WRF4G-UC May.09
+      IF ( wrf_dm_on_monitor() ) THEN
+        CALL wrfgel_file (timestrOUT, 'ts', config_flags%history_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%history_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist1_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist2_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist3_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist4_outname, grid%id)
+        CALL wrfgel_file (timestrOUT, 'out', config_flags%auxhist5_outname, grid%id)
+      ENDIF
+#endif
+
 #if 0
    IF ( grid%auxhist6_oid > 0 ) CALL close_dataset ( grid%auxhist6_oid , config_flags , "DATASET=AUXHIST6" )
    IF ( grid%auxhist7_oid > 0 ) CALL close_dataset ( grid%auxhist7_oid , config_flags , "DATASET=AUXHIST7" )
