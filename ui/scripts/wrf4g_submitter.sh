@@ -163,16 +163,16 @@ function cycle_time(){
 cp ${wrf4g_root}/wn/WRFV3/run/namelist.input ${userdir}/namelist.input.base
 fortnml -wof namelist.input.base -s max_dom ${max_dom}
 for var in $(get_ni_vars); do
-  var=${var/__/@}
-  fortnml -wof namelist.input.base -s $var $(eval echo \$NI_${var})
+  fnvar=${var/__/@}
+  fortnml -wof namelist.input.base -s $fnvar -- $(eval echo \$NI_${var})
 done
 for var in $(get_nim_vars); do
-  var=${var/__/@}
-  fortnml -wof namelist.input.base -s $var $(eval echo \$NIM_${var})
+  fnvar=${var/__/@}
+  fortnml -wof namelist.input.base -s $fnvar -- $(eval echo \$NIM_${var})
 done
 for var in $(get_nin_vars); do
-  var=${var/__/@}
-  fortnml -wof namelist.input.base -m $var $(eval echo \$NIN_${var})
+  fnvar=${var/__/@}
+  fortnml -wof namelist.input.base -m $fnvar -- $(eval echo \$NIN_${var})
 done
 #
 #  Multiphysics support. Physical parameters overwritten!

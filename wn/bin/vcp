@@ -211,7 +211,7 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
    the following field [protocol,user,computer,port,file]"""
 
   orig=VCPURL(origin)
-  dest=VCPURL(destination + ".part")
+  dest=VCPURL(destination)
 
   flags=""
 
@@ -262,12 +262,9 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
   if verbose :    print command
   (err,out)=getstatusoutput(command)
   
-
   if err != 0 :
-      print "Error copying file: " + str(err) + "\n" + out
+      sys.stderr.write("Error copying file: " + str(err) + "\n" + out)
       exit(COPY_ERROR)
-  else :
-      dest.mv(basename(destination))
 
   if verbose :
     return out

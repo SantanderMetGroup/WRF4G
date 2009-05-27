@@ -1,5 +1,9 @@
 #! /bin/bash
 #
+# Serial preprocessor (metgrid, real) / Infiniband wrf.exe
+# Node exclusive (requests 8 processors per node regardsless PROCESSES_PER_NODE)
+#
+# ---
 # Job submission abstraction layer
 #
 # These files (wrf4g_submit.*) are called with a 'jobfile' argument and an
@@ -19,21 +23,21 @@ else
 fi
 
 mpiexec="/software/ScientificLinux/4.6/mpiexec/bin/mpiexec"
-wpsproc=${PROCESSES_PER_NODE}
-#wpsproc=2
 
 if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
-  nodflag="-l nodes=${NUMBER_OF_NODES}:ppn=${PROCESSES_PER_NODE}"
-  echo "LAUNCHER_METGRID=\"$mpiexec -npernode ${wpsproc}\""                 >> wrf.chunk
-  echo "LAUNCHER_REAL=\"$mpiexec -npernode ${wpsproc}\""                    >> wrf.chunk
-  echo "LAUNCHER_WRF=\"$mpiexec -npernode ${PROCESSES_PER_NODE}\"" >> wrf.chunk
+  nodflag="-l nodes=${NUMBER_OF_NODES}:ppn=8"
+  echo "LAUNCHER_METGRID=\"\"" >> wrf.chunk
+  echo "LAUNCHER_REAL=\"\"" >> wrf.chunk
+  echo "LAUNCHER_WRF=\"$mpiexec -comm mpich-ib -npernode ${PROCESSES_PER_NODE}\""  >> wrf.chunk
   echo "export P4_GLOBMEMSIZE=33554432" >> wrf.chunk
+  echo "export IBV_FORK_SAFE=1" >> wrf.chunk
 else
   nodflag=""
-  echo "LAUNCHER_METGRID=\"\""              >> wrf.chunk
+  echo "LAUNCHER_METGRID=\"\""           >> wrf.chunk
   echo "LAUNCHER_REAL=\"\""              >> wrf.chunk
   echo "LAUNCHER_WRF=\"\""               >> wrf.chunk
 fi
+
 rundir=${WRF4G_RUN}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
 #
 #  Enter a cd command in your job file to go to the run path.
@@ -52,4 +56,4 @@ mkdir -p ${rundir} || exit
 cp -L sandbox.tar.gz ${rundir}/
 cp -L WRF4G_ini.sh   ${rundir}/
 
-qsub -q macc -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} $jobfile | awk -F. '{print $1}'
+qsub -q infiniband -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} $jobfile | awk -F. '{print $1}'

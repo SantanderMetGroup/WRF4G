@@ -262,11 +262,14 @@ class WrfNamelist(FortranNamelist):
       self.printWrfWarning('cam_abs_dim2 not set to e_vert. Fixing...')
       self['physics'].setValue('cam_abs_dim2', self.getValue('e_vert')[0])
     #
-    # Noah LSM
+    # LSM issues
     #
     if self.getValue('sf_surface_physics')[0] == 2 and self.getValue('num_soil_layers')[0] != 4:
       self.printWrfWarning('Noah LSM selected but the soil levels are not 4. Fixing...')
       self['physics'].setValue('num_soil_layers', 4)
+    if self.getValue('sf_surface_physics')[0] == 1 and self.getValue('num_soil_layers')[0] != 5:
+      self.printWrfWarning('Simple soil selected but the soil levels are not 5. Fixing...')
+      self['physics'].setValue('num_soil_layers', 5)
 
 
 if __name__ == "__main__":

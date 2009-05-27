@@ -9,6 +9,7 @@ ROOTDIR=$(pwd)
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 export PATH="${ROOTDIR}/bin:${ROOTDIR}/WRFGEL:$PATH"
+umask 002
 #
 #  Load wrf4g.conf, wrf.chunk and wrf.input
 #
@@ -120,13 +121,17 @@ else
     #   Preprocessor
     #
     timelog_init "get boundaries"
-      echo "Linking global data from: ${global_path}"
-      mkdir -p grbData
-      for yearmon in $(get_yearmons $iyy $imm $fyy $fmm) 
-      do
-        year=${yearmon:0:4}
-        vcp ${VCPDEBUG} ${global_path}/${year}/'*'${yearmon}'*'.grb ln://`pwd`/grbData 
-      done
+      if test -z "${global_preprocessor}"; then
+        echo "Linking global data from: ${global_path}"
+        mkdir -p grbData
+        for yearmon in $(get_yearmons $iyy $imm $fyy $fmm) 
+        do
+          year=${yearmon:0:4}
+          vcp ${VCPDEBUG} ${global_path}/${year}/'*'${yearmon}'*'.grb ln://`pwd`/grbData 
+        done
+      else
+        preprocessor.${global_preprocessor} ${global_path} ${start_date} ${end_date}
+      fi
       ./link_grib.csh grbData/*.grb
     timelog_end
     timelog_init "ungrib"

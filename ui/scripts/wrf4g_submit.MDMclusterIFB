@@ -26,6 +26,8 @@ if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
   echo "LAUNCHER_METGRID=\"$mpiexec -comm mpich-ib -npernode ${wpsproc}\"" >> wrf.chunk
   echo "LAUNCHER_REAL=\"$mpiexec -comm mpich-ib -npernode ${wpsproc}\"" >> wrf.chunk
   echo "LAUNCHER_WRF=\"$mpiexec -comm mpich-ib -npernode ${PROCESSES_PER_NODE}\""  >> wrf.chunk
+  echo "export P4_GLOBMEMSIZE=33554432" >> wrf.chunk
+  echo "export IBV_FORK_SAFE=1" >> wrf.chunk
 else
   nodflag=""
   echo "LAUNCHER_METGRID=\"\""           >> wrf.chunk

@@ -1,0 +1,25 @@
+#! /bin/bash
+#
+# Sample preprocessor in shell.
+#
+# This can be any kind of executable accepting three arguments:
+#
+global_path=$1       # Path to the data
+sformateddate=$2     # initial date to process as YYYY-MM-DD_HH:MM:SS
+eformateddate=$3     # end data to process
+#
+# and creating a directory grbData with grib data for those dates and ready to
+# be linked by 'link_grib.csh grbData/*.grb'
+#
+source /software/ScientificLinux/4.6/etc/bashrc # -> grib_filter
+
+read syy smm sdd shh trash <<< `echo $sformateddate | tr '_T:-' '    '`
+
+mkdir -p grbData
+cd grbData
+cat << eof > grib.rules
+write "kk_[indicatorOfParameter].grb";
+eof
+grib_filter grib.rules ${global_path}/OPERWRF12_${syy}${smm}${sdd}${shh}.grb 
+rm grib.rules
+
