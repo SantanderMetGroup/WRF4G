@@ -34,12 +34,13 @@ function get_nim_vars(){
 }
 
 function cycle_chunks(){
-  realization_name=$1
-  realization_start_date=$2
-  realization_end_date=$3
+  local realization_name
   local eyy emm edd ehh 
   local cyy cmm cdd chh current_date
   local fyy fmm fdd fhh final_date
+  realization_name=$1
+  realization_start_date=$2
+  realization_end_date=$3
   echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}"
   #
   if test -d realizations/${realization_name}; then
