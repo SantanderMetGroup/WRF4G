@@ -168,7 +168,7 @@ for var in $(get_ni_vars); do
 done
 for var in $(get_nim_vars); do
   fnvar=${var/__/@}
-  fortnml -wof namelist.input.base -s $fnvar -- $(eval echo \$NIM_${var})
+  fortnml -wof namelist.input.base -s $fnvar -- $(eval "echo \$NIM_${var} | tr ',' ' '")
 done
 for var in $(get_nin_vars); do
   fnvar=${var/__/@}

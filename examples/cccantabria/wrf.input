@@ -1,0 +1,52 @@
+# WRF input for WRF (V3.0) simulations by Meteorology & Data Maining group of
+# Dept. de Matematica Aplicada de la Universidad de Cantabria. Lluis i Jesus
+# (March. 2009)
+#
+#   Experiment configuration
+#
+experiment_name = "ccc1"
+max_dom = 2
+domain_name = "Cantabria25a5"
+global_name = "ECMWF"    # Vtables must exist as Vtable.[input_global]
+global_path = "${WRF4G_INPUT}"
+global_interval = 21600   # Seconds between global analysis input times
+# These are not expanded at this time! realization_name is not defined!
+WRF4G_DOMAINPATH = ${WRF4G_BASEPATH}/domains
+WRF4G_OUTPUTPATH = ${WRF4G_BASEPATH}/WRF/experiments/${experiment_name}/${realization_name}/output
+WRF4G_WPSOUTPATH = ${WRF4G_BASEPATH}/WRF/experiments/${experiment_name}/${realization_name}/output
+WRF4G_RESTARTPATH = ${WRF4G_BASEPATH}/WRF/experiments/${experiment_name}/${realization_name}/restart
+
+start_date = "1989-12-01_00:00:00"
+end_date = "1991-12-31_00:00:00"
+chunk_size_h = 336 # 14 days
+is_continuous = 0
+  simulation_interval_h = 8760 # 1 yr
+  simulation_length_h = 9504 # 1 yr + 1 month
+is_restart = 0
+is_multiphysics = 0
+  multiphysics_variables = ""
+  multiphysics_nitems = ""
+  multiphysics_combinations = ""
+#
+#   Override namelist.input variables here
+#
+# Single valued:
+#
+NI_restart_interval = 10080 # minutos -> 7 days
+NI_spec_bdy_width = 10
+NI_spec_zone = 1
+NI_relax_zone = 9
+NI_sst_update__physics = 1
+#
+# One value per domain:
+#
+NIM_history_interval = 360,180 # minutos
+NIM_frames_per_outfile = 4,8 # -> 1 file per day
+#
+# One value per domain; but all equal (provide a single value here):
+#
+NIN_e_vert             = 28
+NIN_mp_physics         = 4   # 1: Kessler, 2: Lin, 3: WRF S-M 3, 4: WRF S-M 5, 5: Eta, 6: WRF S-M 6, 7: Goddard, 8: Thompson, 10: Morrison
+NIN_radt               = 30
+NIN_ra_lw_physics      = 3
+NIN_ra_sw_physics      = 3
