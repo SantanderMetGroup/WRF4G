@@ -3214,6 +3214,57 @@ BENCH_END(bc_2d_tim)
       &             ,NUM_TILES=grid%num_tiles                              &
       &                                                          )
 
+#ifdef CLWRF
+   CALL wrf_debug ( 200 , ' CLWRF: call diagnostic_driver' )
+
+   CALL clwrf_output_calc(                                            &
+      &              DPSDT=grid%dpsdt   ,DMUDT=grid%dmudt                  &
+      &             ,P8W=p8w   ,PK1M=grid%pk1m                             &
+      &             ,MU_2=grid%mu_2  ,MU_2M=grid%mu_2m                     &
+      &             ,U=grid%u_2    ,V=grid%v_2                             &
+      &             ,startH=config_flags%start_hour                        &
+      &             ,startM=config_flags%start_minute                      &
+      &             ,startS=config_flags%start_second                      &
+      &             ,clwrfH=config_flags%clwrfh, T2=grid%t2                & 
+      &             ,T2_MIN3=grid%t2min3, T2_MAX3=grid%t2max3              & 
+      &             ,TT2_MIN3=grid%tt2min3, TT2_MAX3=grid%tt2max3          & 
+      &             ,RAINCV=grid%raincv    ,RAINNCV=grid%rainncv           &
+      &             ,RAINC=grid%rainc    ,RAINNC=grid%rainnc               &
+      &             ,I_RAINC=grid%i_rainc    ,I_RAINNC=grid%i_rainnc       &
+      &             ,HFX=grid%hfx   ,SFCEVP=grid%sfcevp    ,LH=grid%lh     &
+      &             ,DT=grid%dt      ,SBW=config_flags%spec_bdy_width      &
+      &             ,XTIME=grid%xtime                                      &
+      &        ,ACSWUPT=grid%acswupt    ,ACSWUPTC=grid%acswuptc            &
+      &        ,ACSWDNT=grid%acswdnt    ,ACSWDNTC=grid%acswdntc            &
+      &        ,ACSWUPB=grid%acswupb    ,ACSWUPBC=grid%acswupbc            &
+      &        ,ACSWDNB=grid%acswdnb    ,ACSWDNBC=grid%acswdnbc            &
+      &        ,ACLWUPT=grid%aclwupt    ,ACLWUPTC=grid%aclwuptc            &
+      &        ,ACLWDNT=grid%aclwdnt    ,ACLWDNTC=grid%aclwdntc            &
+      &        ,ACLWUPB=grid%aclwupb    ,ACLWUPBC=grid%aclwupbc            &
+      &        ,ACLWDNB=grid%aclwdnb    ,ACLWDNBC=grid%aclwdnbc            &
+      &      ,I_ACSWUPT=grid%i_acswupt  ,I_ACSWUPTC=grid%i_acswuptc        &
+      &      ,I_ACSWDNT=grid%i_acswdnt  ,I_ACSWDNTC=grid%i_acswdntc        &
+      &      ,I_ACSWUPB=grid%i_acswupb  ,I_ACSWUPBC=grid%i_acswupbc        &
+      &      ,I_ACSWDNB=grid%i_acswdnb  ,I_ACSWDNBC=grid%i_acswdnbc        &
+      &      ,I_ACLWUPT=grid%i_aclwupt  ,I_ACLWUPTC=grid%i_aclwuptc        &
+      &      ,I_ACLWDNT=grid%i_aclwdnt  ,I_ACLWDNTC=grid%i_aclwdntc        &
+      &      ,I_ACLWUPB=grid%i_aclwupb  ,I_ACLWUPBC=grid%i_aclwupbc        &
+      &      ,I_ACLWDNB=grid%i_aclwdnb  ,I_ACLWDNBC=grid%i_aclwdnbc        &
+                  ! Selection flag
+      &             ,DIAG_PRINT=config_flags%diag_print                    &
+      &             ,BUCKET_MM=config_flags%bucket_mm                      &
+      &             ,BUCKET_J =config_flags%bucket_J                       &
+                  ! Dimension arguments
+      &             ,IDS=ids,IDE=ide, JDS=jds,JDE=jde, KDS=kds,KDE=kde     &
+      &             ,IMS=ims,IME=ime, JMS=jms,JME=jme, KMS=kms,KME=kme     &
+      &             ,IPS=ips,IPE=ipe, JPS=jps,JPE=jpe, KPS=kps,KPE=kpe     &
+      &             ,I_START=grid%i_start,I_END=min(grid%i_end, ide-1)     &
+      &             ,J_START=grid%j_start,J_END=min(grid%j_end, jde-1)     &
+      &             ,KTS=k_start, KTE=min(k_end,kde-1)                     &
+      &             ,NUM_TILES=grid%num_tiles                              &
+      &                                                          )
+#endif
+
 #ifdef DM_PARALLEL
 !-----------------------------------------------------------------------
 ! see above

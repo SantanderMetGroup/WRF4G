@@ -478,6 +478,8 @@ CONTAINS
                      ,dpsdt,dmudt                                     &
                      ,p8w,pk1m,mu_2,mu_2m                             &
                      ,u,v                                             &
+                     ,startH,startM,startS,clwrfH,t2                  & ! CLWRF
+                     ,t2_min3,t2_max3,tt2_min3,tt2_max3               & ! CLWRF
                      ,raincv,rainncv,rainc,rainnc                     &
                      ,i_rainc,i_rainnc                                &
                      ,hfx,sfcevp,lh                                   &
@@ -496,12 +498,13 @@ CONTAINS
 !----------------------------------------------------------------------
 
   USE module_dm, ONLY: wrf_dm_sum_real, wrf_dm_maxval
+  USE module_configure 
 
    IMPLICIT NONE
 !======================================================================
 ! Definitions
 !-----------
-!-- DIAG_PRINT    print control: 0 - no diagnostics; 1 - dmudt only; 2 - all
+!-- DIAG_PRINT    print control: At given moment (May.09) all, maybe 1: T, 2: UV, 3: RAIN, ...
 !-- DT            time step (second)
 !-- XTIME         forecast time
 !-- SBW           specified boundary width - used later
@@ -545,8 +548,8 @@ CONTAINS
 ! CLWRF-UC May.09 definitions
 !-----------
 ! clwrfH: Hour of day from which [var]24h started to be computed
-! [var]_[min/max][Trange]: [minimum/maximum] of variable [var] in range
-!    [Trange=(3,6,24,DAY)] 
+! [var]_[min/max][Per]: [minimum/maximum] of variable [var] during Period 
+!    [Per=(3,6,24,DAY)] 
 !    Each type of variable are written on different aux_hist_out[n] (established
 !    in Registery)
 !       aux_hist_out3:  [var]3h     Starting at 00 of day computations every 3h
@@ -554,513 +557,163 @@ CONTAINS
 !       aux_hist_out9:  [var]DAY    Starting at 00 of day computations every 24h
 !       aux_hist_out10: [var]24h    Starting at clwrfH of day computations every
 !         24h 
-! diagprint[Trange]: Control parameter that determines whether [var]_[Trange]
+! diagprint[Trange]: Control parameter that determines whether [var]_[Per]
 !    has to be outputted
-! prfrq[Trange]: Frequency of computation of each [var]_[Trange]
+! prfrq[Per]: Frequency of computation of each [var]_[Per]
+! startH, startM, startS: Simulation start Hour, Minute and Second
+! TS00: Time (miunte) since 00:00:00 hour
+! TSclwrfH: Time (miunte) since clwrfH:00:00 hour
 !
 !======================================================================
 
-
-
-   INTEGER,      INTENT(IN   )    ::                             &
+   INTEGER,      INTENT(IN   )                     ::            &
                                       ids,ide, jds,jde, kds,kde, &
                                       ims,ime, jms,jme, kms,kme, &
                                       ips,ipe, jps,jpe, kps,kpe, &
                                                         kts,kte, &
                                                       num_tiles
 
-   INTEGER, DIMENSION(num_tiles), INTENT(IN) ::                  &
-     &           i_start,i_end,j_start,j_end
+   INTEGER, DIMENSION(num_tiles), INTENT(IN)       :: i_start,   &
+                                      i_end,j_start,j_end
 
-   INTEGER,      INTENT(IN   )    ::   diag_print
-   REAL,      INTENT(IN   )    ::   bucket_mm, bucket_J
+   INTEGER,      INTENT(IN   )                     :: diag_print
+   REAL,      INTENT(IN   )                        :: bucket_mm, &
+                                      bucket_J
 
    REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),                 &
-         INTENT(IN ) ::                                       u  &
-                                                    ,         v  &
-                                                    ,       p8w
+                                       INTENT(IN ) :: u,v,p8w    
 
-   REAL, DIMENSION( ims:ime , jms:jme ), INTENT(IN) ::           &
-                                                           MU_2  &
-                                                    ,   RAINNCV  &
-                                                    ,    RAINCV  &
-                                                    ,       HFX  &
-                                                    ,    SFCEVP  &  
-                                                    ,        LH  
+   REAL, DIMENSION( ims:ime , jms:jme ), INTENT(IN) :: MU_2,     & 
+                                      RAINNCV, RAINCV, HFX,      &
+                                      SFCEVP, LH 
 
    REAL, DIMENSION( ims:ime , jms:jme ),                         &
-          INTENT(INOUT) ::                                DPSDT  &
-                                                    ,     DMUDT  &
-                                                    ,    RAINNC  &
-                                                    ,     RAINC  &
-                                                    ,     MU_2M  &
-                                                    ,      PK1M
+                                     INTENT(INOUT) :: DPSDT,     &
+                                     DMUDT, RAINNC, RAINC,       &
+                                     MU_2M, PK1M
  
-   REAL,  INTENT(IN   ) :: DT, XTIME
-   INTEGER,  INTENT(IN   ) :: SBW
-   INTEGER, DIMENSION( ims:ime , jms:jme ), INTENT(INOUT) ::     &
-                                                       I_RAINC,  &
-                                                       I_RAINNC
-   REAL, DIMENSION( ims:ime, jms:jme ), OPTIONAL, INTENT(INOUT) ::&
-                      ACSWUPT,ACSWUPTC,ACSWDNT,ACSWDNTC,          &
-                      ACSWUPB,ACSWUPBC,ACSWDNB,ACSWDNBC,          &
-                      ACLWUPT,ACLWUPTC,ACLWDNT,ACLWDNTC,          &
-                      ACLWUPB,ACLWUPBC,ACLWDNB,ACLWDNBC
-   INTEGER, DIMENSION( ims:ime, jms:jme ), OPTIONAL, INTENT(INOUT) ::&
-                      I_ACSWUPT,I_ACSWUPTC,I_ACSWDNT,I_ACSWDNTC,  &
-                      I_ACSWUPB,I_ACSWUPBC,I_ACSWDNB,I_ACSWDNBC,  &
-                      I_ACLWUPT,I_ACLWUPTC,I_ACLWDNT,I_ACLWDNTC,  &
-                      I_ACLWUPB,I_ACLWUPBC,I_ACLWDNB,I_ACLWDNBC
+   REAL,  INTENT(IN   )                            :: DT, XTIME
+   INTEGER,  INTENT(IN   )                         :: SBW
+   INTEGER, DIMENSION( ims:ime , jms:jme ),                      & 
+                                     INTENT(INOUT) :: I_RAINC,   &
+                                     I_RAINNC
+   REAL, DIMENSION( ims:ime, jms:jme ), OPTIONAL,                 & 
+                                     INTENT(INOUT) :: ACSWUPT,    &
+                                     ACSWUPTC, ACSWDNT, ACSWDNTC, &
+                                     ACSWUPB, ACSWUPBC, ACSWDNB,  &
+                                     ACSWDNBC, ACLWUPT, ACLWUPTC, &
+                                     ACLWDNT, ACLWDNTC, ACLWUPB,  &
+                                     ACLWUPBC, ACLWDNB, ACLWDNBC
+   INTEGER, DIMENSION( ims:ime, jms:jme ), OPTIONAL,              & 
+                                     INTENT(INOUT) :: I_ACSWUPT,  &
+                                     I_ACSWUPTC, I_ACSWDNT,       &
+                                     I_ACSWDNTC, I_ACSWUPB,       &
+                                     I_ACSWUPBC, I_ACSWDNB,       &
+                                     I_ACSWDNBC, I_ACLWUPT,       &
+                                     I_ACLWUPTC, I_ACLWDNT,       &
+                                     I_ACLWDNTC, I_ACLWUPB,       &
+                                     I_ACLWUPBC, I_ACLWDNB,       &
+                                     I_ACLWDNBC
 
 ! LOCAL  VAR
 
-   INTEGER :: i,j,k,its,ite,jts,jte,ij
-   INTEGER :: idp,jdp,irc,jrc,irnc,jrnc,isnh,jsnh
-   INTEGER :: prfreq
+   INTEGER                                   :: i,j,k,its,ite,jts,jte,ij
+   INTEGER                                   :: idp,jdp,irc,jrc,irnc,jrnc,isnh,jsnh
+   INTEGER                                   :: prfreq
 
-   REAL              :: no_points
-   REAL              :: dpsdt_sum, dmudt_sum, dardt_sum, drcdt_sum, drndt_sum
-   REAL              :: hfx_sum, lh_sum, sfcevp_sum, rainc_sum, rainnc_sum, raint_sum
-   REAL              :: dmumax, raincmax, rainncmax, snowhmax
-   LOGICAL, EXTERNAL :: wrf_dm_on_monitor
-   CHARACTER*256     :: outstring
-   CHARACTER*6       :: grid_str
+   REAL                                      :: no_points
+   REAL                                      :: dpsdt_sum, dmudt_sum, dardt_sum,  & 
+                          drcdt_sum, drndt_sum
+   REAL                                      :: hfx_sum, lh_sum, sfcevp_sum,      &
+                          rainc_sum, rainnc_sum, raint_sum
+   REAL                                      :: dmumax, raincmax, rainncmax,      &
+                          snowhmax
+   LOGICAL, EXTERNAL                         :: wrf_dm_on_monitor
+   CHARACTER*256                             :: outstring
+   CHARACTER*6                               :: grid_str
 
 !!-------------------
-!!!!
+!! CLWRF-UC May.09
 
-   LOGICAL, EXTERNAL :: wrf_dm_on_monitor
-   CHARACTER*256  :: outstring, timestr
+   LOGICAL, EXTERNAL                         :: wrf_dm_on_monitor
+   CHARACTER (LEN=80)                        :: timestr
 
-   REAL, DIMENSION( ims:ime , jms:jme ),                            &
-          INTENT(OUT), SAVE ::               t2_minDAY, t2_maxDAY   &
-	                                    ,t2_min24, t2_max24
-   REAL, PARAMETER    ::                     minimum0= 1000000.     &
-                                            ,maximum0= -1000000.
-   INTEGER                                   clwrfH
-   INTEGER                                   diagprint3, diagprint6 &
-                                            ,diagprint24            &
-					    ,diagprintDAY
-   INTEGER, PARAMETER  ::                   ,prfrq3= 180            &
-                                            ,prfrq6= 360            &
-					    ,prfrqDAY= 360          &
-    					    ,prfrq24= 360
+   REAL, DIMENSION( ims:ime , jms:jme ),                                          &
+                          INTENT(IN)        :: t2 
+   REAL, DIMENSION( ims:ime , jms:jme ),                                          &
+                          INTENT(OUT)        :: t2_min3, t2_max3, tt2_min3,       & 
+                          tt2_max3
+!   REAL, DIMENSION( ims:ime , jms:jme ),                                          &
+!                          INTENT(OUT)        :: t2_minDAY, t2_maxDAY, t2_min24,   &
+!                          t2_max24
+   REAL, PARAMETER                           :: minimum0= 1000000.,               &
+                          maximum0= -1000000.
+   INTEGER, INTENT(IN)                       :: clwrfH, startH, startM,           &
+                          startS
+   INTEGER                                   :: TS00, TS03, TS06, TSclwrfH
+   INTEGER                                   :: difT00, difT03, difT06, difTclwrfH
+   INTEGER, PARAMETER                        :: prfrq3= 180, prfrq6= 360,         &
+                          prfrqDAY= 1440, prfrq24= 1440  
 
 !-----------------------------------------------------------------
-! Handle accumulations with buckets to prevent round-off truncation in long runs
-! This is done every 360 minutes assuming time step fits exactly into 360 minutes
-   IF(bucket_mm .gt. 0. .AND. MOD(NINT(XTIME),360) .EQ. 0)THEN
+! Compute minutes from reference times 00, 03, 06, clwrfH
+  difT00=24-startH
+  difT03=0
+  difT06=0
+  difTclwrfH=0
+
+  IF (startS .gt. 30) THEN
+  startM=startM+1
+  ENDIF
+
+  IF (MOD(startH,3) .ne. 0) difT03=3-MOD(startH,3)
+  IF (MOD(startH,6) .ne. 0) difT06=6-MOD(startH,6)
+
+  TS00=XTIME-difT00*60+startM
+  TS03=XTIME-difT03*60+startM
+  TS06=XTIME-difT06*60+startM
+
+  IF  ( wrf_dm_on_monitor() ) THEN
+  PRINT *,'startH:',startH,' startM:',startM,' startS:',startS
+  PRINT *,'TS00: ',TS00,' TS03:',TS03,' TS06:',TS06,' XTIME:',XTIME
+  ENDIF
+!  TSclwrfH=NINT(NINT(XTIME)-clwrfH*60+config_flags%start_minute+config_flags%start_second/60)
+
+! Initialize [var]_3 values
 ! SET START AND END POINTS FOR TILES
 !  !$OMP PARALLEL DO   &
 !  !$OMP PRIVATE ( ij )
+  IF (MOD(TS03,prfrq3) .eq. 0) THEN
+    DO ij = 1 , num_tiles
 
-   DO ij = 1 , num_tiles
-
-      IF (xtime .eq. 0.0)THEN
-        DO j=j_start(ij),j_end(ij)
-        DO i=i_start(ij),i_end(ij)
-          i_rainnc(i,j) = 0
-          i_rainc(i,j) = 0
-        ENDDO      
-        ENDDO
+      IF  ( wrf_dm_on_monitor() ) THEN
+        PRINT *,'tile: ',ij,' T2_min3:',                                     & 
+           T2_min3(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' T2_max3:',               &
+           T2_max3(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2)
       ENDIF
+
       DO j=j_start(ij),j_end(ij)
       DO i=i_start(ij),i_end(ij)
-        IF(rainnc(i,j) .gt. bucket_mm)THEN
-          rainnc(i,j) = rainnc(i,j) - bucket_mm
-          i_rainnc(i,j) =  i_rainnc(i,j) + 1
-        ENDIF
-        IF(rainc(i,j) .gt. bucket_mm)THEN
-          rainc(i,j) = rainc(i,j) - bucket_mm
-          i_rainc(i,j) =  i_rainc(i,j) + 1
-        ENDIF
-      ENDDO      
+        t2_min3(i,j)=minimum0
+        t2_max3(i,j)=maximum0
       ENDDO
-
-!!! CLWRF-UC. May 09 -----------------------------------------
-
-!! Initialize [var]3h/6h/DAY
-   IF (SECdat(timestr).eq.0) THEN
-     DO j = jps, jpe
-       DO i = ips, ipe
-!         t2_min3(i,j)=minimum0
-!         t2_max3(i,j)=maximum0
-!         t2_min6(i,j)=minimum0
-!         t2_max6(i,j)=maximum0
-         t2_minDAY(i,j)=minimum0
-         t2_maxDAY(i,j)=maximum0
-!         diagprint3=0
-!         diagprint6=0
-         diagprintDAY=0
-       ENDDO
-     ENDDO
-   ENDIF
-
-!! Initialize [var]24h: variables
-
-   if (SECdat(timestr).eq.SECdat([clwrfH]:00:00)) then 
-   DO j = jps, jpe
-     DO i = ips, ipe
-       t2_min24(i,j)=minimum0
-       t2_max24(i,j)=maximum0
-       diagprint24=0
-     ENDDO
-   ENDDO
-   endif
-
-!! Computing [var]3h
-   
-   IF (diagprint3.eq.0) THEN
-     DO j = jps, jpe
-       DO i = ips, ipe
-         IF ( grid%t2(i,j) .LT. t2_min3(i,j) ) THEN
-            t2_min3(i,j) = grid%t2(i,j)
-         ENDIF
-         IF ( grid%t2(i,j) .GT. t2_max3(i,j) ) THEN
-            t2_max3(i,j) = grid%t2(i,j)
-         ENDIF
-       ENDDO
-     ENDDO
-   ENDIF
-
-!! Computing [var]6h
-   
-   IF (diagprint6.eq.0) THEN
-     DO j = jps, jpe
-       DO i = ips, ipe
-         IF ( grid%t2(i,j) .LT. t2_min6(i,j) ) THEN
-            t2_min6(i,j) = grid%t2(i,j)
-         ENDIF
-         IF ( grid%t2(i,j) .GT. t2_max6(i,j) ) THEN
-            t2_max6(i,j) = grid%t2(i,j)
-         ENDIF
-       ENDDO
-     ENDDO
-   ENDIF
-
-!! Computing [var]DAY
-   
-   IF (diagprintDAY.eq.0) THEN
-     DO j = jps, jpe
-       DO i = ips, ipe
-         IF ( grid%t2(i,j) .LT. t2_minDAY(i,j) ) THEN
-            t2_minDAY(i,j) = grid%t2(i,j)
-         ENDIF
-         IF ( grid%t2(i,j) .GT. t2_maxDAY(i,j) ) THEN
-            t2_maxDAY(i,j) = grid%t2(i,j)
-         ENDIF
-       ENDDO
-     ENDDO
-   ENDIF
-
-!! Computing [var]24h
-   
-   IF (diagprint24.eq.0) THEN
-     DO j = jps, jpe
-       DO i = ips, ipe
-         IF ( grid%t2(i,j) .LT. t2_min24(i,j) ) THEN
-            t2_min24(i,j) = grid%t2(i,j)
-         ENDIF
-         IF ( grid%t2(i,j) .GT. t2_max24(i,j) ) THEN
-            t2_max24(i,j) = grid%t2(i,j)
-         ENDIF
-       ENDDO
-     ENDDO
-   ENDIF
-
-!!! -----------------------------------------
-
-      IF (xtime .eq. 0.0 .and. PRESENT(ACSWUPT))THEN
-        DO j=j_start(ij),j_end(ij)
-        DO i=i_start(ij),i_end(ij)
-          i_acswupt(i,j) = 0
-          i_acswuptc(i,j) = 0
-          i_acswdnt(i,j) = 0
-          i_acswdntc(i,j) = 0
-          i_acswupb(i,j) = 0
-          i_acswupbc(i,j) = 0
-          i_acswdnb(i,j) = 0
-          i_acswdnbc(i,j) = 0
-        ENDDO      
-        ENDDO
-      ENDIF
-      IF (xtime .eq. 0.0 .and. PRESENT(ACLWUPT))THEN
-        DO j=j_start(ij),j_end(ij)
-        DO i=i_start(ij),i_end(ij)
-          i_aclwupt(i,j) = 0
-          i_aclwuptc(i,j) = 0
-          i_aclwdnt(i,j) = 0
-          i_aclwdntc(i,j) = 0
-          i_aclwupb(i,j) = 0
-          i_aclwupbc(i,j) = 0
-          i_aclwdnb(i,j) = 0
-          i_aclwdnbc(i,j) = 0
-        ENDDO      
-        ENDDO
-      ENDIF
-      IF (PRESENT(ACSWUPT))THEN
-      DO j=j_start(ij),j_end(ij)
-      DO i=i_start(ij),i_end(ij)
-        IF(acswupt(i,j) .gt. bucket_J)THEN
-          acswupt(i,j) = acswupt(i,j) - bucket_J
-          i_acswupt(i,j) =  i_acswupt(i,j) + 1
-        ENDIF
-        IF(acswuptc(i,j) .gt. bucket_J)THEN
-          acswuptc(i,j) = acswuptc(i,j) - bucket_J
-          i_acswuptc(i,j) =  i_acswuptc(i,j) + 1
-        ENDIF
-        IF(acswdnt(i,j) .gt. bucket_J)THEN
-          acswdnt(i,j) = acswdnt(i,j) - bucket_J
-          i_acswdnt(i,j) =  i_acswdnt(i,j) + 1
-        ENDIF
-        IF(acswdntc(i,j) .gt. bucket_J)THEN
-          acswdntc(i,j) = acswdntc(i,j) - bucket_J
-          i_acswdntc(i,j) =  i_acswdntc(i,j) + 1
-        ENDIF
-        IF(acswupb(i,j) .gt. bucket_J)THEN
-          acswupb(i,j) = acswupb(i,j) - bucket_J
-          i_acswupb(i,j) =  i_acswupb(i,j) + 1
-        ENDIF
-        IF(acswupbc(i,j) .gt. bucket_J)THEN
-          acswupbc(i,j) = acswupbc(i,j) - bucket_J
-          i_acswupbc(i,j) =  i_acswupbc(i,j) + 1
-        ENDIF
-        IF(acswdnb(i,j) .gt. bucket_J)THEN
-          acswdnb(i,j) = acswdnb(i,j) - bucket_J
-          i_acswdnb(i,j) =  i_acswdnb(i,j) + 1
-        ENDIF
-        IF(acswdnbc(i,j) .gt. bucket_J)THEN
-          acswdnbc(i,j) = acswdnbc(i,j) - bucket_J
-          i_acswdnbc(i,j) =  i_acswdnbc(i,j) + 1
-        ENDIF
-      ENDDO      
       ENDDO
-      ENDIF
-      IF (PRESENT(ACLWUPT))THEN
-      DO j=j_start(ij),j_end(ij)
-      DO i=i_start(ij),i_end(ij)
-        IF(aclwupt(i,j) .gt. bucket_J)THEN
-          aclwupt(i,j) = aclwupt(i,j) - bucket_J
-          i_aclwupt(i,j) =  i_aclwupt(i,j) + 1
-        ENDIF
-        IF(aclwuptc(i,j) .gt. bucket_J)THEN
-          aclwuptc(i,j) = aclwuptc(i,j) - bucket_J
-          i_aclwuptc(i,j) =  i_aclwuptc(i,j) + 1
-        ENDIF
-        IF(aclwdnt(i,j) .gt. bucket_J)THEN
-          aclwdnt(i,j) = aclwdnt(i,j) - bucket_J
-          i_aclwdnt(i,j) =  i_aclwdnt(i,j) + 1
-        ENDIF
-        IF(aclwdntc(i,j) .gt. bucket_J)THEN
-          aclwdntc(i,j) = aclwdntc(i,j) - bucket_J
-          i_aclwdntc(i,j) =  i_aclwdntc(i,j) + 1
-        ENDIF
-        IF(aclwupb(i,j) .gt. bucket_J)THEN
-          aclwupb(i,j) = aclwupb(i,j) - bucket_J
-          i_aclwupb(i,j) =  i_aclwupb(i,j) + 1
-        ENDIF
-        IF(aclwupbc(i,j) .gt. bucket_J)THEN
-          aclwupbc(i,j) = aclwupbc(i,j) - bucket_J
-          i_aclwupbc(i,j) =  i_aclwupbc(i,j) + 1
-        ENDIF
-        IF(aclwdnb(i,j) .gt. bucket_J)THEN
-          aclwdnb(i,j) = aclwdnb(i,j) - bucket_J
-          i_aclwdnb(i,j) =  i_aclwdnb(i,j) + 1
-        ENDIF
-        IF(aclwdnbc(i,j) .gt. bucket_J)THEN
-          aclwdnbc(i,j) = aclwdnbc(i,j) - bucket_J
-          i_aclwdnbc(i,j) =  i_aclwdnbc(i,j) + 1
-        ENDIF
-      ENDDO      
-      ENDDO
-      ENDIF
-   ENDDO
+    ENDDO
+  ELSE
+     DO j = jps, jpe
+       DO i = ips, ipe
+         IF ( t2(i,j) .LT. t2_min3(i,j) ) THEN
+            t2_min3(i,j) = t2(i,j)
+         ENDIF
+         IF ( t2(i,j) .GT. t2_max3(i,j) ) THEN
+            t2_max3(i,j) = t2(i,j)
+         ENDIF
+       ENDDO
+     ENDDO
+  ENDIF
 !  !$OMP END PARALLEL DO
-   ENDIF
-   if (diag_print .eq. 0 ) return
-
-   IF ( xtime .ne. 0. ) THEN
-
-    if(diag_print.eq.1) then
-       prfreq = dt
-!      prfreq = max(2,int(dt/60.))   ! in min
-    else
-       prfreq=10                   ! in min
-    endif
-   
-    IF (MOD(nint(dt),prfreq) == 0) THEN
-
-! COMPUTE THE NUMBER OF MASS GRID POINTS
-   no_points = float((ide-ids)*(jde-jds))
-
-! SET START AND END POINTS FOR TILES
-!  !$OMP PARALLEL DO   &
-!  !$OMP PRIVATE ( ij )
-
-   dmumax = 0.
-   DO ij = 1 , num_tiles
-
-!     print *, i_start(ij),i_end(ij),j_start(ij),j_end(ij)
-      DO j=j_start(ij),j_end(ij)
-      DO i=i_start(ij),i_end(ij)
-         dpsdt(i,j)=(p8w(i,kms,j)-pk1m(i,j))/dt
-         dmudt(i,j)=(mu_2(i,j)-mu_2m(i,j))/dt
-         if(abs(dmudt(i,j)*dt).gt.dmumax)then
-           dmumax=abs(dmudt(i,j)*dt)
-           idp=i
-           jdp=j
-         endif
-      ENDDO      
-      ENDDO
-
-   ENDDO
-!  !$OMP END PARALLEL DO
-
-! convert DMUMAX from (PA) to (bars) per time step
-   dmumax = dmumax*1.e-5
-! compute global MAX
-   CALL wrf_dm_maxval ( dmumax,  idp, jdp )
-
-!  print *, 'p8w(30,1,30),pk1m(30,30) : ', p8w(30,1,30),pk1m(30,30)
-!  print *, 'mu_2(30,30),mu_2m(30,30) : ', mu_2(30,30),mu_2m(30,30)
-   dpsdt_sum = 0.
-   dmudt_sum = 0.
-
-   DO j = jps, min(jpe,jde-1)
-     DO i = ips, min(ipe,ide-1)
-       dpsdt_sum = dpsdt_sum + abs(dpsdt(i,j))
-       dmudt_sum = dmudt_sum + abs(dmudt(i,j))
-     ENDDO
-   ENDDO
-
-! compute global sum
-   dpsdt_sum = wrf_dm_sum_real ( dpsdt_sum )
-   dmudt_sum = wrf_dm_sum_real ( dmudt_sum )
-
-!  print *, 'dpsdt, dmudt : ', dpsdt_sum, dmudt_sum
-
-   IF ( diag_print .eq. 2 ) THEN
-   dardt_sum = 0.
-   drcdt_sum = 0.
-   drndt_sum = 0.
-   rainc_sum = 0.
-   raint_sum = 0.
-   rainnc_sum = 0.
-   sfcevp_sum = 0.
-   hfx_sum = 0.
-   lh_sum = 0.
-
-   DO j = jps, min(jpe,jde-1)
-     DO i = ips, min(ipe,ide-1)
-       drcdt_sum = drcdt_sum + abs(raincv(i,j))
-       drndt_sum = drndt_sum + abs(rainncv(i,j))
-       dardt_sum = dardt_sum + abs(raincv(i,j)) + abs(rainncv(i,j))
-       rainc_sum = rainc_sum + abs(rainc(i,j))
-! MAX for accumulated conv precip
-       IF(rainc(i,j).gt.raincmax)then
-          raincmax=rainc(i,j)
-          irc=i
-          jrc=j
-       ENDIF
-       rainnc_sum = rainnc_sum + abs(rainnc(i,j))
-! MAX for accumulated resolved precip
-       IF(rainnc(i,j).gt.rainncmax)then
-          rainncmax=rainnc(i,j)
-          irnc=i
-          jrnc=j
-       ENDIF
-       raint_sum = raint_sum + abs(rainc(i,j)) + abs(rainnc(i,j))
-       sfcevp_sum = sfcevp_sum + abs(sfcevp(i,j))
-       hfx_sum = hfx_sum + abs(hfx(i,j))
-       lh_sum = lh_sum + abs(lh(i,j))
-     ENDDO
-   ENDDO
-
-! compute global MAX
-   CALL wrf_dm_maxval ( raincmax, irc, jrc )
-   CALL wrf_dm_maxval ( rainncmax, irnc, jrnc )
-
-! compute global sum
-   drcdt_sum = wrf_dm_sum_real ( drcdt_sum )
-   drndt_sum = wrf_dm_sum_real ( drndt_sum )
-   dardt_sum = wrf_dm_sum_real ( dardt_sum )
-   rainc_sum = wrf_dm_sum_real ( rainc_sum )
-   rainnc_sum = wrf_dm_sum_real ( rainnc_sum )
-   raint_sum = wrf_dm_sum_real ( raint_sum )
-   sfcevp_sum = wrf_dm_sum_real ( sfcevp_sum )
-   hfx_sum = wrf_dm_sum_real ( hfx_sum )
-   lh_sum = wrf_dm_sum_real ( lh_sum )
-
-   ENDIF
-
-! print out the average values
-
-   CALL get_current_grid_name( grid_str )
-
-#ifdef DM_PARALLEL
-   IF ( wrf_dm_on_monitor() ) THEN
-#endif
-     WRITE(outstring,*) grid_str,'Domain average of dpsdt, dmudt (mb/3h): ', xtime, &
-           dpsdt_sum/no_points*108., &
-           dmudt_sum/no_points*108.
-     CALL wrf_message ( TRIM(outstring) )
-
-     WRITE(outstring,*) grid_str,'Max mu change time step: ', idp,jdp,dmumax
-     CALL wrf_message ( TRIM(outstring) )
-
-     IF ( diag_print .eq. 2) THEN
-     WRITE(outstring,*) grid_str,'Domain average of dardt, drcdt, drndt (mm/sec): ', xtime, &
-           dardt_sum/dt/no_points, &
-           drcdt_sum/dt/no_points, &
-           drndt_sum/dt/no_points
-     CALL wrf_message ( TRIM(outstring) )
-     WRITE(outstring,*) grid_str,'Domain average of rt_sum, rc_sum, rnc_sum (mm): ', xtime, &
-           raint_sum/no_points, &
-           rainc_sum/no_points, &
-           rainnc_sum/no_points
-     CALL wrf_message ( TRIM(outstring) )
-     WRITE(outstring,*) grid_str,'Max Accum Resolved Precip,   I,J  (mm): '               ,&
-           rainncmax,irnc,jrnc
-     CALL wrf_message ( TRIM(outstring) )
-     WRITE(outstring,*) grid_str,'Max Accum Convective Precip,   I,J  (mm): '             ,&
-           raincmax,irc,jrc
-     CALL wrf_message ( TRIM(outstring) )
-     WRITE(outstring,*) grid_str,'Domain average of sfcevp, hfx, lh: ', xtime, &
-           sfcevp_sum/no_points, &
-           hfx_sum/no_points, &
-           lh_sum/no_points
-     CALL wrf_message ( TRIM(outstring) )
-     ENDIF
-#ifdef DM_PARALLEL
-   ENDIF
-#endif
-
-    ENDIF        ! print frequency
-   ENDIF
-
-! save values at this time step
-   !$OMP PARALLEL DO   &
-   !$OMP PRIVATE ( ij,i,j )
-   DO ij = 1 , num_tiles
-
-      DO j=j_start(ij),j_end(ij)
-      DO i=i_start(ij),i_end(ij)
-         pk1m(i,j)=p8w(i,kms,j)
-         mu_2m(i,j)=mu_2(i,j)
-      ENDDO
-      ENDDO
-
-      IF ( xtime .lt. 0.0001 ) THEN
-      DO j=j_start(ij),j_end(ij)
-      DO i=i_start(ij),i_end(ij)
-         dpsdt(i,j)=0.
-         dmudt(i,j)=0.
-      ENDDO
-      ENDDO
-      ENDIF
-
-   ENDDO
-   !$OMP END PARALLEL DO
 
    END SUBROUTINE clwrf_output_calc
 #endif
