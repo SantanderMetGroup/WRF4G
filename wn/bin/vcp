@@ -2,17 +2,11 @@
 
 from optparse import OptionParser
 
-from re import match
-from re import search
+from re import match, search
 from sys import exit
 from commands import getstatusoutput
-from os import popen 
-from os import getcwd
-from os.path import abspath
-from os.path import isdir
-from os.path import basename
-from os.path import dirname
-from os import getenv
+from os import popen, getcwd, getenv
+from os.path import abspath, isdir, basename, dirname
 import datetime
 
 URL_BAD_FORMED=1
@@ -258,7 +252,7 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
    
        command="globus-url-copy %s %s %s" % (flags, origin, destiny)
 
-   # Execute the command that copy the files
+  # Execute the command that copy the files
   if verbose :    print command
   (err,out)=getstatusoutput(command)
   

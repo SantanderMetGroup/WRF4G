@@ -137,6 +137,9 @@ else
     timelog_init "ungrib"
       ln -sf ungrib/Variable_Tables_WRF4G/Vtable.${global_name} Vtable
       ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_UNGRIB_FAILED}
+      tail -3 ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
+        | grep -q -i 'Successful completion of ungrib' \
+        || exit ${ERROR_UNGRIB_FAILED}
     timelog_end
     #
     #   Check for other input namelists and apply them
@@ -187,6 +190,9 @@ else
       fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
       fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
       ${LAUNCHER_METGRID} ./metgrid/metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_METGRID_FAILED}
+      tail -3 ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
+        | grep -q -i 'Successful completion of metgrid' \
+        || exit ${ERROR_METGRID_FAILED}
       # Clean
       rm -f GRIBFILE.*
       rm -rf grbData
@@ -202,9 +208,14 @@ else
       fix_ptop
       setup_namelist_input
       ${LAUNCHER_REAL} ./real.exe >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_REAL_FAILED}
+      tail -3 ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
+        | grep -q -i 'SUCCESS COMPLETE REAL_EM' \
+        || exit ${ERROR_REAL_FAILED}
       # Clean
-      mkdir -p rsl_real
-      mv rsl.* rsl_real/
+      if test -e rsl.out.0000; then
+        mkdir -p rsl_real
+        mv rsl.* rsl_real/
+      fi
       rm -f met_em*
       rm -f ../../WPS/met_em*
     timelog_end

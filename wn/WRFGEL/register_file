@@ -22,14 +22,16 @@ parser = OptionParser(usage,version="%prog 1.0")
 parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
 (options, args) = parser.parse_args()
 
-type_list={"rst":"restart","out":"output" }
+type_list = {
+  "rst" : "restart",
+  "out" : "output",
+}
+
 if len(args) == 3 and args[0] in type_list.keys():
   [type,date,file] = args
-  
-elif len(args) ==2 and args[0] == "wps" :
+elif len(args) == 2 and args[0] == "wps":
   [type,date] = args
-
-else :
+else:
   parser.error("Incorrect number of arguments")
   exit(1)
 
@@ -38,7 +40,7 @@ env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
 env_var=get_env_vars(env_var)
 exec(open(env_var["WRF4G_CONF_FILE"]).read())
 # List all the variables in the script and search WRF4G_BASEPATH
-if WRF4G_BASEPATH in dir():
+if not 'WRF4G_BASEPATH' in dir():
   print "Error: WRF4G_BASEPATH is not defined"
   exit(1)
 
@@ -91,6 +93,7 @@ else :
     for wps_file in wps_files :
         dest_file=basename(wps_file)
         dest="%s/experiments/%s/%s/%s/%s%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],"wpsout",dest_file,suffix)
-        if options.verbose: print "origin: %s destiny: %s" % (wps_file,dest) 
+        if options.verbose:
+             print "origin: %s destiny: %s" % (wps_file,dest) 
         output=copy_file(wps_file,dest, verbose=options.verbose) 
         print output

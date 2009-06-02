@@ -106,6 +106,7 @@ EOF
     #
     #  Cycle dates and jobids
     #
+    echo "${chunkjid} ${chunkno} ${realization_name}" >> pids.${experiment_name}
     current_date=${final_date}
     read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
     let chunkno++
@@ -158,6 +159,7 @@ function cycle_time(){
   esac
 }
 
+rm -f pids.${experiment_name}
 #
 #  Initial override of namelist values
 #
