@@ -37,6 +37,14 @@ fi
 
 rundir=${WRF4G_RUN}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
 #
+#   Avoid overwriting previous run directories
+#
+dircount=1
+while test -d ${rundir}; do
+  rundir="$(echo $rundir | sed -e 's/\.[0-9]*$//').${dircount}"
+  let dircount++
+done
+#
 #  Enter a cd command in your job file to go to the run path.
 #  (qsub does not seem to have a flag to set the initial directory for the job)
 #

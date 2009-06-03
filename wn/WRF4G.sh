@@ -87,6 +87,15 @@ function timelog_init(){
   echo -n "$(printf "%20s" "$item") $(date +%Y%m%d%H%M%S) " >> ${logdir}/time.log
 }
 
+function wrf4g_exit(){
+  excode=$1
+  #
+  #  This is the way out of this script. So close the timing info and leave
+  #
+  timelog_end
+  exit ${excode}
+}
+
 timelog_clean
 #
 #  Get the 'a-priori' start (i**) and end (f**) dates for this chunk
@@ -136,10 +145,10 @@ else
     timelog_end
     timelog_init "ungrib"
       ln -sf ungrib/Variable_Tables_WRF4G/Vtable.${global_name} Vtable
-      ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_UNGRIB_FAILED}
+      ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
       tail -3 ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'Successful completion of ungrib' \
-        || exit ${ERROR_UNGRIB_FAILED}
+        || wrf4g_exit ${ERROR_UNGRIB_FAILED}
     timelog_end
     #
     #   Check for other input namelists and apply them
@@ -189,10 +198,10 @@ else
       fortnml_set  namelist.wps fg_name               "'${global_name}'"
       fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
       fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
-      ${LAUNCHER_METGRID} ./metgrid/metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_METGRID_FAILED}
+      ${LAUNCHER_METGRID} ./metgrid/metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_METGRID_FAILED}
       tail -3 ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'Successful completion of metgrid' \
-        || exit ${ERROR_METGRID_FAILED}
+        || wrf4g_exit ${ERROR_METGRID_FAILED}
       # Clean
       rm -f GRIBFILE.*
       rm -rf grbData
@@ -207,10 +216,10 @@ else
       ln -s ../../WPS/met_em.d??.????-??-??_??:00:00.nc .
       fix_ptop
       setup_namelist_input
-      ${LAUNCHER_REAL} ./real.exe >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_REAL_FAILED}
+      ${LAUNCHER_REAL} ./real.exe >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_REAL_FAILED}
       tail -3 ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'SUCCESS COMPLETE REAL_EM' \
-        || exit ${ERROR_REAL_FAILED}
+        || wrf4g_exit ${ERROR_REAL_FAILED}
       # Clean
       if test -e rsl.out.0000; then
         mkdir -p rsl_real
@@ -261,12 +270,12 @@ cd ${ROOTDIR}/WRFV3/run || exit
   else
     if test "${chunk_is_restart}" = ".T."; then
       timelog_init "rst download"
-        download_file rst $(date_wrf2iso ${chunk_start_date}) || exit ${ERROR_RST_DOWNLOAD_FAILED}
+        download_file rst $(date_wrf2iso ${chunk_start_date}) || wrf4g_exit ${ERROR_RST_DOWNLOAD_FAILED}
       timelog_end
     fi
     fortnml_set namelist.input restart ${chunk_is_restart}
   fi
   timelog_init "wrf"
-    ${LAUNCHER_WRF} ./wrf.exe >& ${logdir}/wrf_${iyy}${imm}${idd}${ihh}.out || exit ${ERROR_WRF_FAILED}
+    ${LAUNCHER_WRF} ./wrf.exe >& ${logdir}/wrf_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_WRF_FAILED}
   timelog_end
 cd ${ROOTDIR}

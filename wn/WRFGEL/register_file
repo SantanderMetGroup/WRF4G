@@ -1,4 +1,8 @@
 #!/usr/bin/python
+import sys
+
+print "WRFGEL> START: %s" % str(sys.argv)
+
 from vcp import *      
 from commands import getstatusoutput
 from optparse import OptionParser
@@ -97,3 +101,5 @@ else :
              print "origin: %s destiny: %s" % (wps_file,dest) 
         output=copy_file(wps_file,dest, verbose=options.verbose) 
         print output
+
+print "WRFGEL> END: %s" % str(sys.argv)
