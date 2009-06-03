@@ -4,6 +4,7 @@ from os import getenv
 from commands import getstatusoutput
 from optparse import OptionParser
 from sys import exit   
+from sys import stderr  
 from re import search
 import datetime
 
@@ -24,11 +25,15 @@ parser = OptionParser(usage,version="%prog 1.0")
 parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
 (options, args) = parser.parse_args()
 
+verbose=options.verbose
+
 if len(args) == 2 :
   [ type, date ] = args
 else :
   parser.error("Incorrect number of arguments")
   exit(1)
+
+if verbose: stderr.write("donwload file in debug mode.... \n")
 
 # Check that the environment variables has been established and import their values
 env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
@@ -36,7 +41,7 @@ env_var=get_env_vars(env_var)
 exec(open(env_var["WRF4G_CONF_FILE"]).read())
 # List all the variables in the script and search WRF4G_BASEPATH
 if not 'WRF4G_BASEPATH' in dir():
-  print "Error: WRF4G_BASEPATH is not defined"
+  stderr.write("Error: WRF4G_BASEPATH is not defined\n")
   exit(1)
 
 
@@ -50,6 +55,7 @@ pattern = {
 } 
 
 orig_folder="%s/experiments/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
+if verbose: stderr.write("Repository:" + orig_folder + "\n")
 orig_c=VCPURL(orig_folder)
 
 for file in  orig_c.ls(pattern[type]):
@@ -60,7 +66,7 @@ for file in  orig_c.ls(pattern[type]):
     else: 
         # From wrflowinp_d08_ we remove the _ at the end
         dest=file_c.file_name[:-1]
-    if options.verbose: print "origin: %s destiny: %s" % (orig_folder + "/" + file ,dest)     
+    if verbose: stderr.write("origin: %s destiny: %s \n\n" % (orig_folder + "/" + file ,dest)) 
     
-    output=copy_file( orig_folder + "/" + file ,dest, verbose=options.verbose)         
+    output=copy_file( orig_folder + "/" + file ,dest, verbose=verbose)         
     print output
