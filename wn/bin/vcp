@@ -98,8 +98,11 @@ class VCPURL:
      (err,out)=getstatusoutput(command)
      
      if err != 0 :
-        stderr.write("Error listing file: " + str(err) + "\n" + out + "\n")
-        exit(COPY_ERROR)
+        # stderr.write("Error listing file: " + str(err) + "\n" + out + "\n")
+        # exit(COPY_ERROR)
+        #
+        # In case of error return an empty list
+        return []
      
      out_list=out.split("\n")
      

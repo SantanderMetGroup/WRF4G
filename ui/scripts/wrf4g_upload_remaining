@@ -1,0 +1,25 @@
+#! /bin/bash
+
+doit=""
+
+if test ! -e ../../wrf.input; then
+  echo "You don't seem to be in a WRFV3/run directory... ciao!"
+  exit
+fi
+
+sed -e 's/\ *=\ */=/' ../../wrf.input > source.it  || exit ${ERROR_MISSING_WRFINPUT}
+source source.it && rm source.it
+sed -e 's/\ *=\ */=/' ../../wrf.chunk > source.it  || exit ${ERROR_MISSING_WRFCHUNK}
+source source.it && rm source.it
+export WRF4G_CONF_FILE="../../wrf4g.conf"
+export WRF4G_EXPERIMENT="${experiment_name}"
+export WRF4G_REALIZATION="${realization_name}"
+export PATH="../../WRFGEL:$PATH"
+
+for f in wrfout*; do
+  $doit register_file out ${f:11} ${f}
+done
+
+for f in wrfrst*; do
+  $doit register_file rst ${f:11} ${f}
+done
