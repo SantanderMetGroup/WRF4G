@@ -868,6 +868,7 @@ state    real  TT2MIN           ij      misc        1         -      h7       "T
 state    real  TT2MAX           ij      misc        1         -      h7       "TT2MAX"                 "TIME OF MAXIMUM TEMPERATURE AT 2M HEIGHT IN CLWRF HOURS"                 "minute"      
 state    real  U10MAX           ij      misc        1         -      h7       "U10MAX"                 "MAXIMUM U AT 10M HEIGHT IN CLWRF HOURS"                 "m s-1"
 state    real  V10MAX           ij      misc        1         -      h7       "V10MAX"                 "MAXIMUM V AT 10M HEIGHT IN CLWRF HOURS"                 "m s-1"
+state    real  SPDUV10MAX      ij      misc        1         -      h7       "SPDUV10MAX"            "MAXIMUM WIND SPEED AT 10M HEIGHT IN CLWRF HOURS"  "m s-1"
 state    real  TSPDUV10MAX      ij      misc        1         -      h7       "TSPDUV10MAX"            "TIME OF MAXIMUM WIND SPEED AT 10M HEIGHT IN CLWRF HOURS"  "minute"
 state    real  RAINCMAX         ij      misc        1         -      h7       "RAINCMAX"                 "MAXIMUM CONVECTIVE RAIN FLUX IN CLWRF HOURS"                 "mm s-1"
 state    real  RAINNCMAX        ij      misc        1         -      h7       "RAINNCMAX"                 "MAXIMUM NON-CONVECTIVE RAIN FLUX IN CLWRF HOURS"                 "mm s-1"

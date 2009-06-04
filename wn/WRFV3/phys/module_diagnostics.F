@@ -480,7 +480,7 @@ CONTAINS
                      ,u,v                                             &
                      ,clwrfH,t2,u10,v10                               & ! CLWRF
                      ,t2_min,t2_max,tt2_min,tt2_max                   & ! CLWRF
-                     ,u10_max,v10_max,tspduv10_max                    & ! CLWRF
+                     ,u10_max,v10_max,spduv10_max,tspduv10_max        & ! CLWRF
                      ,rainc_max, rainnc_max, trainc_max, trainnc_max  & ! CLWRF
                      ,raincv,rainncv,rainc,rainnc                     &
                      ,i_rainc,i_rainnc                                &
@@ -607,11 +607,10 @@ CONTAINS
                           INTENT(IN)         :: t2, u10, v10 
    REAL, DIMENSION( ims:ime , jms:jme ),                                          &
                           INTENT(OUT)        :: t2_min, t2_max, tt2_min, tt2_max, & 
-                          u10_max, v10_max, tspduv10_max
+                          u10_max, v10_max, spduv10_max, tspduv10_max
    REAL, DIMENSION( ims:ime , jms:jme ),                                          &
                           INTENT(OUT)        :: rainc_max, rainnc_max,            &
                           trainc_max, trainnc_max 
-   REAL, DIMENSION( ims:ime , jms:jme )      ::  spduv10_max
    REAL, PARAMETER                           :: minimum0= 1000000.,               &
                           maximum0= -1000000. 
    REAL                                      :: spduv10
@@ -626,7 +625,7 @@ CONTAINS
 !  !$OMP PARALLEL DO   &
 !  !$OMP PRIVATE ( ij )
 
-  IF (MOD(XTIME,clwrfH) .eq. 0) THEN
+  IF (MOD(NINT(XTIME),clwrfH) .eq. 0) THEN
     DO ij = 1 , num_tiles
 
       IF  ( wrf_dm_on_monitor() ) THEN
@@ -661,9 +660,9 @@ CONTAINS
       DO i = i_start(ij), i_end(ij)
         t2_min(i,j)=minimum0
         t2_max(i,j)=maximum0
-        spduv10_max(i,j)=maximum0
-        rainc_max(i,j)=maximum0
-        rainnc_max(i,j)=maximum0
+        spduv10_max(i,j)=0.0
+        rainc_max(i,j)=0.0
+        rainnc_max(i,j)=0.0
         ENDDO
       ENDDO
    ENDDO
@@ -682,7 +681,7 @@ CONTAINS
             tt2_max(i,j) = xtime 
           ENDIF
 ! Wind speed
-          spduv10=SQRT(u10(i,j)*v10(i,j)+v10(i,j)*v10(i,j))
+          spduv10=SQRT(u10(i,j)*u10(i,j)+v10(i,j)*v10(i,j))
           IF (spduv10 .GT. spduv10_max(i,j) ) THEN
             spduv10_max(i,j) = spduv10
             u10_max(i,j) = u10(i,j)

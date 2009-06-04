@@ -3225,7 +3225,7 @@ BENCH_END(bc_2d_tim)
       &                                                          )
 
 #ifdef CLWRF
-   CALL wrf_debug ( 200 , ' CLWRF: call diagnostic_driver' )
+   CALL wrf_debug ( 200 , ' CLWRF: call diagnostic_calc' )
 
    CALL clwrf_output_calc(                                            &
       &              DPSDT=grid%dpsdt   ,DMUDT=grid%dmudt                  &
@@ -3237,6 +3237,7 @@ BENCH_END(bc_2d_tim)
       &             ,T2_MIN=grid%t2min, T2_MAX=grid%t2max                  & 
       &             ,TT2_MIN=grid%tt2min, TT2_MAX=grid%tt2max              & 
       &             ,U10_MAX=grid%u10max, V10_MAX=grid%v10max              &
+      &             ,SPDUV10_MAX=grid%spduv10max                           &
       &             ,TSPDUV10_MAX=grid%tspduv10max                         &
       &             ,RAINC_MAX=grid%raincmax, RAINNC_MAX=grid%rainncmax    &
       &             ,TRAINC_MAX=grid%traincmax                             & 
