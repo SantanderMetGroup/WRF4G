@@ -42,7 +42,10 @@ SUBROUTINE solve_em ( grid , config_flags  &
    USE module_first_rk_step_part1
    USE module_first_rk_step_part2
    USE module_llxy, ONLY : proj_cassini
-
+#ifdef WRF4G
+! WRF4G-UC June.09
+   USE module_domain, ONLY : domain_get_time_step, domain_clock_get
+#endif
    IMPLICIT NONE
 
    !  Input data.
@@ -117,6 +120,13 @@ SUBROUTINE solve_em ( grid , config_flags  &
    TYPE(WRFU_TimeInterval)                    :: tmpTimeInterval
    REAL                                       :: real_time
    LOGICAL                                    :: adapt_step_flag
+
+#ifdef WRF4G
+! WRF4G-UC June.09
+  LOGICAL , EXTERNAL                          :: wrf_dm_on_monitor
+  CHARACTER(LEN=80)                           :: current_heartbeat
+  CHARACTER(LEN=256)                          :: message
+#endif
 
 ! Define benchmarking timers if -DBENCH is compiled
 #include <bench_solve_em_def.h>
@@ -3222,34 +3232,21 @@ BENCH_END(bc_2d_tim)
       &             ,P8W=p8w   ,PK1M=grid%pk1m                             &
       &             ,MU_2=grid%mu_2  ,MU_2M=grid%mu_2m                     &
       &             ,U=grid%u_2    ,V=grid%v_2                             &
-      &             ,startH=config_flags%start_hour                        &
-      &             ,startM=config_flags%start_minute                      &
-      &             ,startS=config_flags%start_second                      &
-      &             ,clwrfH=config_flags%clwrfh, T2=grid%t2                & 
-      &             ,T2_MIN3=grid%t2min3, T2_MAX3=grid%t2max3              & 
-      &             ,TT2_MIN3=grid%tt2min3, TT2_MAX3=grid%tt2max3          & 
+      &             ,clwrfH=config_flags%auxhist7_interval                 &
+      &             ,T2=grid%t2, U10=grid%u10, V10=grid%v10                & 
+      &             ,T2_MIN=grid%t2min, T2_MAX=grid%t2max                  & 
+      &             ,TT2_MIN=grid%tt2min, TT2_MAX=grid%tt2max              & 
+      &             ,U10_MAX=grid%u10max, V10_MAX=grid%v10max              &
+      &             ,TSPDUV10_MAX=grid%tspduv10max                         &
+      &             ,RAINC_MAX=grid%raincmax, RAINNC_MAX=grid%rainncmax    &
+      &             ,TRAINC_MAX=grid%traincmax                             & 
+      &             ,TRAINNC_MAX=grid%trainncmax                           &
       &             ,RAINCV=grid%raincv    ,RAINNCV=grid%rainncv           &
       &             ,RAINC=grid%rainc    ,RAINNC=grid%rainnc               &
       &             ,I_RAINC=grid%i_rainc    ,I_RAINNC=grid%i_rainnc       &
       &             ,HFX=grid%hfx   ,SFCEVP=grid%sfcevp    ,LH=grid%lh     &
       &             ,DT=grid%dt      ,SBW=config_flags%spec_bdy_width      &
       &             ,XTIME=grid%xtime                                      &
-      &        ,ACSWUPT=grid%acswupt    ,ACSWUPTC=grid%acswuptc            &
-      &        ,ACSWDNT=grid%acswdnt    ,ACSWDNTC=grid%acswdntc            &
-      &        ,ACSWUPB=grid%acswupb    ,ACSWUPBC=grid%acswupbc            &
-      &        ,ACSWDNB=grid%acswdnb    ,ACSWDNBC=grid%acswdnbc            &
-      &        ,ACLWUPT=grid%aclwupt    ,ACLWUPTC=grid%aclwuptc            &
-      &        ,ACLWDNT=grid%aclwdnt    ,ACLWDNTC=grid%aclwdntc            &
-      &        ,ACLWUPB=grid%aclwupb    ,ACLWUPBC=grid%aclwupbc            &
-      &        ,ACLWDNB=grid%aclwdnb    ,ACLWDNBC=grid%aclwdnbc            &
-      &      ,I_ACSWUPT=grid%i_acswupt  ,I_ACSWUPTC=grid%i_acswuptc        &
-      &      ,I_ACSWDNT=grid%i_acswdnt  ,I_ACSWDNTC=grid%i_acswdntc        &
-      &      ,I_ACSWUPB=grid%i_acswupb  ,I_ACSWUPBC=grid%i_acswupbc        &
-      &      ,I_ACSWDNB=grid%i_acswdnb  ,I_ACSWDNBC=grid%i_acswdnbc        &
-      &      ,I_ACLWUPT=grid%i_aclwupt  ,I_ACLWUPTC=grid%i_aclwuptc        &
-      &      ,I_ACLWDNT=grid%i_aclwdnt  ,I_ACLWDNTC=grid%i_aclwdntc        &
-      &      ,I_ACLWUPB=grid%i_aclwupb  ,I_ACLWUPBC=grid%i_aclwupbc        &
-      &      ,I_ACLWDNB=grid%i_aclwdnb  ,I_ACLWDNBC=grid%i_aclwdnbc        &
                   ! Selection flag
       &             ,DIAG_PRINT=config_flags%diag_print                    &
       &             ,BUCKET_MM=config_flags%bucket_mm                      &
@@ -3263,6 +3260,22 @@ BENCH_END(bc_2d_tim)
       &             ,KTS=k_start, KTE=min(k_end,kde-1)                     &
       &             ,NUM_TILES=grid%num_tiles                              &
       &                                                          )
+#endif
+
+#ifdef WRF4G
+! WRF4G-UC June.09
+    IF ( wrf_dm_on_monitor() ) THEN
+      IF (MOD ( grid%itimestep,                                         & 
+               config_flags%wrf4g_heartbeat_nsteps) .eq. 0) THEN 
+!      IF (grid%itimestep - INT( grid%itimestep /                          & 
+!               config_flags%wrf4g_heartbeat_nsteps)*                      &
+!               config_flags%wrf4g_heartbeat_nsteps .eq. 0) THEN 
+      CALL domain_clock_get( grid, current_timestr=current_heartbeat) 
+        CALL system('$WRFGEL_HEARTBEAT '//current_heartbeat)
+        WRITE(message, *)'$WRFGEL_HEARTBEAT '//current_heartbeat
+        CALL wrf_debug (1, message)
+      ENDIF
+    ENDIF
 #endif
 
 #ifdef DM_PARALLEL

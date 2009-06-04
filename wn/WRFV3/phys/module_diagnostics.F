@@ -478,19 +478,13 @@ CONTAINS
                      ,dpsdt,dmudt                                     &
                      ,p8w,pk1m,mu_2,mu_2m                             &
                      ,u,v                                             &
-                     ,startH,startM,startS,clwrfH,t2                  & ! CLWRF
-                     ,t2_min3,t2_max3,tt2_min3,tt2_max3               & ! CLWRF
+                     ,clwrfH,t2,u10,v10                               & ! CLWRF
+                     ,t2_min,t2_max,tt2_min,tt2_max                   & ! CLWRF
+                     ,u10_max,v10_max,tspduv10_max                    & ! CLWRF
+                     ,rainc_max, rainnc_max, trainc_max, trainnc_max  & ! CLWRF
                      ,raincv,rainncv,rainc,rainnc                     &
                      ,i_rainc,i_rainnc                                &
                      ,hfx,sfcevp,lh                                   &
-                     ,ACSWUPT,ACSWUPTC,ACSWDNT,ACSWDNTC               & ! Optional
-                     ,ACSWUPB,ACSWUPBC,ACSWDNB,ACSWDNBC               & ! Optional
-                     ,ACLWUPT,ACLWUPTC,ACLWDNT,ACLWDNTC               & ! Optional
-                     ,ACLWUPB,ACLWUPBC,ACLWDNB,ACLWDNBC               & ! Optional
-                     ,I_ACSWUPT,I_ACSWUPTC,I_ACSWDNT,I_ACSWDNTC       & ! Optional
-                     ,I_ACSWUPB,I_ACSWUPBC,I_ACSWDNB,I_ACSWDNBC       & ! Optional
-                     ,I_ACLWUPT,I_ACLWUPTC,I_ACLWDNT,I_ACLWDNTC       & ! Optional
-                     ,I_ACLWUPB,I_ACLWUPBC,I_ACLWDNB,I_ACLWDNBC       & ! Optional
                      ,dt,xtime,sbw                                    &
                      ,diag_print                                      &
                      ,bucket_mm, bucket_J                             &
@@ -504,7 +498,6 @@ CONTAINS
 !======================================================================
 ! Definitions
 !-----------
-!-- DIAG_PRINT    print control: At given moment (May.09) all, maybe 1: T, 2: UV, 3: RAIN, ...
 !-- DT            time step (second)
 !-- XTIME         forecast time
 !-- SBW           specified boundary width - used later
@@ -547,22 +540,12 @@ CONTAINS
 !
 ! CLWRF-UC May.09 definitions
 !-----------
-! clwrfH: Hour of day from which [var]24h started to be computed
-! [var]_[min/max][Per]: [minimum/maximum] of variable [var] during Period 
-!    [Per=(3,6,24,DAY)] 
-!    Each type of variable are written on different aux_hist_out[n] (established
-!    in Registery)
-!       aux_hist_out3:  [var]3h     Starting at 00 of day computations every 3h
-!       aux_hist_out6:  [var]6h     Starting at 00 of day computations every 6h
-!       aux_hist_out9:  [var]DAY    Starting at 00 of day computations every 24h
-!       aux_hist_out10: [var]24h    Starting at clwrfH of day computations every
-!         24h 
-! diagprint[Trange]: Control parameter that determines whether [var]_[Per]
-!    has to be outputted
-! prfrq[Per]: Frequency of computation of each [var]_[Per]
-! startH, startM, startS: Simulation start Hour, Minute and Second
-! TS00: Time (miunte) since 00:00:00 hour
-! TSclwrfH: Time (miunte) since clwrfH:00:00 hour
+! clwrfH: Interval (hour) of accumulation for computations 
+! [var]_[min/max]: [minimum/maximum] of variable [var] during interval
+! t[var]_[min/max]: Time (minutes) of [minimum/maximum] of variable 
+!    [var] during interval 
+!    Variables are written on aux_hist_out7 (established
+!    in Registry)
 !
 !======================================================================
 
@@ -597,23 +580,6 @@ CONTAINS
    INTEGER, DIMENSION( ims:ime , jms:jme ),                      & 
                                      INTENT(INOUT) :: I_RAINC,   &
                                      I_RAINNC
-   REAL, DIMENSION( ims:ime, jms:jme ), OPTIONAL,                 & 
-                                     INTENT(INOUT) :: ACSWUPT,    &
-                                     ACSWUPTC, ACSWDNT, ACSWDNTC, &
-                                     ACSWUPB, ACSWUPBC, ACSWDNB,  &
-                                     ACSWDNBC, ACLWUPT, ACLWUPTC, &
-                                     ACLWDNT, ACLWDNTC, ACLWUPB,  &
-                                     ACLWUPBC, ACLWDNB, ACLWDNBC
-   INTEGER, DIMENSION( ims:ime, jms:jme ), OPTIONAL,              & 
-                                     INTENT(INOUT) :: I_ACSWUPT,  &
-                                     I_ACSWUPTC, I_ACSWDNT,       &
-                                     I_ACSWDNTC, I_ACSWUPB,       &
-                                     I_ACSWUPBC, I_ACSWDNB,       &
-                                     I_ACSWDNBC, I_ACLWUPT,       &
-                                     I_ACLWUPTC, I_ACLWDNT,       &
-                                     I_ACLWDNTC, I_ACLWUPB,       &
-                                     I_ACLWUPBC, I_ACLWDNB,       &
-                                     I_ACLWDNBC
 
 ! LOCAL  VAR
 
@@ -621,7 +587,6 @@ CONTAINS
    INTEGER                                   :: idp,jdp,irc,jrc,irnc,jrnc,isnh,jsnh
    INTEGER                                   :: prfreq
 
-   REAL                                      :: no_points
    REAL                                      :: dpsdt_sum, dmudt_sum, dardt_sum,  & 
                           drcdt_sum, drndt_sum
    REAL                                      :: hfx_sum, lh_sum, sfcevp_sum,      &
@@ -638,80 +603,104 @@ CONTAINS
    LOGICAL, EXTERNAL                         :: wrf_dm_on_monitor
    CHARACTER (LEN=80)                        :: timestr
 
+   REAL, DIMENSION( ims:ime , jms:jme ),                                          & 
+                          INTENT(IN)         :: t2, u10, v10 
    REAL, DIMENSION( ims:ime , jms:jme ),                                          &
-                          INTENT(IN)        :: t2 
+                          INTENT(OUT)        :: t2_min, t2_max, tt2_min, tt2_max, & 
+                          u10_max, v10_max, tspduv10_max
    REAL, DIMENSION( ims:ime , jms:jme ),                                          &
-                          INTENT(OUT)        :: t2_min3, t2_max3, tt2_min3,       & 
-                          tt2_max3
-!   REAL, DIMENSION( ims:ime , jms:jme ),                                          &
-!                          INTENT(OUT)        :: t2_minDAY, t2_maxDAY, t2_min24,   &
-!                          t2_max24
+                          INTENT(OUT)        :: rainc_max, rainnc_max,            &
+                          trainc_max, trainnc_max 
+   REAL, DIMENSION( ims:ime , jms:jme )      ::  spduv10_max
    REAL, PARAMETER                           :: minimum0= 1000000.,               &
-                          maximum0= -1000000.
-   INTEGER, INTENT(IN)                       :: clwrfH, startH, startM,           &
-                          startS
-   INTEGER                                   :: TS00, TS03, TS06, TSclwrfH
-   INTEGER                                   :: difT00, difT03, difT06, difTclwrfH
-   INTEGER, PARAMETER                        :: prfrq3= 180, prfrq6= 360,         &
-                          prfrqDAY= 1440, prfrq24= 1440  
+                          maximum0= -1000000. 
+   REAL                                      :: spduv10
+   INTEGER, INTENT(IN)                       :: clwrfH
+   CHARACTER (LEN=256)                       :: message
 
 !-----------------------------------------------------------------
-! Compute minutes from reference times 00, 03, 06, clwrfH
-  difT00=24-startH
-  difT03=0
-  difT06=0
-  difTclwrfH=0
+! Compute minutes from reference times clwrfH
 
-  IF (startS .gt. 30) THEN
-  startM=startM+1
-  ENDIF
-
-  IF (MOD(startH,3) .ne. 0) difT03=3-MOD(startH,3)
-  IF (MOD(startH,6) .ne. 0) difT06=6-MOD(startH,6)
-
-  TS00=XTIME-difT00*60+startM
-  TS03=XTIME-difT03*60+startM
-  TS06=XTIME-difT06*60+startM
-
-  IF  ( wrf_dm_on_monitor() ) THEN
-  PRINT *,'startH:',startH,' startM:',startM,' startS:',startS
-  PRINT *,'TS00: ',TS00,' TS03:',TS03,' TS06:',TS06,' XTIME:',XTIME
-  ENDIF
-!  TSclwrfH=NINT(NINT(XTIME)-clwrfH*60+config_flags%start_minute+config_flags%start_second/60)
-
-! Initialize [var]_3 values
+! Initialize [var] values
 ! SET START AND END POINTS FOR TILES
 !  !$OMP PARALLEL DO   &
 !  !$OMP PRIVATE ( ij )
-  IF (MOD(TS03,prfrq3) .eq. 0) THEN
+
+  IF (MOD(XTIME,clwrfH) .eq. 0) THEN
     DO ij = 1 , num_tiles
 
       IF  ( wrf_dm_on_monitor() ) THEN
-        PRINT *,'tile: ',ij,' T2_min3:',                                     & 
-           T2_min3(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
-           j_start(ij)+(j_end(ij)-j_start(ij))/2),' T2_max3:',               &
-           T2_max3(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+        WRITE(message, *)'CLWRF - I; tile: ',ij,' T2_min:',                  & 
+           T2_min(i_start(ij)+(i_end(ij)-i_start(ij))/2,                     &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' T2_max:',                &
+           T2_max(i_start(ij)+(i_end(ij)-i_start(ij))/2,                     &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TT2_min:',               &
+           TT2_min(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TT2_max:',               &
+           TT2_max(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' U10_max:',               &
+           U10_max(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' V10_max:',               &
+           V10_max(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TSPDUV10_max:',          &
+           TSPDUV10_max(i_start(ij)+(i_end(ij)-i_start(ij))/2,               &
            j_start(ij)+(j_end(ij)-j_start(ij))/2)
-      ENDIF
-
-      DO j=j_start(ij),j_end(ij)
-      DO i=i_start(ij),i_end(ij)
-        t2_min3(i,j)=minimum0
-        t2_max3(i,j)=maximum0
+      CALL wrf_debug(1, message)
+      WRITE( message, *)' CLWRF - II; RAINC_max:',                           &
+           RAINC_max(i_start(ij)+(i_end(ij)-i_start(ij))/2,                  &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' RAINNC_max:',            &
+           RAINNC_max(i_start(ij)+(i_end(ij)-i_start(ij))/2,                 &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TRAINC_max:',            &
+           TRAINC_max(i_start(ij)+(i_end(ij)-i_start(ij))/2,                 &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TRAINNC_max:',           &
+           TRAINNC_max(i_start(ij)+(i_end(ij)-i_start(ij))/2,                &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2)
+      CALL wrf_debug(1, message)
+    ENDIF
+    DO j = j_start(ij), j_end(ij)
+      DO i = i_start(ij), i_end(ij)
+        t2_min(i,j)=minimum0
+        t2_max(i,j)=maximum0
+        spduv10_max(i,j)=maximum0
+        rainc_max(i,j)=maximum0
+        rainnc_max(i,j)=maximum0
+        ENDDO
       ENDDO
-      ENDDO
-    ENDDO
+   ENDDO
   ELSE
+!      DO j = j_start(ij), j_end(ij)
+!        DO i = i_start(ij), i_end(ij)
      DO j = jps, jpe
        DO i = ips, ipe
-         IF ( t2(i,j) .LT. t2_min3(i,j) ) THEN
-            t2_min3(i,j) = t2(i,j)
-         ENDIF
-         IF ( t2(i,j) .GT. t2_max3(i,j) ) THEN
-            t2_max3(i,j) = t2(i,j)
-         ENDIF
-       ENDDO
-     ENDDO
+! Temperature
+          IF ( t2(i,j) .LT. t2_min(i,j) ) THEN
+            t2_min(i,j) = t2(i,j)
+            tt2_min(i,j) = xtime 
+          ENDIF
+          IF ( t2(i,j) .GT. t2_max(i,j) ) THEN
+            t2_max(i,j) = t2(i,j)
+            tt2_max(i,j) = xtime 
+          ENDIF
+! Wind speed
+          spduv10=SQRT(u10(i,j)*v10(i,j)+v10(i,j)*v10(i,j))
+          IF (spduv10 .GT. spduv10_max(i,j) ) THEN
+            spduv10_max(i,j) = spduv10
+            u10_max(i,j) = u10(i,j)
+            v10_max(i,j) = v10(i,j)
+            tspduv10_max(i,j) = xtime
+          ENDIF
+! Precipitation flux
+          IF (raincv(i,j) .GT. rainc_max(i,j)) THEN
+            rainc_max(i,j) = raincv(i,j)
+            trainc_max(i,j) = xtime
+          ENDIF
+          IF (rainncv(i,j) .GT. rainnc_max(i,j)) THEN
+            rainnc_max(i,j) = rainncv(i,j)
+            trainnc_max(i,j) = xtime
+          ENDIF
+
+        ENDDO
+      ENDDO
   ENDIF
 !  !$OMP END PARALLEL DO
 
