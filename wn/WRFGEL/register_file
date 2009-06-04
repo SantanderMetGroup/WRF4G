@@ -23,6 +23,7 @@ This command needs that the following environment variables have been establishe
 parser = OptionParser(usage,version="%prog 1.0")
 parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
 (options, args) = parser.parse_args()
+verbose=options.verbose
 
 type_list = {
   "rst" : "restart",
@@ -38,7 +39,7 @@ else:
   exit(1)
 
 
-if verbose: stderr.write("WRFGEL> START: %s" % args)
+stderr.write("WRFGEL> START: %s\n" % args)
 
 # Check that the environment variables has been established and import their values
 env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
@@ -83,7 +84,8 @@ if type in type_list.keys() :
             VCPURL(file2del).rm()
     """
     output=copy_file(file,dest +".part")
-    VPCURL(dest + ".part").rename(basename(dest))
+    if output: print output
+    VCPURL(dest + ".part").rename(basename(dest))
     input=VCPURL(file)
     # Delete the file from local disk 
     input.rm()
@@ -102,6 +104,6 @@ else :
         if verbose:
              stderr.write("origin: %s destiny: %s\n" % (wps_file,dest))
         output=copy_file(wps_file,dest, verbose=verbose) 
-        print output
+        if output: print output
 
-stderr.write("WRFGEL> END: %s" % args)
+stderr.write("WRFGEL> END: %s\n" % args)

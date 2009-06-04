@@ -66,7 +66,7 @@ for file in  orig_c.ls(pattern[type]):
     else: 
         # From wrflowinp_d08_ we remove the _ at the end
         dest=file_c.file_name[:-1]
-    if verbose: stderr.write("origin: %s destiny: %s \n\n" % (orig_folder + "/" + file ,dest)) 
+    if verbose: stderr.write("origin: %s destiny: %s \n" % (orig_folder + "/" + file ,dest)) 
     
-    output=copy_file( orig_folder + "/" + file ,dest, verbose=verbose)         
-    print output
+    output=copy_file( orig_folder + "/" + file ,dest, verbose=verbose)
+    if output : print output
