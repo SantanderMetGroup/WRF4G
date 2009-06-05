@@ -9,6 +9,8 @@ ROOTDIR=$(pwd)
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 export PATH="${ROOTDIR}/bin:${ROOTDIR}/WRFGEL:$PATH"
+chmod +x ${ROOTDIR}/bin/*
+chmod +x ${ROOTDIR}/WRFGEL/*
 umask 002
 #
 #  Load wrf4g.conf, wrf.chunk and wrf.input
@@ -105,6 +107,7 @@ read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}   | tr '_:T-' '    ')
 #
 #   Must WPS run or are the boundaries available?
 #
+set -v
 if test "$(exist_wps $(date_wrf2iso ${chunk_start_date}))" -eq "1"; then
   wps_ran=0
   cd ${ROOTDIR}/WRFV3/run || exit
@@ -121,11 +124,13 @@ else
     #
     #   Modify the namelist
     #
+    set +v
     fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
     fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
     fortnml_set  namelist.wps interval_seconds      ${global_interval}
     fortnml_set  namelist.wps max_dom               ${max_dom}
     fortnml_set  namelist.wps prefix                "'${global_name}'"
+    set -v
     #
     #   Preprocessor
     #
@@ -191,6 +196,7 @@ else
     #   Run metgrid
     #
     timelog_init "metgrid"
+      set +v
       fortnml_vardel namelist.wps opt_output_from_metgrid_path
       fortnml_vardel namelist.wps opt_output_from_geogrid_path
       fortnml_vardel namelist.wps opt_metgrid_tbl_path
@@ -198,6 +204,7 @@ else
       fortnml_set  namelist.wps fg_name               "'${global_name}'"
       fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
       fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
+      set -v
       ${LAUNCHER_METGRID} ./metgrid/metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_METGRID_FAILED}
       tail -3 ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'Successful completion of metgrid' \
@@ -278,4 +285,6 @@ cd ${ROOTDIR}/WRFV3/run || exit
   timelog_init "wrf"
     ${LAUNCHER_WRF} ./wrf.exe >& ${logdir}/wrf_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_WRF_FAILED}
   timelog_end
+  # Clean the heavy stuff
+  rm -f wrf.exe real.exe CAM_ABS_DATA wrf[bli]*
 cd ${ROOTDIR}
