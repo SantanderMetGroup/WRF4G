@@ -46,11 +46,22 @@ list=VCPURL(repo)
 # List all the wps files for this date
 restart_list=list.ls("wrf[lbi]*_d\d\d_" + date + "*")
 
-if len(restart_list)  in [0, 1]:
-  # There are not restart files
-    if options.verbose: print "There are not wps files for this date"
-    date=0
-else :
-    date=1
-    
-print date
+import os.path
+domains = map(lambda x: x.split('_')[1], map(os.path.basename, restart_list))
+d = {}
+for x in domains:
+  d[x]=x
+domains = d.values()
+domains.sort()
+
+rval = 1
+
+for dom in domains:
+  if dom == 'd01' and not "wrfbdy_%s_%s.nc" % (dom, date) in restart_list:
+      rval = 0
+  if not "wrfinput_%s_%s.nc" % (dom, date) in restart_list:
+    rval = 0
+#  if not "wrflowinp_%s_%s.nc" % (dom, date) in restart_list:
+#    rval = 0
+
+print rval

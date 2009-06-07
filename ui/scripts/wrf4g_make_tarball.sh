@@ -1,6 +1,6 @@
 #! /bin/bash
 
-version="0.0.0"
+version="0.0.1"
 
 thisdir=$(pwd)
 basedir=$(dirname $(dirname $(dirname $0)))

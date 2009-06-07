@@ -38,10 +38,10 @@ function setup_namelist_input(){
   fortnml_set    namelist.input run_hours   0
   fortnml_set    namelist.input run_minutes 0
   fortnml_set    namelist.input run_seconds 0
-  fortnml_setn    namelist.input start_year  ${max_dom} ${iyy}
-  fortnml_setn    namelist.input start_month ${max_dom} ${imm}
-  fortnml_setn    namelist.input start_day   ${max_dom} ${idd}
-  fortnml_setn    namelist.input start_hour  ${max_dom} ${ihh}
+  fortnml_setn    namelist.input start_year  ${max_dom} ${ryy}
+  fortnml_setn    namelist.input start_month ${max_dom} ${rmm}
+  fortnml_setn    namelist.input start_day   ${max_dom} ${rdd}
+  fortnml_setn    namelist.input start_hour  ${max_dom} ${rhh}
   fortnml_setn    namelist.input end_year    ${max_dom} ${fyy}
   fortnml_setn    namelist.input end_month   ${max_dom} ${fmm}
   fortnml_setn    namelist.input end_day     ${max_dom} ${fdd}
@@ -52,7 +52,10 @@ function setup_namelist_input(){
   fortnml_varcopy namelist.wps   namelist.input j_parent_start
   fortnml_varcopy namelist.wps   namelist.input e_we
   fortnml_varcopy namelist.wps   namelist.input e_sn
-  fortnml_set     namelist.input num_metgrid_levels $(get_num_metgrid_levels)
+  numml=$(get_num_metgrid_levels)
+  if test -n "${numml}"; then
+    fortnml_set     namelist.input num_metgrid_levels $(get_num_metgrid_levels)
+  fi
   fortnml_import_record namelist.wps geogrid > to.source
   source to.source && rm -f to.source
   alldx=""
@@ -67,6 +70,7 @@ function setup_namelist_input(){
   fortnml_setm namelist.input dy        $alldx
   fortnml_set  namelist.input time_step $(get_timestep $dx)
   fortnml_set  namelist.input max_dom   ${max_dom}
+  fortnml_set  namelist.input restart   ${chunk_is_restart}
   #
   # A final sanity check...
   #
@@ -100,9 +104,10 @@ function wrf4g_exit(){
 
 timelog_clean
 #
-#  Get the 'a-priori' start (i**) and end (f**) dates for this chunk
+#  Get the (re)start (i**) and end (f**) dates for this chunk
 #
 read iyy imm idd ihh trash <<< $(echo ${chunk_start_date} | tr '_:T-' '    ')
+read ryy rmm rdd rhh trash <<< $(echo ${chunk_restart_date} | tr '_:T-' '    ')
 read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}   | tr '_:T-' '    ')
 #
 #   Must WPS run or are the boundaries available?
@@ -110,8 +115,14 @@ read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}   | tr '_:T-' '    ')
 set -v
 if test "$(exist_wps $(date_wrf2iso ${chunk_start_date}))" -eq "1"; then
   wps_ran=0
+  cd ${ROOTDIR}/WPS || exit
+    vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || exit ${ERROR_VCP_FAILED}
+  cd ${ROOTDIR}
   cd ${ROOTDIR}/WRFV3/run || exit
-    download_file wps $(date_wrf2iso ${chunk_start_date})
+    setup_namelist_input 
+    timelog_init "wps get"
+      download_file wps $(date_wrf2iso ${chunk_start_date})
+    timelog_end
   cd ${ROOTDIR}
 else
   wps_ran=1
@@ -251,39 +262,8 @@ fi
 #                              WRF
 #------------------------------------------------------------------
 cd ${ROOTDIR}/WRFV3/run || exit
-  if test ${wps_ran} -eq 0; then
-    restart_date=$(get_date_restart)
-    if test "${restart_date}" = "-1"; then
-      if test "${chunk_is_restart}" = ".T."; then
-        echo "Something went wrong! (the restart file is not available and the chunk is a restart...)"
-        exit ${EXIT_RESTART_MISMATCH}
-      fi
-      fortnml_set namelist.input restart ${chunk_is_restart}
-    elif test "$(date2int ${restart_date})" -ge "$(date2int ${chunk_end_date})"; then
-      exit ${EXIT_CHUNK_ALREADY_FINISHED}
-    elif test "$(date2int ${restart_date})" -lt "$(date2int ${chunk_start_date})"; then
-      exit ${EXIT_CHUNK_SHOULD_NOT_RUN}
-    else
-      timelog_init "rst download"
-        download_file rst ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
-        read iyy imm idd ihh trash <<< $(date_iso2wrf ${restart_date} | tr '_:T-' '    ')
-        fortnml_set namelist.input restart .T.
-      timelog_end
-    fi
-    #
-    #  Set the start and end dates in the namelist
-    #
-    setup_namelist_input 
-  else
-    if test "${chunk_is_restart}" = ".T."; then
-      timelog_init "rst download"
-        download_file rst $(date_wrf2iso ${chunk_start_date}) || wrf4g_exit ${ERROR_RST_DOWNLOAD_FAILED}
-      timelog_end
-    fi
-    fortnml_set namelist.input restart ${chunk_is_restart}
-  fi
   timelog_init "wrf"
-    ${LAUNCHER_WRF} ./wrf.exe >& ${logdir}/wrf_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_WRF_FAILED}
+    ${LAUNCHER_WRF} ./wrf.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out || wrf4g_exit ${ERROR_WRF_FAILED}
   timelog_end
   # Clean the heavy stuff
   rm -f wrf.exe real.exe CAM_ABS_DATA wrf[bli]*

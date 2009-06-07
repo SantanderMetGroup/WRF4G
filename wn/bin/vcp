@@ -43,7 +43,7 @@ class VCPURL:
          position=self.file.find('//')
          if position == 0 :
            g1=match("//([\w.@-]*):?(\d*)(/\S*)",self.file)         
-           if g1 :
+           if not g1:
                 stderr.write( "The url is not well formed. // \n")
                 exit(URL_BAD_FORMED)
            else :
@@ -186,7 +186,7 @@ class wrffile :
         else :
             # wrfrst_d01_19910101T120000Z.nc
             g=search("(.*)(\d{8}T\d{6}Z)",url)
-            if g is None:
+            if not g:
                 stderr.write("Error: The name of the file is not well formed \n")
                 exit(1)
             else :             
@@ -271,20 +271,18 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
 #    FUNCTIONS FOR MANAGE DATES      #
 def datewrf2datetime (datewrf):
   g=match("(\d{4})-(\d{2})-(\d{2})_(\d{2}):(\d{2}):(\d{2})",datewrf)
-  if g is None :
+  if not g :
       stderr.write("Error: Date is not well formed\n")
       exit(DATE_BAD_FORMED)
-  
   date_tuple=g.groups()  
   date_object=datetime.datetime(*tuple(map(int,date_tuple)))
   return date_object
   
 def dateiso2datetime (dateiso):
   g=match("(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z",dateiso)
-  if g is None :
+  if not g :
       stderr.write("Error: Date is not well formed\n")
       exit(DATE_BAD_FORMED)
-  
   date_tuple=g.groups()  
   date_object=datetime.datetime(*tuple(map(int,date_tuple)))
   return date_object

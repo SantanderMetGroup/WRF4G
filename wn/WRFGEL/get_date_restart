@@ -51,14 +51,14 @@ restart_list=list.ls("*.nc")
 
 if len(restart_list) == 0 :
   # There are not restart files
-  stderr.write("There are not restart files\n")
-  date=0
+  stderr.write("There are no restart files\n")
+  date=-1
 
 else :
   # Here we suppose that there is just one file ending in .nc  
   g=search("(\d{8}T\d{6}Z)",restart_list[-1])
   if g :
-    [date]=g.groups()  
+    date = g.groups()[0]  
   else :
     stderr.write("Error: Date is not well formed\n")
     exit(DATE_BAD_FORMED)
