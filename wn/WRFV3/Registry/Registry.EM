@@ -820,8 +820,8 @@ state    real  RAINC            ij      misc        1         -      rh08du     
 state  integer I_RAINC          ij      misc        1         -      rhd=(interp_fcni)u=(copy_fcni)     "I_RAINC"            "BUCKET FOR RAINC"                    ""
 state  integer I_RAINNC         ij      misc        1         -      rhd=(interp_fcni)u=(copy_fcni)     "I_RAINNC"           "BUCKET FOR RAINNC"                   ""
 state    real  PRATEC           ij      misc        1         -      r        "PRATEC"                "PRECIP RATE FROM CUMULUS SCHEME"                         "mm s-1"
-state    real  RAINCV           ij      misc        1         -      rh        "RAINCV"                "TIME-STEP CUMULUS PRECIPITATION"                         "mm"      
-state    real  RAINNCV          ij      misc        1         -      rh        "RAINNCV"               "TIME-STEP NONCONVECTIVE PRECIPITATION"                   "mm"
+state    real  RAINCV           ij      misc        1         -      r        "RAINCV"                "TIME-STEP CUMULUS PRECIPITATION"                         "mm"      
+state    real  RAINNCV          ij      misc        1         -      r        "RAINNCV"               "TIME-STEP NONCONVECTIVE PRECIPITATION"                   "mm"
 state    real  RAINBL           ij      misc        1         -      r        "RAINBL"                "PBL TIME-STEP TOTAL PRECIPITATION"                       "mm"      
 state    real  SNOWNC           ij      misc        1         -      rhdu     "SNOWNC"                "ACCUMULATED TOTAL GRID SCALE SNOW AND ICE"               "mm"
 state    real  GRAUPELNC        ij      misc        1         -      rhdu     "GRAUPELNC"             "ACCUMULATED TOTAL GRID SCALE GRAUPEL"                    "mm"
@@ -860,7 +860,7 @@ state    real  SWDOWN           ij      misc        1         -      rhd      "S
 state    real  SWDOWNC          ij      misc        1         -      -        "SWDOWNC"               "DOWNWARD CLEAR-SKY SHORT WAVE FLUX AT GROUND SURFACE"           "W m-2"      
 state    real  GSW              ij      misc        1         -      rd       "GSW"                   "NET SHORT WAVE FLUX AT GROUND SURFACE"           "W m-2"      
 state    real  GLW              ij      misc        1         -      rhd      "GLW"                   "DOWNWARD LONG WAVE FLUX AT GROUND SURFACE"            "W m-2"      
-# CLWRF
+# CLWRF-WRF4G
 rconfig  integer         wrf4g_heartbeat_nsteps        namelist,time_control           1       100 
 state    real  T2MIN           ij      misc        1         -      h7       "T2MIN"                 "MINIMUM TEMPERATURE AT 2M HEIGHT IN CLWRFH HOURS"                 "K"      
 state    real  T2MAX           ij      misc        1         -      h7       "T2MAX"                 "MAXIMUM TEMPERATURE AT 2M HEIGHT IN CLWRFH HOURS"                 "K"      
@@ -870,10 +870,10 @@ state    real  U10MAX           ij      misc        1         -      h7       "U
 state    real  V10MAX           ij      misc        1         -      h7       "V10MAX"                 "MAXIMUM V AT 10M HEIGHT IN CLWRF HOURS"                 "m s-1"
 state    real  SPDUV10MAX      ij      misc        1         -      h7       "SPDUV10MAX"            "MAXIMUM WIND SPEED AT 10M HEIGHT IN CLWRF HOURS"  "m s-1"
 state    real  TSPDUV10MAX      ij      misc        1         -      h7       "TSPDUV10MAX"            "TIME OF MAXIMUM WIND SPEED AT 10M HEIGHT IN CLWRF HOURS"  "minute"
-state    real  RAINCMAX         ij      misc        1         -      h7       "RAINCMAX"                 "MAXIMUM CONVECTIVE RAIN FLUX IN CLWRF HOURS"                 "mm s-1"
-state    real  RAINNCMAX        ij      misc        1         -      h7       "RAINNCMAX"                 "MAXIMUM NON-CONVECTIVE RAIN FLUX IN CLWRF HOURS"                 "mm s-1"
-state    real  TRAINCMAX       ij      misc        1         -      h7       "TRAINCMAX"                 "TIME OF MAXIMUM CONVECTIVE RAIN FLUX IN CLWRF HOURS"                 "minute"
-state    real  TRAINNCMAX       ij      misc        1         -      h7       "TRAINNCMAX"                 "TIME OF MAXIMUM NON-CONVECTIVE RAIN FLUX IN CLWRF HOURS"                 "minute"
+state    real  RAINCMAX         ij      misc        1         -      h7       "RAINCMAX"                 "MAXIMUM CUMULUS PRECIPITATION IN CLWRF HOURS"                 "mm"
+state    real  RAINNCMAX        ij      misc        1         -      h7       "RAINNCMAX"                 "MAXIMUM GRID SCALE PRECIPITATION IN CLWRF HOURS"                 "mm"
+state    real  TRAINCMAX       ij      misc        1         -      h7       "TRAINCMAX"                 "TIME OF MAXIMUM CUMULUS PRECIPITATION IN CLWRF HOURS"                 "minute"
+state    real  TRAINNCMAX       ij      misc        1         -      h7       "TRAINNCMAX"                 "TIME OF MAXIMUM GRID SCALE PRECIPITATION IN CLWRF HOURS"                 "minute"
 
 # upward and downward clearsky and total diagnostic fluxes for CAM radiation
 state    real  ACSWUPT          ij      misc        1         -      rhdu     "ACSWUPT"               "ACCUMULATED UPWELLING SHORTWAVE FLUX AT TOP"          "J m-2"
