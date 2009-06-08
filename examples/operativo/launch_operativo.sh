@@ -33,5 +33,6 @@ wrf4g_submitter.sh
 pids=$(awk '{printf ",%s", $1}' pids.oper${sdate})
 pids=${pids:1} # strip the leading comma
 sed -e 's/^\ *sdate\ *=.*$/sdate='${sdate}'/' post_operatorio.sh > postop.sh
+chmod +x postop.sh
 qsub -W depend=afterany:${pids} postop.sh
-rm -f postop.sh
+#rm -f postop.sh
