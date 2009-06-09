@@ -55,13 +55,15 @@ domains = d.values()
 domains.sort()
 
 rval = 1
-
-for dom in domains:
-  if dom == 'd01' and not "wrfbdy_%s_%s.nc" % (dom, date) in restart_list:
+if not restart_list:
+  rval = 0
+else:
+  for dom in domains:
+    if dom == 'd01' and not "wrfbdy_%s_%s.nc" % (dom, date) in restart_list:
+        rval = 0
+    if not "wrfinput_%s_%s.nc" % (dom, date) in restart_list:
       rval = 0
-  if not "wrfinput_%s_%s.nc" % (dom, date) in restart_list:
-    rval = 0
-#  if not "wrflowinp_%s_%s.nc" % (dom, date) in restart_list:
-#    rval = 0
-
+  #  if not "wrflowinp_%s_%s.nc" % (dom, date) in restart_list:
+  #    rval = 0
+  
 print rval
