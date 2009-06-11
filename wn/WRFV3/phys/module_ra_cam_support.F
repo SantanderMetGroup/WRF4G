@@ -251,7 +251,11 @@ real(r8) :: gdst(ndstsz, nspint) ! dust asymmetry parameter
    real(r8) :: f11vmr = 0.280e-9         ! cfc11 volume mixing ratio
    real(r8) :: f12vmr = 0.503e-9         ! cfc12 volume mixing ratio
 
-integer, parameter :: cyr = 233  ! number of years of co2 data
+#ifdef CLWRF
+! UC-CLWRF June.09
+   integer, parameter               :: cyr = 500 
+#else
+   integer, parameter :: cyr = 233  ! number of years of co2 data
 
    integer  :: yrdata(cyr) = &
  (/ 1869, 1870, 1871, 1872, 1873, 1874, 1875, &
@@ -323,7 +327,7 @@ integer, parameter :: cyr = 233  ! number of years of co2 data
     723.308, 730.1008, 736.9958, 743.993, 751.0975, 758.3183, 765.6594,     &
     773.1207, 780.702, 788.4033, 796.2249, 804.1667, 812.2289, 820.4118,    &
     828.6444, 828.6444 /)
-
+#endif
       integer  :: ntoplw      ! top level to solve for longwave cooling (WRF sets this to 1 for model top below 10 mb)
 
       logical :: masterproc = .true.
@@ -361,8 +365,6 @@ integer, parameter :: cyr = 233  ! number of years of co2 data
     !
     save retab
 contains
-
-
 
 subroutine sortarray(n, ain, indxa) 
 !-----------------------------------------------
@@ -3851,5 +3853,4 @@ USE module_wrf_error
      CALL wrf_error_fatal(errmess)
 end subroutine radaeini
 
- 
 end MODULE module_ra_cam_support
