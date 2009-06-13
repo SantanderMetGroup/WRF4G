@@ -262,6 +262,12 @@ class WrfNamelist(FortranNamelist):
       self.printWrfWarning('cam_abs_dim2 not set to e_vert. Fixing...')
       self['physics'].setValue('cam_abs_dim2', self.getValue('e_vert')[0])
     #
+    # PBL issues
+    #
+    if self.getValue('bl_pbl_physics')[0] == 1 and self.getValue('sf_sfclay_physics')[0] != 1:
+      self.printWrfWarning('YSU PBL selected but the surface layer selected is not 1. Fixing...')
+      self['physics'].setValue('sf_sfclay_physics', 1)
+    #
     # LSM issues
     #
     if self.getValue('sf_surface_physics')[0] == 2 and self.getValue('num_soil_layers')[0] != 4:

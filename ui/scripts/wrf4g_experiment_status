@@ -1,0 +1,31 @@
+#! /usr/bin/python
+import glob
+import datetime
+import os
+
+exec(open('wrf4g.conf').read())
+exec(os.popen("grep '^\ *experiment_name' wrf.input").read())
+
+reas = glob.glob('%s/experiments/%s/*' % (WRF4G_BASEPATH, experiment_name))
+reas.sort()
+
+for rea in reas:
+  rea_name = rea.split('/')[-1]
+  print rea_name,
+  last_file = glob.glob('%s/output/wrfout*.nc' % rea)
+  if last_file:
+    last_file.sort()
+    last_file = last_file[-1]
+    last_date = last_file[-19:-8]
+  else:
+    last_date = 'No files yet'
+  print last_date,
+  last_rstfile = glob.glob('%s/restart/wrfrst*.nc' % rea)
+  if last_rstfile:
+    last_rstfile.sort()
+    last_rstfile = last_rstfile[-1]
+    last_rstdate = '(%s)' % last_rstfile[-19:-8]
+  else:
+    last_rstdate = ''
+  print last_rstdate
+
