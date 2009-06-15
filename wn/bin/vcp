@@ -92,8 +92,9 @@ GSIFTP:
      # Fill the variables: protocol, user, computer, port and file 
      
      # user
-     user=self.usermachine()
-  
+     if self.user !="" : user=self.user+"@"
+     else : user=""
+ 
      # computer 
      computer = self.computer
      
@@ -119,23 +120,27 @@ GSIFTP:
      url= protocol + user + computer + port + file 
      return url
      
-  def ls(self,file):
+  def ls(self,file="*",verbose=False):
      """ List all the files under the directory """
-     
      
      command_dict= {'file': 'ls -1', 'gsiftp': 'edg-gridftp-ls', 'rsync' : 'ssh -q %s ls -1' %self.usermachine()}
      file_dict= {'file': self.file, 'gsiftp': str(self), 'rsync': self.file}
          
      command="%s %s" % (command_dict[self.protocol],file_dict[self.protocol])
+
+     if verbose: stderr.write(command + "\n")
+
      (err,out)=getstatusoutput(command)
      
      if err != 0 :
-        # stderr.write("Error listing file: " + str(err) + "\n" + out + "\n")
-        # exit(COPY_ERROR)
-        #
-        # In case of error return an empty list
-        return []
-     
+        g=search("No such file or directory",out)
+        if g:
+           # In case of error return an empty list
+           return []
+        else:
+           stderr.write("Error listing file: " + str(err) + "\n" + out + "\n")
+           exit(COPY_ERROR)
+        
      out_list=out.split("\n")
      
      pattern=file.replace(".","\.")
