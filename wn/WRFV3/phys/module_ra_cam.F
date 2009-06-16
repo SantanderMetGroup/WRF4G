@@ -454,7 +454,7 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
     IF ( XTIME .eq. 0.) THEN
       IF ( wrf_dm_on_monitor() ) THEN
    
-        INQUIRE(FILE='CAM_volume_mixing_ratio', EXIST=exists)
+        INQUIRE(FILE='CAMtr_volume_mixing_ratio', EXIST=exists)
    
         IF (exists) THEN
           iunit = get_unused_unit()
