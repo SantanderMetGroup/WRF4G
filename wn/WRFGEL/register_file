@@ -26,6 +26,10 @@ parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default
 verbose=options.verbose
 
 
+type_list = {
+  "rst" : "restart",
+  "out" : "output",
+}
 
 if len(args) == 3 and args[0] in type_list.keys():
   [type,date,file] = args
@@ -38,10 +42,6 @@ else:
 
 stderr.write("WRFGEL> START: %s\n" % args)
 
-type_list = {
-  "rst" : "restart",
-  "out" : "output",
-}
 
 # Check that the environment variables has been established and import their values
 env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
