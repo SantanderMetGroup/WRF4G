@@ -28,7 +28,7 @@ env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
 env_var=get_env_vars(env_var)
 exec(open(env_var["WRF4G_CONF_FILE"]).read())
 # List all the variables in the script and search WRF4G_BASEPATH
-if WRF4G_BASEPATH in dir():
+if not 'WRF4G_BASEPATH' in dir():
   stderr.write("Error: WRF4G_BASEPATH is not defined \n")
   exit(1)
   

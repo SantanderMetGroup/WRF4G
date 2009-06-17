@@ -95,7 +95,7 @@ class VCPURL:
     def __str__(self):
          """ Returns an url from a array with 
          the following fields [protocol,user,computer,port,file]"""
-         print self.file
+
          # Fill the variables: protocol, user, computer, port and file 
          # user
          if self.user !="" : user=self.user+"@"
@@ -162,7 +162,7 @@ class VCPURL:
         for file_name in out_list:
              if match(pattern,file_name) :
                  file_list.append(file_name)      
-         
+
         return file_list  
 
     def mkdir(self,verbose=False):
@@ -241,7 +241,6 @@ class wrffile :
 def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
     """Copies origin in destination. Both are arrays containing 
     the following field [protocol,user,computer,port,file]"""
-  
     orig=VCPURL(origin)
     dest=VCPURL(destination)
     matrix={
@@ -268,11 +267,12 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
     param=matrix[orig.protocol][dest.protocol]
     orig_file=eval(param['orig'])
     dest_file=eval(param['dest'])
+
     
     # FILE --> GRIDFTP & GRIDFTP -->FILE
     # the globus-url-copy has a strange behavior when copy directories. To indicate that
     # a file is a directory it's necesary that the end of the name is a /.
-    if (dest.protocol=="gsiftp" or orig.protocol=="gsiftp") and param['recursive'] :
+    if (dest.protocol=="gsiftp" or orig.protocol=="gsiftp") and recursive :
         orig_file=orig_file + "/"
         dest_file=dest_file + "/"
     else:
@@ -284,6 +284,8 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
     # Convert origin, destination and command to the appropiate one.
     param['orig']=orig_file
     param['dest']=dest_file
+    if not recursive : param[recursive]=""
+    if not verbose: param[verbose]=""
     command=eval(param['command'])   
     
     if verbose :    stderr.write(command + "\n")
