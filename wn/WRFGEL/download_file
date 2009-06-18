@@ -24,7 +24,7 @@ This command needs that the following environment variables have been establishe
 parser = OptionParser(usage,version="%prog 1.0")
 parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
 (options, args) = parser.parse_args()
-print args
+
 verbose=options.verbose
 
 if len(args) == 2 :
@@ -44,6 +44,7 @@ if not 'WRF4G_BASEPATH' in dir():
   stderr.write("Error: WRF4G_BASEPATH is not defined\n")
   exit(1)
 
+stderr.write("WRFGEL(download_file)> START: %s\n" % args)
 
 type_list={
   "rst" : "restart",
@@ -55,7 +56,6 @@ pattern = {
 } 
 
 orig_folder="%s/experiments/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
-if verbose: stderr.write("Repository:" + orig_folder + "\n")
 orig_c=VCPURL(orig_folder)
 
 for file in  orig_c.ls(pattern[type]):
@@ -66,7 +66,9 @@ for file in  orig_c.ls(pattern[type]):
     else: 
         # From wrflowinp_d08_ we remove the _ at the end
         dest=file_c.file_name[:-1]
+        
     if verbose: stderr.write("origin: %s destiny: %s \n" % (orig_folder + "/" + file ,dest)) 
-    
     output=copy_file( orig_folder + "/" + file ,dest, verbose=verbose)
-    if output : print output
+    if verbose: stderr.write(output + "\n")
+    
+stderr.write("WRFGEL(download_file)> END: %s\n" % args)

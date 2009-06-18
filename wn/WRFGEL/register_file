@@ -10,7 +10,7 @@ from os.path import basename
 WRF4G_CONF_FILE_NOT_DEFINED=1
 DATE_BAD_FORMED=2
 TOO_MANY_DATES=3
-print "hola"
+
 usage="""%prog file_type date [file_name]
 
 Example: %prog rst 1990-01-01_00:00:00 wrfrst_d01_1990-01-01_00:00:00
@@ -39,8 +39,7 @@ else:
   parser.error("Incorrect number of arguments")
   exit(1)
 
-stderr.write("WRFGEL> START: %s\n" % args)
-
+stderr.write("WRFGEL(register_file)> START: %s\n" % args)
 
 # Check that the environment variables has been established and import their values
 env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
@@ -84,20 +83,21 @@ if type in type_list.keys() :
             # Delete the old .bak file
             VCPURL(file2del).rm()
     """
-    
+    if verbose: stderr.write( "Copying %s -> %s\n" %(file, dest))
     output=copy_file(file,dest +".part", verbose=verbose)
-    if output: print output
+    if verbose: stderr.write(output + "\n")
     VCPURL(dest + ".part").rename(basename(dest))
     input=VCPURL(file)
     # Delete the file from local disk 
+    if verbose: stderr.write("Deleting file %s\n" %file)
     input.rm()
 
 else :    
     # If the files are WPS, add the date to the name. Three files have to be uploaded: wrfinput_d0?,wrfbdy_d0? and wrflowinp_d0?
     #The command: $ upload_file wps     1990-01-01_00:00:00
-    # will create in the repositore three files with the following format: wrfinput_d01_19900101T000000
+    # will create in the repositore three files with the following format: wrfinput_d01_19900101T000000Z
     wps_dir=VCPURL(".")
-    wps_files=wps_dir.ls("wrf[lbi]*_d\d\d")    
+    wps_files=wps_dir.ls("wrf[lbi]*_d\d\d")   
 
     suffix="_" + datetime2dateiso(datewrf2datetime(date))+ ".nc"
 
@@ -107,6 +107,6 @@ else :
         if verbose:
              stderr.write("origin: %s destiny: %s\n" % (wps_file,dest))
         output=copy_file(wps_file,dest, verbose=verbose) 
-        if output: print output
+        if verbose: stderr.write(output + "\n")
 
-stderr.write("WRFGEL> END: %s\n" % args)
+stderr.write("WRFGEL(register_file)> END: %s\n" % args)
