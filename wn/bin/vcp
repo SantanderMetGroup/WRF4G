@@ -273,14 +273,15 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
     # FILE --> GRIDFTP & GRIDFTP -->FILE
     # the globus-url-copy has a strange behavior when copy directories. To indicate that
     # a file is a directory it's necesary that the end of the name is a /.
-    if (dest.protocol=="gsiftp" or orig.protocol=="gsiftp") and recursive :
+    if (dest.protocol=="gsiftp" or orig.protocol=="gsiftp") :
+      if recursive:
         orig_file=orig_file + "/"
         dest_file=dest_file + "/"
-    else:
-        if origin.find("*") != -1 :
-            dest_file = dest_file + "/"
-        elif dest.protocol=="file" and isdir(dest.file) :
-            dest_file = dest_file + "/" + basename(orig_file)
+      else:
+          if origin.find("*") != -1 :
+              dest_file = dest_file + "/"
+          elif dest.protocol=="file" and isdir(dest.file) :
+              dest_file = dest_file + "/" + basename(orig_file)
     
     # Convert origin, destination and command to the appropiate one.
     param['orig']=orig_file
