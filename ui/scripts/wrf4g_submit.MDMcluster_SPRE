@@ -19,6 +19,7 @@ else
 fi
 
 mpiexec="/software/ScientificLinux/4.6/mpiexec/bin/mpiexec"
+mpiexec="/usr/bin/mpiexec"
 
 if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
   nodflag="-l nodes=${NUMBER_OF_NODES}:ppn=${PROCESSES_PER_NODE}"
@@ -33,7 +34,7 @@ else
   echo "LAUNCHER_WRF=\"\""               >> wrf.chunk
 fi
 
-rundir=${WRF4G_RUN}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
+rundir=${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
 #
 #   Avoid overwriting previous run directories. Move it to an unused name.
 #

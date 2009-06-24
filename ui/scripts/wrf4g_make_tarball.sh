@@ -1,6 +1,6 @@
 #! /bin/bash
 
-version="0.0.1"
+version="0.0.2"
 
 thisdir=$(pwd)
 basedir=$(dirname $(dirname $(dirname $0)))
@@ -33,7 +33,7 @@ mkdir ${tardir}
 cd ${tardir}
   ln -s ${basedir}/wn/* .
   tar czhv --exclude=".svn" \
-    --exclude="WPS" --exclude="WRFV3" --exclude="bin" \
+    --exclude="WPS" --exclude="WRFV3" \
     -f ${destdir}/WRF4G-${version}${tag}.tar.gz *
 cd ..
 rm -rf ${tardir}

@@ -95,12 +95,12 @@ chunk_end_date="${final_date}"
 chunk_is_restart="${restart_flag}"
 EOF
       mkdir -p ${chunkdir}/WRFV3/run
-      ln -s ${userdir}/namelist.input ${chunkdir}/WRFV3/run/namelist.input
-      ln -s ${userdir}/wrf.input      ${chunkdir}/wrf.input
-      ln -s ${userdir}/wrf4g.conf     ${chunkdir}/wrf4g.conf
+      cp ${userdir}/namelist.input ${chunkdir}/WRFV3/run/namelist.input
+      cp ${userdir}/wrf.input      ${chunkdir}/wrf.input
+      cp ${userdir}/wrf4g.conf     ${chunkdir}/wrf4g.conf
       mkdir ${chunkdir}/bin
-      ln -s ${wrf4g_root}/wn/bin/vcp  ${chunkdir}/bin/vcp
-      ln -s ${wrf4g_root}/wn/WRF4G.sh ${chunkdir}/WRF4G.sh
+      cp ${wrf4g_root}/wn/bin/vcp  ${chunkdir}/bin/vcp
+      cp ${wrf4g_root}/wn/WRF4G.sh ${chunkdir}/WRF4G.sh
       cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh ${chunkdir}/WRF4G_ini.sh
     fi
     cd ${chunkdir}

@@ -164,6 +164,7 @@ class VCPURL:
              if match(pattern,file_name) :
                  file_list.append(file_name)      
 
+        file_list.sort()
         return file_list  
 
     def mkdir(self,verbose=False):
@@ -244,6 +245,8 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
     the following field [protocol,user,computer,port,file]"""
     orig=VCPURL(origin)
     dest=VCPURL(destination)
+    if dest.protocol == 'ln' and orig.protocol != 'file':
+      dest.protocol = 'file'
     matrix={
     'file': 
         {'file':  

@@ -10,12 +10,30 @@
 jobfile=$1
 depid=$2
 
+source wrf4g.conf
+
 cat << EOF > job.gw
 EXECUTABLE = /bin/sh 
 ARGUMENTS = "./${jobfile}"
 INPUT_FILES   = "sandbox.tar.gz, ${jobfile}"
-REQUIREMENTS = HOSTNAME = "*.unican.es";
+#REQUIREMENTS = HOSTNAME = "*.unican.es";
+REQUIREMENTS = HOSTNAME = "*.ie";
+#REQUIREMENTS = HOSTNAME = "*.br";
+NAME = ${WRF4G_REALIZATION}
 EOF
+
+if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
+  echo "LAUNCHER_METGRID=\"\""                 >> wrf.chunk
+  echo "LAUNCHER_REAL=\"\""                    >> wrf.chunk
+  echo "LAUNCHER_WRF=\"mpiexec \"" >> wrf.chunk
+  echo "export P4_GLOBMEMSIZE=33554432" >> wrf.chunk
+  total_cores=$((${NUMBER_OF_NODES} * ${PROCESSES_PER_NODE}))
+  echo "NP = ${total_cores}" >> job.gw
+else
+  echo "LAUNCHER_METGRID=\"\""    >> wrf.chunk
+  echo "LAUNCHER_REAL=\"\""       >> wrf.chunk
+  echo "LAUNCHER_WRF=\"\""        >> wrf.chunk
+fi
 
 if test -n "${depid}"; then
   depflag="-d ${depid}"
@@ -29,5 +47,3 @@ fi
 tar czh --exclude ${jobfile} -f sandbox.tar.gz *
 
 gwsubmit -v ${depflag} -t job.gw | awk -F: '/JOB ID/ {print $2}'
-
-

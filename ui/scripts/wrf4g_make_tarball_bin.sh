@@ -44,7 +44,6 @@ cd ${tardir}
   mkdir -p WPS/ungrib
   mkdir -p WRFV3/run
 
-  ln -s ${wrf4gdir}/bin .  
   ln -s ${wrf4gdir}/WPS/ungrib/Variable_Tables_WRF4G WPS/ungrib/
 
   ln -s ${basedir}/WPS/metgrid/metgrid.exe WPS/metgrid/metgrid.exe

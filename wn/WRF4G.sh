@@ -2,23 +2,31 @@
 #
 # WRF4G.sh
 #
-ROOTDIR=$(pwd)
+test -n "${ROOTDIR}"  || ROOTDIR=$(pwd)
+test -n "${LOCALDIR}" || LOCALDIR=${ROOTDIR}
 #
 #  Load functions and set the PATH
 #
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 export PATH="${ROOTDIR}/bin:${ROOTDIR}/WRFGEL:$PATH"
+#
+#  Move all executables out of LOCALDIR
+#
+mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
+mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
+mv ${LOCALDIR}/WRFV3/run/real.exe      ${ROOTDIR}/bin/
+mv ${LOCALDIR}/WRFV3/run/wrf.exe       ${ROOTDIR}/bin/
 chmod +x ${ROOTDIR}/bin/*
 chmod +x ${ROOTDIR}/WRFGEL/*
 umask 002
 #
 #  Load wrf4g.conf, wrf.chunk and wrf.input
 #
-source wrf4g.conf                                  || exit ${ERROR_MISSING_WRF4GCNF}
-sed -e 's/\ *=\ */=/' wrf.chunk > source.it        || exit ${ERROR_MISSING_WRFCHUNK}
+source ${ROOTDIR}/wrf4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
+sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.chunk > source.it || exit ${ERROR_MISSING_WRFCHUNK}
 source source.it && rm source.it
-sed -e 's/\ *=\ */=/' wrf.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
+sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.input > source.it || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
 #
 #  Export variables
@@ -77,7 +85,8 @@ function setup_namelist_input(){
   fortnml --wrf --trim --overwrite -f namelist.input
 }
 
-logdir=${ROOTDIR}/log; mkdir -p ${logdir}
+test -n "${logdir}" || logdir=${LOCALDIR}/log;
+mkdir -p ${logdir}
 VCPDEBUG="-v"
 
 function timelog_clean(){
@@ -85,20 +94,35 @@ function timelog_clean(){
 }
 
 function timelog_end(){
+  touch ${item}_end && vcp ${item}_end ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
   date +%Y%m%d%H%M%S >> ${logdir}/time.log
 }
 
 function timelog_init(){
   item=$1
+  create_output_structure
+  touch ${item}.init && vcp ${item}.init ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
   echo -n "$(printf "%20s" "$item") $(date +%Y%m%d%H%M%S) " >> ${logdir}/time.log
 }
 
 function wrf4g_exit(){
   excode=$1
   #
-  #  This is the way out of this script. So close the timing info and leave
+  #  This is the way out of this script. So close the timing info, move the
+  #  logs to a safe place and leave
   #
   timelog_end
+  if test "$excode" = "${ERROR_WRF_FAILED}"; then
+    if test -e rsl.out.0000; then
+      mkdir -p rsl_wrf
+      mv rsl.* rsl_wrf/
+      mv rsl_wrf ${logdir}/
+    fi
+    ls -l >& ${logdir}/ls.wrf
+  fi
+  create_output_structure
+  tar czf log.tar.gz ${logdir} && vcp log.tar.gz ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
+  test "${LOCALDIR}" != "${ROOTDIR}" && mv ${logdir} ${ROOTDIR}/
   exit ${excode}
 }
 
@@ -115,18 +139,18 @@ read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}   | tr '_:T-' '    ')
 set -v
 if test "$(exist_wps $(date_wrf2iso ${chunk_start_date}))" -eq "1"; then
   wps_ran=0
-  cd ${ROOTDIR}/WPS || exit
+  cd ${LOCALDIR}/WPS || exit
     vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || exit ${ERROR_VCP_FAILED}
-  cd ${ROOTDIR}
-  cd ${ROOTDIR}/WRFV3/run || exit
+  cd ${LOCALDIR}
+  cd ${LOCALDIR}/WRFV3/run || exit
     setup_namelist_input 
     timelog_init "wps get"
       download_file wps $(date_wrf2iso ${chunk_start_date})
     timelog_end
-  cd ${ROOTDIR}
+  cd ${LOCALDIR}
 else
   wps_ran=1
-  cd WPS || exit
+  cd ${LOCALDIR}/WPS || exit
     clean_wps
     #
     #   Get geo_em files and namelist.wps
@@ -161,7 +185,9 @@ else
     timelog_end
     timelog_init "ungrib"
       ln -sf ungrib/Variable_Tables_WRF4G/Vtable.${global_name} Vtable
-      ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
+      ${ROOTDIR}/bin/ungrib.exe \
+        >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
+        || wrf4g_exit ${ERROR_UNGRIB_FAILED}
       tail -3 ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'Successful completion of ungrib' \
         || wrf4g_exit ${ERROR_UNGRIB_FAILED}
@@ -216,7 +242,9 @@ else
       fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
       fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
       set -v
-      ${LAUNCHER_METGRID} ./metgrid/metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_METGRID_FAILED}
+      ${LAUNCHER_METGRID} ${ROOTDIR}/bin/metgrid.exe \
+        >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
+        || wrf4g_exit ${ERROR_METGRID_FAILED}
       tail -3 ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'Successful completion of metgrid' \
         || wrf4g_exit ${ERROR_METGRID_FAILED}
@@ -225,16 +253,19 @@ else
       rm -rf grbData
       rm -rf ${global_name}\:*
     timelog_end
-  cd ${ROOTDIR}/WRFV3/run || exit
+  cd ${LOCALDIR}/WRFV3/run || exit
     #------------------------------------------------------------------
     #                              REAL
     #------------------------------------------------------------------
     timelog_init "real"
       clean_real
       ln -s ../../WPS/met_em.d??.????-??-??_??:00:00.nc .
+      ls -l ########################################################## borrar
       fix_ptop
       setup_namelist_input
-      ${LAUNCHER_REAL} ./real.exe >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_REAL_FAILED}
+      ${LAUNCHER_REAL} ${ROOTDIR}/bin/real.exe \
+        >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
+        || wrf4g_exit ${ERROR_REAL_FAILED}
       tail -3 ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'SUCCESS COMPLETE REAL_EM' \
         || wrf4g_exit ${ERROR_REAL_FAILED}
@@ -242,6 +273,7 @@ else
       if test -e rsl.out.0000; then
         mkdir -p rsl_real
         mv rsl.* rsl_real/
+        mv rsl_real ${logdir}/
       fi
       rm -f met_em*
       rm -f ../../WPS/met_em*
@@ -255,16 +287,18 @@ else
     #
     create_output_structure
     ${WRFGEL_SCRIPT} wps "${chunk_start_date}"
-  cd ${ROOTDIR} || exit
+  cd ${LOCALDIR} || exit
 fi
 
 #------------------------------------------------------------------
 #                              WRF
 #------------------------------------------------------------------
-cd ${ROOTDIR}/WRFV3/run || exit
+cd ${LOCALDIR}/WRFV3/run || exit
   timelog_init "wrf"
-    ${LAUNCHER_WRF} ./wrf.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out || wrf4g_exit ${ERROR_WRF_FAILED}
+    ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out || wrf4g_exit ${ERROR_WRF_FAILED}
   timelog_end
+  mv ${logdir} ${ROOTDIR}/
   # Clean the heavy stuff
-  rm -f wrf.exe real.exe CAM_ABS_DATA wrf[bli]*
-cd ${ROOTDIR}
+  rm -f CAM_ABS_DATA wrf[bli]* ${ROOTDIR}/bin/real.exe ${ROOTDIR}/bin/wrf.exe \
+        ${ROOTDIR}/bin/metgrid.exe ${ROOTDIR}/bin/ungrib.exe
+cd ${LOCALDIR}

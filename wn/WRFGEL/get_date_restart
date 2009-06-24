@@ -56,7 +56,6 @@ if len(restart_list) == 0 :
   date=-1
 
 else :
-  # Here we suppose that there is just one file ending in .nc  
   g=search("(\d{8}T\d{6}Z)",restart_list[-1])
   if g :
     date = g.groups()[0]  
