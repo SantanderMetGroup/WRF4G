@@ -94,15 +94,15 @@ function timelog_clean(){
 }
 
 function timelog_end(){
-  touch ${item}_end && vcp ${item}_end ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
+  touch ${timelog_item}_end && vcp ${timelog_item}_end ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
   date +%Y%m%d%H%M%S >> ${logdir}/time.log
 }
 
 function timelog_init(){
-  item=$1
+  timelog_item=$1
   create_output_structure
-  touch ${item}.init && vcp ${item}.init ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
-  echo -n "$(printf "%20s" "$item") $(date +%Y%m%d%H%M%S) " >> ${logdir}/time.log
+  touch ${timelog_item}.init && vcp ${timelog_item}.init ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
+  echo -n "$(printf "%20s" "$timelog_item") $(date +%Y%m%d%H%M%S) " >> ${logdir}/time.log
 }
 
 function wrf4g_exit(){
