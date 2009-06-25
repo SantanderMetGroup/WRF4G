@@ -7,7 +7,7 @@ from re import match, search
 from sys import exit
 from sys import stderr 
 from commands import getstatusoutput
-from os import popen, getcwd, getenv
+from os import popen, getcwd, getenv, WEXITSTATUS
 from os.path import abspath, isdir, basename, dirname
 import datetime
 
@@ -138,8 +138,8 @@ class VCPURL:
         command=eval(self.command[self.protocol]['ls'] )
         if verbose: stderr.write(command + "\n")
         (err,out)=getstatusoutput(command)
-         
-        if err != 0 :
+        err=WEXITSTATUS(err)
+        """if err != 0 :
             g=search("No such file or directory",out)
             if g:
                # In case of error return an empty list
@@ -147,7 +147,8 @@ class VCPURL:
             else:
                stderr.write("Error listing file: " + str(err) + "\n" + out + "\n")
                exit(COPY_ERROR)
-            
+        """
+        if err != 0 : return []
         out_list=out.split("\n")
         pattern=file.replace(".","\.")
         pattern=pattern.replace("*",".*")
