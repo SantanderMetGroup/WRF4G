@@ -29,12 +29,12 @@ is_multiphysics = 1
   multiphysics_nitems = "${max_dom},${max_dom},${max_dom},${max_dom},${max_dom},${max_dom},${max_dom}"
   multiphysics_combinations = "\
 4,1,1,1,1,1,1/
-4,1,1,1,2,2,1/
-4,1,1,1,7,7,1/
-4,2,1,1,1,1,1/
 4,2,1,1,7,7,2
 "
 otras="\
+4,1,1,1,2,2,1/
+4,1,1,1,7,7,1/
+4,2,1,1,1,1,1/
 4,2,1,1,7,7,1/
 4,3,1,1,1,1,1/
 4,3,1,1,2,2,1/
