@@ -15,15 +15,19 @@ syy=${sdate:0:4}
 smm=${sdate:4:2}
 sdd=${sdate:6:2}
 shh=${sdate:8:2}
-read fyy fmm fdd fhh <<<`date '+%Y %m %d %H' -d "${syy}-${smm}-${sdd} ${shh}:00 84 hours"`
+read fyy fmm fdd fhh <<<`date '+%Y %m %d %H' -d "${syy}-${smm}-${sdd} ${shh}:00 108 hours"`
 
 fecha="${syy}-${smm}-${sdd}_${shh}:00:00"
 fechafin="${fyy}-${fmm}-${fdd}_${fhh}:00:00"
 
+ln -sf wrf4g.conf.local wrf4g.conf
 cat << EOF | cat - wrf.input.in > wrf.input
 experiment_name = "oper${sdate}"
 start_date = "${fecha}"
 end_date = "${fechafin}"
+multiphysics_combinations = "\
+4,1,1,1,1,1,1
+"
 EOF
 
 wrf4g_submitter.sh
