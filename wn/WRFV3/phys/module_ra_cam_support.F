@@ -252,7 +252,7 @@ real(r8) :: gdst(ndstsz, nspint) ! dust asymmetry parameter
    real(r8) :: f11vmr          ! cfc11 volume mixing ratio
    real(r8) :: f12vmr          ! cfc12 volume mixing ratio
 
-   integer, parameter               :: cyr = 500 
+   integer, parameter               :: cyr = 500     ! maximum num. of lines in 'CAMtr_volume_mixing_ratio' file
 #else
 !From ghg_surfvals.F90 module
    real(r8) :: co2vmr = 3.550e-4         ! co2   volume mixing ratio

@@ -472,10 +472,6 @@ CONTAINS
       DATA RATE/0.03/
 !      DATA RATE/0.01/  ! value used in NRCM
 !-----------------------------------------------------------
-#ifdef CLWRF
-!CLWRF-UC July.09
-      LOGICAL ISNAND
-#endif
       IPRNT=.FALSE.
       GDRY=-G/CP
       ROCP=R/CP
@@ -619,14 +615,6 @@ usl:   DO
                IF ( NK .GT. KTE ) THEN
                  WRITE(message,*)'WOULD GO OFF TOP: KF_ETA_PARA I,J,DPTHMX,DPMIN',I,J,DPTHMX,DPMIN
                  CALL wrf_message (TRIM(message))
-#ifdef CLWRF
-! CLWRF-UC July.09
-                 WRITE(message,*)'CLWRF-KFETA NK > KTE:',NK,' > ',KTE,' DP(',NK,'):',DP(NK)
-                 CALL wrf_message (TRIM(message))
-                 IF (ISNAND(DPTHMX)) THEN
-                   CALL wrf_error_fatal('KFETA DPTHMX=NaN')
-                 ENDIF
-#endif
                  EXIT
                ENDIF
                DPTHMX=DPTHMX+DP(NK)

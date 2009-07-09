@@ -451,11 +451,11 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
 #ifdef CLWRF
 ! CLWRF-UC June.09  (Copy from share/wrf_tsin.F)
     IF (XTIME .eq. 0.) THEN
-    READtrFILE = .FALSE.
+      READtrFILE = .FALSE.
     ENDIF   
+
     IF ( .NOT. READtrFILE ) THEN
       READtrFILE= .TRUE.
-!      IF ( wrf_dm_on_monitor() ) THEN
    
         INQUIRE(FILE='CAMtr_volume_mixing_ratio', EXIST=exists)
    
@@ -478,8 +478,7 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
             istatus = 0
             idata = 1
             DO WHILE (istatus == 0)
-!           READ(UNIT=iunit, FMT='(I4,1X,(e8.4,1x))', IOSTAT=istatus)                                       &
-             READ(UNIT=iunit, *, IOSTAT=istatus)                                                              &
+              READ(UNIT=iunit, *, IOSTAT=istatus)                                                             &
              yrdata(idata), co2(idata), n2o(idata), ch4(idata), cfc11(idata), cfc12(idata)
              idata=idata+1
            END DO
@@ -493,7 +492,6 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
 
        ENDIF ! CAMtr_volume_mixing_ratio exists
    
-!     ENDIF
    ENDIF ! File already opened and read 
 
    found_yearIN=0
@@ -1260,6 +1258,8 @@ subroutine get_aerosol(c, julday, julian, dt, gmt, xtime, m_psp, m_psn, aerosolj
 #ifdef CLWRF
 !CLWRF-UC July.09
                print *,'naer:',naer,' pver:',pver,' ncol:',ncol
+               PRINT *,'ERROR -- error -- ERROR -- error -- ERROR -- error'
+               CALL wrf_error_fatal('CLWRF-module_ra_cam. : AEROSOLt=NaN')
 #endif
 !              call endrun ()
             end if
