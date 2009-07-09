@@ -405,7 +405,7 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
    integer, SAVE                                     :: yrdata(cyr)
    real(r8), SAVE                                    :: co2(cyr),n2o(cyr),ch4(cyr)                                     &
                     ,cfc11(cyr),cfc12(cyr)
-   REAL                                             :: julian, co2vmr, n2ovmr, ch4vmr, f11vmr, f12vmr
+   REAL, SAVE                                       :: julian, co2vmr, n2ovmr, ch4vmr, f11vmr, f12vmr
 
    INTEGER                                          :: yearIN, found_yearIN, iyear
    LOGICAL, EXTERNAL                                :: wrf_dm_on_monitor
@@ -413,7 +413,7 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
 
    INTEGER                                          :: istatus, iunit, idata                                          &
                     ,VARCAM_in_years
-   LOGICAL                                          :: exists
+   LOGICAL                                          :: exists, ISNAND, READtrFILE
    CHARACTER(LEN=256)                               :: message
 #endif
 
@@ -450,16 +450,21 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
 !
 #ifdef CLWRF
 ! CLWRF-UC June.09  (Copy from share/wrf_tsin.F)
-   
-    IF ( XTIME .eq. 0.) THEN
-      IF ( wrf_dm_on_monitor() ) THEN
+    IF (XTIME .eq. 0.) THEN
+    READtrFILE = .FALSE.
+    ENDIF   
+    IF ( .NOT. READtrFILE ) THEN
+      READtrFILE= .TRUE.
+!      IF ( wrf_dm_on_monitor() ) THEN
    
         INQUIRE(FILE='CAMtr_volume_mixing_ratio', EXIST=exists)
    
         IF (exists) THEN
           iunit = get_unused_unit()
           IF ( iunit <= 0 ) THEN
-            CALL wrf_error_fatal('Error in module_ra_cam_support: could not find a free Fortran unit.')
+            IF ( wrf_dm_on_monitor() ) THEN
+              CALL wrf_error_fatal('Error in module_ra_cam_support: could not find a free Fortran unit.')
+            END IF
           END IF
    
           ! Read volume mixing ratio 
@@ -482,11 +487,14 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
            CLOSE(iunit)
    
          ENDIF
+       ELSE
+         PRINT *,'CAMtr_volume_mixing_ratio does not exists!'
+         CALL wrf_error_fatal('Not found CAM trace gasses file') 
+
+       ENDIF ! CAMtr_volume_mixing_ratio exists
    
-       ENDIF ! CAM_volume_mixing_ratio exists
-   
-     ENDIF
-   ENDIF ! First timei-step
+!     ENDIF
+   ENDIF ! File already opened and read 
 
    found_yearIN=0
    iyear=1
@@ -520,35 +528,35 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
    IF (n2ovmr .EQ. -99999.) THEN
      n2ovmr=0.311e-6
    ELSE
-     n2ovmr=n2ovmr*1.e-06
+     n2ovmr=n2ovmr*1.e-09
    ENDIF
 
 !ch4
    IF (ch4vmr .EQ. -99999.) THEN
      ch4vmr=1.714e-6
    ELSE
-     ch4vmr=ch4vmr*1.e-06
+     ch4vmr=ch4vmr*1.e-09
    ENDIF
 
 !cfc11
    IF (f11vmr .EQ. -99999.) THEN
      f11vmr=0.280e-9
    ELSE
-     f11vmr=f11vmr*1.e-09
+     f11vmr=f11vmr*1.e-12
    ENDIF
 
 !cfc12
    IF (f12vmr .EQ. -99999.) THEN
      f12vmr=0.503-9
    ELSE
-     f12vmr=f12vmr*1.e-09
+     f12vmr=f12vmr*1.e-12
    ENDIF
 
    IF ( wrf_dm_on_monitor() ) THEN
      WRITE(message,*)'CAM-CLWRF________ year:',yr,' julian day:',julian
-     call wrf_debug( 300, message)
-     WRITE(message,*)'co2vmr: ',co2vmr,' n2ovmr:',n2ovmr,' ch4vmr:',ch4vmr,' cfc11:',f11vmr,' cfc12:',f12vmr
-     call wrf_debug( 300, message)
+     call wrf_debug( 75, message)
+     WRITE(message,*)'CAM-CLWRF co2vmr: ',co2vmr,' n2ovmr:',n2ovmr,' ch4vmr:',ch4vmr,' cfc11:',f11vmr,' cfc12:',f12vmr
+     call wrf_debug( 75, message)
    ENDIF
 
 #else
@@ -682,6 +690,15 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
       else
         phyd(i,k)=phyd(i,k-1) - gravmks*rho_phy(i,k-1,j)*dz8w(i,k-1,j)
       endif
+#ifdef CLWRF
+!CLWRF-UC July.09
+      IF (ISNAND(phyd(i,k))) THEN
+         PRINT *,'phyd:',phyd(i,k),' p8w(',i,char(44),kts,char(44),j,'):',p8w(i,kts,j)
+         PRINT *,'phyd:',phyd(i,k),' rho_phy:',rho_phy(i,k-1,j),' dz8w:',dz8w(i,k-1,j),' fp:',fp(i)
+         PRINT *,' ERROR -- error -- ERROR -- error -- ERROR '
+         CALL wrf_error_fatal('CLWRF-module_ra_cam. camrad: ERROR -- error -- Error of computation pint=NaN')
+      ENDIF
+#endif
       enddo
       enddo
 
@@ -775,6 +792,10 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
                    fsns, fsnt    ,flns    ,flnt    , &
                    qrs, qrl, flwds, rel, rei,                       &
                    sols, soll, solsd, solld,                  &
+#ifdef CLWRF
+!CLWRF-UC June.09
+                   n2ovmr, ch4vmr, f11vmr, f12vmr  , &
+#endif
                    landfrac, zm, fsds)
 
       do k = kts,kte
@@ -1236,6 +1257,10 @@ subroutine get_aerosol(c, julday, julian, dt, gmt, xtime, m_psp, m_psn, aerosolj
             if (AEROSOLt(i, k, m) < speciesmin(m)) then
                write(6,*) 'AEROSOL_INTERPOLATE: negative mass mixing ratio, exiting'
                write(6,*) 'm, column, pver',m, i, k ,AEROSOLt(i, k, m)
+#ifdef CLWRF
+!CLWRF-UC July.09
+               print *,'naer:',naer,' pver:',pver,' ncol:',ncol
+#endif
 !              call endrun ()
             end if
          end do
@@ -1520,6 +1545,10 @@ subroutine radctl(j, lchnk   ,ncol    , pcols, pver, pverp, pverr, pverrp, ppcns
                   fsns    ,fsnt    ,flns    ,flnt    , &
                   qrs     ,qrl     ,flwds   ,rel     ,rei     , &
                   sols    ,soll    ,solsd   ,solld   , &
+#ifdef CLWRF
+!CLWRF-UC June.09
+                  n2ovmr, ch4vmr, f11vmr, f12vmr     , &
+#endif
                   landfrac,zm      ,fsds     )
 !----------------------------------------------------------------------- 
 ! 
@@ -1700,7 +1729,11 @@ subroutine radctl(j, lchnk   ,ncol    , pcols, pver, pverp, pverr, pverrp, ppcns
 
    real(r8) aerosol(pcols, pver, naer_all) ! aerosol mass mixing ratios
    real(r8) scales(naer_all)               ! scaling factors for aerosols
-
+#ifdef CLWRF
+!CLWRF-UC July.09
+   real, INTENT(IN)        ::    n2ovmr, ch4vmr, f11vmr, f12vmr
+   CHARACTER (LEN=256)             message
+#endif
 
 !
 ! Interpolate ozone volume mixing ratio to model levels
@@ -1931,10 +1964,18 @@ subroutine radctl(j, lchnk   ,ncol    , pcols, pver, pverp, pverr, pverrp, ppcns
                        aerosol(:,:,idxVOLC))
 !        call t_stopf("radclwmx")
       else
+#ifdef CLWRF
+         WRITE(message,*)'CLWRF-CAM_call-trcmix n2ovmr:',n2ovmr,' ch4vmr:',ch4vmr,' f11vmr:',f11vmr,' f12vmr:',f12vmr
+         CALL wrf_debug(75, message)
+         call trcmix_clwrf(lchnk   ,ncol    ,pcols, pver,  &
+                     pmid    ,clat, n2ovmr, ch4vmr, f11vmr, f12vmr, n2o,   &
+                     ch4, cfc11, cfc12 )
+
+#else
          call trcmix(lchnk   ,ncol    ,pcols, pver,  &
                      pmid    ,clat, n2o     ,ch4     ,                     &
                      cfc11   ,cfc12   )
-
+#endif
 !        call t_startf("radclwmx")
          call radclwmx(lchnk     ,ncol    ,pcols, pver, pverp ,        &
                        lwupcgs   ,t       ,qm1(1,1,1)       ,o3vmr ,   &

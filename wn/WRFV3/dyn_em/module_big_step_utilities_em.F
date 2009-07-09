@@ -4644,7 +4644,10 @@ END SUBROUTINE pole_point_bc
    REAL    :: w1, w2, z0, z1, z2
 
 !-----------------------------------------------------------------------
-
+#ifdef CLWRF
+! CLWRF-UC. July.09
+   LOGICAL           :: ISNAND
+#endif
 !<DESCRIPTION>
 !
 !  phys_prep calculates a number of diagnostic quantities needed by
@@ -4678,7 +4681,13 @@ END SUBROUTINE pole_point_bc
       mu_3d(i,k,j) = mu(i,j)
       u_phy(i,k,j) = 0.5*(u(i,k,j)+u(i+1,k,j))
       v_phy(i,k,j) = 0.5*(v(i,k,j)+v(i,k,j+1))
-
+#ifdef CLWRF
+!CLWRF-UC July.09
+      IF (ISNAND(rho(i,k,j))) THEN
+        PRINT *,'CLWRF. phy_prep: alt:',alt(i,k,j),' moist:',moist(i,k,j,P_QV)
+        CALL WRF_ERROR_FATAL('phys_prep. rho=NaN')
+      ENDIF
+#endif
     enddo
     enddo
     enddo
@@ -4724,6 +4733,13 @@ END SUBROUTINE pole_point_bc
     do i = i_start, i_end
       p8w(i,k,j) = fzm(k)*p_phy(i,k,j)+fzp(k)*p_phy(i,k-1,j)
       t8w(i,k,j) = fzm(k)*t_phy(i,k,j)+fzp(k)*t_phy(i,k-1,j)
+#ifdef CLWRF
+!CLWRF-UC July.09
+      IF (ISNAND(p8w(i,k,j))) THEN
+        PRINT *,'fzm:',fzm(k),' p_phy:',p_phy(i,k,j),' fzp:',fzp(k),' p_phy k-1:',p_phy(i,k-1,j)
+        CALL WRF_ERROR_FATAL('CLWRF- phy_prep. p8w=NaN')
+      ENDIF
+#endif
     enddo
     enddo
     enddo
@@ -4743,7 +4759,13 @@ END SUBROUTINE pole_point_bc
       w2 = 1. - w1
       p8w(i,1,j) = w1*p_phy(i,1,j)+w2*p_phy(i,2,j)
       t8w(i,1,j) = w1*t_phy(i,1,j)+w2*t_phy(i,2,j)
-
+#ifdef CLWRF
+!CLWRF-UC July.09
+      IF (ISNAND(p8w(i,1,j))) THEN
+        PRINT *,'w1:',w1,' p_phy1:',p_phy(i,1,j),' w2:',w2,' p_phy2:',p_phy(i,2,j)
+        CALL WRF_ERROR_FATAL('CLWRF- phy_prep. bottom p8w=NaN')
+      ENDIF
+#endif
 ! top
 
       z0 = z_at_w(i,kte,j)
@@ -4757,8 +4779,33 @@ END SUBROUTINE pole_point_bc
       p8w(i,kde,j) = exp(w1*log(p_phy(i,kde-1,j))+w2*log(p_phy(i,kde-2,j)))
       t8w(i,kde,j) = w1*t_phy(i,kde-1,j)+w2*t_phy(i,kde-2,j)
 
+#ifdef CLWRF
+!CLWRF-UC July.09
+      IF (ISNAND(p8w(i,kde,j))) THEN
+        PRINT *,'w1:',w1,' p_phy_1:',p_phy(i,kde-1,j),' w2:',w2,' p_phy_2:',p_phy(i,kde-2,j)
+        CALL WRF_ERROR_FATAL('CLWRF- phy_prep. top p8w=NaN')
+      ENDIF
+#endif
     enddo
     enddo
+
+#ifdef CL00WRF
+!CLWRF-UC July.09
+    DO j=j_start,j_end
+    DO i=i_start, i_end
+    DO k=k_start, k_end
+      PRINT *,'p8w(',i,char(44),k,char(44),j,')=',p8w(i,k,j)
+      PRINT *,'w1:',w1,' p_phy_1:',p_phy(i,k-1,j),' p_phy:',p_phy(i,k,j),' w2:',w2,' p_phy+1:',p_phy(i,k+1,j)
+      PRINT *,'p:',p(i,k,j),' pb:',pb(i,k,j)
+      IF (ISNAND(p8w(i,k,j))) THEN
+        PRINT *,'w1:',w1,' p_phy_1:',p_phy(i,k-1,j),' p_phy:',p_phy(i,k,j),' w2:',w2,' p_phy+1:',p_phy(i,k+1,j)
+        CALL WRF_ERROR_FATAL('CLWRF- phy_prep. p8w=NaN')
+      ENDIF
+    ENDDO
+    ENDDO
+    ENDDO
+
+#endif
 
 ! decouple all physics tendencies
 
