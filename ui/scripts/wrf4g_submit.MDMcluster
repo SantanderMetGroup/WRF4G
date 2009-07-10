@@ -35,7 +35,7 @@ else
   echo "LAUNCHER_WRF=\"\""               >> wrf.chunk
 fi
 
-rundir=${WRF4G_RUN}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
+rundir=${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
 #
 #   Avoid overwriting previous run directories. Move it to an unused name.
 #

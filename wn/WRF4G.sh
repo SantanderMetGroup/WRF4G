@@ -2,6 +2,9 @@
 #
 # WRF4G.sh
 #
+hostname --fqdn
+uname -a
+#
 test -n "${ROOTDIR}"  || ROOTDIR=$(pwd)
 test -n "${LOCALDIR}" || LOCALDIR=${ROOTDIR}
 #
@@ -94,14 +97,14 @@ function timelog_clean(){
 }
 
 function timelog_end(){
-  touch ${timelog_item}_end && vcp ${timelog_item}_end ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
+  echo "$(date +%Y%m%d%H%M%S)" > ${timelog_item}.end && vcp ${timelog_item}.end ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
   date +%Y%m%d%H%M%S >> ${logdir}/time.log
 }
 
 function timelog_init(){
-  timelog_item=$1
+  timelog_item=${1// /_}
   create_output_structure
-  touch ${timelog_item}.init && vcp ${timelog_item}.init ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
+  echo "$(date +%Y%m%d%H%M%S)" > ${timelog_item}.init && vcp ${timelog_item}.init ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
   echo -n "$(printf "%20s" "$timelog_item") $(date +%Y%m%d%H%M%S) " >> ${logdir}/time.log
 }
 
@@ -112,14 +115,19 @@ function wrf4g_exit(){
   #  logs to a safe place and leave
   #
   timelog_end
-  if test "$excode" = "${ERROR_WRF_FAILED}"; then
-    if test -e rsl.out.0000; then
-      mkdir -p rsl_wrf
-      mv rsl.* rsl_wrf/
-      mv rsl_wrf ${logdir}/
-    fi
-    ls -l >& ${logdir}/ls.wrf
-  fi
+  case $excode in
+    ${ERROR_WRF_FAILED})
+      if test -e rsl.out.0000; then
+        mkdir -p rsl_wrf
+        mv rsl.* rsl_wrf/
+        mv rsl_wrf ${logdir}/
+      fi
+      ls -l >& ${logdir}/ls.wrf
+      ;;
+    ${ERROR_UNGRIB_FAILED})
+      ls -lR >& ${logdir}/ls.wps
+      ;;
+  esac
   create_output_structure
   tar czf log.tar.gz ${logdir} && vcp log.tar.gz ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
   test "${LOCALDIR}" != "${ROOTDIR}" && mv ${logdir} ${ROOTDIR}/
@@ -285,8 +293,10 @@ else
     #    wrfbdy_d0?
     #    wrflowinp_d0?
     #
-    create_output_structure
-    ${WRFGEL_SCRIPT} wps "${chunk_start_date}"
+    timelog_init "wps put"
+      create_output_structure
+      ${WRFGEL_SCRIPT} wps "${chunk_start_date}"
+    timelog_end
   cd ${LOCALDIR} || exit
 fi
 
@@ -295,7 +305,9 @@ fi
 #------------------------------------------------------------------
 cd ${LOCALDIR}/WRFV3/run || exit
   timelog_init "wrf"
-    ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out || wrf4g_exit ${ERROR_WRF_FAILED}
+    ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
+    echo $! > wrf.pid
+    wait $(cat wrf.pid) || wrf4g_exit ${ERROR_WRF_FAILED}
   timelog_end
   mv ${logdir} ${ROOTDIR}/
   # Clean the heavy stuff

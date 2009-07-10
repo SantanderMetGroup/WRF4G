@@ -47,7 +47,7 @@ cd ${tardir}
   ln -s ${wrf4gdir}/WPS/ungrib/Variable_Tables_WRF4G WPS/ungrib/
 
   ln -s ${basedir}/WPS/metgrid/metgrid.exe WPS/metgrid/metgrid.exe
-  ln -s ${basedir}/WPS/metgrid/METGRID.TBL.ARW WPS/metgrid/METGRID.TBL
+  ln -s ${basedir}/WPS/metgrid/METGRID.TBL WPS/metgrid/METGRID.TBL
   ln -s ${basedir}/WPS/ungrib/ungrib.exe WPS/ungrib/ungrib.exe
   ln -s ${basedir}/WPS/link_grib.csh WPS/
   
