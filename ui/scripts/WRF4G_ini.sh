@@ -45,8 +45,14 @@ set -v
 export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
 export WRF4G_EXPERIMENT="${experiment_name}"
 export WRF4G_REALIZATION="${realization_name}"
-restart_date=$(get_date_restart -v || exit ${ERROR_GETDATERST_FAILED})
-echo "Last restart date for this realization is: ${restart_date}"
+if test ${is_restart} -eq 1; then
+  echo "This is a forced-restart run"
+  # This will make the trick...
+  restart_date=$(date_wrf2iso ${chunk_start_date})
+else
+  restart_date=$(get_date_restart -v || exit ${ERROR_GETDATERST_FAILED})
+  echo "Last restart date for this realization is: ${restart_date}"
+fi
 if test "${restart_date}" = "-1"; then
   if test "${chunk_is_restart}" = ".T."; then
     echo "Something went wrong! (the restart file is not available and the chunk is a restart...)"

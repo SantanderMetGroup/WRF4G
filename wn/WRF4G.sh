@@ -2,9 +2,6 @@
 #
 # WRF4G.sh
 #
-hostname --fqdn
-uname -a
-#
 test -n "${ROOTDIR}"  || ROOTDIR=$(pwd)
 test -n "${LOCALDIR}" || LOCALDIR=${ROOTDIR}
 #
@@ -13,6 +10,7 @@ test -n "${LOCALDIR}" || LOCALDIR=${ROOTDIR}
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 export PATH="${ROOTDIR}/bin:${ROOTDIR}/WRFGEL:$PATH"
+export LD_LIBRARY_PATH="${ROOTDIR}/lib/shared_libs:${LD_LIBRARY_PATH}"
 #
 #  Move all executables out of LOCALDIR
 #
@@ -37,7 +35,7 @@ source source.it && rm source.it
 export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
 export WRF4G_EXPERIMENT="${experiment_name}"
 export WRF4G_REALIZATION="${realization_name}"
-export WRFGEL_SCRIPT="${ROOTDIR}/WRFGEL/register_file"
+export WRFGEL_SCRIPT="${ROOTDIR}/WRFGEL/post_and_register"
 #
 # Running WRF
 #
@@ -104,7 +102,7 @@ function timelog_end(){
 function timelog_init(){
   timelog_item=${1// /_}
   create_output_structure
-  echo "$(date +%Y%m%d%H%M%S)" > ${timelog_item}.init && vcp ${timelog_item}.init ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
+  echo -e "$(date +%Y%m%d%H%M%S)\n$(hostname --fqdn)" > ${timelog_item}.init && vcp ${timelog_item}.init ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
   echo -n "$(printf "%20s" "$timelog_item") $(date +%Y%m%d%H%M%S) " >> ${logdir}/time.log
 }
 
@@ -309,6 +307,7 @@ cd ${LOCALDIR}/WRFV3/run || exit
     echo $! > wrf.pid
     wait $(cat wrf.pid) || wrf4g_exit ${ERROR_WRF_FAILED}
   timelog_end
+  wait $(cat register.pids) || wrf4g_exit ${ERROR_REGISTER_FAILED}
   mv ${logdir} ${ROOTDIR}/
   # Clean the heavy stuff
   rm -f CAM_ABS_DATA wrf[bli]* ${ROOTDIR}/bin/real.exe ${ROOTDIR}/bin/wrf.exe \

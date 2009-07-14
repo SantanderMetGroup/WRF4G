@@ -1,0 +1,33 @@
+#! /bin/bash
+
+#
+#  Load wrf4g.conf, wrf.chunk and wrf.input
+#
+ROOTDIR=../..
+source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
+source ${ROOTDIR}/wrf4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
+sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.chunk > source.it || exit ${ERROR_MISSING_WRFCHUNK}
+source source.it && rm source.it
+sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.input > source.it || exit ${ERROR_MISSING_WRFINPUT}
+source source.it && rm source.it
+
+
+function kill_wrf(){
+  kill -9 $(cat wrf.pid)
+  exit ${EXIT_REGISTER_FAILED}
+}
+#
+#  If there is a postprocessor defined, use it to postprocess the file before registering
+#
+if test -n "${postprocessor}"; then
+  if test "$1" = "out"; then
+    postprocessor.${postprocessor} $3
+  fi
+fi
+#
+#  Now, register the file in the background. If something fails, kill the whole thing
+#
+register_file $* &
+pid=$(echo $!)
+echo $pid >> register.pids
+wait $pid || kill_wrf 

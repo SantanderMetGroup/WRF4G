@@ -19,8 +19,9 @@ INPUT_FILES   = "sandbox.tar.gz, ${jobfile}"
 RANK = FREE_MEM_MB
 MONITOR=/usr/local/gw/libexec/gw_monitor.sh
 #REQUIREMENTS = HOSTNAME = "*.unican.es";
+#REQUIREMENTS = HOSTNAME = "*.ciemat.es";
 #REQUIREMENTS = HOSTNAME = "ce01.afroditi.hellasgrid.gr";
-REQUIREMENTS = QUEUE_ACCESS = "*:prod.vo.eu-eela.eu:*"
+#REQUIREMENTS = QUEUE_ACCESS = "*:prod.vo.eu-eela.eu:*"
 #REQUIREMENTS = QUEUE_ACCESS = "*:esr:*"
 NAME = ${WRF4G_REALIZATION}
 EOF

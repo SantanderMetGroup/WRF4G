@@ -9,6 +9,7 @@
 # function cycle_hindcasts(realization_name, start_date, end_date)
 # function cycle_time(realization_name, start_date, end_date)
 #
+arg1=$1
 userdir=`pwd`
 wrf4g_root=$(dirname $(dirname $(dirname $0)))
 export PATH="${wrf4g_root}/wn/bin:${PATH}"
@@ -38,6 +39,23 @@ function get_nim_vars(){
   set | grep '^NIM_' | sed -e 's/^NIM_\(.*\)=.*$/\1/'
 }
 
+function is_dry_run(){
+  test "${arg1}" = "--dry-run"
+}
+
+function if_not_dry(){
+  comando=$*
+  if ! is_dry_run; then
+    $comando
+  fi
+}
+
+function rematch(){
+  pattern=$1
+  string=$2
+  echo "$string" | grep -q "^${pattern}$"
+}
+
 function cycle_chunks(){
   local realization_name
   local eyy emm edd ehh 
@@ -47,23 +65,18 @@ function cycle_chunks(){
   export WRF4G_REALIZATION="${realization_name}"
   realization_start_date=$2
   realization_end_date=$3
-  echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}"
+  if_not_dry echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}"
   #
   if test -d realizations/${realization_name}; then
-    if test ${is_restart} -eq 0; then
-      echo ""
-      echo "    >>>   THE REALIZATION ALREADY EXISTS!! ABORTING...   <<<"
-      echo ""
-      exit
-    else
-      echo ""
-      echo "    >>>   THE REALIZATION ALREADY EXISTS!! IS_RESTART is set, though.   <<<"
-      echo ""
-      echo "    >>>   Trying to re-use the existing sandboxes...   <<<"
-      echo ""
-    fi
+    echo ""
+    echo "    >>>   THE REALIZATION ALREADY EXISTS!!   <<<"
+    echo ""
+    echo -n "Are you sure you want to send this experiment again? [y/N] "
+    read yon
+    test "${yon}" = "y" || exit
+    tag=$(stat -c %y realizations | cut -c-19 | tr -d ': -')
+    mv realizations realizations.${tag}
   fi
-  mkdir -p realizations/${realization_name}
   current_date=${realization_start_date}
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
   read eyy emm edd ehh trash <<< $(echo ${realization_end_date} | tr '_:T-' '    ')
@@ -71,9 +84,7 @@ function cycle_chunks(){
   chunkjid=""
   while test ${cyy}${cmm}${cdd}${chh} -lt ${eyy}${emm}${edd}${ehh}
   do
-    export WRF4G_CHUNK="$(printf "%04d" ${chunkno})"
-    chunkdir="${userdir}/realizations/${realization_name}/$(printf "%04d" ${chunkno})"
-    mkdir -p ${chunkdir}
+    export WRF4G_CHUNK="$(printf '%04d' ${chunkno})"
     hours=`(expr ${chh} + ${chunk_size_h})`
     final_date=`(date +%Y-%m-%d_%H:%M:%S -u -d"${cyy}${cmm}${cdd} $hours hours")`
     read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
@@ -81,38 +92,45 @@ function cycle_chunks(){
       final_date=${realization_end_date}
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
-    echo "  ---> chunk: ${chunkno} - ${current_date} -> ${final_date}"
-    test ${chunkno} -eq 1 && restart_flag=".F." || restart_flag=".T."
-    if test ${is_restart} -eq 0; then
-      #
-      #  Create the sandbox file
-      #
-      cat << EOF > ${chunkdir}/wrf.chunk
+    if test ${is_restart} -eq 0 || 
+      (test ${is_restart} -eq 1 && rematch "${rst_realization}" "${realization_name}" && rematch "${rst_chunk}" "${chunkno}" ; ) ; then
+      if is_dry_run; then
+        echo "  ${realization_name}  $(printf "%4d" ${chunkno})  ${current_date}  ${final_date}"
+      else
+        chunkdir="${userdir}/realizations/${realization_name}/$(printf '%04d' ${chunkno})"
+        mkdir -p ${chunkdir}
+        echo "  ---> chunk: ${chunkno} - ${current_date} -> ${final_date}"
+        test ${chunkno} -eq 1 && restart_flag=".F." || restart_flag=".T."
+        #
+        #  Create the sandbox file
+        #
+        cat << EOF > ${chunkdir}/wrf.chunk
 realization_name="${realization_name}"
 chunk_name="$(printf "%04d" ${chunkno})"
 chunk_start_date="${current_date}"
 chunk_end_date="${final_date}"
 chunk_is_restart="${restart_flag}"
 EOF
-      mkdir -p ${chunkdir}/WRFV3/run
-      cp ${userdir}/namelist.input ${chunkdir}/WRFV3/run/namelist.input
-      cp ${userdir}/wrf.input      ${chunkdir}/wrf.input
-      cp ${userdir}/wrf4g.conf     ${chunkdir}/wrf4g.conf
-      mkdir ${chunkdir}/bin
-      cp ${wrf4g_root}/wn/bin/vcp  ${chunkdir}/bin/vcp
-      cp ${wrf4g_root}/wn/WRF4G.sh ${chunkdir}/WRF4G.sh
-      cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh ${chunkdir}/WRF4G_ini.sh
+        mkdir -p ${chunkdir}/WRFV3/run
+        cp ${userdir}/namelist.input ${chunkdir}/WRFV3/run/namelist.input
+        cp ${userdir}/wrf.input      ${chunkdir}/wrf.input
+        cp ${userdir}/wrf4g.conf     ${chunkdir}/wrf4g.conf
+        mkdir ${chunkdir}/bin
+        cp ${wrf4g_root}/wn/bin/vcp  ${chunkdir}/bin/vcp
+        cp ${wrf4g_root}/wn/WRF4G.sh ${chunkdir}/WRF4G.sh
+        cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh ${chunkdir}/WRF4G_ini.sh
+        cd ${chunkdir}
+          #
+          #   Submit the job
+          #
+          chunkjid=$(${wrf4g_root}/ui/scripts/wrf4g_submit.${JOB_TYPE} WRF4G_ini.sh ${chunkjid})
+        cd ${userdir}
+        echo "${chunkjid} ${chunkno} ${realization_name}" >> pids.${experiment_name}
+      fi
     fi
-    cd ${chunkdir}
-      #
-      #   Submit the job
-      #
-      chunkjid=$(${wrf4g_root}/ui/scripts/wrf4g_submit.${JOB_TYPE} WRF4G_ini.sh ${chunkjid})
-    cd ${userdir}
     #
     #  Cycle dates and jobids
     #
-    echo "${chunkjid} ${chunkno} ${realization_name}" >> pids.${experiment_name}
     current_date=${final_date}
     read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
     let chunkno++
@@ -169,37 +187,39 @@ rm -f pids.${experiment_name}
 #
 #  Initial override of namelist values
 #
-cp ${wrf4g_root}/wn/WRFV3/run/namelist.input ${userdir}/namelist.input.base
-fortnml -wof namelist.input.base -s max_dom ${max_dom}
-for var in $(get_ni_vars); do
-  fnvar=${var/__/@}
-  fortnml -wof namelist.input.base -s $fnvar -- $(eval echo \$NI_${var})
-done
-for var in $(get_nim_vars); do
-  fnvar=${var/__/@}
-  fortnml -wof namelist.input.base -s $fnvar -- $(eval "echo \$NIM_${var} | tr ',' ' '")
-done
-for var in $(get_nin_vars); do
-  fnvar=${var/__/@}
-  fortnml -wof namelist.input.base -m $fnvar -- $(eval echo \$NIN_${var})
-done
+if ! is_dry_run; then 
+  cp ${wrf4g_root}/wn/WRFV3/run/namelist.input ${userdir}/namelist.input.base
+  fortnml -wof namelist.input.base -s max_dom ${max_dom}
+  for var in $(get_ni_vars); do
+    fnvar=${var/__/@}
+    fortnml -wof namelist.input.base -s $fnvar -- $(eval echo \$NI_${var})
+  done
+  for var in $(get_nim_vars); do
+    fnvar=${var/__/@}
+    fortnml -wof namelist.input.base -s $fnvar -- $(eval "echo \$NIM_${var} | tr ',' ' '")
+  done
+  for var in $(get_nin_vars); do
+    fnvar=${var/__/@}
+    fortnml -wof namelist.input.base -m $fnvar -- $(eval echo \$NIN_${var})
+  done
+fi
 #
 #  Multiphysics support. Physical parameters overwritten!
 #
 if test "${is_multiphysics}" -ne "0"; then
   echo "---> Multi-physics run"
   for mpid in $(echo ${multiphysics_combinations} | tr '/' ' '); do
-    cp namelist.input.base namelist.input
+    if_not_dry cp namelist.input.base namelist.input
     iphys=1
     for var in $(echo ${multiphysics_variables} | tr ',' ' '); do
       nitems=$(tuple_item ${multiphysics_nitems} ${iphys})
-      fortnml_setn namelist.input $var ${nitems} $(tuple_item ${mpid} ${iphys})
+      if_not_dry fortnml_setn namelist.input $var ${nitems} $(tuple_item ${mpid} ${iphys})
       let iphys++
     done
     cycle_time "${experiment_name}__${mpid//,/_}" ${start_date} ${end_date}
   done
 else
   echo "---> Single physics run"
-  cp namelist.input.base namelist.input
+  if_not_dry cp namelist.input.base namelist.input
   cycle_time "${experiment_name}" ${start_date} ${end_date}
 fi
