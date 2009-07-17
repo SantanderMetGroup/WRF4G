@@ -119,6 +119,11 @@ EOF
         cp ${wrf4g_root}/wn/bin/vcp  ${chunkdir}/bin/vcp
         cp ${wrf4g_root}/wn/WRF4G.sh ${chunkdir}/WRF4G.sh
         cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh ${chunkdir}/WRF4G_ini.sh
+        if test -d "wrf4g_files"; then
+          cd wrf4g_files/
+            tar czf ${chunkdir}/wrf4g_files.tar.gz *
+          cd ..
+        fi
         cd ${chunkdir}
           #
           #   Submit the job

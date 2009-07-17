@@ -4,6 +4,7 @@
 #  Load wrf4g.conf, wrf.chunk and wrf.input
 #
 ROOTDIR=../..
+source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 source ${ROOTDIR}/wrf4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
 sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.chunk > source.it || exit ${ERROR_MISSING_WRFCHUNK}
@@ -16,18 +17,37 @@ function kill_wrf(){
   kill -9 $(cat wrf.pid)
   exit ${EXIT_REGISTER_FAILED}
 }
-#
-#  If there is a postprocessor defined, use it to postprocess the file before registering
-#
-if test -n "${postprocessor}"; then
-  if test "$1" = "out"; then
-    postprocessor.${postprocessor} $3
+
+function do_all(){
+  #
+  #  Something is wrong with the xtrm output file. Until its working...
+  #
+  echo $3 | grep -q xtrm && exit 0
+  #
+  #  If there are time series files, pack them and upload them (if this is a restart time)
+  #
+  if test "$1" = "rst"; then
+    if test -f tslist; then
+      ofile="wrfts_$(date_wrf2iso ${chunk_restart_date}).tar.gz"
+      tar czf ${ofile} *.TS
+      register_file ts $2 ${ofile}
+    fi
   fi
-fi
-#
-#  Now, register the file in the background. If something fails, kill the whole thing
-#
-register_file $* &
+  #
+  #  If there is a postprocessor defined, use it to postprocess the file before registering
+  #
+  if test -n "${postprocessor}"; then
+    if test "$1" = "out"; then
+      postprocessor.${postprocessor} $3
+    fi
+  fi
+  #
+  #  Now, register the file in the background. If something fails, kill the whole thing
+  #
+  register_file $*
+}
+
+do_all $* &
 pid=$(echo $!)
 echo $pid >> register.pids
-wait $pid || kill_wrf 
+# wait $pid || kill_wrf 

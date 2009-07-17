@@ -92,6 +92,18 @@ if type in type_list.keys() :
     if verbose: stderr.write("Deleting file %s\n" %file)
     input.rm()
 
+elif type == "ts":
+    dest_folder="%s/experiments/%s/%s/output" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"])
+    dest= dest_folder + "/" + file
+    if verbose: stderr.write( "Copying %s -> %s\n" %(file, dest))
+    output=copy_file(file,dest +".part", verbose=verbose)
+    if verbose: stderr.write(output + "\n")
+    VCPURL(dest + ".part").rename(basename(dest))
+    input=VCPURL(file)
+    # Delete the file from local disk 
+    if verbose: stderr.write("Deleting file %s\n" %file)
+    input.rm()
+
 else :    
     # If the files are WPS, add the date to the name. Three files have to be uploaded: wrfinput_d0?,wrfbdy_d0? and wrflowinp_d0?
     #The command: $ upload_file wps     1990-01-01_00:00:00

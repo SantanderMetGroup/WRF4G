@@ -92,6 +92,12 @@ tar xzf ${ROOTDIR}/sandbox.tar.gz WRFV3/run/namelist.input # La namelist buena e
 mv wrfrst* WRFV3/run >& /dev/null || :
 rm -f ${ROOTDIR}/sandbox.tar.gz 
 #
+#  If there are additional files, expand'em
+#
+if test -f wrf4g_files.tar.gz; then
+  tar xzvf wrf4g_files.tar.gz && rm wrf4g_files.tar.gz
+fi
+#
 #   Now run the WRF4G...
 #
 source ${ROOTDIR}/WRF4G.sh >& log/WRF4G.log
