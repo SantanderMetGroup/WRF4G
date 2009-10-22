@@ -5,11 +5,11 @@ basedir=$(dirname $(dirname $0))
 source ${scriptdir}/dirs
 source env.${HOSTNAME//.*/}
 
-do_tetis_post=0
-do_climatol_wrf=0
-do_climatol_sp02=0
-do_climatol_eobs=1
-do_climatol_erai=0
+do_tetis_post=0    # Only 1 in tetis!
+do_climatol_wrf=0  # Only 1 in tetis!
+do_climatol_sp02=0 # Only 1 in oceano
+do_climatol_eobs=0 # Only 1 in oceano
+do_climatol_erai=0 
 do_plots=0
 
 read yeari yearf <<< ${pername//_/ }
