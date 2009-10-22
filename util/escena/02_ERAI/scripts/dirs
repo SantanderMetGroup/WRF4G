@@ -1,0 +1,8 @@
+
+expname="WRF_ERAI"
+pername="1990_2009"
+
+BIGDIR="/media/PLEXLIN/BIG_STORE/vols/tetis/escena/ESCENA/scn2"
+BIGDIR="/vols/tetis/escena/ESCENA/scn2"
+EOBSDIR="/oceano/gmeteo/METEOLAB_PUBLIC/NetCDFData/ENSEMBLES/Grid0.25_regular/data"
+SP02DIR="/oceano/gmeteo/DATA/UC/Spain02/AEMET/Spain02_nc"
