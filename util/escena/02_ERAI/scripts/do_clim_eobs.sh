@@ -1,8 +1,9 @@
 #! /bin/bash
-
 thisdir=$(pwd)
-basedir=$(dirname $0)
-source ${basedir}/dirs
+scriptdir=$(dirname $0)
+basedir=$(dirname $(dirname $0))
+source ${scriptdir}/dirs
+source env.${HOSTNAME//.*/}
 
 read yeari yearf <<< ${pername//_/ }
 #
