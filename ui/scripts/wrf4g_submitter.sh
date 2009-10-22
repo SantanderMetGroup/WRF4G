@@ -53,7 +53,7 @@ function if_not_dry(){
 function rematch(){
   pattern=$1
   string=$2
-  echo "$string" | grep -q "^${pattern}$"
+  echo "$string" | grep -Eq "^${pattern}$"
 }
 
 function cycle_chunks(){

@@ -52,7 +52,7 @@ type_list={
 }
 pattern = {
   "rst" : "wrfrst*" + date + "*" ,
-  "wps" : "wrf[lbi]*_d\d\d_" + date + "*"
+  "wps" : "wrf[lbif]*_d\d\d_" + date + "*"
 } 
 
 orig_folder="%s/experiments/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])

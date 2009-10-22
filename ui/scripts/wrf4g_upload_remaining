@@ -17,8 +17,8 @@ export WRF4G_REALIZATION="${realization_name}"
 export PATH="../../WRFGEL:$PATH"
 
 for f in wrfout*; do
-  if test $f != 'wrfout*'; then
-    $doit register_file out ${f:11} ${f}
+  if test "$f" != 'wrfout*'; then
+    $doit post_and_register --no-bg out ${f:11} ${f}
   fi
 done
 
@@ -29,13 +29,13 @@ for f in wrfrst*; do
 done
 
 for f in wrfts*; do
-  if test $f != 'wrfts*'; then
-    $doit register_file ts ${f}
+  if test "$f" != 'wrfts*'; then
+    $doit register_file ts date_not_used ${f}
   fi
 done
 
 for f in wrfxtrm* wrfrain*; do
-  if test $f = ${f/*/}; then
+  if test "$f" = "${f/\*/}"; then
     $doit register_file out ${f:12} ${f}
   fi
 done

@@ -31,15 +31,15 @@ type_list = {
   "out" : "output",
 }
 
-if len(args) == 3 and args[0] in type_list.keys():
+stderr.write("WRFGEL(register_file)> START: %s\n" % args)
+
+if len(args) == 3 and args[0] in type_list.keys() + ["ts",]:
   [type,date,file] = args
 elif len(args) == 2 and args[0] == "wps":
   [type,date] = args
 else:
   parser.error("Incorrect number of arguments")
   exit(1)
-
-stderr.write("WRFGEL(register_file)> START: %s\n" % args)
 
 # Check that the environment variables has been established and import their values
 env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
@@ -109,7 +109,7 @@ else :
     #The command: $ upload_file wps     1990-01-01_00:00:00
     # will create in the repositore three files with the following format: wrfinput_d01_19900101T000000Z
     wps_dir=VCPURL(".")
-    wps_files=wps_dir.ls("wrf[lbi]*_d\d\d")   
+    wps_files=wps_dir.ls("wrf[lbif]*_d\d\d")   
 
     suffix="_" + datetime2dateiso(datewrf2datetime(date))+ ".nc"
 

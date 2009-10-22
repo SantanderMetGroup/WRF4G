@@ -23,14 +23,17 @@ function do_all(){
   #  Something is wrong with the xtrm output file. Until its working...
   #
   echo $3 | grep -q xtrm && exit 0
+  test "${1:0:2}" = "ts" && exit 0
   #
   #  If there are time series files, pack them and upload them (if this is a restart time)
   #
   if test "$1" = "rst"; then
     if test -f tslist; then
       ofile="wrfts_$(date_wrf2iso ${chunk_restart_date}).tar.gz"
-      tar czf ${ofile} *.TS
-      register_file ts $2 ${ofile}
+      cd T/
+        tar czf ../${ofile} *.TS
+      cd ..
+      register_file -v ts $2 ${ofile} >> wrfgel.out 2>&1
     fi
   fi
   #
@@ -38,16 +41,22 @@ function do_all(){
   #
   if test -n "${postprocessor}"; then
     if test "$1" = "out"; then
-      postprocessor.${postprocessor} $3
+      postprocessor.${postprocessor} $3 >> wrfgel.out 2>&1
     fi
   fi
   #
   #  Now, register the file in the background. If something fails, kill the whole thing
   #
-  register_file $*
+  register_file $* >> wrfgel.out 2>&1
 }
 
-do_all $* &
+if test "$1" = "--no-bg"; then
+  # TODO: Improve the (non-existent) option parser...
+  shift
+  do_all $*
+else
+  do_all $* &
+fi
 pid=$(echo $!)
 echo $pid >> register.pids
 # wait $pid || kill_wrf 

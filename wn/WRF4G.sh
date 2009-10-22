@@ -76,8 +76,8 @@ function setup_namelist_input(){
     alldx="${alldx} ${thisdx}"
   done
   fortnml_setm namelist.input dx        $alldx
-  fortnml_setm namelist.input dy        $alldx
-  fortnml_set  namelist.input time_step $(get_timestep $dx)
+  fortnml_setm namelist.input dy        $alldx # This could be an issue for global WRF
+  fortnml_set  namelist.input time_step $(get_timestep $dx ${timestep_dxfactor})
   fortnml_set  namelist.input max_dom   ${max_dom}
   fortnml_set  namelist.input restart   ${chunk_is_restart}
   #
@@ -113,6 +113,7 @@ function wrf4g_exit(){
   #  logs to a safe place and leave
   #
   timelog_end
+  echo "exit $excode" >> ${logdir}/time.log
   case $excode in
     ${ERROR_WRF_FAILED})
       if test -e rsl.out.0000; then
@@ -282,7 +283,7 @@ else
         mv rsl_real ${logdir}/
       fi
       rm -f met_em*
-      rm -f ../../WPS/met_em*
+      #rm -f ../../WPS/met_em*
     timelog_end
     #
     #  Upload the wpsout files (create the output structure if necessary):
@@ -290,6 +291,7 @@ else
     #    wrfinput_d0?
     #    wrfbdy_d0?
     #    wrflowinp_d0?
+    #    wrffdda_d0?
     #
     timelog_init "wps put"
       create_output_structure
@@ -307,8 +309,11 @@ cd ${LOCALDIR}/WRFV3/run || exit
     echo $! > wrf.pid
     wait $(cat wrf.pid) || wrf4g_exit ${ERROR_WRF_FAILED}
   timelog_end
-  wait $(cat register.pids) || wrf4g_exit ${ERROR_REGISTER_FAILED}
+  wait_for_these_pids $(cat register.pids) || wrf4g_exit ${ERROR_REGISTER_FAILED}
   mv ${logdir} ${ROOTDIR}/
+  # sometimes there are files produced which are not uploaded. In the meantime,
+  # this script uploads whatever remains.
+  wrf4g_upload_remaining
   # Clean the heavy stuff
   rm -f CAM_ABS_DATA wrf[bli]* ${ROOTDIR}/bin/real.exe ${ROOTDIR}/bin/wrf.exe \
         ${ROOTDIR}/bin/metgrid.exe ${ROOTDIR}/bin/ungrib.exe

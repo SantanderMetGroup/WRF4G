@@ -76,7 +76,9 @@ else
   test -n "${LOCALDIR}" && cd ${LOCALDIR}
     download_file rst ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
   test -n "${LOCALDIR}" && cd ${ROOTDIR}
-  echo 'chunk_is_restart=".T."' >> wrf.chunk
+  if test "$(date2int ${restart_date})" -ne "$(date2int ${chunk_start_date})"; then
+    echo 'chunk_is_restart=".T."' >> wrf.chunk
+  fi
   echo "chunk_restart_date=\"$(date_iso2wrf ${restart_date})\"" >> wrf.chunk
   test -n "${LOCALDIR}" && cp wrf.chunk ${LOCALDIR}/
 fi
