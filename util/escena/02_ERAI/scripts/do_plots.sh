@@ -1,6 +1,14 @@
+#! /bin/bash
+thisdir=$(pwd)
+scriptdir=$( (cd `dirname $0` && echo $PWD) )
+basedir=$(dirname $scriptdir)
+source ${scriptdir}/dirs
+source env.${HOSTNAME//.*/}
+
 
 function var_range(){
   case $1 in
+    tas) echo "zmin 265 zmax 302 dz 1" ;;
     tasmax) echo "zmin 0 zmax 40 dz 5" ;;
     tasmin) echo "zmin -10 zmax 30 dz 5" ;;
     pr) echo "zmin 0 zmax 3000 dz 200" ;;
@@ -78,14 +86,15 @@ ncdir="/vols/tetis/escena/ESCENA/scn1"
 #
 # EOBS 025
 #
-ncdir="."
-
+bname="${BIGDIR}/EOBS/EOBS025__${pername}"
+oname="${basedir}/figs/EOBS025__${pername}"
 for var in tasmax tasmin; do
-  bash plot_wrf_data.gmt.sh ${ncdir}/EOBS025_${var}_clim.2001.nc var $var cpt cpts/tas.cpt $(var_range $var)  national_bound out EOBS025_2001.${var}_clim.eps
+  bash plot_escena_data.gmt.sh ${bname}_clim__${var}.nc var $var cpt cpts/orig.cpt $(var_range $var) national_bound out ${oname}_clim__${var}.eps
+exit
   irec=0
   for seas in DJF MAM JJA SON; do
-    bash plot_wrf_data.gmt.sh ${ncdir}/EOBS025_${var}_sclim.2001.nc \
-      out EOBS025_2001.${var}_sclim.eps \
+    bash plot_escena_data.gmt.sh ${bname}_sclim__${var}.nc \
+      out ${oname}_sclim${seas}__${var}.eps \
       var $var \
       rec $irec \
       label $seas \
