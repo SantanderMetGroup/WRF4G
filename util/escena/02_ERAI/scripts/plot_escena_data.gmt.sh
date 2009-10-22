@@ -1,6 +1,5 @@
 
 RFLAG="-R-11/5/35.5/44"
-NEARNREG="-R-13/8/33/46"
 RJFLAG="${RFLAG} -JM13c"
 BFLAG="-Bf1a3/f1a3WeSn"
 
@@ -17,6 +16,9 @@ rec=0
 zmin=0
 zmax=0
 dz=0
+anglectl=0.5
+sysize=0.33c
+title=""
 out=""
 while test "$*"
 do
@@ -32,6 +34,9 @@ do
     zmin) zmin=$2; shift;;
     zmax) zmax=$2; shift;;
     dz) dz=$2; shift;;
+    anglectl) anglectl=$2; shift;;
+    sysize) sysize=$2; shift;;
+    title) title=$2; shift;;
     out) out=$2; shift;;
   esac
   shift
@@ -86,9 +91,9 @@ except KeyError:
 for i in range(len(lons)):
   for j in range(len(lats)):
     if ${has_height_dim}:
-      print "%9.4f %9.4f %.5e" % (lons[i], lats[j], var[irec,0,j,i])
+      print "%10.5f %10.5f %.5e" % (lons[i], lats[j], var[irec,0,j,i])
     else:
-      print "%9.4f %9.4f %.5e" % (lons[i], lats[j], var[irec,j,i])
+      print "%10.5f %10.5f %.5e" % (lons[i], lats[j], var[irec,j,i])
 End_Of_Python
 }
 
@@ -105,7 +110,7 @@ if [ ${no_nn} -eq 0 ]; then
   awk '$1>180 {print $1-360,$2,$3} $1<=180 {print $1,$2,$3}' $XYZFILE > ${XYZFILE}.tmp; mv ${XYZFILE}.tmp $XYZFILE
 fi
 
-echo -n $XYZFILE; minmax $XYZFILE
+minmax $XYZFILE
 
 cres="-Di"
 
@@ -136,22 +141,25 @@ fi
 psxy /dev/null $RJFLAG -K > $FNAMEOUT
 pscoast $RJFLAG -Gc -A0/0/1 ${cres} -O -K >> $FNAMEOUT
   if [ ${is_curvilinear} -ne 0 ]; then
-    anglectl=0.32
     pysymbol > tile.def
-    psxy ${XYZFILE} $RJFLAG -C${cptfile} -Sktile/0.33c -O -K >> $FNAMEOUT
+    psxy ${XYZFILE} $RJFLAG -C${cptfile} -Sktile/$sysize -N -O -K >> $FNAMEOUT
   else
-    anglectl=0.13
     pysymbolsq > tile.def
-    psxy ${XYZFILE} $RJFLAG -C${cptfile} -Sktile/0.22c -O -K >> $FNAMEOUT
+    psxy ${XYZFILE} $RJFLAG -C${cptfile} -Sktile/$sysize -N -O -K >> $FNAMEOUT
   fi
   if [ ${national_bound} -eq 1 ]; then
     pscoast $RJFLAG -A0/0/1 ${cres} -N1/5,white -O -K >> $FNAMEOUT
   fi
 pscoast $RJFLAG -Q -O -K >> $FNAMEOUT
 pscoast $RJFLAG $BFLAG -A0/0/1 ${cres} -W3 -O -K >> $FNAMEOUT
+if [ -n "${title}" ]; then
+  pstext $RJFLAG -O -K >> $FNAMEOUT << EOF
+    -4.5 43.5 20 0 0 CM $title
+EOF
+fi
 psxy /dev/null $RJFLAG -O >> $FNAMEOUT
 
-psscale -D8c/8c/14c/1ch -Cpepe.cpt > ${FNAMEOUT/.eps/.scale.eps}
+psscale -D8c/10c/18c/1c -Cpepe.cpt > ${FNAMEOUT/.eps/.scale.eps}
 fixbb ${FNAMEOUT/.eps/.scale.eps} tmp.eps
 mv tmp.eps ${FNAMEOUT/.eps/.scale.eps}
 
