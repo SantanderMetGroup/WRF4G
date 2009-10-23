@@ -7,7 +7,7 @@ source env.${HOSTNAME//.*/}
 
 do_tetis_post=0    # Only 1 in tetis!
 do_climatol_wrf=0  # Only 1 in tetis!
-do_climatol_sp02=0 # Only 1 in oceano
+do_climatol_sp02=1 # Only 1 in oceano
 do_climatol_eobs=0 # Only 1 in oceano
 do_climatol_erai=0 
 do_plots=0
@@ -56,11 +56,11 @@ if test ${do_climatol_sp02} -ne 0; then
   #    cdo addc,-273.15 tmp.nc Spain02__${pername}_sclim__${var}.nc
   #  cdo timmean Spain02__${pername}_sclim__${var}.nc Spain02__${pername}_clim__${var}.nc
   #done
-  bname="${BIGDIR}/Spain02__${pername}"
+  bname="${BIGDIR}/Spain02/Spain02__${pername}"
   for var in pr; do
     cdo -r setrtomiss,1e30,1e40 -seldate,${yeari}-01-01,${yearf}-12-31 ${SP02DIR}/Spain02D_${var}.nc ${bname}_DM__${var}.nc
     cdo yseasmean ${bname}_DM__${var}.nc    ${bname}_sclim__${var}.nc
-    cdo timsum    ${bname}_sclim__${var}.nc ${bname}_clim__${var}.nc
+    cdo timmean   ${bname}_DM__${var}.nc ${bname}_clim__${var}.nc
   done
 fi
 #
