@@ -5,19 +5,19 @@ outputformat="jpg"
 outputdevice="jpeg"
 
 translate_dics = {
- "/home/chus/tareas/escena/02_ERAI/figs/sclim_tasmax.fig": {
-   "title": "Maximum temperature climatologies (1990-2003)",
- },
- "/home/chus/tareas/escena/02_ERAI/figs/sclim_tasmin.fig": {
-   "tasmax": "tasmin",
-   "title": "Minimum temperature climatologies (1990-2003)",
- },
+# "/home/chus/tareas/escena/02_ERAI/figs/sclim_tasmax.fig": {
+#   "title": "Maximum temperature climatologies (1990-2003)",
+# },
+# "/home/chus/tareas/escena/02_ERAI/figs/sclim_tasmin.fig": {
+#   "tasmax": "tasmin",
+#   "title": "Minimum temperature climatologies (1990-2003)",
+# },
  "/home/chus/tareas/escena/02_ERAI/figs/sclim_pr.fig": {
    "tasmax": "pr",
    "title": "Precipitation climatologies (1990-2003)",
    "degC": "mm/day",
    "EOBS025": "Spain02",
-   "EOBS": "Spain02",
+   "EOBS\\": "Spain02\\",
  },
 }
 

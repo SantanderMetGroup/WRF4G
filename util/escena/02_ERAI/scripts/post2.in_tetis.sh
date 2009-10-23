@@ -1,9 +1,9 @@
-export PATH=/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/bin/:$PATH
-export PATH=/software/ScientificLinux/4.6/cdo/1.3.0/bin:$PATH
-export PATH=/software/ScientificLinux/4.6/grib_api/1.7.0/bin:$PATH
-
-expname="WRF_ERAI"
-parname=""
+#! /bin/bash
+thisdir=$(pwd)
+scriptdir=$( (cd `dirname $0` && echo $PWD) )
+basedir=$(dirname $scriptdir)
+source ${scriptdir}/dirs
+source env.${HOSTNAME//.*/}
 
 function get_nc_timerecords(){
   ncdump -h $1 | grep UNLIMITED | tr -d -c '0-9'
@@ -16,7 +16,7 @@ function cdo_shifted(){
 
 function procesa(){
   yr=$1
-  ncrcat -O data/post/${expname}_${yr}*${parname}.nc tmp.nc
+  ncrcat -O data/post/${expname}_${yr}*.nc tmp.nc
   cdo settaxis,${yr}-01-01,00:00,3hours tmp.nc tmp2.nc
   ntimes=$(get_nc_timerecords tmp2.nc)
   ncap2 -O -s 'RAIN=RAINNC+RAINC;RAINSTEP=RAIN(1:,:,:)-RAIN(:'$(($ntimes -2))',:,:);' tmp2.nc tmp.nc 

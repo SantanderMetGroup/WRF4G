@@ -41,6 +41,7 @@ for var in pr; do
       rec $irec \
       label $seas \
       cpt cpts/orig.cpt \
+      $symbols \
       $(var_range $var) \
       national_bound
     let irec++
