@@ -1,26 +1,33 @@
 #! /bin/bash
-source /software/ScientificLinux/4.6/etc/bashrc
+thisdir=$(pwd)
+scriptdir=$(dirname $0)
+basedir=$(dirname $(dirname $0))
+source ${scriptdir}/dirs
+source env.${HOSTNAME//.*/}
 source /oceano/gmeteo/WORK/chus/wrf4g/wn/lib/bash/wrf_util.sh
 
 basedir=/vols/tetis/escena/METEO4G
-bname=WRF_ERAI
 
 dom=d01
 
 rea=scn5
 datei=200501
-datef=200512
+datef=200601
 
 rea=scn6__2005122900_2009122400
-datei=200601
-datef=200712
+datei=200801
+datef=200812
 
 rea=scn6__1996010100_1999122700
-datei=199601
-datef=199712
+datei=199801
+datef=199901
+
+rea=scn3
+datei=199501
+datef=199601
 
 test -f geo_em.${dom}.nc || cp /oceano/gmeteo/WORK/MDM.UC/WRF/domains/ESCENA-UCLM2/geo_em.${dom}.nc .
-mkdir -p data/post log
+mkdir -p $POSTDIR
 
 read exp param <<< $(echo $rea | sed -e 's/__/ /g')
 
@@ -28,10 +35,12 @@ for yearmon in $(get_yearmons ${datei:0:4} ${datei:4:2} ${datef:0:4} ${datef:4:2
   files="${basedir}/WRF/experiments/${exp}/${rea}/output/????/wrfout_${dom}_${yearmon}"
   echo "Processing $files"
   test "$(\ls -1 ${files}* | wc | awk '{print $1}')" -ge 28 || continue
-  python wrfnc_extract_and_join.py \
+  python ${WRFNCXJPY} \
     ${files}'*.nc' \
-    data/post/${bname}_${yearmon}_${rea}.nc \
+    ${POSTDIR}/${expname}_${yearmon}_${rea}.nc \
     RAINC,RAINNC,T2,U10ER,V10ER \
     geo_em.${dom}.nc \
-    >& log/${bname}_${yearmon}_${rea}.log
+    >& ${expname}_${yearmon}_${rea}.log
 done
+
+rm geo_em.${dom}.nc

@@ -6,7 +6,7 @@ source ${scriptdir}/dirs
 source env.${HOSTNAME//.*/}
 
 do_tetis_post=0    # Only 1 in tetis!
-do_climatol_wrf=0  # Only 1 in tetis!
+do_climatol_wrf=1  # Only 1 in tetis!
 do_climatol_sp02=0 # Only 1 in oceano
 do_climatol_eobs=0 # Only 1 in oceano
 do_climatol_erai=0 
@@ -30,18 +30,21 @@ fi
 #  WRF climatologies
 #
 if test ${do_climatol_wrf} -ne 0; then
+  mkdir -p ${BIGDIR}/${expname}
   bname="${BIGDIR}/${expname}/${expname}__${pername}"
   for var in tasmax tasmin; do
     # TODO: we need to avoid some day this VERY UNSAFE method to concatenate the files!
     ncrcat -O ${POST2DIR}/${expname}__????_DM__${var}.nc tmp.nc
-    cdo addc,-273.15 -settaxis,${yeari}-01-01,00:00,1day tmp.nc ${bname}_DM__${var}.nc
+    cdo -settaxis,${yeari}-01-01,00:00,1day tmp.nc ${bname}_DM__${var}.nc
   done
+  # Build tas
+  cdo chname,tasmax,tas -mulc,0.5 -add ${bname}_DM__tasmax.nc ${bname}_DM__tasmin.nc ${bname}_DM__tas.nc
   for var in pr; do
     # TODO: we need to avoid some day this VERY UNSAFE method to concatenate the files!
     ncrcat -O ${POST2DIR}/${expname}__????_DM__${var}.nc tmp.nc
     cdo settaxis,${yeari}-01-01,00:00,1day tmp.nc ${bname}_DM__${var}.nc
   done
-  for var in tasmax tasmin pr; do
+  for var in tasmax tasmin tas pr; do
     cdo ymonmean  ${bname}_DM__${var}.nc ${bname}_mclim__${var}.nc
     cdo yseasmean ${bname}_DM__${var}.nc ${bname}_sclim__${var}.nc
     cdo timmean   ${bname}_DM__${var}.nc ${bname}_clim__${var}.nc

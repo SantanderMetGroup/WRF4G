@@ -1,5 +1,6 @@
 
 RFLAG="-R-11/5/35.5/44"
+RFLAG4GS="-R-12/6/35/45"
 RJFLAG="${RFLAG} -JM13c"
 BFLAG="-Bf1a3/f1a3WeSn"
 
@@ -62,12 +63,14 @@ nc = NetCDFFile(ifile, "r")
 var = nc.variables[varname]
 lats = nc.variables["lat"]
 lons = nc.variables["lon"]
+try:    sf = var.scale_factor
+except: sf = 1.
 for i in range(len(lats)):
   for j in range(len(lats[0])):
     if ${has_height_dim}:
-      print "%9.4f %9.4f %.5e" % (lons[i,j], lats[i,j], var[irec,0,i,j])
+      print "%9.4f %9.4f %.5e" % (lons[i,j], lats[i,j], var[irec,0,i,j]*sf)
     else:
-      print "%9.4f %9.4f %.5e" % (lons[i,j], lats[i,j], var[irec,i,j])
+      print "%9.4f %9.4f %.5e" % (lons[i,j], lats[i,j], var[irec,i,j]*sf)
 End_Of_Python
 }
 
@@ -88,12 +91,14 @@ try:
 except KeyError:
   lats = nc.variables["latitude"]
   lons = nc.variables["longitude"]
+try:    sf = var.scale_factor
+except: sf = 1.
 for i in range(len(lons)):
   for j in range(len(lats)):
     if ${has_height_dim}:
-      print "%10.5f %10.5f %.5e" % (lons[i], lats[j], var[irec,0,j,i])
+      print "%10.5f %10.5f %.5e" % (lons[i], lats[j], var[irec,0,j,i]*sf)
     else:
-      print "%10.5f %10.5f %.5e" % (lons[i], lats[j], var[irec,j,i])
+      print "%10.5f %10.5f %.5e" % (lons[i], lats[j], var[irec,j,i]*sf)
 End_Of_Python
 }
 
@@ -107,7 +112,8 @@ if [ ${no_nn} -eq 0 ]; then
   else
     py_getxyz $NCFILE:${var} ${rec} > $XYZFILE
   fi
-  awk '$1>180 {print $1-360,$2,$3} $1<=180 {print $1,$2,$3}' $XYZFILE > ${XYZFILE}.tmp; mv ${XYZFILE}.tmp $XYZFILE
+  awk '$1>180 {print $1-360,$2,$3} $1<=180 {print $1,$2,$3}' $XYZFILE > ${XYZFILE}.tmp
+  gmtselect ${RFLAG4GS} ${XYZFILE}.tmp > $XYZFILE
 fi
 
 minmax $XYZFILE

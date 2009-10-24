@@ -3,6 +3,9 @@ expname="WRF_ERAI"
 pername="1990_2008"
 
 BIGDIR="/oceano/gmeteo/WORK/ESCENA"
+POSTDIR="/vols/tetis/escena/ESCENA/scn2/data/post"
 POST2DIR="/vols/tetis/escena/ESCENA/scn2/data/post2"
-EOBSDIR="/oceano/gmeteo/METEOLAB_PUBLIC/NetCDFData/ENSEMBLES/Grid0.25_regular/data"
+EOBSDIR="/oceano/gmeteo/DATA/ECA/EOBS"
 SP02DIR="/oceano/gmeteo/DATA/UC/Spain02/AEMET/Spain02_nc"
+
+WRFNCXJPY="/vols/tetis/escena/ESCENA/scn2/wrfnc_extract_and_join.py"
