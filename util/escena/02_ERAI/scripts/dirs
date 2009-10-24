@@ -1,6 +1,6 @@
 
 expname="WRF_ERAI"
-pername="1990_2003"
+pername="1990_2008"
 
 BIGDIR="/oceano/gmeteo/WORK/ESCENA"
 POST2DIR="/vols/tetis/escena/ESCENA/scn2/data/post2"

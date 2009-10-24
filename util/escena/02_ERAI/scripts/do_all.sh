@@ -30,7 +30,7 @@ fi
 #  WRF climatologies
 #
 if test ${do_climatol_wrf} -ne 0; then
-  bname="${BIGDIR}/${expname}__${pername}"
+  bname="${BIGDIR}/${expname}/${expname}__${pername}"
   for var in tasmax tasmin; do
     # TODO: we need to avoid some day this VERY UNSAFE method to concatenate the files!
     ncrcat -O ${POST2DIR}/${expname}__????_DM__${var}.nc tmp.nc
@@ -45,6 +45,8 @@ if test ${do_climatol_wrf} -ne 0; then
     cdo ymonmean  ${bname}_DM__${var}.nc ${bname}_mclim__${var}.nc
     cdo yseasmean ${bname}_DM__${var}.nc ${bname}_sclim__${var}.nc
     cdo timmean   ${bname}_DM__${var}.nc ${bname}_clim__${var}.nc
+    cdo monmean   ${bname}_DM__${var}.nc ${bname}_MM__${var}.nc
+    cdo ymonstd   ${bname}_MM__${var}.nc ${bname}_mstd__${var}.nc
   done
   rm tmp.nc
 fi
@@ -61,8 +63,11 @@ if test ${do_climatol_sp02} -ne 0; then
   bname="${BIGDIR}/Spain02/Spain02__${pername}"
   for var in pr; do
     cdo -r setrtomiss,1e30,1e40 -seldate,${yeari}-01-01,${yearf}-12-31 ${SP02DIR}/Spain02D_${var}.nc ${bname}_DM__${var}.nc
-    cdo yseasmean ${bname}_DM__${var}.nc    ${bname}_sclim__${var}.nc
+    cdo ymonmean  ${bname}_DM__${var}.nc ${bname}_mclim__${var}.nc
+    cdo yseasmean ${bname}_DM__${var}.nc ${bname}_sclim__${var}.nc
     cdo timmean   ${bname}_DM__${var}.nc ${bname}_clim__${var}.nc
+    cdo monmean   ${bname}_DM__${var}.nc ${bname}_MM__${var}.nc
+    cdo ymonstd   ${bname}_MM__${var}.nc ${bname}_mstd__${var}.nc
   done
 fi
 #

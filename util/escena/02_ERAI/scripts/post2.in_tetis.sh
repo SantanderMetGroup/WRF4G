@@ -25,7 +25,7 @@ function procesa(){
   ncks -O -x -v RAIN,RAINC,RAINNC tmp.nc data/post2/${bname}.nc
   cdo -r settime,00:00 -chname,T2,tasmax -daymax -selvar,T2 data/post2/${bname}.nc data/post2/${bnamed}__tasmax.nc
   cdo -r settime,00:00 -chname,T2,tasmin -daymin -selvar,T2 data/post2/${bname}.nc data/post2/${bnamed}__tasmin.nc
-  cdo -r settime,00:00 -chname,RAINSTEP,pr -daysum -setrtomiss,1e30,1e40 \
+  cdo -r settime,00:00 -chname,RAINSTEP,pr -daysum -setrtomiss,1e30,1e40 -setrtoc,-1000,0,0 \
     -settaxis,$(cdo_shifted data/post2/${bname}.nc) \
     -selvar,RAINSTEP data/post2/${bname}.nc data/post2/${bnamed}__pr.nc
   rm -f tmp.nc tmp2.nc
