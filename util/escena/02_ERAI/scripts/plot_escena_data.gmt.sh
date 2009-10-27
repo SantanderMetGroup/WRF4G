@@ -55,6 +55,7 @@ function py_getxyz_curv(){
   irec=$2
 python << End_Of_Python
 from Scientific.IO.NetCDF import *
+from Numeric import array
 import os, sys, time
 dataset = "${ncfilevar}"   # file.nc:var
 irec = ${irec}
@@ -68,9 +69,9 @@ except: sf = 1.
 for i in range(len(lats)):
   for j in range(len(lats[0])):
     if ${has_height_dim}:
-      print "%9.4f %9.4f %.5e" % (lons[i,j], lats[i,j], var[irec,0,i,j]*sf)
+      print "%9.4f %9.4f %.5e" % (lons[i,j], lats[i,j], array(var[irec,0,i,j])*sf)
     else:
-      print "%9.4f %9.4f %.5e" % (lons[i,j], lats[i,j], var[irec,i,j]*sf)
+      print "%9.4f %9.4f %.5e" % (lons[i,j], lats[i,j], array(var[irec,i,j])*sf)
 End_Of_Python
 }
 
@@ -79,6 +80,7 @@ function py_getxyz(){
   irec=$2
 python << End_Of_Python
 from Scientific.IO.NetCDF import *
+from Numeric import array
 import os, sys, time
 dataset = "${ncfilevar}"   # file.nc:var
 irec = ${irec}
@@ -96,15 +98,17 @@ except: sf = 1.
 for i in range(len(lons)):
   for j in range(len(lats)):
     if ${has_height_dim}:
-      print "%10.5f %10.5f %.5e" % (lons[i], lats[j], var[irec,0,j,i]*sf)
+      print "%10.5f %10.5f %.5e" % (lons[i], lats[j], sf * array(var[irec,0,j,i]))
     else:
-      print "%10.5f %10.5f %.5e" % (lons[i], lats[j], var[irec,j,i]*sf)
+      print "%10.5f %10.5f %.5e" % (lons[i], lats[j], sf * array(var[irec,j,i]))
 End_Of_Python
 }
 
 gmtset PAPER_MEDIA a4+
 gmtset PLOT_DEGREE_FORMAT dddF
 gmtset PAGE_ORIENTATION portrait
+
+echo "Plotting file $NCFILE ..."
 
 if [ ${no_nn} -eq 0 ]; then
   if [ ${is_curvilinear} -ne 0 ]; then
@@ -113,7 +117,8 @@ if [ ${no_nn} -eq 0 ]; then
     py_getxyz $NCFILE:${var} ${rec} > $XYZFILE
   fi
   awk '$1>180 {print $1-360,$2,$3} $1<=180 {print $1,$2,$3}' $XYZFILE > ${XYZFILE}.tmp
-  gmtselect ${RFLAG4GS} ${XYZFILE}.tmp > $XYZFILE
+  gmtselect ${RFLAG4GS} ${XYZFILE}.tmp | awk '$3 > -1e30' > $XYZFILE
+  rm ${XYZFILE}.tmp
 fi
 
 minmax $XYZFILE
@@ -165,7 +170,7 @@ EOF
 fi
 psxy /dev/null $RJFLAG -O >> $FNAMEOUT
 
-psscale -D8c/10c/18c/1c -Cpepe.cpt > ${FNAMEOUT/.eps/.scale.eps}
+psscale -D8c/10c/18c/1c -C${cptfile} -E > ${FNAMEOUT/.eps/.scale.eps}
 fixbb ${FNAMEOUT/.eps/.scale.eps} tmp.eps
 mv tmp.eps ${FNAMEOUT/.eps/.scale.eps}
 
@@ -177,4 +182,4 @@ mv tmp.eps ${FNAMEOUT/.eps/.scale.eps}
 #rm -f $FNAMEOUT
 
 rm -f ${XYZFILE} tile.def .gmt*
-rm pepe.cpt
+rm -f pepe.cpt

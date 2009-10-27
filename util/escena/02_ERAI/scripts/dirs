@@ -3,6 +3,7 @@ expname="WRF_ERAI"
 pername="1990_2008"
 
 BIGDIR="/oceano/gmeteo/WORK/ESCENA"
+BIGDIR="/media/PLEXLIN/BIG_STORE/WORK/ESCENA"
 POSTDIR="/vols/tetis/escena/ESCENA/scn2/data/post"
 POST2DIR="/vols/tetis/escena/ESCENA/scn2/data/post2"
 EOBSDIR="/oceano/gmeteo/DATA/ECA/EOBS"

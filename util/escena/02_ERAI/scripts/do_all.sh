@@ -6,11 +6,11 @@ source ${scriptdir}/dirs
 source env.${HOSTNAME//.*/}
 
 do_tetis_post=0    # Only 1 in tetis!
-do_climatol_wrf=1  # Only 1 in tetis!
+do_climatol_wrf=0  # Only 1 in tetis!
 do_climatol_sp02=0 # Only 1 in oceano
 do_climatol_eobs=0 # Only 1 in oceano
 do_climatol_erai=0 
-do_plots=0
+do_plots=1
 
 read yeari yearf <<< ${pername//_/ }
 #
@@ -85,3 +85,19 @@ fi
 if test ${do_climatol_erai} -ne 0; then
   bash do_clim_erai.sh
 fi
+#
+# Plots
+#
+if test ${do_plots} -ne 0; then
+#  # Check the plotting bits of these 2:
+#  bash do_plots.sh
+#  bash do_bias_plots.sh
+#  python monta_figs.py monta_figs.sclim
+  for var in tasmax tasmin pr; do
+    for region in $(seq 1 11); do
+      bash do_mclim.sh $var $region
+    done
+  done
+  python monta_figs.py monta_figs.mclim
+fi
+
