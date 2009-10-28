@@ -283,7 +283,7 @@ else
         mv rsl_real ${logdir}/
       fi
       rm -f met_em*
-      #rm -f ../../WPS/met_em*
+      rm -f ../../WPS/met_em*
     timelog_end
     #
     #  Upload the wpsout files (create the output structure if necessary):
