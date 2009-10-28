@@ -267,6 +267,20 @@ function get_num_metgrid_levels(){
     | sed -e 's/^\t//' | tr '=;' '  ' | awk '{print $2}'
 }
 
+function get_num_metgrid_soil_levels(){
+  ncdump -h $(\ls -1 met_em*.nc | head -1) \
+    | grep 'num_st_layers =' \
+    | sed -e 's/^\t//' | tr '=;' '  ' | awk '{print $2}'
+}
+
+function get_last_frame_date(){
+  wrfncfile=$1
+  ncdump -v Times ${wrfncfile} \
+    | tail -2 \
+    | head -1 \
+    | tr -cd '[0-9]'
+}
+
 function fortnml_varcopy(){
   nmlfile1=$1
   nmlfile2=$2

@@ -11,8 +11,9 @@ eformateddate=$3     # end date to process
 # and creating a directory grbData with grib data for those dates and ready to
 # be linked by 'link_grib.csh grbData/*.grb'
 #
-
-source ../lib/bash/wrf_util.sh 
+source wrf_util.sh 
+read iyy imm trash <<< `echo $sformateddate | tr '_T:-' '    '`
+read fyy fmm trash <<< `echo $eformateddate | tr '_T:-' '    '`
 echo "Linking global data from: ${global_path}"
 mkdir -p grbData
 for yearmon in $(get_yearmons $iyy $imm $fyy $fmm)

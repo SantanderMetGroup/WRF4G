@@ -87,6 +87,10 @@ if type in type_list.keys() :
     output=copy_file(file,dest +".part", verbose=verbose)
     if verbose: stderr.write(output + "\n")
     VCPURL(dest + ".part").rename(basename(dest))
+    if type == "out":
+      # Update the current date
+      system("source ../../lib/bash/wrf_util.sh; get_last_frame_date %s > current_date.txt" % file)
+      copy_file("current_date.txt", "%s/current_date.txt" % dest_folder, verbose=verbose)
     input=VCPURL(file)
     # Delete the file from local disk 
     if verbose: stderr.write("Deleting file %s\n" %file)

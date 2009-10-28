@@ -9,7 +9,7 @@ test -n "${LOCALDIR}" || LOCALDIR=${ROOTDIR}
 #
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
-export PATH="${ROOTDIR}/bin:${ROOTDIR}/WRFGEL:$PATH"
+export PATH="${ROOTDIR}/bin:${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
 export LD_LIBRARY_PATH="${ROOTDIR}/lib/shared_libs:${LD_LIBRARY_PATH}"
 #
 #  Move all executables out of LOCALDIR
@@ -63,7 +63,11 @@ function setup_namelist_input(){
   fortnml_varcopy namelist.wps   namelist.input e_sn
   numml=$(get_num_metgrid_levels)
   if test -n "${numml}"; then
-    fortnml_set     namelist.input num_metgrid_levels $(get_num_metgrid_levels)
+    fortnml_set     namelist.input num_metgrid_levels ${numml}
+  fi
+  nummsl=$(get_num_metgrid_soil_levels)
+  if test -n "${nummsl}"; then
+    fortnml_set     namelist.input num_metgrid_soil_levels ${nummsl}
   fi
   fortnml_import_record namelist.wps geogrid > to.source
   source to.source && rm -f to.source

@@ -93,11 +93,12 @@ tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz && rm -f WRF4Gbin-${WRF_VERSION}.tar.gz |
 tar xzf ${ROOTDIR}/sandbox.tar.gz WRFV3/run/namelist.input # La namelist buena esta aqui!
 mv wrfrst* WRFV3/run >& /dev/null || :
 rm -f ${ROOTDIR}/sandbox.tar.gz 
+test -n "${LOCALDIR}" && cp ${ROOTDIR}/wrf4g.conf ${LOCALDIR}/
 #
 #  If there are additional files, expand'em
 #
-if test -f wrf4g_files.tar.gz; then
-  tar xzvf wrf4g_files.tar.gz && rm wrf4g_files.tar.gz
+if test -f ${ROOTDIR}/wrf4g_files.tar.gz; then
+  tar xzvf ${ROOTDIR}/wrf4g_files.tar.gz && rm ${ROOTDIR}/wrf4g_files.tar.gz
 fi
 #
 #   Now run the WRF4G...
