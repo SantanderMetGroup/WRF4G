@@ -1,0 +1,27 @@
+#! /bin/bash
+#
+# Sample preprocessor in shell.
+#
+# This can be any kind of executable accepting three arguments:
+#
+global_path=$1       # Path to the data
+sformateddate=$2     # initial date to process as YYYY-MM-DD_HH:MM:SS
+eformateddate=$3     # end date to process
+#
+# and creating a directory grbData with grib data for those dates and ready to
+# be linked by 'link_grib.csh grbData/*.grb'
+#
+
+source ../lib/bash/wrf_util.sh 
+echo "Linking global data from: ${global_path}"
+mkdir -p grbData
+for yearmon in $(get_yearmons $iyy $imm $fyy $fmm)
+do
+  year=${yearmon:0:4}
+  vcp -v ${global_path}/grb2d/grb2d${yearmon} ln://`pwd`/grbData
+  vcp -v ${global_path}/pgb/pgb.ft00.${yearmon} ln://`pwd`/grbData
+done
+for f in grbData/*
+do
+  mv $f $f.grb
+done
