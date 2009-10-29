@@ -53,7 +53,12 @@ else
   restart_date=$(get_date_restart -v || exit ${ERROR_GETDATERST_FAILED})
   echo "Last restart date for this realization is: ${restart_date}"
 fi
-if test "${restart_date}" = "-1"; then
+current_date=$(get_date_current)
+if test "$(date2int ${current_date})" -ge "$(date2int ${chunk_end_date})"; then
+  echo "This chunk already run! Ciao..."
+  test -n "${LOCALDIR}" && rmdir ${LOCALDIR}
+  exit ${EXIT_CHUNK_ALREADY_FINISHED}
+elif test "${restart_date}" = "-1"; then
   if test "${chunk_is_restart}" = ".T."; then
     echo "Something went wrong! (the restart file is not available and the chunk is a restart...)"
     test -n "${LOCALDIR}" && rmdir ${LOCALDIR}
@@ -61,10 +66,6 @@ if test "${restart_date}" = "-1"; then
   fi
   echo "chunk_restart_date=\"${chunk_start_date}\"" >> wrf.chunk
   test -n "${LOCALDIR}" && cp wrf.chunk ${LOCALDIR}/
-elif test "$(date2int ${restart_date})" -ge "$(date2int ${chunk_end_date})"; then
-  echo "This chunk already run! Ciao..."
-  test -n "${LOCALDIR}" && rmdir ${LOCALDIR}
-  exit ${EXIT_CHUNK_ALREADY_FINISHED}
 elif test "$(date2int ${restart_date})" -lt "$(date2int ${chunk_start_date})"; then
   echo "The date of the simulation did not reach this chunk yet! Ciao..."
   test -n "${LOCALDIR}" && rmdir ${LOCALDIR}
@@ -93,7 +94,7 @@ tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz && rm -f WRF4Gbin-${WRF_VERSION}.tar.gz |
 tar xzf ${ROOTDIR}/sandbox.tar.gz WRFV3/run/namelist.input # La namelist buena esta aqui!
 mv wrfrst* WRFV3/run >& /dev/null || :
 rm -f ${ROOTDIR}/sandbox.tar.gz 
-test -n "${LOCALDIR}" && cp ${ROOTDIR}/wrf4g.conf ${LOCALDIR}/
+echo ${ROOTDIR} > rootdir
 #
 #  If there are additional files, expand'em
 #

@@ -3,13 +3,12 @@
 #
 #  Load wrf4g.conf, wrf.chunk and wrf.input
 #
-source ../../wrf4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
-sed -e 's/\ *=\ */=/' ../../wrf.chunk > source.it || exit ${ERROR_MISSING_WRFCHUNK}
-source source.it && rm source.it
-# esto no va a funcionar en el grid... (no hay WRF4G_RUN_SHARED)
-ROOTDIR="${WRF4G_RUN_SHARED}/${realization_name//__.*/}/${realization_name}/${chunk_name}"
+ROOTDIR=$(cat ../../rootdir)
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
+source ${ROOTDIR}/wrf4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
+sed -e 's/\ *=\ */=/' ../../wrf.chunk > source.it      || exit ${ERROR_MISSING_WRFCHUNK}
+source source.it && rm source.it
 sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.input > source.it || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
 
