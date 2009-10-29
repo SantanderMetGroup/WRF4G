@@ -37,61 +37,6 @@ def rotate_lcc_wind(u,v,xlat,xlon,cen_lon,truelat1,truelat2):
   alpha = where(xlat < 0., -diff*cone*d2r, diff*cone*d2r)
   return v*sin(alpha)[NewAxis,:,:] + u*cos(alpha)[NewAxis,:,:],  v*cos(alpha)[NewAxis,:,:] - u*sin(alpha)[NewAxis,:,:]
 
-def pywrf_calculate_mslp(p,pb,ph,phb,t,qvapor):
-    '''
-    calculate sea level pressure starting from 'raw' wrf output fields
-    usage:
-    >>> calculate_mslp(p,pb,ph,phb,t,qvapor)
-    where the arguments names correspond to the variable names in the 
-    wrfout files e.g. p(lvl,lat,lon) or p(time,lvl,lat,lon)
-    '''
-    import  from_wrf_to_grads as fw2g
-    cs = fw2g.from_wrf_to_grads.compute_seaprs
-
-    if len(p.shape) == 3:
-       # recover the full pressure field by adding perturbation and base
-       p = p + pb
-       p_t = p.transpose()
-       # same geopotential height
-       ph = (ph + phb) / 9.81
-       ph_t = ph.transpose()
-       qvapor_t = qvapor.transpose()
-       # do not add the wrf specified 300 factor as the wrapped fortran code
-       # does that for us
-       t_t = t.transpose()
-       nz = ph_t.shape[2]
-       # populate the geopotential_height at mid_levels array with
-       # averages between layers below and above
-       z = (ph_t[:,:,:nz-1] + ph_t[:,:,1:nz]) / 2.0
-       # finally "in one fell sweep"
-       # the zero is for debug purposes
-       return cs(z,t_t,p_t,qvapor_t,0).transpose()
-    elif len(p.shape) == 4:
-       mslp_shape = (p.shape[0], p.shape[2], p.shape[3])
-       mslp = n.zeros(mslp_shape)
-       for time_idx in range(p.shape[0]):
-           # recover the full pressure field by adding perturbation and base
-           dummy_p = p[time_idx] + pb[time_idx]
-           dummy_p_t = dummy_p.transpose()
-           # same geopotential height
-           dummy_ph = (ph[time_idx] + phb[time_idx]) / 9.81
-           dummy_ph_t = dummy_ph.transpose()
-           dummy_qvapor_t = qvapor[time_idx].transpose()
-           # do not add the wrf specified 300 factor as the wrapped fortran code
-           # does that for us
-           dummy_t_t = t[time_idx].transpose()
-           nz = dummy_ph_t.shape[2]
-           # populate the geopotential_height at mid_levels array with
-           # averages between layers below and above
-           z = (dummy_ph_t[:,:,:nz-1] + dummy_ph_t[:,:,1:nz]) / 2.0
-           # finally "in one fell sweep"
-           # the zero is for debug purposes
-           mslp[time_idx] = cs(z,dummy_t_t,dummy_p_t,dummy_qvapor_t,0).transpose()
-       return mslp
-    else:
-       print 'Wrong shape of the array'
-       return
-
 def compute_mslp(p, pb, ph, phb, t , qvapor):
   """
   Pure python code by J. Fernandez to extrapolate surface pressure to sea level.
@@ -143,37 +88,6 @@ def compute_mslp(p, pb, ph, phb, t , qvapor):
 
   t_surf = t_at_pconst*(p[...,0,:]/p_at_pconst)**(gamma*R/g)
   t_sea_level = t_at_pconst+gamma*z_at_pconst
-
-#  Very slow version of the code:
-#
-#  nx = t.shape[0]
-#  ny = t.shape[1]
-#  nt = t.shape[3]
-#  t_surf = zeros((nx,ny,nt))
-#  t_sea_level = zeros((nx,ny,nt))
-#  for irec in range(nt):
-#    print "T=",irec
-#    for j in range(ny):
-#      for i in range(nx):
-#        klo = max ( level[i,j,irec] - 1 , 1      )
-#        khi = min ( klo + 1        , nz - 1 )
-#        if klo == khi:
-#          print 'klo = ',klo,', khi = ',khi, ': and they should not be equal.'
-#          sys.exit()
-#        plo = p[i,j,klo,irec]
-#        phi = p[i,j,khi,irec]
-#        tlo = t[i,j,klo,irec]*(1. + 0.608 * qvapor[i,j,klo,irec] )
-#        thi = t[i,j,khi,irec]*(1. + 0.608 * qvapor[i,j,khi,irec] )
-#        zlo = z[i,j,klo,irec]
-#        zhi = z[i,j,khi,irec]
-# 
-#        p_at_pconst = p[i,j,0,irec] - pconst
-#        t_at_pconst = thi-(thi-tlo)*log(p_at_pconst/phi)*log(plo/phi)
-#        z_at_pconst = zhi-(zhi-zlo)*log(p_at_pconst/phi)*log(plo/phi)
-# 
-#        t_surf[i,j,irec] = t_at_pconst*(p[i,j,0,irec]/p_at_pconst)**(gamma*R/g)
-#        t_sea_level[i,j,irec] = t_at_pconst+gamma*z_at_pconst
-
   # If we follow a traditional computation, there is a correction to the sea level
   # temperature if both the surface and sea level temnperatures are *too* hot.
   t_sea_level = where(t_sea_level>TC and t_surf <= TC, TC, TC - 0.005*(t_surf-TC)**2)
@@ -342,7 +256,6 @@ for f in files:
       t = inc.variables['T'][:]
       qvapor = inc.variables['QVAPOR'][:]
       mslp = compute_mslp(p, pb, ph, phb, t , qvapor)
-      # mslp = pywrf_calculate_mslp(p, pb, ph, phb, t , qvapor)
       if not itime:
         oncvar = onc.createVariable(varname, Numeric.Float32, ("time",)+incvar.dimensions[2:])
         oncvar.units = "Pa"
