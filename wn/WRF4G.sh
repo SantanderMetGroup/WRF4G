@@ -22,6 +22,10 @@ chmod +x ${ROOTDIR}/bin/*
 chmod +x ${ROOTDIR}/WRFGEL/*
 umask 002
 #
+#  Some default values
+#
+save_wps=1
+#
 #  Load wrf4g.conf, wrf.chunk and wrf.input
 #
 source ${ROOTDIR}/wrf4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
@@ -297,10 +301,12 @@ else
     #    wrflowinp_d0?
     #    wrffdda_d0?
     #
-    timelog_init "wps put"
-      create_output_structure
-      ${WRFGEL_SCRIPT} wps "${chunk_start_date}"
-    timelog_end
+    if test "${save_wps}" -eq 1; then
+      timelog_init "wps put"
+        create_output_structure
+        ${WRFGEL_SCRIPT} wps "${chunk_start_date}"
+      timelog_end
+    fi
   cd ${LOCALDIR} || exit
 fi
 

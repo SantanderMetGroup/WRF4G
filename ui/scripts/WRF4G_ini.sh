@@ -95,6 +95,7 @@ tar xzf ${ROOTDIR}/sandbox.tar.gz WRFV3/run/namelist.input # La namelist buena e
 mv wrfrst* WRFV3/run >& /dev/null || :
 rm -f ${ROOTDIR}/sandbox.tar.gz 
 echo ${ROOTDIR} > rootdir
+echo "${HOSTNAME}:${PWD}" > ${ROOTDIR}/localdir
 #
 #  If there are additional files, expand'em
 #

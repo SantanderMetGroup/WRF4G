@@ -9,7 +9,7 @@ from Scientific.IO.NetCDF import *
 from Numeric import *
 from glob import glob
 from datetime import datetime
-import sys, time
+import sys, time, csv
 
 def rotate_lcc_wind(u,v,xlat,xlon,cen_lon,truelat1,truelat2):
   pii = 3.14159265
@@ -26,6 +26,17 @@ def rotate_lcc_wind(u,v,xlat,xlon,cen_lon,truelat1,truelat2):
   diff = where(diff < -180., diff+360., diff)
   alpha = where(xlat < 0., -diff*cone*d2r, diff*cone*d2r)
   return v*sin(alpha)[NewAxis,:,:] + u*cos(alpha)[NewAxis,:,:],  v*cos(alpha)[NewAxis,:,:] - u*sin(alpha)[NewAxis,:,:]
+
+def compute_temperature(p, pb, t):
+  # Some required physical constants:
+  R=287.04
+  g=9.81
+  cp           = 7.*R/2.
+  rcp          = R/cp
+  p1000mb      = 100000.
+  # Transpose and get full variables out of perturbations and potential T
+  p = p + pb
+  return (t+300.)*(p/p1000mb)**rcp
 
 def compute_mslp(p, pb, ph, phb, t , qvapor):
   """
@@ -134,16 +145,111 @@ def discard_suspect_files(filelist, criteria='uncommon_size'):
     i_file+=1
   return rval
 
+def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate):
+  inc = NetCDFFile(wrfncfile,'r')
+  onc = NetCDFFile(opt.OFILE, "w")
+  onc.history = "Created by %s on %s" % (sys.argv[0],time.ctime(time.time()))
+  onc.sync()
+  onc.createDimension("x", inc.dimensions["west_east"])
+  oncx = onc.createVariable("x",Numeric.Float64, ("x",))
+  oncx.axis = "X"
+  oncx.long_name = "x coordinate of projection"
+  oncx.standard_name = "projection_x_coordinate"
+  oncx[:len(oncx)] = (arange(1,len(oncx)+1)-len(oncx)/2)*inc.DX
+  onc.createDimension("y", inc.dimensions["south_north"])
+  oncy = onc.createVariable("y",Numeric.Float64, ("y",))
+  oncy.axis = "Y"
+  oncy.long_name = "y coordinate of projection"
+  oncy.standard_name = "projection_y_coordinate"
+  oncy[:len(oncy)] = (arange(1,len(oncy)+1)-len(oncy)/2)*inc.DY
+  onc.createDimension("z", inc.dimensions["bottom_top"])
+  oncz = onc.createVariable("z",Numeric.Float64, ("z",))
+  oncz.axis = "Z"
+  oncz.long_name = "z coordinate of projection"
+  oncz.standard_name = "projection_z_coordinate"
+  onc.sync()
+  #
+  #
+  #
+  oncproj = onc.createVariable("Lambert_Conformal",Numeric.Int, ())
+  oncproj.grid_mapping_name = "lambert_conformal_conic"
+  oncproj.cone_type = "secant"
+  oncproj.northern_parallel = "%4.1fN" % inc.TRUELAT2
+  oncproj.southern_parallel = "%4.1fN" % inc.TRUELAT1
+  oncproj.longitude_of_central_meridian = inc.CEN_LON
+  oncproj.latitude_of_projection_origin = inc.CEN_LAT
+  #
+  #  Lat-lons (from geo_em file if provided)
+  #
+  if opt.geofile:
+    incgeo = NetCDFFile(opt.geofile,'r')
+    lats = incgeo.variables["XLAT_M"][0]
+    lons = incgeo.variables["XLONG_M"][0]
+    incgeo.close()
+  else:
+    lats = inc.variables["XLAT"][0]
+    lons = inc.variables["XLONG"][0]
+  onclat = onc.createVariable("lat",Numeric.Float32, ("y","x"))
+  onclat.long_name = "Latitudes"
+  onclat.standard_name = "Latitude"
+  onclat.units = "degrees_north"
+  onclat[:len(lats)] = lats
+  onclon = onc.createVariable("lon",Numeric.Float32, ("y","x"))
+  onclon.long_name = "Longitude"
+  onclon.standard_name = "Longitude"
+  onclon.units = "degrees_east"
+  onclon[:len(lons)] = lons
+  #
+  #   Get the initial date and create a new time variable
+  #
+  onc.createDimension("time", None)
+  onctime = onc.createVariable("time",Numeric.Float64, ("time",))
+  onctime.long_name = "Time variable"
+  onctime.units = "hours since %s" % idate.strftime('%Y-%m-%d %H:%M:%S')
+  inc.close()
+  onc.sync()
+  return onc
+
+dimension_mapping = {
+  "south_north": "y",
+  "west_east": "x",
+  "bottom_top": "z",
+}
+
+class Variable:
+  def __repr__(self):
+    return """\
+abbr: %(standard_abbr)s
+standard_name: %(standard_name)s
+units: %(units)s
+offset: %(offset)f
+scale: %(scale)f
+""" % self.__dict__
+
+def stdvars(vars, vtable):
+  rval = {}
+  for line in csv.reader(open(vtable, "r"), delimiter=" ", skipinitialspace=True):
+    varwrf = line[0]
+    if varwrf in vars:
+      v = Variable()
+      v.standard_abbr = line[1]
+      v.standard_name = line[2]
+      v.units = line[3]
+      v.scale = float(line[4])
+      v.offset = float(line[5])
+      rval[varwrf] = v
+  return rval
+
 if __name__ == "__main__":
-  #import pdb
-  #pdb.set_trace()
+  import pdb
+        #pdb.set_trace()
   from optparse import OptionParser
   parser = OptionParser()
   parser.set_defaults(
     quiet=False
   )
   parser.add_option(
-    "-r", "--re", dest="globfiles",
+    "-f", "--files", dest="globfiles",
     help="Regular expression to be parsed by python to get the input files to process", metavar="REGEXP"
   )
   parser.add_option(
@@ -155,8 +261,20 @@ if __name__ == "__main__":
     help="Enable discarding files. Currently only the uncommon_size criteria is implemented", metavar="uncommon_size"
   )
   parser.add_option(
+    "-t", "--variable-table", dest="vtable",
+    help="Table for translating WRF names into IPCC standard names", metavar="variable.table"
+  )
+  parser.add_option(
+    "-a", "--attributes", dest="attributes",
+    help="Table for setting the global attributes of the file", metavar="atributes.file"
+  )
+  parser.add_option(
     "-q", "--quiet", action="store_true",
     help="Run quietly"
+  )
+  parser.add_option(
+    "-r", "--reference-date", dest="refdate",
+    help="Reference date for the files", metavar="YYYY-MM-DD_hh:mm:ss"
   )
   parser.add_option(
     "-o", "--output", dest="OFILE", metavar="OUTPUTFILE.nc",
@@ -179,65 +297,18 @@ if __name__ == "__main__":
     files.sort()
   else:
     files = args
-  vars  = opt.vars.split(',')
+  vars = opt.vars.split(',')
+  vars = stdvars(vars, opt.vtable)
+  print vars
   #
   #  Clone the structure of the netcdf file and get the initial time from the first file.
   #
   print files[0]
-  inc = NetCDFFile(files[0],'r')
-  dims=("south_north","west_east","bottom_top") #,"soil_layers_stag")
-  onc = nccopystruct(opt.OFILE, inc, dims)
-  onc.history = "Created by %s on %s" % (sys.argv[0],time.ctime(time.time()))
-  onc.sync()
-  oncx = onc.createVariable("west_east",Numeric.Float64, ("west_east",))
-  oncx.long_name = "x coordinate of projection"
-  oncx.standard_name = "projection_x_coordinate"
-  oncx[:len(oncx)] = (arange(1,len(oncx)+1)-len(oncx)/2)*inc.DX
-  oncy = onc.createVariable("south_north",Numeric.Float64, ("south_north",))
-  oncy.long_name = "y coordinate of projection"
-  oncy.standard_name = "projection_y_coordinate"
-  oncy[:len(oncy)] = (arange(1,len(oncy)+1)-len(oncy)/2)*inc.DX
-  #
-  #
-  #
-  oncproj = onc.createVariable("Lambert_Conformal",Numeric.Int, ())
-  oncproj.grid_mapping_name = "lambert_conformal_conic"
-  oncproj.cone_type = "secant"
-  oncproj.northern_parallel = "%4.1fN" % inc.TRUELAT2
-  oncproj.southern_parallel = "%4.1fN" % inc.TRUELAT1
-  oncproj.longitude_of_central_meridian = inc.CEN_LON
-  oncproj.latitude_of_projection_origin = inc.CEN_LAT
-  #
-  #  Lat-lons (from geo_em file if provided)
-  #
-  if opt.geofile:
-    incgeo = NetCDFFile(opt.geofile,'r')
-    lats = incgeo.variables["XLAT_M"][0]
-    lons = incgeo.variables["XLONG_M"][0]
-    incgeo.close()
-  else:
-    lats = inc.variables["XLAT"][0]
-    lons = inc.variables["XLONG"][0]
-  onclat = onc.createVariable("lat",Numeric.Float32, ("south_north","west_east"))
-  onclat.long_name = "Latitudes"
-  onclat.standard_name = "Latitude"
-  onclat.units = "degrees_north"
-  onclat[:len(lats)] = lats
-  onclon = onc.createVariable("lon",Numeric.Float32, ("south_north","west_east"))
-  onclon.long_name = "Longitude"
-  onclon.standard_name = "Longitude"
-  onclon.units = "degrees_east"
-  onclon[:len(lons)] = lons
-  #
-  #   Get the initial date and create a new time variable
-  #
-  incTimes = inc.variables["Times"]
-  initialdate = datetime.strptime(charr2str(incTimes[0]), '%Y-%m-%d_%H:%M:%S')
-  onc.createDimension("time", None)
-  onctime = onc.createVariable("time",Numeric.Float64, ("time",))
-  onctime.long_name = "Time variable"
-  onctime.units = "hours since %s" % initialdate.strftime('%Y-%m-%d %H:%M:%S')
-  inc.close()
+  initialdate = datetime.strptime(opt.refdate, '%Y-%m-%d_%H:%M:%S')
+  onc = create_bare_curvilinear_CF_from_wrfnc(files[0], initialdate)
+  for line in csv.reader(open(opt.attributes, "r"), delimiter=" ", skipinitialspace=True):
+    setattr(onc, line[0], line[1])
+  onctime = onc.variables["time"]
   #
   #  Loop over files extracting variables and times
   #
@@ -261,7 +332,8 @@ if __name__ == "__main__":
         exec("incvar=%s" % varname[0].lower()) # muy cerdo
         exec("copyval=%ser" % varname[0].lower()) # muy cerdo
         if not itime:
-          oncvar = onc.createVariable(varname, Numeric.Float32, ("time",)+incvar.dimensions[1:])
+          dims = ("time",)+map(lambda x: dimension_mapping[x], incvar.dimensions[1:])
+          oncvar = onc.createVariable(varname, Numeric.Float32, dims)
           for att in incvar.__dict__.keys():
             setattr(oncvar, att, getattr(incvar, att))
           oncvar.description = oncvar.description + " (Earth relative)"
@@ -276,7 +348,8 @@ if __name__ == "__main__":
         v = inc.variables["V10"][:]
         copyval = Numeric.sqrt(u*u+v*v)
         if not itime:
-          oncvar = onc.createVariable(varname, Numeric.Float32, ("time",)+incvar.dimensions[1:])
+          dims = ("time",)+tuple(map(lambda x: dimension_mapping[x], incvar.dimensions[1:]))
+          oncvar = onc.createVariable(varname, Numeric.Float32, dims)
           for att in incvar.__dict__.keys():
             setattr(oncvar, att, getattr(incvar, att))
           oncvar.description = "Wind speed at 10m"
@@ -295,7 +368,8 @@ if __name__ == "__main__":
         qvapor = inc.variables['QVAPOR'][:]
         mslp = compute_mslp(p, pb, ph, phb, t , qvapor)
         if not itime:
-          oncvar = onc.createVariable(varname, Numeric.Float32, ("time",)+incvar.dimensions[2:])
+          dims = ("time",)+tuple(map(lambda x: dimension_mapping[x], incvar.dimensions[2:]))
+          oncvar = onc.createVariable(varname, Numeric.Float32, dims)
           oncvar.units = "Pa"
           oncvar.description = "Mean sea level pressure"
           oncvar.coordinates="lat lon"
@@ -306,14 +380,15 @@ if __name__ == "__main__":
       else:
         incvar = inc.variables[varname]
         if not itime:
-          oncvar = onc.createVariable(varname, Numeric.Float32, ("time",)+incvar.dimensions[1:])
-          for att in incvar.__dict__.keys():
-            setattr(oncvar, att, getattr(incvar, att))
+          dims = ("time",)+tuple(map(lambda x: dimension_mapping[x], incvar.dimensions[1:]))
+          oncvar = onc.createVariable(vars[varname].standard_abbr, Numeric.Float32, dims)
+          oncvar.long_name = vars[varname].standard_name
+          oncvar.units = vars[varname].units
           oncvar.coordinates="lat lon"
           oncvar.grid_mapping = "Lambert_Conformal"
         else:
           oncvar = onc.variables[varname]
-        oncvar[itime:itime+nrecords] = incvar[:nrecords]
+        oncvar[itime:itime+nrecords] = (incvar[:nrecords] * vars[varname].scale + vars[varname].offset).astype('f')
     itime += nrecords
     inc.close()
     onc.sync()
