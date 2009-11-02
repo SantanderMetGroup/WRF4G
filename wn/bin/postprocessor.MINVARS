@@ -8,21 +8,15 @@ wrfnc_file=$1        # The WRF file to postprocess
 #
 # and creating a postprocessed file with the same name to be uploaded by register_file
 #
-if test -f /software/ScientificLinux/4.6/etc/bashrc; then
-  # no fona
-  #source /software/ScientificLinux/4.6/etc/bashrc # -> ncks
+if ! which ncks; then
   thisdir=$(pwd)
-  cd ../..
-    cp /oceano/gmeteo/WORK/MDM.UC/Apps/nco.tar.gz .
+  cd `cat ../../rootdir`
+    if test -e /software/ScientificLinux/4.6/etc/bashrc; then
+      cp /oceano/gmeteo/WORK/MDM.UC/Apps/nco.tar.gz .
+    else
+      vcp gsiftp://ce01.macc.unican.es:2812/oceano/gmeteo/WORK/MDM.UC/Apps/nco.tar.gz .
+    fi
     tar xzf nco.tar.gz && rm nco.tar.gz
-    export LD_LIBRARY_PATH="$(pwd)/lib/shared_libs:${LD_LIBRARY_PATH}"
-  cd ${thisdir}
-else
-  thisdir=$(pwd)
-  cd ../..
-    vcp gsiftp://ce01.macc.unican.es:2812/oceano/gmeteo/WORK/MDM.UC/Apps/nco.tar.gz .
-    tar xzf nco.tar.gz && rm nco.tar.gz
-    export LD_LIBRARY_PATH="$(pwd)/lib/shared_libs:${LD_LIBRARY_PATH}"
   cd ${thisdir}
 fi
 

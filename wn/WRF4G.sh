@@ -39,7 +39,7 @@ source source.it && rm source.it
 export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
 export WRF4G_EXPERIMENT="${experiment_name}"
 export WRF4G_REALIZATION="${realization_name}"
-export WRFGEL_SCRIPT="${ROOTDIR}/WRFGEL/post_and_register"
+export WRFGEL_SCRIPT="echo"
 #
 # Running WRF
 #
@@ -304,7 +304,7 @@ else
     if test "${save_wps}" -eq 1; then
       timelog_init "wps put"
         create_output_structure
-        ${WRFGEL_SCRIPT} wps "${chunk_start_date}"
+        ${ROOTDIR}/WRFGEL/post_and_register wps "${chunk_start_date}"
       timelog_end
     fi
   cd ${LOCALDIR} || exit
@@ -315,15 +315,15 @@ fi
 #------------------------------------------------------------------
 cd ${LOCALDIR}/WRFV3/run || exit
   timelog_init "wrf"
+    ls -l ########################################################## borrar
     ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     echo $! > wrf.pid
-    wait $(cat wrf.pid) || wrf4g_exit ${ERROR_WRF_FAILED}
+    ${ROOTDIR}/WRFGEL/wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
+    echo $! > monitor.pid   
+    wait $(cat monitor.pid) || wrf4g_exit ${ERROR_WRF_FAILED}
   timelog_end
-  wait_for_these_pids $(cat register.pids) || wrf4g_exit ${ERROR_REGISTER_FAILED}
-  mv ${logdir} ${ROOTDIR}/
-  # sometimes there are files produced which are not uploaded. In the meantime,
-  # this script uploads whatever remains.
-  wrf4g_upload_remaining
+  # Save the logs
+  test "${LOCALDIR}" != "${ROOTDIR}" && mv ${logdir} ${ROOTDIR}/
   # Clean the heavy stuff
   rm -f CAM_ABS_DATA wrf[bli]* ${ROOTDIR}/bin/real.exe ${ROOTDIR}/bin/wrf.exe \
         ${ROOTDIR}/bin/metgrid.exe ${ROOTDIR}/bin/ungrib.exe

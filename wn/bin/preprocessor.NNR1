@@ -23,8 +23,8 @@ mkdir -p grbData
 for yearmon in $(get_yearmons $iyy $imm $fyy $fmm)
 do
   year=${yearmon:0:4}
-  vcp -v ${global_path}/grb2d/grb2d${yearmon} ln://`pwd`/grbData
-  vcp -v ${global_path}/pgb/pgb.ft00.${yearmon} ln://`pwd`/grbData
+  vcp -v ${global_path}/grb2d/grb2d${yearmon} `pwd`/grbData/
+  vcp -v ${global_path}/pgb/pgb.ft00.${yearmon} `pwd`/grbData/
 done
 for f in grbData/*
 do

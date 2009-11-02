@@ -1,0 +1,99 @@
+#! /bin/bash
+#
+# wrf4g_monitor
+#
+wrf_pid=$1
+#
+#  Load wrf4g.conf, wrf.chunk and wrf.input
+#
+ROOTDIR=$(cat ../../rootdir)
+source ${ROOTDIR}/lib/bash/wrf_util.sh
+source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
+source ${ROOTDIR}/wrf4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
+sed -e 's/\ *=\ */=/' ../../wrf.chunk > source.it      || exit ${ERROR_MISSING_WRFCHUNK}
+source source.it && rm source.it
+sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.input > source.it || exit ${ERROR_MISSING_WRFINPUT}
+source source.it && rm source.it
+
+file_patterns="wrfout wrfrst wrfrain wrfxtrm"
+wait_s=60
+
+function time_debug(){
+  debugmsg="$1"
+  echo "$(date '+[%Y-%-m-%d %H:%M:%S]') ${debugmsg}"
+}
+
+function all_but_last() {
+  pattern=$1
+  if test "${pattern:3:3}" = "rst"; then
+    # Do not wait for 2 rst files to upload the first
+    ls ${pattern}* 2> /dev/null
+  else
+    nfiles=$(ls ${pattern}* 2>/dev/null | wc -l)
+    if test ${nfiles} -gt 1; then
+      ls ${pattern}* 2> /dev/null | head -n $((${nfiles} - 1))
+    fi
+  fi
+}
+
+function filetype(){
+  thefile=$1
+  case ${thefile:3:3} in
+    out) echo "out" ;;
+    rst) echo "rst" ;;
+    rai|xtr) echo "out" ;;
+  esac
+}
+
+function filedate(){
+  thefile=$1
+  echo ${thefile} | sed -e 's/^.*\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]:[0-9][0-9]:[0-9][0-9]\).*$/\1/'
+}
+
+function clean_while_running(){
+  for patt in ${file_patterns}; do
+    domains=$(ls ${patt}* 2> /dev/null| sort | awk -F_ '{print $2}' | grep '^d' | sort | uniq)
+    for dom in ${domains}; do
+      for file in $(all_but_last ${patt}_${dom}); do
+        if ! /usr/sbin/lsof | grep ${file}; then # Make sure it is not open...
+          time_debug "Uploading ${file} (start)"
+          post_and_register --no-bg $(filetype $file) $(filedate $file) $file
+          time_debug "Uploading ${file} (end)"
+        else
+          time_debug "${file} still open, skipping"
+        fi
+      done
+    done
+  done
+}
+
+function clean_all(){
+  for patt in ${file_patterns}; do
+    domains=$(ls ${patt}* 2>/dev/null | sort | awk -F_ '{print $2}' | grep '^d' | sort | uniq)
+    for dom in ${domains}; do
+      for file in ${patt}_${dom}*; do
+        if ! /usr/sbin/lsof | grep ${file}; then # Make sure it is not open...
+          time_debug "Uploading ${file} (start)"
+          post_and_register --no-bg $(filetype $file) $(filedate $file) $file
+          time_debug "Uploading ${file} (end)"
+        else
+          time_debug "${file} still open, skipping"
+        fi
+      done
+    done
+  done
+}
+
+while true
+do
+  if ps aux | awk '$2=='${wrf_pid}'' | grep -q wrf.exe
+  then
+    time_debug "WRF seems to be running"
+    clean_while_running
+  else
+    time_debug "WRF is not running anymore"
+    clean_all
+    break
+  fi
+  sleep ${wait_s}
+done
