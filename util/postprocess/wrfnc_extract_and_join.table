@@ -1,0 +1,8 @@
+U10    uas    "eastward wind surface"           "m s-1" 1 0
+V10    vas    "northward wind surface"          "m s-1" 1 0
+P      pres   "air pressure"                    "Pa"    1 0
+PSFC   PSFC   "surface pressure"                "Pa"    1 0
+RAINNC prl    "Precipitation large scale"       "mm"    1 0
+RAINC  prc    "Precipitation convective"        "mm"    1 0
+T2     tas    "air temperature at the surface"  "K"     1 0
+WIND   wspd   "wind speed"                      "m s-1" 1 0

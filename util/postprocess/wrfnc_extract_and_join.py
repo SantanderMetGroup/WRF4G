@@ -6,6 +6,7 @@
 from pyclimate.JDTimeHandler import *
 from pyclimate.ncstruct import *
 from Scientific.IO.NetCDF import *
+#from netCDF3 import Dataset as NetCDFFile
 from Numeric import *
 from glob import glob
 from datetime import datetime
@@ -145,11 +146,12 @@ def discard_suspect_files(filelist, criteria='uncommon_size'):
     i_file+=1
   return rval
 
-def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate):
+def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None):
   inc = NetCDFFile(wrfncfile,'r')
   onc = NetCDFFile(opt.OFILE, "w")
   onc.history = "Created by %s on %s" % (sys.argv[0],time.ctime(time.time()))
   onc.sync()
+  #pdb.set_trace()
   onc.createDimension("x", inc.dimensions["west_east"])
   oncx = onc.createVariable("x",Numeric.Float64, ("x",))
   oncx.axis = "X"
@@ -162,11 +164,21 @@ def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate):
   oncy.long_name = "y coordinate of projection"
   oncy.standard_name = "projection_y_coordinate"
   oncy[:len(oncy)] = (arange(1,len(oncy)+1)-len(oncy)/2)*inc.DY
-  onc.createDimension("z", inc.dimensions["bottom_top"])
-  oncz = onc.createVariable("z",Numeric.Float64, ("z",))
-  oncz.axis = "Z"
-  oncz.long_name = "z coordinate of projection"
-  oncz.standard_name = "projection_z_coordinate"
+  if createz:
+    onc.createDimension("z", inc.dimensions["bottom_top"])
+    oncz = onc.createVariable("z",Numeric.Float64, ("z",))
+    oncz.axis = "Z"
+    oncz.long_name = "sigma at layer midpoints"
+    oncz.positive = "down"
+    oncz.standard_name = "atmosphere_sigma_coordinate"
+    oncz.formula_terms = "sigma: z ps: PSFC ptop: PTOP"
+    if inc.variables.has_key("ZNU"):
+      oncz.assignValue(inc.variables["ZNU"][0])
+    if inc.variables.has_key("P_TOP"):
+      oncptop = onc.createVariable("PTOP",Numeric.Float32, ())
+      oncptop.long_name = "Pressure at the top of the atmosphere"
+      oncptop.units = "Pa"
+      oncptop.assignValue(inc.variables["P_TOP"][0])
   onc.sync()
   #
   #
@@ -242,7 +254,6 @@ def stdvars(vars, vtable):
 
 if __name__ == "__main__":
   import pdb
-        #pdb.set_trace()
   from optparse import OptionParser
   parser = OptionParser()
   parser.set_defaults(
@@ -273,6 +284,10 @@ if __name__ == "__main__":
     help="Run quietly"
   )
   parser.add_option(
+    "-z", action="store_true", default=False, dest="zaxis",
+    help="Create Z axis information"
+  )
+  parser.add_option(
     "-r", "--reference-date", dest="refdate",
     help="Reference date for the files", metavar="YYYY-MM-DD_hh:mm:ss"
   )
@@ -299,13 +314,12 @@ if __name__ == "__main__":
     files = args
   vars = opt.vars.split(',')
   vars = stdvars(vars, opt.vtable)
-  print vars
   #
   #  Clone the structure of the netcdf file and get the initial time from the first file.
   #
   print files[0]
   initialdate = datetime.strptime(opt.refdate, '%Y-%m-%d_%H:%M:%S')
-  onc = create_bare_curvilinear_CF_from_wrfnc(files[0], initialdate)
+  onc = create_bare_curvilinear_CF_from_wrfnc(files[0], initialdate, opt.zaxis)
   for line in csv.reader(open(opt.attributes, "r"), delimiter=" ", skipinitialspace=True):
     setattr(onc, line[0], line[1])
   onctime = onc.variables["time"]
@@ -350,13 +364,10 @@ if __name__ == "__main__":
         if not itime:
           dims = ("time",)+tuple(map(lambda x: dimension_mapping[x], incvar.dimensions[1:]))
           oncvar = onc.createVariable(varname, Numeric.Float32, dims)
-          for att in incvar.__dict__.keys():
-            setattr(oncvar, att, getattr(incvar, att))
-          oncvar.description = "Wind speed at 10m"
           oncvar.coordinates="lat lon"
           oncvar.grid_mapping = "Lambert_Conformal"
         else:
-          oncvar = onc.variables[varname]
+          oncvar = onc.variables[vars[varname].standard_abbr]
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       elif varname == "MSLP":
         incvar = inc.variables['P']
@@ -375,7 +386,7 @@ if __name__ == "__main__":
           oncvar.coordinates="lat lon"
           oncvar.grid_mapping = "Lambert_Conformal"
         else:
-          oncvar = onc.variables[varname]
+          oncvar = onc.variables[vars[varname].standard_abbr]
         oncvar[itime:itime+nrecords] = mslp[:nrecords].astype(oncvar.typecode())
       else:
         incvar = inc.variables[varname]
@@ -387,7 +398,7 @@ if __name__ == "__main__":
           oncvar.coordinates="lat lon"
           oncvar.grid_mapping = "Lambert_Conformal"
         else:
-          oncvar = onc.variables[varname]
+          oncvar = onc.variables[vars[varname].standard_abbr]
         oncvar[itime:itime+nrecords] = (incvar[:nrecords] * vars[varname].scale + vars[varname].offset).astype('f')
     itime += nrecords
     inc.close()
