@@ -1,0 +1,6 @@
+Conventions "CF-1.4"
+title "Hindcast run for SeaWind phase I"
+source "WRF 3.1.1 modified at the University of Cantabria"
+institution "Universidad de Cantabria (Spain)"
+references ""
+comment "The simulation was forced with NCEP/NCAR Reanalysis data as boundary conditions"

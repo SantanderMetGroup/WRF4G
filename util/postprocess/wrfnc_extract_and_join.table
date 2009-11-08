@@ -1,8 +1,11 @@
-U10    uas    "eastward wind surface"           "m s-1" 1 0
-V10    vas    "northward wind surface"          "m s-1" 1 0
-P      pres   "air pressure"                    "Pa"    1 0
-PSFC   PSFC   "surface pressure"                "Pa"    1 0
-RAINNC prl    "Precipitation large scale"       "mm"    1 0
-RAINC  prc    "Precipitation convective"        "mm"    1 0
-T2     tas    "air temperature at the surface"  "K"     1 0
-WIND   wspd   "wind speed"                      "m s-1" 1 0
+U10    uascurv    "X wind at 10m"         "x_wind_at_10m"          "m s-1" 1 0
+V10    vascurv    "Y wind at 10m"         "y_wind_at_10m"          "m s-1" 1 0
+U10ER  uas        "Eastward wind at 10m"  "eastward_wind_at_10m"   "m s-1" 1 0
+V10ER  vas        "Northward wind at 10m" "northward_wind_at_10m"  "m s-1" 1 0
+P      pres       "air pressure"          "air_pressure"            "Pa"    1 0
+PSFC   PSFC       "surface pressure"      "surface_air_pressure"    "Pa"    1 0
+RAINNC prl    "Precipitation large scale" "Precipitation large scale"      "mm"    1 0
+RAINC  prc    "Precipitation convective"  "Precipitation convective"       "mm"    1 0
+RAIN   pr     "Precipitation"             "precipitation"                  "mm"    1 0
+T2     tas    "air temperature at the surface" "air_temperature"   "K"     1 0
+WIND   wspd   "wind speed"   "wind speed"                   "m s-1" 1 0

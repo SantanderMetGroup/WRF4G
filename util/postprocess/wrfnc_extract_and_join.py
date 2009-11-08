@@ -10,7 +10,7 @@ from Scientific.IO.NetCDF import *
 from Numeric import *
 from glob import glob
 from datetime import datetime
-import sys, time, csv
+import sys, time, string, csv
 
 def rotate_lcc_wind(u,v,xlat,xlon,cen_lon,truelat1,truelat2):
   pii = 3.14159265
@@ -151,7 +151,6 @@ def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None):
   onc = NetCDFFile(opt.OFILE, "w")
   onc.history = "Created by %s on %s" % (sys.argv[0],time.ctime(time.time()))
   onc.sync()
-  #pdb.set_trace()
   onc.createDimension("x", inc.dimensions["west_east"])
   oncx = onc.createVariable("x",Numeric.Float64, ("x",))
   oncx.axis = "X"
@@ -218,6 +217,7 @@ def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None):
   onctime = onc.createVariable("time",Numeric.Float64, ("time",))
   onctime.long_name = "Time variable"
   onctime.units = "hours since %s" % idate.strftime('%Y-%m-%d %H:%M:%S')
+  onctime.calendar = "gregorian"
   inc.close()
   onc.sync()
   return onc
@@ -245,12 +245,34 @@ def stdvars(vars, vtable):
     if varwrf in vars:
       v = Variable()
       v.standard_abbr = line[1]
-      v.standard_name = line[2]
-      v.units = line[3]
-      v.scale = float(line[4])
-      v.offset = float(line[5])
+      v.long_name = line[2]
+      v.standard_name = line[3]
+      v.units = line[4]
+      v.scale = float(line[5])
+      v.offset = float(line[6])
       rval[varwrf] = v
   return rval
+
+def get_oncvar(itime, incvar, onc, out_is_2D_but_in_3D=False):
+  if not itime:
+    # First time record, create the variable
+    if out_is_2D_but_in_3D:
+      cut_from = 2
+    else:
+      cut_from = 1
+    dims = ("time",)+tuple(map(lambda x: dimension_mapping[x], incvar.dimensions[cut_from:]))
+    oncvar = onc.createVariable(vars[varname].standard_abbr, Numeric.Float32, dims)
+    oncvar.long_name = vars[varname].long_name
+    oncvar.standard_name = vars[varname].standard_name
+    oncvar.units = vars[varname].units
+    oncvar.coordinates="lat lon"
+    oncvar.grid_mapping = "Lambert_Conformal"
+  else:
+    # Otherwise, just retrieve the variable handler
+    oncvar = onc.variables[vars[varname].standard_abbr]
+  return oncvar
+ 
+
 
 if __name__ == "__main__":
   import pdb
@@ -262,6 +284,10 @@ if __name__ == "__main__":
   parser.add_option(
     "-f", "--files", dest="globfiles",
     help="Regular expression to be parsed by python to get the input files to process", metavar="REGEXP"
+  )
+  parser.add_option(
+    "--from-file", dest="filelist", default="",
+    help="Text file containing the input files. One per row", metavar="FILELIST.txt"
   )
   parser.add_option(
     "-v", "--variables", dest="vars",
@@ -310,6 +336,8 @@ if __name__ == "__main__":
   if opt.globfiles:
     files = glob(opt.globfiles)
     files.sort()
+  elif opt.filelist:
+    files = map(string.strip, open(opt.filelist, "r").readlines())
   else:
     files = args
   vars = opt.vars.split(',')
@@ -323,12 +351,15 @@ if __name__ == "__main__":
   for line in csv.reader(open(opt.attributes, "r"), delimiter=" ", skipinitialspace=True):
     setattr(onc, line[0], line[1])
   onctime = onc.variables["time"]
+  onclat = onc.variables["lat"]
+  onclon = onc.variables["lon"]
   #
   #  Loop over files extracting variables and times
   #
   if opt.discard:
     files = discard_suspect_files(files, opt.discard)
   itime = 0
+  lastpr = None
   for f in files:
     if DEBUG: print "Processing file %s" % f
     inc = NetCDFFile(f,'r')
@@ -345,29 +376,26 @@ if __name__ == "__main__":
         uer, ver = rotate_lcc_wind(u,v, onclat[:,:], onclon[:,:], inc.CEN_LON, inc.TRUELAT1, inc.TRUELAT2)
         exec("incvar=%s" % varname[0].lower()) # muy cerdo
         exec("copyval=%ser" % varname[0].lower()) # muy cerdo
-        if not itime:
-          dims = ("time",)+map(lambda x: dimension_mapping[x], incvar.dimensions[1:])
-          oncvar = onc.createVariable(varname, Numeric.Float32, dims)
-          for att in incvar.__dict__.keys():
-            setattr(oncvar, att, getattr(incvar, att))
-          oncvar.description = oncvar.description + " (Earth relative)"
-          oncvar.coordinates="lat lon"
-          oncvar.grid_mapping = "Lambert_Conformal"
-        else:
-          oncvar = onc.variables[varname]
+        oncvar = get_oncvar(itime, incvar, onc)
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       elif varname == "WIND":
         incvar = inc.variables["U10"]
         u = incvar[:]
         v = inc.variables["V10"][:]
         copyval = Numeric.sqrt(u*u+v*v)
-        if not itime:
-          dims = ("time",)+tuple(map(lambda x: dimension_mapping[x], incvar.dimensions[1:]))
-          oncvar = onc.createVariable(varname, Numeric.Float32, dims)
-          oncvar.coordinates="lat lon"
-          oncvar.grid_mapping = "Lambert_Conformal"
+        oncvar = get_oncvar(itime, incvar, onc)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname == "RAIN":
+        incvar = inc.variables["RAINNC"]
+        pr = incvar[:] + inc.variables["RAINC"][:]
+        if not lastpr:
+          copyval = concatenate([zeros((1,)+pr[0].shape, pr.typecode()), pr[1:]-pr[:-1]])
         else:
-          oncvar = onc.variables[vars[varname].standard_abbr]
+          copyval = pr - concatenate([lastpr,pr[:-1]])
+        copyval = where(copyval<0., 0, copyval)
+        lastpr = reshape(pr[-1], (1,)+pr[-1].shape)
+        oncvar = get_oncvar(itime, incvar, onc)
+        #pdb.set_trace()
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       elif varname == "MSLP":
         incvar = inc.variables['P']
@@ -378,27 +406,11 @@ if __name__ == "__main__":
         t = inc.variables['T'][:]
         qvapor = inc.variables['QVAPOR'][:]
         mslp = compute_mslp(p, pb, ph, phb, t , qvapor)
-        if not itime:
-          dims = ("time",)+tuple(map(lambda x: dimension_mapping[x], incvar.dimensions[2:]))
-          oncvar = onc.createVariable(varname, Numeric.Float32, dims)
-          oncvar.units = "Pa"
-          oncvar.description = "Mean sea level pressure"
-          oncvar.coordinates="lat lon"
-          oncvar.grid_mapping = "Lambert_Conformal"
-        else:
-          oncvar = onc.variables[vars[varname].standard_abbr]
+        oncvar = get_oncvar(itime, incvar, onc, out_is_2D_but_in_3D=True)
         oncvar[itime:itime+nrecords] = mslp[:nrecords].astype(oncvar.typecode())
       else:
         incvar = inc.variables[varname]
-        if not itime:
-          dims = ("time",)+tuple(map(lambda x: dimension_mapping[x], incvar.dimensions[1:]))
-          oncvar = onc.createVariable(vars[varname].standard_abbr, Numeric.Float32, dims)
-          oncvar.long_name = vars[varname].standard_name
-          oncvar.units = vars[varname].units
-          oncvar.coordinates="lat lon"
-          oncvar.grid_mapping = "Lambert_Conformal"
-        else:
-          oncvar = onc.variables[vars[varname].standard_abbr]
+        oncvar = get_oncvar(itime, incvar, onc)
         oncvar[itime:itime+nrecords] = (incvar[:nrecords] * vars[varname].scale + vars[varname].offset).astype('f')
     itime += nrecords
     inc.close()
