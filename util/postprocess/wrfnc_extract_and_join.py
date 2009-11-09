@@ -202,12 +202,12 @@ def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None):
     lons = inc.variables["XLONG"][0]
   onclat = onc.createVariable("lat",Numeric.Float32, ("y","x"))
   onclat.long_name = "Latitudes"
-  onclat.standard_name = "Latitude"
+  onclat.standard_name = "latitude"
   onclat.units = "degrees_north"
   onclat[:len(lats)] = lats
   onclon = onc.createVariable("lon",Numeric.Float32, ("y","x"))
   onclon.long_name = "Longitude"
-  onclon.standard_name = "Longitude"
+  onclon.standard_name = "longitude"
   onclon.units = "degrees_east"
   onclon[:len(lons)] = lons
   #
@@ -215,9 +215,12 @@ def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None):
   #
   onc.createDimension("time", None)
   onctime = onc.createVariable("time",Numeric.Float64, ("time",))
-  onctime.long_name = "Time variable"
+  onctime.long_name = "time"
   onctime.units = "hours since %s" % idate.strftime('%Y-%m-%d %H:%M:%S')
-  onctime.calendar = "gregorian"
+  if opt.tbounds:
+    onctime.bounds = "time_bnds"
+    onc.createDimension("nv",2)
+    onc.createVariable("time_bnds",Numeric.Float64, ("time","nv"))
   inc.close()
   onc.sync()
   return onc
@@ -278,9 +281,7 @@ if __name__ == "__main__":
   import pdb
   from optparse import OptionParser
   parser = OptionParser()
-  parser.set_defaults(
-    quiet=False
-  )
+  parser.set_defaults(quiet=False,singlerec=False)
   parser.add_option(
     "-f", "--files", dest="globfiles",
     help="Regular expression to be parsed by python to get the input files to process", metavar="REGEXP"
@@ -310,8 +311,16 @@ if __name__ == "__main__":
     help="Run quietly"
   )
   parser.add_option(
+    "--single-record", action="store_true", dest="singlerec",
+    help="Save only one record. Useful to extract fixed fields (LANDMASK, LANDUSE, ...)"
+  )
+  parser.add_option(
     "-z", action="store_true", default=False, dest="zaxis",
     help="Create Z axis information"
+  )
+  parser.add_option(
+    "--time-bounds", dest="tbounds", metavar="H1,H2"
+    help="Create a time_bnds variable to specify the period of time considered in each time record. H1 is the start time in hours from the current time record and H2 is the ending time"
   )
   parser.add_option(
     "-r", "--reference-date", dest="refdate",
@@ -364,7 +373,10 @@ if __name__ == "__main__":
     if DEBUG: print "Processing file %s" % f
     inc = NetCDFFile(f,'r')
     incTimes = inc.variables["Times"]
-    nrecords = len(incTimes)
+    if opt.singlerec:
+      nrecords = 1
+    else:
+      nrecords = len(incTimes)
     times = map(charr2str,incTimes[:nrecords])
     times = map(lambda x: str2offset(x,initialdate), times)
     onctime[itime:itime+nrecords] = times
