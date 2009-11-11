@@ -20,10 +20,6 @@ function kill_wrf(){
 }
 
 function do_all(){
-  #
-  #  Something is wrong with the xtrm output file. Until its working...
-  #
-  echo $3 | grep -q xtrm && exit 0
   test "${1:0:2}" = "ts" && exit 0
   #
   #  If there are time series files, pack them and upload them (if this is a restart time)
@@ -41,7 +37,10 @@ function do_all(){
   #  If there is a postprocessor defined, use it to postprocess the file before registering
   #
   if test -n "${postprocessor}"; then
-    if test "$1" = "out"; then
+    if test "${3:0:6}" = "wrfout"; then
+      #
+      # Do not post process wrfrain, wrfxtrm, ...
+      #
       postprocessor.${postprocessor} $3 >> ${logfile} 2>&1
     fi
   fi

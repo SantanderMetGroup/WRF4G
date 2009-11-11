@@ -18,6 +18,8 @@ source source.it && rm source.it
 file_patterns="wrfout wrfrst wrfrain wrfxtrm"
 wait_s=60
 
+avoid_file="wrfrst_d01_${chunk_restart_date}"
+
 function time_debug(){
   debugmsg="$1"
   echo "$(date '+[%Y-%-m-%d %H:%M:%S]') ${debugmsg}"
@@ -55,12 +57,17 @@ function clean_while_running(){
     domains=$(ls ${patt}* 2> /dev/null| sort | awk -F_ '{print $2}' | grep '^d' | sort | uniq)
     for dom in ${domains}; do
       for file in $(all_but_last ${patt}_${dom}); do
-        if ! /usr/sbin/lsof | grep ${file}; then # Make sure it is not open...
-          time_debug "Uploading ${file} (start)"
-          post_and_register --no-bg $(filetype $file) $(filedate $file) $file
-          time_debug "Uploading ${file} (end)"
+        if test "${file}" == "${avoid_file}"; then
+          time_debug "Skipping initial restart file ${file}"
+          continue
         else
-          time_debug "${file} still open, skipping"
+          if ! /usr/sbin/lsof | grep ${file}; then # Make sure it is not open...
+            time_debug "Uploading ${file} (start)"
+            post_and_register --no-bg $(filetype $file) $(filedate $file) $file
+            time_debug "Uploading ${file} (end)"
+          else
+            time_debug "${file} still open, skipping"
+          fi
         fi
       done
     done
@@ -72,12 +79,16 @@ function clean_all(){
     domains=$(ls ${patt}* 2>/dev/null | sort | awk -F_ '{print $2}' | grep '^d' | sort | uniq)
     for dom in ${domains}; do
       for file in ${patt}_${dom}*; do
-        if ! /usr/sbin/lsof | grep ${file}; then # Make sure it is not open...
-          time_debug "Uploading ${file} (start)"
-          post_and_register --no-bg $(filetype $file) $(filedate $file) $file
-          time_debug "Uploading ${file} (end)"
+        if test "${file}" == "${avoid_file}"; then
+          continue
         else
-          time_debug "${file} still open, skipping"
+          if ! /usr/sbin/lsof | grep ${file}; then # Make sure it is not open...
+            time_debug "Uploading ${file} (start)"
+            post_and_register --no-bg $(filetype $file) $(filedate $file) $file
+            time_debug "Uploading ${file} (end)"
+          else
+            time_debug "${file} still open, skipping"
+          fi
         fi
       done
     done

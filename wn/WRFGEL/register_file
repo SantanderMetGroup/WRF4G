@@ -5,7 +5,6 @@ from optparse import OptionParser
 from sys import exit   
 from sys import stderr  
 from os.path import basename
-from os import system
 
 
 WRF4G_CONF_FILE_NOT_DEFINED=1
@@ -91,7 +90,9 @@ if type in type_list.keys() :
     if type == "out":
       # Update the current date
       rootdir = open('../../rootdir').read().strip()
-      system("source %s/lib/bash/wrf_util.sh; get_last_frame_date %s > current_date.txt" % (rootdir, file))
+      cmdstr = "source %s/lib/bash/wrf_util.sh; get_last_frame_date %s > current_date.txt" % (rootdir, file)
+      cmdstat, cmdout = getstatusoutput(cmdstr)
+      print cmdstat, cmdout
       copy_file("current_date.txt", "%s/current_date.txt" % dest_folder, verbose=verbose)
     input=VCPURL(file)
     # Delete the file from local disk 

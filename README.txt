@@ -15,10 +15,56 @@ CONTENTS
 EXECUTION TREE
 --------------
 
-  wrf4g_submitter.sh             <- wrf.input, wrf4g.conf
-    `-- wrf4g_submit.[JOB_TYPE]
-          `-- WRF4G_ini.sh
-                `--WRF4G.sh
+Legend:
+  <- file read
+  -> file created
+  << file downloaded
+  >> file uploaded
+  mm file modified
+  ~> log to file
+  [variable_defined_in_wrf4g.conf_or_wrf.input]
+
+UI
+  wrf4g_submitter.sh
+    <- wrf.input
+    <- wrf4g.conf
+    -> wrf.chunk
+    bin/fortnml
+    wrf4g_submit.[JOB_TYPE]
+      mm WRF4G_ini.sh
+WN    
+  WRF4G_ini.sh  ~>  WRF4G_ini.sh.e?????
+    <- wrf.input
+    <- wrf4g.conf
+    <- wrf.chunk
+    WRFGEL/get_date_current
+    WRFGEL/get_date_restart
+    << WRF4G-[WRF4G_VERSION].tar.gz
+    << WRF4Gbin-[WRF_VERSION].tar.gz
+    WRF4G.sh  ~>  WRF4G.log
+      << (domain data)
+      exist_wps
+      bin/preprocessor.[global_preprocessor]
+        << (input data)
+      bin/ungrib.exe  ~>  ungrib_<date>.log
+      bin/metgrid.exe  ~>  metgrid_<date>.log
+      bin/real.exe  ~>  real_<date>.log
+      >> wrfinput
+      >> wrfbdy
+      >> wrflowinp
+      bin/wrf.exe  ~>  wrf_<date>.log
+      WRFGEL/wrf4g_monitor  ~>  monitor.log
+        WRFGEL/post_and_register
+          bin/postprocessor.[postprocessor]
+          -> TS.tar.gz
+          WRFGEL/register_file  ~> wrfgel.out
+            >> wrfout_*
+            -> current_date.txt
+            >> current_date.txt
+            >> wrfrst_*
+            >> wrfrain_*
+            >> wrfxtrm_*
+            >> TS.tar.gz
 
 USAGE
 -----
