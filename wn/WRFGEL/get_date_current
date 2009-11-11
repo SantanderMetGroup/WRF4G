@@ -1,0 +1,61 @@
+#!/usr/bin/python
+
+from vcp import *      
+from commands import getstatusoutput
+from optparse import OptionParser
+from sys import exit   
+from sys import stderr
+from os.path import basename, isfile 
+from re import search
+from os import getenv, system
+
+WRF4G_CONF_FILE_NOT_DEFINED=1
+DATE_BAD_FORMED=2
+TOO_MANY_DATES=3
+
+usage="""%prog 
+
+Example: %prog 
+
+%prog returns the current date of the simulation
+This command needs that the following environment variables have been established: WRF4G_EXPERIMENT, 
+WRF4G_REALIZATION and WRF4G_CONF_FILE.
+"""
+# Check the Arguments
+parser = OptionParser(usage,version="%prog 1.0")
+parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
+(options, args) = parser.parse_args()
+
+verbose=options.verbose
+
+if len(args) != 0 :
+  parser.error("Incorrect number of arguments. This script doesn't take any arguments.")
+  exit(1)
+
+if verbose: stderr.write("get_date_current in debug mode...\n")
+# Check that the environment variables has been established and import their values
+env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","WRF4G_CONF_FILE": ""}
+env_var=get_env_vars(env_var)
+exec(open(env_var["WRF4G_CONF_FILE"]).read())
+# List all the variables inprint args the script and search WRF4G_BASEPATH
+dir()
+if not 'WRF4G_BASEPATH' in dir():
+  stderr.write("Error: WRF4G_BASEPATH is not defined\n")
+  exit(1)
+
+# Load the URL into the VCPURL class
+repo="%s/experiments/%s/%s/output" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"])
+if verbose: stderr.write("Repository: " + repo + "\n")
+
+output=copy_file("%s/current_date.txt" % repo , "current_date.txt", verbose=verbose)
+
+if isfile("current_date.txt") :
+  date=open("current_date.txt","r").read().strip()
+else:
+  # There are not current_date files
+  stderr.write("There is not a current_date.txt file\n")
+  date=-1
+
+system("rm -f current_date.txt")
+
+print date
