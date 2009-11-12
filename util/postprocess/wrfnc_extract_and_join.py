@@ -28,15 +28,13 @@ def rotate_lcc_wind(u,v,xlat,xlon,cen_lon,truelat1,truelat2):
   alpha = where(xlat < 0., -diff*cone*d2r, diff*cone*d2r)
   return v*sin(alpha)[NewAxis,:,:] + u*cos(alpha)[NewAxis,:,:],  v*cos(alpha)[NewAxis,:,:] - u*sin(alpha)[NewAxis,:,:]
 
-def compute_temperature(p, pb, t):
+def compute_temperature(p, t):
   # Some required physical constants:
   R=287.04
   g=9.81
   cp           = 7.*R/2.
   rcp          = R/cp
   p1000mb      = 100000.
-  # Transpose and get full variables out of perturbations and potential T
-  p = p + pb
   return (t+300.)*(p/p1000mb)**rcp
 
 def compute_mslp(p, pb, ph, phb, t , qvapor):
@@ -170,7 +168,7 @@ def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None):
     oncz.long_name = "sigma at layer midpoints"
     oncz.positive = "down"
     oncz.standard_name = "atmosphere_sigma_coordinate"
-    oncz.formula_terms = "sigma: z ps: PSFC ptop: PTOP"
+    oncz.formula_terms = "sigma: z ps: ps ptop: PTOP"
     if inc.variables.has_key("ZNU"):
       oncz.assignValue(inc.variables["ZNU"][0])
     if inc.variables.has_key("P_TOP"):
@@ -225,10 +223,20 @@ def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None):
   onc.sync()
   return onc
 
+def add_height_coordinate(onc, coorname, val):
+  if not onc.variables.has_key(coorname):
+    onc.createDimension(coorname,1)
+    hvar = onc.createVariable(coorname, 'f', (coorname,))
+    hvar.long_name = "height above the ground"
+    hvar.standard_name = "height"
+    hvar.units = "m"
+    hvar[0] = array(val, 'f')
+
 dimension_mapping = {
   "south_north": "y",
   "west_east": "x",
   "bottom_top": "z",
+  "bottom_top_stag": "z", # the variables should be de-staggered before copying them to the output file
 }
 
 class Variable:
@@ -244,6 +252,8 @@ scale: %(scale)f
 def stdvars(vars, vtable):
   rval = {}
   for line in csv.reader(open(vtable, "r"), delimiter=" ", skipinitialspace=True):
+    if line[0][0] == "#":
+      continue
     varwrf = line[0]
     if varwrf in vars:
       v = Variable()
@@ -256,7 +266,7 @@ def stdvars(vars, vtable):
       rval[varwrf] = v
   return rval
 
-def get_oncvar(itime, incvar, onc, out_is_2D_but_in_3D=False):
+def get_oncvar(itime, incvar, onc, out_is_2D_but_in_3D=False, screenvar_at_2m=False, screenvar_at_10m=False):
   if not itime:
     # First time record, create the variable
     if out_is_2D_but_in_3D:
@@ -264,6 +274,12 @@ def get_oncvar(itime, incvar, onc, out_is_2D_but_in_3D=False):
     else:
       cut_from = 1
     dims = ("time",)+tuple(map(lambda x: dimension_mapping[x], incvar.dimensions[cut_from:]))
+    if screenvar_at_2m:
+      add_height_coordinate(onc, "height", 2)
+      dims = dims[:1]+("height",)+dims[1:]
+    if screenvar_at_10m:
+      add_height_coordinate(onc, "heightv", 10)
+      dims = dims[:1]+("heightv",)+dims[1:]
     oncvar = onc.createVariable(vars[varname].standard_abbr, Numeric.Float32, dims)
     oncvar.long_name = vars[varname].long_name
     oncvar.standard_name = vars[varname].standard_name
@@ -319,7 +335,7 @@ if __name__ == "__main__":
     help="Create Z axis information"
   )
   parser.add_option(
-    "--time-bounds", dest="tbounds", metavar="H1,H2"
+    "--time-bounds", dest="tbounds", metavar="H1,H2",
     help="Create a time_bnds variable to specify the period of time considered in each time record. H1 is the start time in hours from the current time record and H2 is the ending time"
   )
   parser.add_option(
@@ -388,7 +404,7 @@ if __name__ == "__main__":
         uer, ver = rotate_lcc_wind(u,v, onclat[:,:], onclon[:,:], inc.CEN_LON, inc.TRUELAT1, inc.TRUELAT2)
         exec("incvar=%s" % varname[0].lower()) # muy cerdo
         exec("copyval=%ser" % varname[0].lower()) # muy cerdo
-        oncvar = get_oncvar(itime, incvar, onc)
+        oncvar = get_oncvar(itime, incvar, onc, screenvar_at_10m=True)
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       elif varname == "WIND":
         incvar = inc.variables["U10"]
@@ -399,15 +415,43 @@ if __name__ == "__main__":
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       elif varname == "RAIN":
         incvar = inc.variables["RAINNC"]
-        pr = incvar[:] + inc.variables["RAINC"][:]
+        pr = incvar[:nrecords] + inc.variables["RAINC"][:nrecords]
         if not lastpr:
-          copyval = concatenate([zeros((1,)+pr[0].shape, pr.typecode()), pr[1:]-pr[:-1]])
+          #pdb.set_trace()
+          copyval = concatenate([zeros((1,)+pr[0].shape, pr.typecode()), pr[1:nrecords]-pr[:-1]])
         else:
           copyval = pr - concatenate([lastpr,pr[:-1]])
         copyval = where(copyval<0., 0, copyval)
         lastpr = reshape(pr[-1], (1,)+pr[-1].shape)
         oncvar = get_oncvar(itime, incvar, onc)
-        #pdb.set_trace()
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname == "T2":
+        incvar = inc.variables[varname]
+        copyval = reshape(incvar[:nrecords], incvar.shape[:1]+(1,)+incvar.shape[1:])
+        oncvar = get_oncvar(itime, incvar, onc, screenvar_at_2m=True)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname in ["U10", "V10"]:
+        incvar = inc.variables[varname]
+        copyval = reshape(incvar[:nrecords], incvar.shape[:1]+(1,)+incvar.shape[1:])
+        oncvar = get_oncvar(itime, incvar, onc, screenvar_at_10m=True)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname == "PRES":
+        incvar = inc.variables['P']
+        copyval = incvar[:nrecords] + inc.variables["PB"][:nrecords]
+        oncvar = get_oncvar(itime, incvar, onc)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname == "GEOP":
+        incvar = inc.variables['PH']
+        copyval = incvar[:nrecords] + inc.variables["PHB"][:nrecords]
+        # De-stagger the geopotential
+        copyval = (copyval[:,:-1]+copyval[:,1:])/2.
+        oncvar = get_oncvar(itime, incvar, onc)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname == "TEMP":
+        incvar = inc.variables['T']
+        pres = inc.variables['P'][:nrecords] + inc.variables["PB"][:nrecords]
+        copyval = compute_temperature(pres, incvar[:nrecords])
+        oncvar = get_oncvar(itime, incvar, onc)
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       elif varname == "MSLP":
         incvar = inc.variables['P']
