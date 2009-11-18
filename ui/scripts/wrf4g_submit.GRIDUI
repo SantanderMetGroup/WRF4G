@@ -22,8 +22,10 @@ fi
 ##mpiexec="/usr/bin/mpiexec"
 mpiexec="/gpfs/csic_projects/meteo/software/ScientificLinux/4.6/mpich/1.2.7p1/pgi_7.1-6_gcc/bin/mpirun"
 
+slots=`expr ${NUMBER_OF_NODES} '*' ${PROCESSES_PER_NODE}`
+
 if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
-  nodflag="-pe mpi $(${NUMBER_OF_NODES} '*' ${PROCESSES_PER_NODE})"
+  nodflag="-pe mpi ${slots}"
   echo "LAUNCHER_METGRID=\"\""                 >> wrf.chunk
   echo "LAUNCHER_REAL=\"\""                    >> wrf.chunk
   echo "LAUNCHER_WRF=\"$mpiexec -np ${PROCESSES_PER_NODE} -machine ./wrf_gms\"" >> wrf.chunk
@@ -62,5 +64,7 @@ tar czh --exclude ${jobfile} -f sandbox.tar.gz *
 mkdir -p ${rundir} || exit
 cp -L sandbox.tar.gz ${rundir}/
 cp -L WRF4G_ini.sh   ${rundir}/
+
+cat $PE_HOSTFILE | awk '{print $1":"$2}' > ${rundir}/wrf_gms
 
 qsub -P l.meteo -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} $jobfile | awk -F. '{print $1}'
