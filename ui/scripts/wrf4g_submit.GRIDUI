@@ -54,6 +54,8 @@ test -d ${rundir} && mv ${rundir} ${oldrundir}
 #
 command="cd ${rundir}"
 echo -e "2i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
+command="cat \$PE_HOSTFILE | awk '{print $1":"$2}' > ${rundir}/wrf_gms"
+echo -e "2i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
 #
 #   Pack the sandbox
 #
@@ -65,6 +67,6 @@ mkdir -p ${rundir} || exit
 cp -L sandbox.tar.gz ${rundir}/
 cp -L WRF4G_ini.sh   ${rundir}/
 
-cat $PE_HOSTFILE | awk '{print $1":"$2}' > ${rundir}/wrf_gms
+##cat $PE_HOSTFILE | awk '{print $1":"$2}' > ${rundir}/wrf_gms
 
-qsub -P l.meteo -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} $jobfile | awk -F. '{print $1}'
+qsub -S bash -P l.meteo -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} $jobfile | awk -F. '{print $1}'
