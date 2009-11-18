@@ -36,7 +36,7 @@ else
   echo "LAUNCHER_REAL=\"\""              >> wrf.chunk
   echo "LAUNCHER_WRF=\"\""               >> wrf.chunk
 fi
-
+eoflag="-e $PWD/error -o $PWD/output" 
 rundir=${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
 #
 #   Avoid overwriting previous run directories. Move it to an unused name.
@@ -69,4 +69,4 @@ cp -L WRF4G_ini.sh   ${rundir}/
 
 ##cat $PE_HOSTFILE | awk '{print $1":"$2}' > ${rundir}/wrf_gms
 
-qsub -S bash -P l.meteo -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} $jobfile | awk -F. '{print $1}'
+qsub -S bash -P l.meteo -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} ${eoflag} $jobfile | awk '{print $3}'
