@@ -1,4 +1,5 @@
 #! /bin/bash
+echo '*:'$*
 #
 # Job submission abstraction layer
 #
@@ -69,4 +70,4 @@ cp -L WRF4G_ini.sh   ${rundir}/
 
 ##cat $PE_HOSTFILE | awk '{print $1":"$2}' > ${rundir}/wrf_gms
 
-qsub -S bash -P l.meteo -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} ${eoflag} $jobfile | awk '{print $3}'
+qsub -S /bin/bash -N "${WRF4G_REALIZATION}" -P l.meteo ${depflag} ${nodflag} ${eoflag} $jobfile | awk '{print $3}'
