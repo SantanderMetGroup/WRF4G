@@ -1,0 +1,11 @@
+******* Content of 'R'
+
+.fun_______________
+date_list.fun: R function that gives the dates every given interval
+date_list_between.fun: R function that gives the dates every given interval
+   between two dates
+figure2D: R function to draw a 2D field via 'image' instruction
+info_netcdf_var.fun: R function that gives information from certain variables
+   of a netcdf file
+
+.R___________________
