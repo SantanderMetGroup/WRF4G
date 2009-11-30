@@ -14,3 +14,4 @@ V10ER    vas      "Northward surface wind"    "northward_wind"                  
 PRES     pres     "Air pressure"              "air_pressure"                          "Pa"      1 0
 GEOP     geop     "Geopotential"              "geopotential"                          "m2 s-2"  1 0
 TEMP     t        "Air temperature"           "air_temperature"                       "K"       1 0
+MSLP     psl      "Mean sea level pressure"   "air_pressure_at_sea_level"             "Pa"      1 0

@@ -25,6 +25,7 @@ umask 002
 #  Some default values
 #
 save_wps=1
+clean_after_run=1
 #
 #  Load wrf4g.conf, wrf.chunk and wrf.input
 #
@@ -120,17 +121,15 @@ function wrf4g_exit(){
   #  This is the way out of this script. So close the timing info, move the
   #  logs to a safe place and leave
   #
-  timelog_end
+  test "${excode}" -eq 0 || timelog_end
   echo "exit $excode" >> ${logdir}/time.log
+  ls -l >& ${logdir}/ls.wrf
+  if test -e rsl.out.0000; then
+    mkdir -p rsl_wrf
+    mv rsl.* rsl_wrf/
+    mv rsl_wrf ${logdir}/
+  fi
   case $excode in
-    ${ERROR_WRF_FAILED})
-      if test -e rsl.out.0000; then
-        mkdir -p rsl_wrf
-        mv rsl.* rsl_wrf/
-        mv rsl_wrf ${logdir}/
-      fi
-      ls -l >& ${logdir}/ls.wrf
-      ;;
     ${ERROR_UNGRIB_FAILED})
       ls -lR >& ${logdir}/ls.wps
       ;;
@@ -264,9 +263,11 @@ else
         | grep -q -i 'Successful completion of metgrid' \
         || wrf4g_exit ${ERROR_METGRID_FAILED}
       # Clean
-      rm -f GRIBFILE.*
-      rm -rf grbData
-      rm -rf ${global_name}\:*
+      if test "${clean_after_run}" -eq 1; then
+        rm -f GRIBFILE.*
+        rm -rf grbData
+        rm -rf ${global_name}\:*
+      fi
     timelog_end
   cd ${LOCALDIR}/WRFV3/run || exit
     #------------------------------------------------------------------
@@ -290,8 +291,10 @@ else
         mv rsl.* rsl_real/
         mv rsl_real ${logdir}/
       fi
-      rm -f met_em*
-      rm -f ../../WPS/met_em*
+      if test "${clean_after_run}" -eq 1; then
+        rm -f met_em*
+        rm -f ../../WPS/met_em*
+      fi
     timelog_end
     #
     #  Upload the wpsout files (create the output structure if necessary):
@@ -320,11 +323,12 @@ cd ${LOCALDIR}/WRFV3/run || exit
     echo $! > wrf.pid
     ${ROOTDIR}/WRFGEL/wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   
-    wait $(cat monitor.pid) || wrf4g_exit ${ERROR_WRF_FAILED}
+    wait $(cat monitor.pid)
   timelog_end
-  # Save the logs
-  test "${LOCALDIR}" != "${ROOTDIR}" && mv ${logdir} ${ROOTDIR}/
   # Clean the heavy stuff
-  rm -f CAM_ABS_DATA wrf[bli]* ${ROOTDIR}/bin/real.exe ${ROOTDIR}/bin/wrf.exe \
+  if test "${clean_after_run}" -eq 1; then
+    rm -f CAM_ABS_DATA wrf[bli]* ${ROOTDIR}/bin/real.exe ${ROOTDIR}/bin/wrf.exe \
         ${ROOTDIR}/bin/metgrid.exe ${ROOTDIR}/bin/ungrib.exe
+  fi
+  wrf4g_exit 0
 cd ${LOCALDIR}

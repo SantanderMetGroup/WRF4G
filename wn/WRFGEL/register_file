@@ -14,7 +14,7 @@ TOO_MANY_DATES=3
 usage="""%prog file_type date [file_name]
 
 Example: %prog rst 1990-01-01_00:00:00 wrfrst_d01_1990-01-01_00:00:00
-         %prog out 1990-01-01_00:00:00 wpsout_d01_1990-01-01_00:00:00
+         %prog out 1990-01-01_00:00:00 wrfout_d01_1990-01-01_00:00:00
          %prog wps 1990-01-01_00:00:00
 
 This command needs that the following environment variables have been established: WRF4G_EXPERIMENT, WRF4G_REALIZATION and WRF4G_CONF_FILE.

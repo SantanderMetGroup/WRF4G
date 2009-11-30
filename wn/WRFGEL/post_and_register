@@ -41,7 +41,15 @@ function do_all(){
       #
       # Do not post process wrfrain, wrfxtrm, ...
       #
-      postprocessor.${postprocessor} $3 >> ${logfile} 2>&1
+      if (ncdump -h ${3} | grep WRF4G_postprocessor) ; then
+        #
+        # Do not postprocess if already postprocessed
+        #
+        echo "$3 was already postprocessed"
+      else
+        postprocessor.${postprocessor} $3 >> ${logfile} 2>&1
+        ncatted -O -a WRF4G_postprocessor,global,o,c,"${postprocessor}" $3
+      fi
     fi
   fi
   #
