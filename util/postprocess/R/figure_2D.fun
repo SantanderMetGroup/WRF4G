@@ -27,10 +27,10 @@ figure2D<-function(field, lcoast, imagename, minval, maxval, colbar,
     dx<-nrow(field)
     dy<-ncol(field)
     stepsval<-(maxval-minval)/4
-    if (imagekind == 'png') {png(imagename)}
-    if (imagekind == 'pdf') {pdf(imagename)}
+    if (imagekind == 'png') {png(imagename,width=480,height=480*dy/dx)}
+    if (imagekind == 'pdf') {pdf(imagename,width=480,height=480*dy/dx)}
     if (imagekind == 'ps') {postscript(imagename, bg="white", horizontal=FALSE,
-      paper="default")}
+      paper="default",width=480,height=480*dy/dx)}
 
     image(field, col=colbar, zlim=c(minval, maxval), xaxs="i", yaxs="i",
       asp=dy/dx, xaxt="n", yaxt="n", bty="n")   
