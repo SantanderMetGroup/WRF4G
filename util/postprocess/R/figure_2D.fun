@@ -1,7 +1,7 @@
 figure2D<-function(field, lcoast, imagename, minval, maxval, colbar,
   longvarname, barkind, imagekind, show)
 #
-## L. Fita, August (2009), Universidad de Cantabria
+## L. Fita, December (2009), Universidad de Cantabria
 
 ### R function to draw a 2D field via 'image' instruction. Input arguments
 ## [field]: 2D field to be drawn (in matix form)

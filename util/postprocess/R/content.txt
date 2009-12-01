@@ -9,5 +9,8 @@ domaindef.fun: R function to obtain wrf domain information
 figure2D.fun: R function to draw a 2D field via 'image' instruction
 info_netcdf_var.fun: R function that gives information from certain variables
    of a netcdf file
+num_String.fun: R function to transform a number to a character String (filling
+  with zeros) 
+variablesSTATS.fun 
 
 .R___________________
