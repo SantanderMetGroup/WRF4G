@@ -1,4 +1,4 @@
-******* Content of 'R'
+******* Content of 'util/postprocess/R'
 
 .fun_______________
 arrows2.fun: R function to draw a 2D vector field via 'arrows' instruction

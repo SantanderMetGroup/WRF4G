@@ -36,7 +36,7 @@ figure2D<-function(field, lcoast, imagename, minval, maxval, colbar,
       asp=dy/dx, xaxt="n", yaxt="n", bty="n")   
     contour(field, col="black", nlevels=10, zlim=c(minval, maxval),
       drawlabels=TRUE, asp=dy/dx, add=TRUE)
-    if (lcoast != 'notdrawn') {
+    if (is(lcoast)[[1]] != 'character') {
     contour(lcoast, col="gray", nlevels=1, drawlabels=FALSE, asp=dy/dx,
       add=TRUE)}
     par(xpd=NA)
