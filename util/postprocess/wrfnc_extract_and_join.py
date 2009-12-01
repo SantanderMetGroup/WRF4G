@@ -404,6 +404,16 @@ if __name__ == "__main__":
         uer, ver = rotate_lcc_wind(u,v, onclat[:,:], onclon[:,:], inc.CEN_LON, inc.TRUELAT1, inc.TRUELAT2)
         exec("incvar=%s" % varname[0].lower()) # muy cerdo
         exec("copyval=%ser" % varname[0].lower()) # muy cerdo
+        copyval = reshape(incvar[:nrecords], incvar.shape[:1]+(1,)+incvar.shape[1:])
+        oncvar = get_oncvar(itime, incvar, onc, screenvar_at_10m=True)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname in ["U10MER", "V10MER"]:
+        u = inc.variables["U10MEAN"]
+        v = inc.variables["V10MEAN"]
+        uer, ver = rotate_lcc_wind(u,v, onclat[:,:], onclon[:,:], inc.CEN_LON, inc.TRUELAT1, inc.TRUELAT2)
+        exec("incvar=%s" % varname[0].lower()) # muy cerdo
+        exec("copyval=%ser" % varname[0].lower()) # muy cerdo
+        copyval = reshape(incvar[:nrecords], incvar.shape[:1]+(1,)+incvar.shape[1:])
         oncvar = get_oncvar(itime, incvar, onc, screenvar_at_10m=True)
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       elif varname == "WIND":

@@ -11,6 +11,8 @@ RAIN     pr       "Precipitation"             "precipitation_amount"            
 WIND     wspd     "wind speed"                "wind speed"                            "m s-1"   1 0
 U10ER    uas      "Eastward surface wind"     "eastward_wind"                         "m s-1"   1 0
 V10ER    vas      "Northward surface wind"    "northward_wind"                        "m s-1"   1 0
+U10MER   uas      "Mean eastward surface wind" "eastward_wind"                        "m s-1"   1 0
+V10MER   vas      "Mean northward surface wind" "northward_wind"                      "m s-1"   1 0
 PRES     pres     "Air pressure"              "air_pressure"                          "Pa"      1 0
 GEOP     geop     "Geopotential"              "geopotential"                          "m2 s-2"  1 0
 TEMP     t        "Air temperature"           "air_temperature"                       "K"       1 0
