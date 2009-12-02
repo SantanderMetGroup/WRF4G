@@ -114,8 +114,12 @@ def charr2str(carr):
   return "".join(carr.tolist())
 
 def str2offset(str, basedate):
-  diff = datetime.strptime(str, '%Y-%m-%d_%H:%M:%S') - basedate
-  return diff.days*24 + diff.seconds/3600.
+  if str == "0000-00-00_00:00:00":
+    rval = 0
+  else:
+    diff = datetime.strptime(str, '%Y-%m-%d_%H:%M:%S') - basedate
+    rval = diff.days*24 + diff.seconds/3600.
+  return rval
 
 def discard_suspect_files(filelist, criteria='uncommon_size'):
   total_items = len(filelist)
@@ -290,8 +294,6 @@ def get_oncvar(itime, incvar, onc, out_is_2D_but_in_3D=False, screenvar_at_2m=Fa
     # Otherwise, just retrieve the variable handler
     oncvar = onc.variables[vars[varname].standard_abbr]
   return oncvar
- 
-
 
 if __name__ == "__main__":
   import pdb
@@ -367,6 +369,11 @@ if __name__ == "__main__":
     files = args
   vars = opt.vars.split(',')
   vars = stdvars(vars, opt.vtable)
+  is_geofile = False
+  if not files and opt.geofile:
+    print "No input files provided. Trying to find the variables in the geo_em file provided."
+    files = [opt.geofile,]
+    is_geofile = True
   #
   #  Clone the structure of the netcdf file and get the initial time from the first file.
   #
