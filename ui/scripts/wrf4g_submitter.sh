@@ -193,7 +193,7 @@ rm -f pids.${experiment_name}
 #  Initial override of namelist values
 #
 if ! is_dry_run; then 
-  cp ${wrf4g_root}/wn/WRFV3/run/namelist.input ${userdir}/namelist.input.base
+  cp ${wrf4g_root}/wn/WRFV3/test/em_real/namelist.input ${userdir}/namelist.input.base
   fortnml -wof namelist.input.base -s max_dom ${max_dom}
   for var in $(get_ni_vars); do
     fnvar=${var/__/@}
