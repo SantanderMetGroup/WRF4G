@@ -14,7 +14,8 @@ arrows2D<-function(imgname, u, v, units, lcoast, scale, lngth, every, colorv,
 ## [lngth]: length of arrows
 ## [every]: frequency of plotting arrows
 ## [colorv]: color of arrows
-## [imgkind]: kind of image: 'pdf', 'png', 'ps'
+## [imgkind]: kind of image: 'pdf', 'png', 'ps', 'jpg'
+## [imgsize]: size in pixels of x dimension y dimension as imgsize*dy/dx
 ## [show]: Wheter figure should be shown (1: yes, rest: no)
 
 ## Output given figure as [imgname]
@@ -22,12 +23,17 @@ arrows2D<-function(imgname, u, v, units, lcoast, scale, lngth, every, colorv,
 ####################################################
 { 
 
-  if (imagekind == 'png') {png(imgname)}
-  if (imagekind == 'pdf') {pdf(imgname)}
-  if (imagekind == 'ps') {postscript(imgname, bg="white", horizontal=FALSE,
-      paper="default")}
   dx<-nrow(u)
   dy<-ncol(u)
+
+  if (imagekind == 'jpg') {jpeg(imgname, bg="white", width=imgsize,
+    height=imgsize*dy/dx)}
+  if (imagekind == 'pdf') {pdf(imgname, bg="white", width=imgsize,
+    height=imgsize*dy/dx)}
+  if (imagekind == 'png') {png(imgname, bg="white", width=imgsize,
+    height=imgsize*dy/dx)}
+  if (imagekind == 'ps') {postscript(imgname, bg="white", horizontal=FALSE,
+      paper="default", width=imgsize, height=imgsize*dy/dx)}
   ptsx<-seq(1,dx,every)
   ptsy<-seq(1,dy,every)
   speed<-sqrt(u**2+v**2)
@@ -40,19 +46,23 @@ arrows2D<-function(imgname, u, v, units, lcoast, scale, lngth, every, colorv,
   dy_v<-ypos+vnorm*scale*lngth/dy
   TITmaxwind<-paste('max. wind:',sprintf("%5.3f",maxspeed),units,sep=" ")  
   
-  if (is(lcoast)[[1]] != 'character')
-  contour(lcoast,col="black", nlevels=1, drawlabels=FALSE, xaxt="n", xaxs="i",
-    yaxt="n", yaxs="i", bty="n", main=TITmaxwind, asp=dy/dx) 
-  else
-  plot(xpos[ptsx,ptsy],  ypos[ptsx,ptsy], type="p", cex=0.01)
+  if (is(lcoast)[[1]] != 'character'){
+  contour(lcoast, col="black", nlevels=1, drawlabels=FALSE, xaxt="n", xaxs="i",
+    yaxt="n", yaxs="i", bty="n", main=TITmaxwind, cex.main=4, lwd=imgsize/480,
+    cex=imgsize/480, asp=dy/dx)}
+  else {
+  plot(xpos[ptsx,ptsy], ypos[ptsx,ptsy], type="p", xaxt="n", xaxs="i", yaxt="n",
+    yaxs="i", bty="n", xlab="", ylab="", main=TITmaxwind, cex.main=4,
+    cex=imgsize/480, asp=dy/dx)} 
   arrows(xpos[ptsx,ptsy],  ypos[ptsx,ptsy], dx_u[ptsx,ptsy], dy_v[ptsx,ptsy],
-    col=colorv, lwd=2,
-    length=4*scale*lngth*speed[ptsx,ptsy]/(maxspeed*sqrt(dx**2+dy**2)))  
+    col=colorv, lwd=imgsize*4/480, length=imgsize*4/480*scale*lngth*speed[ptsx,
+    ptsy]/(maxspeed*sqrt(dx**2+dy**2)))   
   dev.off()
 
   if (show==1) {
-    if (imagekind == 'png') {viewer<-'display'}
+    if (imagekind == 'spg') {viewer<-'display'}
     if (imagekind == 'pdf') {viewer<-'xpdf'}
+    if (imagekind == 'png') {viewer<-'display'}
     if (imagekind == 'ps') {viewer<-'display'}
     
     instruction<-paste(viewer, imgname, '&', sep=" ")

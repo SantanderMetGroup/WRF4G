@@ -11,6 +11,7 @@ info_netcdf_var.fun: R function that gives information from certain variables
    of a netcdf file
 num_String.fun: R function to transform a number to a character String (filling
   with zeros) 
-variablesSTATS.fun 
+variablesSTATS.fun: R function to give variable information (margins, colorbar,
+  units, ...) of a CLWRF extreme-statistical 2D variable
 
 .R___________________
