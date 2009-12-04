@@ -1,5 +1,5 @@
 arrows2D<-function(imgname, u, v, units, lcoast, scale, lngth, every, colorv,
-  imagekind, show)
+  imagekind, imgsize, show)
 #
 ## L. Fita, December (2009), Universidad de Cantabria
 
@@ -48,22 +48,22 @@ arrows2D<-function(imgname, u, v, units, lcoast, scale, lngth, every, colorv,
   
   if (is(lcoast)[[1]] != 'character'){
   contour(lcoast, col="black", nlevels=1, drawlabels=FALSE, xaxt="n", xaxs="i",
-    yaxt="n", yaxs="i", bty="n", main=TITmaxwind, cex.main=4, lwd=imgsize/480,
+    yaxt="n", yaxs="i", bty="n", main=TITmaxwind, cex.main=2, lwd=imgsize/480,
     cex=imgsize/480, asp=dy/dx)}
   else {
   plot(xpos[ptsx,ptsy], ypos[ptsx,ptsy], type="p", xaxt="n", xaxs="i", yaxt="n",
-    yaxs="i", bty="n", xlab="", ylab="", main=TITmaxwind, cex.main=4,
+    yaxs="i", bty="n", xlab="", ylab="", main=TITmaxwind, cex.main=2, col="white",
     cex=imgsize/480, asp=dy/dx)} 
   arrows(xpos[ptsx,ptsy],  ypos[ptsx,ptsy], dx_u[ptsx,ptsy], dy_v[ptsx,ptsy],
-    col=colorv, lwd=imgsize*4/480, length=imgsize*4/480*scale*lngth*speed[ptsx,
-    ptsy]/(maxspeed*sqrt(dx**2+dy**2)))   
+    col=colorv, lwd=0.75*imgsize/480, length=0.75*lngth/sqrt(dx**2+dy**2))   
+
   dev.off()
 
   if (show==1) {
     if (imagekind == 'spg') {viewer<-'display'}
     if (imagekind == 'pdf') {viewer<-'xpdf'}
     if (imagekind == 'png') {viewer<-'display'}
-    if (imagekind == 'ps') {viewer<-'display'}
+    if (imagekind == 'ps')  {viewer<-'display'}
     
     instruction<-paste(viewer, imgname, '&', sep=" ")
     system(instruction)}
