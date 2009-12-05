@@ -14,8 +14,8 @@ numString<-function(num,Nchar)
   numS<-toString(num)
   NnumS<-nchar(numS)
   if (NnumS < Nchar) {
-    result<-'0'
-    for (ichar in 1:(Nchar-NnumS-1)){
+    result<-''
+    for (ichar in 1:(Nchar-NnumS)){
     result<-paste('0', result, sep="")}
     result<-paste(result, numS, sep="")}
   else {
