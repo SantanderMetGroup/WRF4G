@@ -41,7 +41,7 @@ dataTOT<-cbind(data[,1],numTS,data[,c(2,3)])
 writeLines(c('#-----------------------------------------------#',
 '# 24 characters for name | pfx |  LAT  |   LON  |',
 '#-----------------------------------------------#'),'tslist')
-write.table(cbind(sprintf("%-24s",dataTOT[,1]), sprintf("T/%3s  ",dataTOT[,2]),
+write.table(cbind(sprintf("%-25s",dataTOT[,1]), sprintf("T/%3s",dataTOT[,2]),
   sprintf("%7.3f",as.real(dataTOT[,4])),
-  sprintf("%7.3f",as.real(dataTOT[,3]))), file='tslist', row.names=FALSE,
+  sprintf("%8.3f",as.real(dataTOT[,3]))), file='tslist', row.names=FALSE,
   col.names=FALSE, quote=FALSE, append=TRUE)  
