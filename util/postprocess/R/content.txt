@@ -15,3 +15,4 @@ variablesSTATS.fun: R function to give variable information (margins, colorbar,
   units, ...) of a CLWRF extreme-statistical 2D variable
 
 .R___________________
+create.tslist: Create a 'tslist' file from a csv statinos list
