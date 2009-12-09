@@ -20,5 +20,5 @@ if ! which ncks; then
   cd ${thisdir}
 fi
 
-ncks -O -v P,PB,T,QVAPOR,ZNU,Q2,T2,PSFC,U10,V10,RAINC,RAINNC,Times "${wrfnc_file}" tmp.nc
+ncks -O -v U,V,W,PH,PHB,P,PB,T,QVAPOR,ZNU,ZNW,Q2,T2,TH2,PSFC,U10,V10,RAINC,RAINNC,SNOWNC,SWDOWN,UST,PBLH,HFX,QFX,LH,Times "${wrfnc_file}" tmp.nc
 mv tmp.nc "${wrfnc_file}"
