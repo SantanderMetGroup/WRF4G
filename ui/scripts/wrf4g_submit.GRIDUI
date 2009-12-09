@@ -29,7 +29,7 @@ if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
   nodflag="-pe mpi ${slots}"
   echo "LAUNCHER_METGRID=\"\""                 >> wrf.chunk
   echo "LAUNCHER_REAL=\"\""                    >> wrf.chunk
-  echo "LAUNCHER_WRF=\"$mpiexec -np ${PROCESSES_PER_NODE} -machine ./wrf_gms\"" >> wrf.chunk
+  echo "LAUNCHER_WRF=\"$mpiexec -np ${PROCESSES_PER_NODE} -machinefile wrf_gms \"" >> wrf.chunk
   echo "export P4_GLOBMEMSIZE=67108864" >> wrf.chunk
 else
   nodflag=""
@@ -37,6 +37,8 @@ else
   echo "LAUNCHER_REAL=\"\""              >> wrf.chunk
   echo "LAUNCHER_WRF=\"\""               >> wrf.chunk
 fi
+rootbuild=`pwd`
+walltimeflag="-l h_rt=10"
 eoflag="-e $PWD/error -o $PWD/output" 
 rundir=${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
 #
@@ -55,8 +57,12 @@ test -d ${rundir} && mv ${rundir} ${oldrundir}
 #
 command="cd ${rundir}"
 echo -e "2i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
-command="cat \$PE_HOSTFILE | awk '{print $1":"$2}' > ${rundir}/wrf_gms"
-echo -e "2i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
+command="cat \$PE_HOSTFILE | awk '{print \$1\":\"\$2}' >& ${rundir}/WRFV3/run/wrf_gms"
+echo -e "64i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
+command="cat \$PE_HOSTFILE | awk '{print \$1\":\"\$2}'"
+echo -e "4i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
+command="echo \"LAUNCHER_WRF: \"\${LAUNCHER_WRF}"
+echo -e "5i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
 #
 #   Pack the sandbox
 #
@@ -70,4 +76,6 @@ cp -L WRF4G_ini.sh   ${rundir}/
 
 ##cat $PE_HOSTFILE | awk '{print $1":"$2}' > ${rundir}/wrf_gms
 
+echo "-S /bin/bash -N "${WRF4G_REALIZATION}" -P l.meteo "${depflag}" "${nodflag}" "${walltimeflag}" "${eoflag}" "$jobfile >> ${rootbuild}/wrf.chunk 
 qsub -S /bin/bash -N "${WRF4G_REALIZATION}" -P l.meteo ${depflag} ${nodflag} ${eoflag} $jobfile | awk '{print $3}'
+##qsub -S /bin/bash -N "${WRF4G_REALIZATION}" -P l.meteo ${depflag} ${nodflag} ${walltimeflag} ${eoflag} $jobfile | awk '{print $3}'
