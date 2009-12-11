@@ -2,19 +2,30 @@
 
 doit=""
 
-if test ! -e ../../wrf.input; then
+if test ! -e ../../rootdir; then
   echo "You don't seem to be in a WRFV3/run directory... ciao!"
   exit
+else
+  ROOTDIR=$(cat ../../rootdir)
 fi
 
-sed -e 's/\ *=\ */=/' ../../wrf.input > source.it  || exit ${ERROR_MISSING_WRFINPUT}
-source source.it && rm source.it
-sed -e 's/\ *=\ */=/' ../../wrf.chunk > source.it  || exit ${ERROR_MISSING_WRFCHUNK}
-source source.it && rm source.it
-export WRF4G_CONF_FILE="../../wrf4g.conf"
+TMPFILE=/tmp/source.it
+
+source ${ROOTDIR}/lib/bash/wrf_util.sh
+source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
+
+sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.input > ${TMPFILE}  || exit ${ERROR_MISSING_WRFINPUT}
+source ${TMPFILE} && rm ${TMPFILE}
+sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.chunk > ${TMPFILE}  || exit ${ERROR_MISSING_WRFCHUNK}
+source ${TMPFILE} && rm ${TMPFILE}
+
+export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
 export WRF4G_EXPERIMENT="${experiment_name}"
 export WRF4G_REALIZATION="${realization_name}"
-export PATH="../../WRFGEL:$PATH"
+export PATH="${ROOTDIR}/bin:${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
+export LD_LIBRARY_PATH="${ROOTDIR}/lib/shared_libs:${LD_LIBRARY_PATH}"
+
+mkdir -p ../../log
 
 for f in wrfout*; do
   if test "$f" != 'wrfout*'; then

@@ -93,6 +93,14 @@ function clean_all(){
       done
     done
   done
+  # Upload the final time series
+  if test -f tslist; then
+    ofile="wrfts_$(date_wrf2iso ${chunk_restart_date}).tar.gz"
+    cd T/
+      tar czf ../${ofile} *.TS
+    cd ..
+    register_file -v ts $2 ${ofile} >> ${logfile} 2>&1
+  fi
 }
 
 while true
