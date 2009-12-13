@@ -20,5 +20,13 @@ if ! which ncks; then
   cd ${thisdir}
 fi
 
-ncks -O -v P,PB,T,QVAPOR,ZNU,Q2,T2,PSFC,U10,V10,RAINC,RAINNC,Times "${wrfnc_file}" tmp.nc
-mv tmp.nc "${wrfnc_file}"
+ncks -O -v P,PB,PH,PHB,T,QVAPOR,ZNU,Q2,T2,PSFC,U10,V10,RAINC,RAINNC,Times "${wrfnc_file}" tmp.nc
+#
+# This makes the output file much smaller. However, it cannot be processed by
+# the standard p_interp anymore since the P-PB and PH-PHB fields are already
+# summed up
+#
+#ncap -O -s 'PTOT=P+PB;PHTOT=PH+PHB;RAINTOT=RAINC+RAINNC' tmp.nc tmp2.nc
+#ncks -O -x -v P,PB,PH,PHB,RAINC,RAINNC tmp2.nc "${wrfnc_file}"
+#rm tmp.nc tmp2.nc     ###############
+mv tmp.nc "${wrfnc_file}"            #

@@ -53,7 +53,11 @@ function if_not_dry(){
 function rematch(){
   pattern=$1
   string=$2
-  echo "$string" | grep -Eq "^${pattern}$"
+  if test "${pattern:0:10}" = "from_file:"; then
+    grep -q "$string" $(echo ${pattern} | sed -e 's/from_file://')
+  else
+    echo "$string" | grep -Eq "^${pattern}$"
+  fi
 }
 
 function cycle_chunks(){
