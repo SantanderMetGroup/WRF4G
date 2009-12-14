@@ -100,8 +100,10 @@
       LOGICAL                                            :: fix_meta_stag=.FALSE.
       LOGICAL                                            :: bit64=.FALSE.
       LOGICAL                                            :: first=.TRUE.
-      REAL, ALLOCATABLE, DIMENSION(:,:,:)                :: field_2dout
-
+! GMS.UC:Lluis Dec.09
+      REAL, ALLOCATABLE, DIMENSION(:,:,:)                :: field2d_out
+      INTEGER, DIMENSION(3)                              :: jshape2d
+      INTEGER, DIMENSION(4)                              :: dims2d_out
       NAMELIST /io/ path_to_input, input_name, path_to_output, output_name, &
                     process, fields, debug, bit64
       NAMELIST /interp_in/ interp_levels, interp_method, extrapolate, unstagger_grid
@@ -711,8 +713,7 @@ rcode = nf_enddef(mcid)
   
         ENDDO loop_variables
 
-
-!!! We have some special variables we are interested in: PRES, TT, GHT
+!!! We have some special variables we are interested in: PRES, TT, GHT, MSLP
         IF ( debug ) print*," "
         IF ( debug ) print*,"Calculatng some diagnostics"
            
@@ -743,6 +744,30 @@ rcode = nf_enddef(mcid)
         ENDDO
 
         interpolate = .TRUE.
+
+! GMS.UC:Lluis Dec.09
+
+        IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'MSLP') /= 0 ) THEN
+          PRINT *,'Computing and Writting Mean Sea Level pressure'
+          !!! MSLP 
+!           start2d_dims=1
+           jshape2d=RESHAPE((/jshape(1),jshape(2),jshape(4)/),(/3/))
+           dims2d_out=RESHAPE((/dims_out(1),dims_out(2),dims_out(4),1/),(/4/))
+           jvar = jvar + 1
+           CALL def_var (mcid, jvar, "MSLP", 5, 3, jshape2d, "XY", "Mean Sea lev. pres.", "Pa", "-", "XLONG XLAT")
+           IF (debug) THEN
+             write(6,*) 'VAR: MSLP'
+             write(6,*) '     DIMS OUT: ',dims_out
+           ENDIF
+           ALLOCATE (data2(dims_out(1), dims_out(2), dims_out(4), 1))
+           data2=0.
+           CALL mean_sealevelpress(data2, pres_field, interp_levels, psfc, ter, tk, qv,       &
+                          iweg-1, isng-1, ibtg-1, dims_in(4), dims_out(4),                    &          
+                          num_metgrid_levels, LINLOG, extrapolate, MISSING)
+           rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data2)
+           IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data2(dims_out(1)/2,dims_out(2)/2,1,1)
+        DEALLOCATE(data2)
+        ENDIF
 
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'PRES') /= 0 ) THEN
            !!! PRES
@@ -973,8 +998,96 @@ rcode = nf_enddef(mcid)
 
  END SUBROUTINE interp 
 !------------------------------------------------------------------------------
-!------------------------------------------------------------------------------
 ! GMS.UC: Lluis
+!------------------------------------------------------------------------------
+ SUBROUTINE mean_sealevelpress (data_out, pres_field, interp_levels, psfc, ter, tk, qv, ix, iy, iz, it, ito, &
+                     num_metgrid_levels, LINLOG, extrapolate, MISSING)
+! New subroutine to compute mean_sealevel pressure values 
+
+     INTEGER, INTENT(IN)                                           :: ix, iy, iz, it, ito
+     INTEGER, INTENT(IN)                                           :: num_metgrid_levels, LINLOG
+     REAL, DIMENSION(ix, iy, ito, 1), INTENT(OUT)                  :: data_out
+!     REAL, DIMENSION(ix, iy, iz, ito), INTENT(IN)                  :: data_in
+     REAL, DIMENSION(ix, iy, iz, ito), INTENT(IN)                  :: pres_field, tk, qv
+     REAL, DIMENSION(ix, iy, ito), INTENT(IN)                      :: psfc
+     REAL, DIMENSION(ix, iy), INTENT(IN)                           :: ter
+     REAL, DIMENSION(num_metgrid_levels), INTENT(IN)               :: interp_levels
+
+     INTEGER                                                       :: i, j, itt, k, kk, kin
+     REAL, DIMENSION(num_metgrid_levels)                           :: data_out1D
+     REAL, DIMENSION(iz)                                           :: data_in1D, pres_field1D
+     INTEGER, INTENT(IN)                                           :: extrapolate
+     REAL, INTENT(IN)                                              :: MISSING
+     REAL, DIMENSION(ix, iy, num_metgrid_levels, it)               :: N
+     REAL                                                          :: sumA, sumN, AVE_geopt
+!     LOGICAL, INTENT(IN)                                           :: GEOPT
+
+     N = 1.0
+
+     expon=287.04*.0065/9.81
+
+     ! Fill in missing values
+     IF ( extrapolate == 0 ) RETURN       !! no extrapolation - we are out of here
+
+     ! First find where about 400 hPa is located
+     kk = 0
+     find_kk : do k = 1, num_metgrid_levels
+        kk = k
+        if ( interp_levels(k) <= 40000. ) exit find_kk
+     end do find_kk
+
+     data_out=0.
+     do itt = 1, ito
+       do j = 1, iy
+       do i = 1, ix
+
+!                We are below both the ground and the lowest data level.
+
+!                First, find the model level that is closest to a "target" pressure
+!                level, where the "target" pressure is delta-p less that the local
+!                value of a horizontally smoothed surface pressure field.  We use
+!                delta-p = 150 hPa here. A standard lapse rate temperature profile
+!                passing through the temperature at this model level will be used
+!                to define the temperature profile below ground.  This is similar
+!                to the Benjamin and Miller (1990) method, except that for
+!                simplicity, they used 700 hPa everywhere for the "target" pressure.
+!                Code similar to what is implemented in RIP4
+
+         ptarget = (psfc(i,j,itt)*.01) - 150.
+         dpmin=1.e4
+         kupper = 0
+         loop_kIN : do kin=iz,1,-1
+           kupper = kin
+           dp=abs( (pres_field(i,j,kin,itt)*.01) - ptarget )
+           if (dp.gt.dpmin) exit loop_kIN
+             dpmin=min(dpmin,dp)
+           enddo loop_kIN
+         ptarget=ptarget*100.
+!         pbot=max(pres_field(i,j,1,itt),psfc(i,j,itt))
+!         zbot=0.
+
+!         tbotextrap=tk(i,j,kupper,itt)*(pbot/pres_field(i,j,kupper,itt))**expon
+!         tvbotextrap=virtual(tbotextrap,qv(i,j,1,itt))
+
+!         data_out(i,j,itt,1) = (zbot+tvbotextrap/.0065*(1.-(interp_levels(1)/pbot)**expon))
+         tbotextrap=tk(i,j,kupper,itt)*(psfc(i,j,itt)/ptarget)**expon
+         tvbotextrap=virtual(tbotextrap,qv(i,j,kupper,itt))
+         data_out(i,j,itt,1) = psfc(i,j,itt)*((tvbotextrap+0.0065*ter(i,j))/tvbotextrap)**(1/expon)
+         IF (i==ix/2 .AND. j==iy/2 ) THEN
+           PRINT *,itt,' ptarget',ptarget,'kupper:',kupper
+           PRINT *,'tk:',tk(i,j,kupper,itt),'psfc:',psfc(i,j,itt)
+           PRINT *,'tbot:',tbotextrap,'tvbot:',tvbotextrap,'ter:',ter(i,j)
+           PRINT *,'qv:',qv(i,j,kupper,itt),'mslp:',data_out(i,j,itt,1)
+         ENDIF
+
+       enddo
+       enddo
+     enddo
+
+ END SUBROUTINE mean_sealevelpress 
+
+!------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 ! New subroutine with ito (from dims_out(4)) as a supplementary value, since it was not correctly obtained as 
 ! dims_in(4)
  SUBROUTINE interpdiag (data_out, data_in, pres_field, interp_levels, psfc, ter, tk, qv, ix, iy, iz, it, ito, &
