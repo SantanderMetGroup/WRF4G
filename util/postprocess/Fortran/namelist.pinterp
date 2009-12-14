@@ -1,0 +1,31 @@
+&io
+ path_to_input = './DATA'
+ input_name = 'wrfout_d01_2000-01*00'
+ path_to_output = './OUT'
+ process = 'all'
+ fields = 'PRES,TT,GHT,HGT'
+/
+ debug = .TRUE.
+ bit64 = .TRUE.
+
+! process can be "all", "list", "all_list"
+!	"all" - process all fields in file
+!		diagnostics PRES, TT, GHT, RH are also calculated
+!   	"list" - list fields required in "fields"
+!   		avaliable diagnostics are PRES, TT, GHT, RH
+
+&interp_in
+ interp_levels = 1000.,987.5,975.,962.5,950.,937.5,925., 
+                 900.,875.,850.,825.,800.,750.,700.,650.,  
+                 600.,550.,500.,450.,400.,350.,300.,250., 
+                 225.,200.,175.,150.,137.5,125.,112.5,100., 
+                 87.5,75.,62.5,50.,37.5,25.,12.5,
+/
+ extrapolate = 1,
+ interp_method = 2,
+ unstagger_grid = .TRUE.
+
+ extrapolate = 0    ;; set values below ground and above model top to missing (default)
+ extrapolate = 1    ;; extrapolate below ground, and set above model top to model top values
+ interp_method = 1  ;; linear in p interpolation (default)
+ interp_method = 2  ;; linear in log p interpolation
