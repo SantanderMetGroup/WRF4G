@@ -100,6 +100,7 @@
       LOGICAL                                            :: fix_meta_stag=.FALSE.
       LOGICAL                                            :: bit64=.FALSE.
       LOGICAL                                            :: first=.TRUE.
+      REAL, ALLOCATABLE, DIMENSION(:,:,:)                :: field_2dout
 
       NAMELIST /io/ path_to_input, input_name, path_to_output, output_name, &
                     process, fields, debug, bit64
@@ -455,6 +456,7 @@ rcode = nf_enddef(mcid)
          rcode = nf_get_var_real ( ncid, i, phb )
          data1 = (data1 + phb) 
          ght(:,:,1:ibtg-1,:) = ( data1(:,:,1:ibtg-1,:) + data1(:,:,2:ibtg,:) )*.5
+
          deallocate (data1)
          deallocate (phb)
 
@@ -742,7 +744,6 @@ rcode = nf_enddef(mcid)
 
         interpolate = .TRUE.
 
-
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'PRES') /= 0 ) THEN
            !!! PRES
            jvar = jvar + 1
@@ -764,8 +765,9 @@ rcode = nf_enddef(mcid)
              write(6,*) '     DIMS OUT: ',dims_out
            ENDIF
            allocate (data2(dims_out(1),dims_out(2),dims_out(3),dims_out(4)))
-           CALL interp (data2, tk, pres_field, interp_levels, psfc, ter, tk, qv,   &
-                          iweg-1, isng-1, ibtg-1, dims_in(4), &          
+! GMS.UC:Lluis Dec.09
+           CALL interpdiag (data2, tk, pres_field, interp_levels, psfc, ter, tk, qv,   &
+                          iweg-1, isng-1, ibtg-1, dims_in(4), dims_out(4), &          
                           num_metgrid_levels, LINLOG, extrapolate, .FALSE., MISSING)
            rcode = nf_put_vara_real (mcid, jvar, start_dims, dims_out, data2)
            IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data2(dims_out(1)/2,dims_out(2)/2,1,1)
@@ -781,8 +783,9 @@ rcode = nf_enddef(mcid)
              write(6,*) '     DIMS OUT: ',dims_out
            ENDIF
            allocate (data2(dims_out(1),dims_out(2),dims_out(3),dims_out(4)))
-           CALL interp (data2, ght, pres_field, interp_levels, psfc, ter, tk, qv,   &
-                          iweg-1, isng-1, ibtg-1, dims_in(4), &          
+! GMS.UC:Lluis Dec.09
+           CALL interpdiag (data2, ght, pres_field, interp_levels, psfc, ter, tk, qv,   &
+                          iweg-1, isng-1, ibtg-1, dims_in(4), dims_out(4), &          
                           num_metgrid_levels, LINLOG, extrapolate, .TRUE., MISSING)
            data2 = data2/9.81
            rcode = nf_put_vara_real (mcid, jvar, start_dims, dims_out, data2)
@@ -799,8 +802,9 @@ rcode = nf_enddef(mcid)
              write(6,*) '     DIMS OUT: ',dims_out
            ENDIF
            allocate (data2(dims_out(1),dims_out(2),dims_out(3),dims_out(4)))
-           CALL interp (data2, rh, pres_field, interp_levels, psfc, ter, tk, qv,   &
-                          iweg-1, isng-1, ibtg-1, dims_in(4), &          
+! GMS.UC:Lluis Dec.09
+           CALL interpdiag (data2, rh, pres_field, interp_levels, psfc, ter, tk, qv,   &
+                          iweg-1, isng-1, ibtg-1, dims_in(4), dims_out(4), &          
                           num_metgrid_levels, LINLOG, extrapolate, .FALSE., MISSING)
            WHERE ( rh < 0.0 ) 
               rh = 0.0
@@ -968,6 +972,128 @@ rcode = nf_enddef(mcid)
        
 
  END SUBROUTINE interp 
+!------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+! GMS.UC: Lluis
+! New subroutine with ito (from dims_out(4)) as a supplementary value, since it was not correctly obtained as 
+! dims_in(4)
+ SUBROUTINE interpdiag (data_out, data_in, pres_field, interp_levels, psfc, ter, tk, qv, ix, iy, iz, it, ito, &
+                     num_metgrid_levels, LINLOG, extrapolate, GEOPT, MISSING)
+
+     INTEGER, INTENT(IN)                                           :: ix, iy, iz, it, ito
+     INTEGER, INTENT(IN)                                           :: num_metgrid_levels, LINLOG
+     REAL, DIMENSION(ix, iy, num_metgrid_levels, ito), INTENT(OUT) :: data_out
+     REAL, DIMENSION(ix, iy, iz, ito), INTENT(IN)                  :: data_in
+     REAL, DIMENSION(ix, iy, iz, ito), INTENT(IN)                  :: pres_field, tk, qv
+     REAL, DIMENSION(ix, iy, ito), INTENT(IN)                      :: psfc
+     REAL, DIMENSION(ix, iy), INTENT(IN)                           :: ter
+     REAL, DIMENSION(num_metgrid_levels), INTENT(IN)               :: interp_levels
+
+     INTEGER                                                       :: i, j, itt, k, kk, kin
+     REAL, DIMENSION(num_metgrid_levels)                           :: data_out1D
+     REAL, DIMENSION(iz)                                           :: data_in1D, pres_field1D
+     INTEGER, INTENT(IN)                                           :: extrapolate
+     REAL, INTENT(IN)                                              :: MISSING
+     REAL, DIMENSION(ix, iy, num_metgrid_levels, it)               :: N
+     REAL                                                          :: sumA, sumN, AVE_geopt
+     LOGICAL, INTENT(IN)                                           :: GEOPT
+
+     N = 1.0
+
+     expon=287.04*.0065/9.81
+     do itt = 1, ito
+        do j = 1, iy
+        do i = 1, ix
+           data_in1D(:)    = data_in(i,j,:,itt)
+           pres_field1D(:) = pres_field(i,j,:,itt)
+           CALL int1D (data_out1D, data_in1D, pres_field1D, interp_levels, iz, num_metgrid_levels, LINLOG, MISSING)
+           data_out(i,j,:,itt) = data_out1D(:)
+        end do
+        end do
+     end do
+
+
+     ! Fill in missing values
+     IF ( extrapolate == 0 ) RETURN       !! no extrapolation - we are out of here
+
+     ! First find where about 400 hPa is located
+     kk = 0
+     find_kk : do k = 1, num_metgrid_levels
+        kk = k
+        if ( interp_levels(k) <= 40000. ) exit find_kk
+     end do find_kk
+
+     
+     IF ( GEOPT ) THEN     !! geopt is treated different below ground
+
+        do itt = 1, ito
+           do k = 1, kk
+              do j = 1, iy
+              do i = 1, ix
+                 IF ( data_out(i,j,k,itt) == MISSING .AND. interp_levels(k) < psfc(i,j,itt) ) THEN
+
+!                We are below the first model level, but above the ground 
+
+                    data_out(i,j,k,itt) = ((interp_levels(k) - pres_field(i,j,1,itt))*ter(i,j)*9.81 +  &
+                                           (psfc(i,j,itt) - interp_levels(k))*data_in(i,j,1,itt) ) /   &
+                                          (psfc(i,j,itt) - pres_field(i,j,1,itt))
+
+                 ELSEIF ( data_out(i,j,k,itt) == MISSING ) THEN
+
+!                We are below both the ground and the lowest data level.
+
+!                First, find the model level that is closest to a "target" pressure
+!                level, where the "target" pressure is delta-p less that the local
+!                value of a horizontally smoothed surface pressure field.  We use
+!                delta-p = 150 hPa here. A standard lapse rate temperature profile
+!                passing through the temperature at this model level will be used
+!                to define the temperature profile below ground.  This is similar
+!                to the Benjamin and Miller (1990) method, except that for
+!                simplicity, they used 700 hPa everywhere for the "target" pressure.
+!                Code similar to what is implemented in RIP4
+
+                    ptarget = (psfc(i,j,itt)*.01) - 150.
+                    dpmin=1.e4
+                    kupper = 0
+                    loop_kIN : do kin=iz,1,-1
+                       kupper = kin
+                       dp=abs( (pres_field(i,j,kin,itt)*.01) - ptarget )
+                       if (dp.gt.dpmin) exit loop_kIN
+                       dpmin=min(dpmin,dp)
+                    enddo loop_kIN
+
+                    pbot=max(pres_field(i,j,1,itt),psfc(i,j,itt))
+                    zbot=min(data_in(i,j,1,itt)/9.81,ter(i,j))
+
+                    tbotextrap=tk(i,j,kupper,itt)*(pbot/pres_field(i,j,kupper,itt))**expon
+                    tvbotextrap=virtual(tbotextrap,qv(i,j,1,itt))
+
+                    data_out(i,j,k,itt) = (zbot+tvbotextrap/.0065*(1.-(interp_levels(k)/pbot)**expon))*9.81
+               
+                 ENDIF
+              enddo
+              enddo
+           enddo
+        enddo
+
+     END IF
+
+     !!! All other fields and geopt at higher levels come here
+     do itt = 1, ito
+        do j = 1, iy
+        do i = 1, ix
+          do k = 1, kk
+             if ( data_out(i,j,k,itt) == MISSING ) data_out(i,j,k,itt) = data_in(i,j,1,itt)
+          end do
+          do k = kk+1, num_metgrid_levels
+             if ( data_out(i,j,k,itt) == MISSING ) data_out(i,j,k,itt) = data_in(i,j,iz,itt)
+          end do
+        end do
+        end do
+     end do
+
+ END SUBROUTINE interpdiag
+
 !------------------------------------------------------------------------------
 !--------------------------------------------------------
  SUBROUTINE int1D(xxout, xxin, ppin, ppout, npin, npout, LINLOG, MISSING)
