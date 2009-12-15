@@ -756,8 +756,8 @@ rcode = nf_enddef(mcid)
            jvar = jvar + 1
            CALL def_var (mcid, jvar, "MSLP", 5, 3, jshape2d, "XY", "Mean Sea lev. pres.", "Pa", "-", "XLONG XLAT")
            IF (debug) THEN
-             write(6,*) 'VAR: MSLP'
-             write(6,*) '     DIMS OUT: ',dims_out
+             write(6,*) 'VAR: MSLP idvar:',jvar
+             write(6,*) '     DIMS OUT: ',dims2d_out
            ENDIF
            ALLOCATE (data2(dims_out(1), dims_out(2), dims_out(4), 1))
            data2=0.
@@ -766,7 +766,19 @@ rcode = nf_enddef(mcid)
                           num_metgrid_levels, LINLOG, extrapolate, MISSING)
            rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data2)
            IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data2(dims_out(1)/2,dims_out(2)/2,1,1)
-        DEALLOCATE(data2)
+        !!!! Filtered MSLP
+          jvar = jvar + 1
+          CALL def_var (mcid, jvar, "SLPf", 5, 3, jshape2d, "XY", "MSLP filt. 10t 3x3", "Pa", "-", "XLONG XLAT")
+          IF (ALLOCATED(data3)) DEALLOCATE(data3)
+          ALLOCATE (data3(dims_out(1), dims_out(2), dims_out(4), 1))
+          CALL spatialfiltering(data2,3,10,dims_out(1),dims_out(2),dims_out(4),1,data3)
+          IF (debug) THEN
+            write(6,*) 'VAR: SLPf idvar:',jvar
+            write(6,*) '     DIMS OUT: ',dims2d_out
+          ENDIF
+          rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3)
+          IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
+          DEALLOCATE(data2, data3) 
         ENDIF
 
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'PRES') /= 0 ) THEN
@@ -774,7 +786,7 @@ rcode = nf_enddef(mcid)
            jvar = jvar + 1
            CALL def_var (mcid, jvar, "PRES", 5, 4, jshape, "XZY", "Pressure           ", "Pa", "-", "XLONG XLAT")
            IF (debug) THEN
-             write(6,*) 'VAR: PRES'
+             write(6,*) 'VAR: PRES idvar:',jvar
              write(6,*) '     DIMS OUT: ',dims_out
            ENDIF
            rcode = nf_put_vara_real (mcid, jvar, start_dims, dims_out, pres_out)
@@ -786,7 +798,7 @@ rcode = nf_enddef(mcid)
            jvar = jvar + 1
            CALL def_var (mcid, jvar, "TT  ", 5, 4, jshape, "XZY", "Temperature        ", "K ", "-", "XLONG XLAT")
            IF (debug) THEN
-             write(6,*) 'VAR: TT'
+             write(6,*) 'VAR: TT idvar:',jvar
              write(6,*) '     DIMS OUT: ',dims_out
            ENDIF
            allocate (data2(dims_out(1),dims_out(2),dims_out(3),dims_out(4)))
@@ -804,7 +816,7 @@ rcode = nf_enddef(mcid)
            jvar = jvar + 1
            CALL def_var (mcid, jvar, "GHT ", 5, 4, jshape, "XZY", "Geopotential Height", "m ", "-", "XLONG XLAT")
            IF (debug) THEN
-             write(6,*) 'VAR: GHT'
+             write(6,*) 'VAR: GHT idvar:',jvar
              write(6,*) '     DIMS OUT: ',dims_out
            ENDIF
            allocate (data2(dims_out(1),dims_out(2),dims_out(3),dims_out(4)))
@@ -823,7 +835,7 @@ rcode = nf_enddef(mcid)
            jvar = jvar + 1
            CALL def_var (mcid, jvar, "RH  ", 5, 4, jshape, "XZY", "Relative Humidity  ", "% ", "-", "XLONG XLAT")
            IF (debug) THEN
-             write(6,*) 'VAR: RH'
+             write(6,*) 'VAR: RH idvar:',jvar
              write(6,*) '     DIMS OUT: ',dims_out
            ENDIF
            allocate (data2(dims_out(1),dims_out(2),dims_out(3),dims_out(4)))
@@ -994,11 +1006,53 @@ rcode = nf_enddef(mcid)
         end do
         end do
      end do
-       
 
  END SUBROUTINE interp 
 !------------------------------------------------------------------------------
 ! GMS.UC: Lluis
+!------------------------------------------------------------------------------
+SUBROUTINE spatialfiltering(datain,grid,ntimes,dx,dy,dz,dt,dataout)
+! Subroutine to spatially filter a field via averaging values within boxes of 'grid' (odd) 
+! number of grid points of side 'ntimes' times
+
+IMPLICIT NONE
+
+INTEGER                                                   :: i,j,k,it,igrid, jgrid, itime
+INTEGER, INTENT(IN)                                       :: dx, dy, dz, dt, grid, ntimes
+REAL, DIMENSION(dx,dy,dz,dt), INTENT(IN)                  :: datain
+REAL, DIMENSION(dx,dy,dz,dt), INTENT(OUT)                 :: dataout
+
+! Filling border values (up grid-1)
+!!
+DO i=0,grid-2
+  dataout(1+i,:,:,:)=datain(1+i,:,:,:)
+  dataout(dx-i,:,:,:)=datain(dx-i,:,:,:)
+  dataout(:,1+i,:,:)=datain(:,1+i,:,:)
+  dataout(:,dy-i,:,:)=datain(:,dy-i,:,:)
+END DO
+
+! Filtering
+!!
+DO itime=1,ntimes
+  DO i=grid,dx-grid+1
+    DO j=grid,dy-grid+1
+      DO k=1,dz
+        DO it=1,dt
+          dataout(i,j,k,it)=0.
+          DO igrid=-grid/2,grid/2
+            DO jgrid=-grid/2, grid/2
+              dataout(i,j,k,it)=dataout(i,j,k,it)+datain(i+igrid,j+jgrid,k,it)
+            ENDDO
+          ENDDO
+          dataout(i,j,k,it)=dataout(i,j,k,it)/(grid*grid)
+        ENDDO
+      ENDDO
+    ENDDO
+  ENDDO
+ENDDO
+
+END SUBROUTINE spatialfiltering
+
 !------------------------------------------------------------------------------
  SUBROUTINE mean_sealevelpress (data_out, pres_field, interp_levels, psfc, ter, tk, qv, ix, iy, iz, it, ito, &
                      num_metgrid_levels, LINLOG, extrapolate, MISSING)
@@ -1014,11 +1068,9 @@ rcode = nf_enddef(mcid)
 
      INTEGER                                                       :: i, j, itt, k, kk, kin
      REAL, DIMENSION(num_metgrid_levels)                           :: data_out1D
-     REAL, DIMENSION(iz)                                           :: data_in1D, pres_field1D
+!     REAL, DIMENSION(iz)                                           :: data_in1D, pres_field1D
      INTEGER, INTENT(IN)                                           :: extrapolate
      REAL, INTENT(IN)                                              :: MISSING
-!     REAL, DIMENSION(ix, iy, num_metgrid_levels, it)               :: N
-!     REAL                                                          :: sumA, sumN, AVE_geopt
 
      N = 1.0
 
@@ -1047,9 +1099,8 @@ rcode = nf_enddef(mcid)
 !                delta-p = 150 hPa here. A standard lapse rate temperature profile
 !                passing through the temperature at this model level will be used
 !                to define the temperature profile below ground.  This is similar
-!                to the Benjamin and Miller (1990) method, except that for
-!                simplicity, they used 700 hPa everywhere for the "target" pressure.
-!                Code similar to what is implemented in RIP4
+!                to the Benjamin and Miller (1990) method, using  
+!                700 hPa everywhere for the "target" pressure.
 
 !         ptarget = (psfc(i,j,itt)*.01) - 150.
          ptarget = 700.
@@ -1072,12 +1123,12 @@ rcode = nf_enddef(mcid)
          tbotextrap=tk(i,j,kupper,itt)*(psfc(i,j,itt)/ptarget)**expon
          tvbotextrap=virtual(tbotextrap,qv(i,j,kupper,itt))
          data_out(i,j,itt,1) = psfc(i,j,itt)*((tvbotextrap+0.0065*ter(i,j))/tvbotextrap)**(1/expon)
-         IF (i==ix/2 .AND. j==iy/2 ) THEN
-           PRINT *,itt,' ptarget',ptarget,'kupper:',kupper
-           PRINT *,'tk:',tk(i,j,kupper,itt),'psfc:',psfc(i,j,itt)
-           PRINT *,'tbot:',tbotextrap,'tvbot:',tvbotextrap,'ter:',ter(i,j)
-           PRINT *,'qv:',qv(i,j,kupper,itt),'mslp:',data_out(i,j,itt,1)
-         ENDIF
+!         IF (i==ix/2 .AND. j==iy/2 ) THEN
+!           PRINT *,itt,' ptarget',ptarget,'kupper:',kupper
+!           PRINT *,'tk:',tk(i,j,kupper,itt),'psfc:',psfc(i,j,itt)
+!           PRINT *,'tbot:',tbotextrap,'tvbot:',tvbotextrap,'ter:',ter(i,j)
+!           PRINT *,'qv:',qv(i,j,kupper,itt),'mslp:',data_out(i,j,itt,1)
+!         ENDIF
 
        enddo
        enddo

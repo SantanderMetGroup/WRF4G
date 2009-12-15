@@ -1,11 +1,13 @@
 &io
- path_to_input = './DATA'
- input_name = 'wrfout_d01_2000-01*00'
- path_to_output = './OUT'
- process = 'all'
- fields = 'PRES,TT,GHT,HGT'
-/
+ path_to_input = '/oceano/gmeteo/users/lluis/bustia/'
+ input_name = 'wrfout_d01_19950725T160000Z.nc'
+ path_to_output = './'
+ process = 'list'
+ fields = 'PRES,TT,GHT,HGT,MSLP,MSLP10'
  debug = .TRUE.
+/
+ input_name = 'wrfout_d01_2001-11-10_00:00:00'
+ process = 'all'
  bit64 = .TRUE.
 
 ! process can be "all", "list", "all_list"
@@ -19,13 +21,13 @@
                  900.,875.,850.,825.,800.,750.,700.,650.,  
                  600.,550.,500.,450.,400.,350.,300.,250., 
                  225.,200.,175.,150.,137.5,125.,112.5,100., 
-                 87.5,75.,62.5,50.,37.5,25.,12.5,
-/
+                 87.5,75.,62.5,50.,
  extrapolate = 1,
- interp_method = 2,
+ interp_method = 1,
+/
  unstagger_grid = .TRUE.
 
- extrapolate = 0    ;; set values below ground and above model top to missing (default)
- extrapolate = 1    ;; extrapolate below ground, and set above model top to model top values
- interp_method = 1  ;; linear in p interpolation (default)
- interp_method = 2  ;; linear in log p interpolation
+# extrapolate = 0    ;; set values below ground and above model top to missing (default)
+# extrapolate = 1    ;; extrapolate below ground, and set above model top to model top values
+# interp_method = 1  ;; linear in p interpolation (default)
+# interp_method = 2  ;; linear in log p interpolation
