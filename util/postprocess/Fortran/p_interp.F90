@@ -1007,7 +1007,6 @@ rcode = nf_enddef(mcid)
      INTEGER, INTENT(IN)                                           :: ix, iy, iz, it, ito
      INTEGER, INTENT(IN)                                           :: num_metgrid_levels, LINLOG
      REAL, DIMENSION(ix, iy, ito, 1), INTENT(OUT)                  :: data_out
-!     REAL, DIMENSION(ix, iy, iz, ito), INTENT(IN)                  :: data_in
      REAL, DIMENSION(ix, iy, iz, ito), INTENT(IN)                  :: pres_field, tk, qv
      REAL, DIMENSION(ix, iy, ito), INTENT(IN)                      :: psfc
      REAL, DIMENSION(ix, iy), INTENT(IN)                           :: ter
@@ -1018,9 +1017,8 @@ rcode = nf_enddef(mcid)
      REAL, DIMENSION(iz)                                           :: data_in1D, pres_field1D
      INTEGER, INTENT(IN)                                           :: extrapolate
      REAL, INTENT(IN)                                              :: MISSING
-     REAL, DIMENSION(ix, iy, num_metgrid_levels, it)               :: N
-     REAL                                                          :: sumA, sumN, AVE_geopt
-!     LOGICAL, INTENT(IN)                                           :: GEOPT
+!     REAL, DIMENSION(ix, iy, num_metgrid_levels, it)               :: N
+!     REAL                                                          :: sumA, sumN, AVE_geopt
 
      N = 1.0
 
@@ -1053,7 +1051,8 @@ rcode = nf_enddef(mcid)
 !                simplicity, they used 700 hPa everywhere for the "target" pressure.
 !                Code similar to what is implemented in RIP4
 
-         ptarget = (psfc(i,j,itt)*.01) - 150.
+!         ptarget = (psfc(i,j,itt)*.01) - 150.
+         ptarget = 700.
          dpmin=1.e4
          kupper = 0
          loop_kIN : do kin=iz,1,-1
