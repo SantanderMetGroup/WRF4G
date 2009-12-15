@@ -1,5 +1,5 @@
 figure2D<-function(field, lcoast, imagename, minval, maxval, colbar,
-  longvarname, barkind, imagekind, show)
+  longvarname, barkind, imagekind, show, imgsize=480)
 #
 ## L. Fita, December (2009), Universidad de Cantabria
 
@@ -19,7 +19,7 @@ figure2D<-function(field, lcoast, imagename, minval, maxval, colbar,
 ##    ht: Horizontally on top side of figure
 ## [imagekind] Kind of file to record on disk png, pdf or ps.
 ## [show]: Wheter figure should be shown (1: yes, rest: no)
-
+## [imgsize]: size in pixels of x dimension y dimension as imgsize*dy/dx.
 ## Output given figure as [imagename]
 
 ####################################################
@@ -27,10 +27,10 @@ figure2D<-function(field, lcoast, imagename, minval, maxval, colbar,
     dx<-nrow(field)
     dy<-ncol(field)
     stepsval<-(maxval-minval)/4
-    if (imagekind == 'png') {png(imagename,width=480,height=480*dy/dx)}
-    if (imagekind == 'pdf') {pdf(imagename,width=480,height=480*dy/dx)}
+    if (imagekind == 'png') {png(imagename,width=imgsize,height=imgsize*dy/dx)}
+    if (imagekind == 'pdf') {pdf(imagename,width=imgsize,height=imgsize*dy/dx)}
     if (imagekind == 'ps') {postscript(imagename, bg="white", horizontal=FALSE,
-      paper="default",width=480,height=480*dy/dx)}
+      paper="default",width=imgsize,height=imgsize*dy/dx)}
 
     image(field, col=colbar, zlim=c(minval, maxval), xaxs="i", yaxs="i",
       asp=dy/dx, xaxt="n", yaxt="n", bty="n")   
