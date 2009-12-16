@@ -1,13 +1,15 @@
 &io
- path_to_input = '/oceano/gmeteo/users/lluis/bustia/'
- input_name = 'wrfout_d01_19950725T160000Z.nc'
+ path_to_input = './'
+ input_name = 'wrfout_d01_20010102T000000Z.nc'
  path_to_output = './'
- process = 'list'
- fields = 'Q2,T2,GHT,TT,UU,VV,RH,MSLP,PSFC,U10,V10,RAINTOT'
- debug = .TRUE.
- grid_filt = 3
- ntimes_filt = 10
+ process = 'list',
+ fields = 'Q2,T2,TT,UU,VV,RH,MSLP,PSFC,U10,V10,RAINTOT',
+ grid_filt = 3,
+ ntimes_filt = 10,
+ path_to_geofile = '/oceano/gmeteo/DATA/WRF/domains/Europe_15k',
+ geofile = 'geo_em.d01.nc'
 /
+ debug = .TRUE.,
  input_name = 'wrfout_d01_2001-11-10_00:00:00'
  process = 'all'
  bit64 = .TRUE.
@@ -26,6 +28,7 @@
  interp_levels = 1000.,800.,500.,200.,
  extrapolate = 1,
  interp_method = 1,
+ p_top = 50.
 /
  unstagger_grid = .TRUE.
 

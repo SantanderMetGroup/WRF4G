@@ -102,17 +102,21 @@
       LOGICAL                                            :: bit64=.FALSE.
       LOGICAL                                            :: first=.TRUE.
 ! GMS.UC:Lluis Dec.09
+      REAL                                               :: p_top
       REAL, ALLOCATABLE, DIMENSION(:,:,:)                :: field2d_out
       CHARACTER(LEN=11), ALLOCATABLE, DIMENSION(:)       :: varnames
       INTEGER, DIMENSION(3)                              :: jshape2d
       INTEGER, DIMENSION(4)                              :: dims2d_out
       INTEGER                                            :: grid_filt, ntimes_filt
+      INTEGER                                            :: ncgid
+      INTEGER                                            :: ivar1, ivar2
       CHARACTER(LEN=11)                                  :: unitsIN, varnameIN
       CHARACTER(LEN=60)                                  :: longdescIN
+      CHARACTER(LEN=250)                                 :: path_to_geofile, geofile, geofilename
 
       NAMELIST /io/ path_to_input, input_name, path_to_output, output_name,                     &
-        process, fields, debug, bit64, grid_filt, ntimes_filt
-      NAMELIST /interp_in/ interp_levels, interp_method, extrapolate, unstagger_grid
+        process, fields, debug, bit64, grid_filt, ntimes_filt, path_to_geofile, geofile
+      NAMELIST /interp_in/ interp_levels, interp_method, extrapolate, unstagger_grid, p_top
 
       path_to_input   = './'
       path_to_output  = './'
@@ -120,6 +124,7 @@
       interp_levels   = -99999.
       process         = 'all'
 
+      PRINT *,'Debug:',debug
 
       ! Read parameters from Fortran namelist
         DO funit=10,100
@@ -127,7 +132,7 @@
            IF (.not. is_used) EXIT
         END DO
         OPEN(funit,file='namelist.pinterp',status='old',form='formatted',iostat=ios)
-        IF ( ios /= 0 ) STOP "ERROR opening namelits.pinterp"
+        IF ( ios /= 0 ) STOP "ERROR opening namelist.pinterp"
         READ(funit,io)
         READ(funit,interp_in)
         CLOSE(funit)
@@ -146,7 +151,14 @@
         ENDIF
 
         input_name = TRIM(path_to_input)//TRIM(input_name)
+! GMS.UC: Lluis Dec.09
+        ! Geofile name file
+        lent = len_trim(path_to_geofile)
+        IF ( path_to_geofile(lent:lent) /= "/" ) THEN
+           path_to_geofile = TRIM(path_to_geofile)//"/"
+        ENDIF
 
+        geofilename = TRIM(path_to_geofile)//TRIM(geofile)
 
         !  Build a UNIX command, and "ls", of all of the input files 
         loslen = LEN ( command )
@@ -224,7 +236,6 @@
         !   We clean up our own messes.
         CALL SYSTEM ( '/bin/rm -f .foo'  )
         CALL SYSTEM ( '/bin/rm -f .foo1' )
-
      
         ! Do we have a list of field that we want on output?
         process_these_fields = ','
@@ -237,15 +248,13 @@
           process_these_fields = trim(process_these_fields)//","
         END IF
 
-
-
       write(6,*) 
       write(6,*) "##############################################################"
       write(6,'(A,i4,A)') " RUNNING p_interp V1.0 on ", number_of_input_files, " file(s)."
-
+      IF (INDEX(process,'list') /= 0) PRINT *,'Fields to process:',TRIM(process_these_fields)
       LINLOG = interp_method
       write(6,*) 
-      write(6,'(A,$)') " INTERPOLATION METHOD: "
+      PRINT *,'INTERPOLATION METHOD:'
       IF ( LINLOG == 1 ) write(6,*) " linear in p"
       IF ( LINLOG == 2 ) write(6,*) " linear in log p"
       IF (extrapolate == 0) write(6,*)"BELOW GROUND will be set to missing values"
@@ -260,16 +269,17 @@
       write(6,*)
       write(6,*) "INTERPOLATING TO PRESSURE LEVELS: "
       num_metgrid_levels = 0
-      DO
-        IF (interp_levels(num_metgrid_levels+1) == -99999.) EXIT
+      DO WHILE (interp_levels(num_metgrid_levels+1) /= -99999.) 
+!        IF (interp_levels(num_metgrid_levels+1) == -99999.) EXIT
         num_metgrid_levels = num_metgrid_levels + 1
-        if (mod(num_metgrid_levels,8) /= 0 )write(6,'(f8.3,$)') interp_levels(num_metgrid_levels)
-        if (mod(num_metgrid_levels,8) == 0 )write(6,'(f8.3)') interp_levels(num_metgrid_levels)
-        interp_levels(num_metgrid_levels) = interp_levels(num_metgrid_levels) * 100.0   !!! Pa
+        PRINT *,'level:',num_metgrid_levels,':',interp_levels(num_metgrid_levels),' hPa'
+!        if (mod(num_metgrid_levels,8) /= 0 )write(6,'(f8.3,$)') interp_levels(num_metgrid_levels)
+!        if (mod(num_metgrid_levels,8) == 0 )write(6,'(f8.3)') interp_levels(num_metgrid_levels)
+!        interp_levels(num_metgrid_levels) = interp_levels(num_metgrid_levels) * 100.0   !!! Pa
       END DO
+      interp_levels = interp_levels*100.0  !!! Pa
       write(6,*)
       write(6,*)
-
 
       DO loop = 1, number_of_input_files
 
@@ -315,8 +325,6 @@
         rcode = nf_get_att_int (ncid, nf_global, 'SOUTH-NORTH_GRID_DIMENSION', isng)
         rcode = nf_get_att_int (ncid, nf_global, 'BOTTOM-TOP_GRID_DIMENSION', ibtg)
 
-
-
 ! ALLOCATE SOME VARIABLES
         IF (ALLOCATED(dnamei)) deallocate(dnamei)
             ALLOCATE (dnamei(20))
@@ -348,7 +356,6 @@
         dnamej(j) = 'num_metgrid_levels'
         dvalj(j) = num_metgrid_levels
         rcode = nf_def_dim(mcid, dnamej(j), dvalj(j), j)
-        
 
 ! DEALING WITH THE GLOBAL ATTRIBUTES
         IF (debug) THEN
@@ -394,27 +401,49 @@
         enddo
 
 rcode = nf_enddef(mcid)
-
+!GMS.UC: Lluis Dec.09
+! Repeating variables list formation
+        ! Do we have a list of field that we want on output?
+        process_these_fields = ','
+        IF ( INDEX(process,'list') /= 0) THEN
+          DO i = 1 , len(fields)
+            IF (fields(i:i) /= ' ' ) THEN
+              process_these_fields = trim(process_these_fields)//fields(i:i)
+            ENDIF
+          END DO
+          process_these_fields = trim(process_these_fields)//","
+        END IF
 
 ! WE NEED SOME BASIC FIELDS
+! GMS.UC: Lluis Dec.09
+         PRINT *,'Extracting basic fields...'
+         PRINT *,'  P_TOP'
+       	 ivar1=-1
+         rcode = nf_inq_varid(ncid, "P_TOP", ivar1)
          IF (ALLOCATED(data1)) deallocate(data1)
          allocate (data1(times_in_file,1,1,1))
-         rcode = nf_inq_varid    ( ncid, "P_TOP", i )
-         rcode = nf_get_var_real ( ncid, i, data1 )
-         IF ( first ) THEN
-            IF ( extrapolate == 1 .AND. &
-                 (data1(1,1,1,1)-interp_levels(num_metgrid_levels)) > 0.0 ) THEN
-               write(6,*)
-               write(6,*) "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-               write(6,*) " WARNING: Highest requested pressure level is above PTOP."
-               write(6,'(A,F7.2,A)') "           Use all pressure level data above", data1(1,1,1,1)*.01, " mb"
-               write(6,*) "          with caution."
-               write(6,*) "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-            ENDIF
+         PRINT *,'ivar1:',ivar1
+         IF (ivar1 == 1 ) THEN
+           PRINT *,"Extracting 'P_TOP' from 'namelist.pinterp'"
+           data1=p_top
+         ELSE
+           rcode = nf_inq_varid    ( ncid, "P_TOP", i )
+           rcode = nf_get_var_real ( ncid, i, data1 )
+           IF ( first ) THEN
+              IF ( extrapolate == 1 .AND. &
+                   (data1(1,1,1,1)-interp_levels(num_metgrid_levels)) > 0.0 ) THEN
+                 write(6,*)
+                 write(6,*) "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                 write(6,*) " WARNING: Highest requested pressure level is above PTOP."
+                 write(6,'(A,F7.2,A)') "           Use all pressure level data above", data1(1,1,1,1)*.01, " mb"
+                 write(6,*) "          with caution."
+                 write(6,*) "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+              ENDIF
             first = .FALSE.
+           ENDIF
          ENDIF
          deallocate (data1)
-
+         PRINT *,'  P, PB...'
          IF (ALLOCATED(pres_field)) deallocate(pres_field)
          allocate (pres_field(iweg-1, isng-1, ibtg-1, times_in_file ))
          IF (ALLOCATED(data1)) deallocate(data1)
@@ -438,7 +467,7 @@ rcode = nf_enddef(mcid)
          pres_stagV(:,isng,:,:)     =  pres_field(:,isng-1,:,:)
          pres_stagV(:,2:isng-1,:,:) = (pres_field(:,1:isng-2,:,:) +    &
                                        pres_field(:,2:isng-1,:,:))*.5
-
+         PRINT *,'  PSFC...'
          IF (ALLOCATED(psfc)) deallocate(psfc)
          allocate (psfc(iweg-1, isng-1, times_in_file ))
          IF (ALLOCATED(data1)) deallocate(data1)
@@ -453,38 +482,59 @@ rcode = nf_enddef(mcid)
          do i = 1, num_metgrid_levels
            pres_out (:,:,i,:) = interp_levels(i)
          enddo
-         IF (ALLOCATED(ght)) deallocate(ght)
-         allocate (ght(iweg-1, isng-1, ibtg-1, times_in_file ))
-         IF (ALLOCATED(phb)) deallocate(phb)
-         allocate (phb(iweg-1, isng-1, ibtg, times_in_file ))
-         IF (ALLOCATED(data1)) deallocate(data1)
-         allocate (data1(iweg-1, isng-1, ibtg, times_in_file ))
-         rcode = nf_inq_varid    ( ncid, "PH", i )
-         rcode = nf_get_var_real ( ncid, i, data1 )
-         rcode = nf_inq_varid    ( ncid, "PHB", i )
-         rcode = nf_get_var_real ( ncid, i, phb )
-         data1 = (data1 + phb) 
-         ght(:,:,1:ibtg-1,:) = ( data1(:,:,1:ibtg-1,:) + data1(:,:,2:ibtg,:) )*.5
+! GMS.UC: Lluis Dec.09
+         PRINT *,'  PH, PHB...'
+       	 ivar1=-1
+         rcode = nf_inq_varid(ncid, "PH", ivar1)
+         ivar2=-1
+         rcode = nf_inq_varid(ncid, "PHB", ivar2)
+         IF (ivar1*ivar2 == 1 ) THEN
+           IF (ALLOCATED(ght)) deallocate(ght)
+           allocate (ght(iweg-1, isng-1, ibtg-1, times_in_file ))
+           IF (ALLOCATED(phb)) deallocate(phb)
+           allocate (phb(iweg-1, isng-1, ibtg, times_in_file ))
+           IF (ALLOCATED(data1)) deallocate(data1)
+           allocate (data1(iweg-1, isng-1, ibtg, times_in_file ))
+           rcode = nf_inq_varid    ( ncid, "PH", i )
+           rcode = nf_get_var_real ( ncid, i, data1 )
+           rcode = nf_inq_varid    ( ncid, "PHB", i )
+           rcode = nf_get_var_real ( ncid, i, phb )
+           data1 = (data1 + phb) 
+           ght(:,:,1:ibtg-1,:) = ( data1(:,:,1:ibtg-1,:) + data1(:,:,2:ibtg,:) )*.5
 
-         deallocate (data1)
-         deallocate (phb)
+           deallocate (data1)
+           deallocate (phb)
+         ENDIF
 
+! GMS.UC: Lluis Dec.09
+         PRINT *,'  HGT...'
+       	 ivar1=-1
+         rcode = nf_inq_varid(ncid, "HGT", ivar1)
          IF (ALLOCATED(ter)) deallocate(ter)
          allocate (ter(iweg-1, isng-1))
-         IF (ALLOCATED(data1)) deallocate(data1)
-         allocate (data1(iweg-1, isng-1, 1, times_in_file ))
-         rcode = nf_inq_varid    ( ncid, "HGT", i )
-         rcode = nf_get_var_real ( ncid, i, data1 )
-         ter(:,:) = data1(:,:,1,1)
-         deallocate (data1)
+         IF (ivar1 == 1) THEN
+           PRINT *,"Obtaining terrain height from domain file:'"//TRIM(geofilename)//"'" 
+           rcode = nf_open(geofilename, 0, ncgid)
+           rcode = nf_inq_varid    ( ncgid, "HGT_M", ivar1 )
+           rcode = nf_get_var_real ( ncgid, ivar1, ter )
+           rcode = nf_close ( ncgid )
+         ELSE
+           IF (ALLOCATED(data1)) deallocate(data1)
+           allocate (data1(iweg-1, isng-1, 1, times_in_file ))
+           rcode = nf_inq_varid    ( ncid, "HGT", i )
+           rcode = nf_get_var_real ( ncid, i, data1 )
+           ter(:,:) = data1(:,:,1,1)
+           deallocate (data1)
+         ENDIF 
 
-
+         PRINT *,'  QVAPOR...'
          IF (ALLOCATED(qv)) deallocate(qv)
          allocate (qv(iweg-1, isng-1, ibtg-1, times_in_file ))
          rcode = nf_inq_varid    ( ncid, "QVAPOR", i )
          rcode = nf_get_var_real ( ncid, i, qv )
 
 
+         PRINT *,'  TK...'
          IF (ALLOCATED(tk)) deallocate(tk)
          allocate (tk(iweg-1, isng-1, ibtg-1, times_in_file ))
          IF (ALLOCATED(data1)) deallocate(data1)
@@ -494,7 +544,7 @@ rcode = nf_enddef(mcid)
          tk = (data1+300.) * ( pres_field / p0 )**RCP
          deallocate (data1)
 
-
+         PRINT *,'  RH...'
          IF (ALLOCATED(rh)) deallocate(rh)
          allocate (rh(iweg-1, isng-1, ibtg-1, times_in_file ))
          IF (ALLOCATED(data1)) deallocate(data1)
@@ -720,7 +770,7 @@ rcode = nf_enddef(mcid)
 
 !!! We have some special variables we are interested in: PRES, TT, GHT, MSLP
         IF ( debug ) print*," "
-        IF ( debug ) print*,"Calculatng some diagnostics"
+        IF ( debug ) print*,"Calculating some diagnostics..."
            
         jshape = 0
         DO ii = 1, 4
@@ -749,9 +799,8 @@ rcode = nf_enddef(mcid)
         ENDDO
 
         interpolate = .TRUE.
-
+        PRINT *,'Hola--.'
 ! GMS.UC:Lluis Dec.09
-
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'MSLP') /= 0 ) THEN
           PRINT *,'Computing and Writting Mean Sea Level pressure'
           !!! MSLP 
