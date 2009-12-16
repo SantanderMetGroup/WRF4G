@@ -5,6 +5,8 @@
  process = 'list'
  fields = 'Q2,T2,GHT,TT,UU,VV,RH,MSLP,PSFC,U10,V10,RAINC,RAINNC'
  debug = .TRUE.
+ grid_filt = 3
+ ntimes_filt = 10
 /
  input_name = 'wrfout_d01_2001-11-10_00:00:00'
  process = 'all'
@@ -15,6 +17,10 @@
 !		diagnostics PRES, TT, GHT, RH are also calculated
 !   	"list" - list fields required in "fields"
 !   		avaliable diagnostics are PRES, TT, GHT, RH
+! GMS.UC: Lluis Dec.09
+! fields filtering
+!       "ngrid_filt" - grid box range to compute average values to obtain filtered MSLP (stored as SLPf)
+!       "ntimes_filt" - number of times to compute space averaged values
 
 &interp_in
  interp_levels = 1000.,800.,500.,200.,

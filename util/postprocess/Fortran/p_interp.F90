@@ -104,8 +104,9 @@
       REAL, ALLOCATABLE, DIMENSION(:,:,:)                :: field2d_out
       INTEGER, DIMENSION(3)                              :: jshape2d
       INTEGER, DIMENSION(4)                              :: dims2d_out
+      INTEGER                                            :: grid_filt, ntimes_filt
       NAMELIST /io/ path_to_input, input_name, path_to_output, output_name, &
-                    process, fields, debug, bit64
+                    process, fields, debug, bit64, grid_filt, ntimes_filt
       NAMELIST /interp_in/ interp_levels, interp_method, extrapolate, unstagger_grid
 
       path_to_input   = './'
@@ -126,7 +127,8 @@
         READ(funit,interp_in)
         CLOSE(funit)
 
-
+      PRINT *,'Filtering of fields will be done with grid_filt:',grid_filt,' ntimes_filt:',     &
+        ntimes_filt
       ! Get all the input file names
 
         lent = len_trim(path_to_input)
@@ -766,48 +768,55 @@ rcode = nf_enddef(mcid)
                           num_metgrid_levels, LINLOG, extrapolate, MISSING)
            rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data2)
            IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data2(dims_out(1)/2,dims_out(2)/2,1,1)
+        END IF
+        IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'MSLPf') /= 0 ) THEN
         !!!! Filtered MSLP
           jvar = jvar + 1
-          CALL def_var (mcid, jvar, "SLPf", 5, 3, jshape2d, "XY", "MSLP filt. 10t 3x3", "Pa", "-", "XLONG XLAT")
+          CALL def_var (mcid, jvar, "MSLPf", 5, 3, jshape2d, "XY", "MSLP filtered 10 times 3x3", "Pa", "-", "XLONG XLAT")
           IF (ALLOCATED(data3)) DEALLOCATE(data3)
           ALLOCATE (data3(dims_out(1), dims_out(2), dims_out(4), 1))
-          CALL spatialfiltering(data2,3,10,dims_out(1),dims_out(2),dims_out(4),1,data3)
+          CALL spatialfiltering(data2, grid_filt, ntimes_filt, dims_out(1), dims_out(2),        &
+            dims_out(4), 1, data3)
           IF (debug) THEN
-            write(6,*) 'VAR: SLPf idvar:',jvar
+            write(6,*) 'VAR: MSLPf idvar:',jvar
             write(6,*) '     DIMS OUT: ',dims2d_out
           ENDIF
           rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3)
-          IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
+          IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1) 
           DEALLOCATE(data2, data3) 
         ENDIF
 
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'PRES') /= 0 ) THEN
            !!! PRES
            jvar = jvar + 1
-           CALL def_var (mcid, jvar, "PRES", 5, 4, jshape, "XZY", "Pressure           ", "Pa", "-", "XLONG XLAT")
+           CALL def_var (mcid, jvar, "PRES", 5, 4, jshape, "XZY", "Pressure           ", "Pa",  &
+             "-", "XLONG XLAT")
            IF (debug) THEN
              write(6,*) 'VAR: PRES idvar:',jvar
              write(6,*) '     DIMS OUT: ',dims_out
            ENDIF
            rcode = nf_put_vara_real (mcid, jvar, start_dims, dims_out, pres_out)
-           IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',pres_out(dims_out(1)/2,dims_out(2)/2,1,1)
+           IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',pres_out(dims_out(1)/2,dims_out(2)/2&
+             ,1,1)
         ENDIF
 
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'TT') /= 0 ) THEN
            !!! TT
            jvar = jvar + 1
-           CALL def_var (mcid, jvar, "TT  ", 5, 4, jshape, "XZY", "Temperature        ", "K ", "-", "XLONG XLAT")
+           CALL def_var (mcid, jvar, "TT  ", 5, 4, jshape, "XZY", "Temperature        ", "K ",  &
+             "-", "XLONG XLAT")
            IF (debug) THEN
              write(6,*) 'VAR: TT idvar:',jvar
              write(6,*) '     DIMS OUT: ',dims_out
            ENDIF
            allocate (data2(dims_out(1),dims_out(2),dims_out(3),dims_out(4)))
 ! GMS.UC:Lluis Dec.09
-           CALL interpdiag (data2, tk, pres_field, interp_levels, psfc, ter, tk, qv,   &
-                          iweg-1, isng-1, ibtg-1, dims_in(4), dims_out(4), &          
-                          num_metgrid_levels, LINLOG, extrapolate, .FALSE., MISSING)
+           CALL interpdiag (data2, tk, pres_field, interp_levels, psfc, ter, tk, qv,            &
+             iweg-1, isng-1, ibtg-1, dims_in(4), dims_out(4),                                   &          
+             num_metgrid_levels, LINLOG, extrapolate, .FALSE., MISSING)
            rcode = nf_put_vara_real (mcid, jvar, start_dims, dims_out, data2)
-           IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data2(dims_out(1)/2,dims_out(2)/2,1,1)
+           IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data2(dims_out(1)/2,dims_out(2)/2,1,&
+             1)
            deallocate(data2)
         ENDIF
 
@@ -1389,18 +1398,18 @@ END SUBROUTINE spatialfiltering
 
       INCLUDE 'netcdf.inc'
 
-      INTEGER              :: mcid, jvar
-      CHARACTER (LEN =  4) :: cval
-      INTEGER              :: itype, idm
-      REAL, DIMENSION(6)   :: jshape
-      CHARACTER (LEN =  3) :: order
-      CHARACTER (LEN = 19) :: desc
-      CHARACTER (LEN =  2) :: units
-      CHARACTER (LEN =  1) :: stag
-      CHARACTER (LEN = 10) :: coord
+      INTEGER                                         :: mcid, jvar
+      CHARACTER (LEN =  11)                           :: cval
+      INTEGER                                         :: itype, idm
+      REAL, DIMENSION(6)                              :: jshape
+      CHARACTER (LEN =  3)                            :: order
+      CHARACTER (LEN = 60)                            :: desc
+      CHARACTER (LEN = 10)                            :: units
+      CHARACTER (LEN =  1)                            :: stag
+      CHARACTER (LEN = 10)                            :: coord
 
-      INTEGER            :: rcode, ilen
-      CHARACTER (LEN=30) :: att_text
+      INTEGER                                         :: rcode, ilen
+      CHARACTER (LEN=30)                              :: att_text
 
 
       IF ( itype == 5 ) THEN
