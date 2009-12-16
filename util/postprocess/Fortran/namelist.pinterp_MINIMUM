@@ -1,0 +1,29 @@
+&io
+ path_to_input = '/oceano/gmeteo/users/lluis/bustia/'
+ input_name = 'wrfout_d01_19950725T160000Z.nc'
+ path_to_output = './'
+ process = 'list'
+ fields = 'Q2,T2,GHT,TT,UU,VV,RH,MSLP,PSFC,U10,V10,RAINC,RAINNC'
+ debug = .TRUE.
+/
+ input_name = 'wrfout_d01_2001-11-10_00:00:00'
+ process = 'all'
+ bit64 = .TRUE.
+
+! process can be "all", "list", "all_list"
+!	"all" - process all fields in file
+!		diagnostics PRES, TT, GHT, RH are also calculated
+!   	"list" - list fields required in "fields"
+!   		avaliable diagnostics are PRES, TT, GHT, RH
+
+&interp_in
+ interp_levels = 1000.,800.,500.,200.,
+ extrapolate = 1,
+ interp_method = 1,
+/
+ unstagger_grid = .TRUE.
+
+# extrapolate = 0    ;; set values below ground and above model top to missing (default)
+# extrapolate = 1    ;; extrapolate below ground, and set above model top to model top values
+# interp_method = 1  ;; linear in p interpolation (default)
+# interp_method = 2  ;; linear in log p interpolation
