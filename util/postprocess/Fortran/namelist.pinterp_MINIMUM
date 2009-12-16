@@ -3,7 +3,7 @@
  input_name = 'wrfout_d01_19950725T160000Z.nc'
  path_to_output = './'
  process = 'list'
- fields = 'Q2,T2,GHT,TT,UU,VV,RH,MSLP,PSFC,U10,V10,RAINC,RAINNC'
+ fields = 'Q2,T2,GHT,TT,UU,VV,RH,MSLP,PSFC,U10,V10,RAINTOT'
  debug = .TRUE.
  grid_filt = 3
  ntimes_filt = 10

@@ -85,7 +85,8 @@
       INTEGER                                            :: ncid, mcid, rcode
       INTEGER                                            :: idm, ndims, nvars, natt, ngatts
       INTEGER                                            :: nunlimdimid
-      INTEGER                                            :: i, ii, j, jj, ix, iy, iweg, isng, ibtg
+      INTEGER                                            :: i, ii, j, jj, ix, iy, iweg, isng,   &
+        ibtg
       INTEGER                                            :: ivar, jvar
       INTEGER                                            :: times_in_file
       INTEGER                                            :: ilen, itype, ival, na, funit, ios
@@ -102,11 +103,15 @@
       LOGICAL                                            :: first=.TRUE.
 ! GMS.UC:Lluis Dec.09
       REAL, ALLOCATABLE, DIMENSION(:,:,:)                :: field2d_out
+      CHARACTER(LEN=11), ALLOCATABLE, DIMENSION(:)       :: varnames
       INTEGER, DIMENSION(3)                              :: jshape2d
       INTEGER, DIMENSION(4)                              :: dims2d_out
       INTEGER                                            :: grid_filt, ntimes_filt
-      NAMELIST /io/ path_to_input, input_name, path_to_output, output_name, &
-                    process, fields, debug, bit64, grid_filt, ntimes_filt
+      CHARACTER(LEN=11)                                  :: unitsIN, varnameIN
+      CHARACTER(LEN=60)                                  :: longdescIN
+
+      NAMELIST /io/ path_to_input, input_name, path_to_output, output_name,                     &
+        process, fields, debug, bit64, grid_filt, ntimes_filt
       NAMELIST /interp_in/ interp_levels, interp_method, extrapolate, unstagger_grid
 
       path_to_input   = './'
@@ -502,8 +507,6 @@ rcode = nf_enddef(mcid)
          deallocate (data1)
          deallocate (data2)
 
-
-
 ! TRAIN FILE 
         IF (debug) THEN
           write(6,*) 
@@ -756,7 +759,12 @@ rcode = nf_enddef(mcid)
            jshape2d=RESHAPE((/jshape(1),jshape(2),jshape(4)/),(/3/))
            dims2d_out=RESHAPE((/dims_out(1),dims_out(2),dims_out(4),1/),(/4/))
            jvar = jvar + 1
-           CALL def_var (mcid, jvar, "MSLP", 5, 3, jshape2d, "XY", "Mean Sea lev. pres.", "Pa", "-", "XLONG XLAT")
+           varnameIN='MSLP'
+           longdescIN='Mean Sea level pressure'
+           unitsIN='Pa'
+
+           CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-", &
+             "XLONG XLAT")
            IF (debug) THEN
              write(6,*) 'VAR: MSLP idvar:',jvar
              write(6,*) '     DIMS OUT: ',dims2d_out
@@ -768,28 +776,57 @@ rcode = nf_enddef(mcid)
                           num_metgrid_levels, LINLOG, extrapolate, MISSING)
            rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data2)
            IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data2(dims_out(1)/2,dims_out(2)/2,1,1)
-        END IF
-        IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'MSLPf') /= 0 ) THEN
-        !!!! Filtered MSLP
+         END IF
+         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'MSLPF') /= 0 ) THEN
+         !!!! Filtered MSLP
+           jvar = jvar + 1
+           varnameIN='MSLPF'
+           longdescIN='MSLP filtered 10 times 3x3'
+           unitsIN='Pa'
+
+           CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-", "XLONG XLAT")
+           IF (ALLOCATED(data3)) DEALLOCATE(data3)
+           ALLOCATE (data3(dims_out(1), dims_out(2), dims_out(4), 1))
+           CALL spatialfiltering(data2, grid_filt, ntimes_filt, dims_out(1), dims_out(2),       &
+             dims_out(4), 1, data3)
+           IF (debug) THEN
+             write(6,*) 'VAR: MSLPF idvar:',jvar
+             write(6,*) '     DIMS OUT: ',dims2d_out
+           ENDIF
+           rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3)
+           IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1) 
+           DEALLOCATE(data2, data3) 
+         ENDIF
+        IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'RAINTOT') /= 0 ) THEN
+        !!!! Accumulated total precipitation 
           jvar = jvar + 1
-          CALL def_var (mcid, jvar, "MSLPf", 5, 3, jshape2d, "XY", "MSLP filtered 10 times 3x3", "Pa", "-", "XLONG XLAT")
+          varnameIN='RAINTOT'
+          longdescIN='Accumulated total precipitation'
+          unitsIN='mm'
+          CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
+            , "XLONG XLAT")
           IF (ALLOCATED(data3)) DEALLOCATE(data3)
           ALLOCATE (data3(dims_out(1), dims_out(2), dims_out(4), 1))
-          CALL spatialfiltering(data2, grid_filt, ntimes_filt, dims_out(1), dims_out(2),        &
-            dims_out(4), 1, data3)
+          ALLOCATE (varnames(2))
+          varnames=RESHAPE((/'RAINNC','RAINC'/),(/2/))
+          CALL variablessum(ncid, varnames, 2, dims_out(1), dims_out(2), dims_out(4), 1, data3) 
           IF (debug) THEN
-            write(6,*) 'VAR: MSLPf idvar:',jvar
+            write(6,*) 'VAR: RAINTOT idvar:',jvar
             write(6,*) '     DIMS OUT: ',dims2d_out
           ENDIF
           rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3)
-          IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1) 
-          DEALLOCATE(data2, data3) 
+          IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
+          DEALLOCATE(data3)
         ENDIF
 
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'PRES') /= 0 ) THEN
            !!! PRES
            jvar = jvar + 1
-           CALL def_var (mcid, jvar, "PRES", 5, 4, jshape, "XZY", "Pressure           ", "Pa",  &
+           varnameIN='PRES'
+           longdescIN='Pressure'
+           unitsIN='Pa'
+
+           CALL def_var (mcid, jvar, varnameIN, 5, 4, jshape, "XZY", longdescIN, unitsIN,       &
              "-", "XLONG XLAT")
            IF (debug) THEN
              write(6,*) 'VAR: PRES idvar:',jvar
@@ -803,7 +840,11 @@ rcode = nf_enddef(mcid)
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'TT') /= 0 ) THEN
            !!! TT
            jvar = jvar + 1
-           CALL def_var (mcid, jvar, "TT  ", 5, 4, jshape, "XZY", "Temperature        ", "K ",  &
+           varnameIN='TT'
+           longdescIN='Temperature'
+           unitsIN='K'
+
+           CALL def_var (mcid, jvar, varnameIN, 5, 4, jshape, "XZY", longdescIN, unitsIN,       &
              "-", "XLONG XLAT")
            IF (debug) THEN
              write(6,*) 'VAR: TT idvar:',jvar
@@ -823,35 +864,45 @@ rcode = nf_enddef(mcid)
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'GHT') /= 0 ) THEN
            !!! GHT
            jvar = jvar + 1
-           CALL def_var (mcid, jvar, "GHT ", 5, 4, jshape, "XZY", "Geopotential Height", "m ", "-", "XLONG XLAT")
+           varnameIN='GHT'
+           longdescIN='Geopotential Height'
+           unitsIN='m'
+
+           CALL def_var (mcid, jvar, varnameIN, 5, 4, jshape, "XZY", longdescIN, unitsIN, "-",  &
+             "XLONG XLAT")
            IF (debug) THEN
              write(6,*) 'VAR: GHT idvar:',jvar
              write(6,*) '     DIMS OUT: ',dims_out
            ENDIF
            allocate (data2(dims_out(1),dims_out(2),dims_out(3),dims_out(4)))
 ! GMS.UC:Lluis Dec.09
-           CALL interpdiag (data2, ght, pres_field, interp_levels, psfc, ter, tk, qv,   &
-                          iweg-1, isng-1, ibtg-1, dims_in(4), dims_out(4), &          
-                          num_metgrid_levels, LINLOG, extrapolate, .TRUE., MISSING)
+           CALL interpdiag (data2, ght, pres_field, interp_levels, psfc, ter, tk, qv,           &
+             iweg-1, isng-1, ibtg-1, dims_in(4), dims_out(4),                                   &          
+             num_metgrid_levels, LINLOG, extrapolate, .TRUE., MISSING)
            data2 = data2/9.81
            rcode = nf_put_vara_real (mcid, jvar, start_dims, dims_out, data2)
-           IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data2(dims_out(1)/2,dims_out(2)/2,1,1)
+           IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data2(dims_out(1)/2,dims_out(2)/2,1,&
+             1)
            deallocate(data2)
         ENDIF
 
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'RH') /= 0 ) THEN
            !!! RH
            jvar = jvar + 1
-           CALL def_var (mcid, jvar, "RH  ", 5, 4, jshape, "XZY", "Relative Humidity  ", "% ", "-", "XLONG XLAT")
+           varnameIN='RH'
+           longdescIN='Relative Humidity'
+           unitsIN='%'
+           CALL def_var (mcid, jvar, varnameIN, 5, 4, jshape, "XZY", longdescIN, unitsIN, "-",  & 
+             "XLONG XLAT")
            IF (debug) THEN
              write(6,*) 'VAR: RH idvar:',jvar
              write(6,*) '     DIMS OUT: ',dims_out
            ENDIF
            allocate (data2(dims_out(1),dims_out(2),dims_out(3),dims_out(4)))
 ! GMS.UC:Lluis Dec.09
-           CALL interpdiag (data2, rh, pres_field, interp_levels, psfc, ter, tk, qv,   &
-                          iweg-1, isng-1, ibtg-1, dims_in(4), dims_out(4), &          
-                          num_metgrid_levels, LINLOG, extrapolate, .FALSE., MISSING)
+           CALL interpdiag (data2, rh, pres_field, interp_levels, psfc, ter, tk, qv,            &
+             iweg-1, isng-1, ibtg-1, dims_in(4), dims_out(4),                                   &          
+             num_metgrid_levels, LINLOG, extrapolate, .FALSE., MISSING)
            WHERE ( rh < 0.0 ) 
               rh = 0.0
            ENDWHERE
@@ -859,10 +910,10 @@ rcode = nf_enddef(mcid)
               rh = 100.0
            ENDWHERE
            rcode = nf_put_vara_real (mcid, jvar, start_dims, dims_out, data2)
-           IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data2(dims_out(1)/2,dims_out(2)/2,1,1)
+           IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data2(dims_out(1)/2,dims_out(2)/2,1,&
+             1)
            deallocate(data2)
         ENDIF
-
 
 !!! Close files on exit
         rcode = nf_close(ncid)
@@ -880,6 +931,30 @@ rcode = nf_enddef(mcid)
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
+! GMS.UC: Lluis Dec.09
+SUBROUTINE variablessum(ncid, variables, Nvar, dx, dy, dz, dt, datasum)
+! Subroutine to add 'Nvar' variables
+IMPLICIT NONE
+
+INCLUDE 'netcdf.inc'
+
+INTEGER                                               :: i, ivar, rcode
+INTEGER, INTENT(IN)                                   :: ncid, Nvar
+CHARACTER(LEN=11), DIMENSION(Nvar), INTENT(IN)        :: variables
+INTEGER, INTENT(IN)                                   :: dx, dy, dz, dt
+REAL, DIMENSION(dx,dy,dz,dt), INTENT(OUT)             :: datasum
+REAL, DIMENSION(dx,dy,dz,dt)                          :: dataval
+
+datasum=0.
+
+DO ivar=1,Nvar
+  rcode = nf_inq_varid(ncid, TRIM(variables(ivar)), i)
+  rcode = nf_get_var_real ( ncid, i, dataval )
+  datasum = datasum + dataval
+ENDDO
+
+END SUBROUTINE variablessum
+
  SUBROUTINE handle_err(rcode)
     INTEGER rcode
     write(6,*) 'Error number ',rcode
@@ -1399,18 +1474,20 @@ END SUBROUTINE spatialfiltering
       INCLUDE 'netcdf.inc'
 
       INTEGER                                         :: mcid, jvar
+! GMS.UC: Lluis Dec.09      
       CHARACTER (LEN =  11)                           :: cval
       INTEGER                                         :: itype, idm
       REAL, DIMENSION(6)                              :: jshape
       CHARACTER (LEN =  3)                            :: order
+! GMS.UC: Lluis Dec.09      
       CHARACTER (LEN = 60)                            :: desc
       CHARACTER (LEN = 10)                            :: units
       CHARACTER (LEN =  1)                            :: stag
       CHARACTER (LEN = 10)                            :: coord
 
       INTEGER                                         :: rcode, ilen
-      CHARACTER (LEN=30)                              :: att_text
-
+! GMS.UC: Lluis Dec.09
+      CHARACTER (LEN=60)                              :: att_text
 
       IF ( itype == 5 ) THEN
          rcode = nf_redef(mcid)
@@ -1421,22 +1498,27 @@ END SUBROUTINE spatialfiltering
       att_text = order
       ilen = len_trim(att_text)
       rcode = nf_put_att_text(mcid, jvar, "MemoryOrder", ilen, att_text(1:ilen) )
+      att_text = ' '
 
       att_text = desc
       ilen = len_trim(att_text)
       rcode = nf_put_att_text(mcid, jvar, "description", ilen, att_text(1:ilen) )
+      att_text = ' '
 
       att_text = units
       ilen = len_trim(att_text)
       rcode = nf_put_att_text(mcid, jvar, "units", ilen, att_text(1:ilen) )
+      att_text = ''
 
       att_text = stag
       ilen = len_trim(att_text)
       rcode = nf_put_att_text(mcid, jvar, "stagger", ilen, att_text(1:ilen) )
+      att_text = ''
 
       att_text = coord
       ilen = len_trim(att_text)
       rcode = nf_put_att_text(mcid, jvar, "coordinates", ilen, att_text(1:ilen) )
+      att_text = ''
 
       rcode = nf_enddef(mcid)
 
