@@ -1,5 +1,5 @@
-arrows2D<-function(imgname, u, v, units, lcoast, scale, lngth, every, colorv,
-  imagekind, imgsize, show)
+arrows2D<-function(imgname, u, v, units="m/s", title="", lcoast, scale, lngth, every, colorv,
+  imagekind, imgsize, show=0)
 #
 ## L. Fita, December (2009), Universidad de Cantabria
 
@@ -7,7 +7,8 @@ arrows2D<-function(imgname, u, v, units, lcoast, scale, lngth, every, colorv,
 ## arguments:
 ## [imgname]: name of image (with extension)
 ## [u],[v]: 2D vector field to be drawn (in matix form)
-## [units]: wins speed units
+## [units]: wins speed units. m/s if not specified.
+## [title]: Main title of the plot. Empty if not specified. 
 ## [lcoast]: 2D field of landsea mask to draw coastal line 
 ##   (if [lcoast]== 'notdrawn' it is not drawn)
 ## [scale]: scale of arrows respect maximum wind speed
@@ -16,7 +17,7 @@ arrows2D<-function(imgname, u, v, units, lcoast, scale, lngth, every, colorv,
 ## [colorv]: color of arrows
 ## [imgkind]: kind of image: 'pdf', 'png', 'ps', 'jpg'
 ## [imgsize]: size in pixels of x dimension y dimension as imgsize*dy/dx
-## [show]: Wheter figure should be shown (1: yes, rest: no)
+## [show]: Wheter figure should be shown (1: yes, rest: no) No if not specified.
 
 ## Output given figure as [imgname]
 
@@ -44,15 +45,14 @@ arrows2D<-function(imgname, u, v, units, lcoast, scale, lngth, every, colorv,
   vnorm<-v/maxspeed
   dx_u<-xpos+unorm*scale*lngth/dx
   dy_v<-ypos+vnorm*scale*lngth/dy
-  TITmaxwind<-paste('max. wind:',sprintf("%5.3f",maxspeed),units,sep=" ")  
   
   if (is(lcoast)[[1]] != 'character'){
   contour(lcoast, col="black", nlevels=1, drawlabels=FALSE, xaxt="n", xaxs="i",
-    yaxt="n", yaxs="i", bty="n", main=TITmaxwind, cex.main=2, lwd=imgsize/480,
+    yaxt="n", yaxs="i", bty="n", main=title, cex.main=2, lwd=imgsize/480,
     cex=imgsize/480, asp=dy/dx)}
   else {
   plot(xpos[ptsx,ptsy], ypos[ptsx,ptsy], type="p", xaxt="n", xaxs="i", yaxt="n",
-    yaxs="i", bty="n", xlab="", ylab="", main=TITmaxwind, cex.main=2, col="white",
+    yaxs="i", bty="n", xlab="", ylab="", main=title, cex.main=2, col="white",
     cex=imgsize/480, asp=dy/dx)} 
   arrows(xpos[ptsx,ptsy],  ypos[ptsx,ptsy], dx_u[ptsx,ptsy], dy_v[ptsx,ptsy],
     col=colorv, lwd=0.75*imgsize/480, length=0.75*lngth/sqrt(dx**2+dy**2))   
