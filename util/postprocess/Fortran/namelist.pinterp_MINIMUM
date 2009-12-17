@@ -1,16 +1,16 @@
 &io
  path_to_input = './'
- input_name = 'wrfout_d01_20010102T000000Z.nc'
+ input_name = 'proves.nc'
  path_to_output = './'
  process = 'list',
- fields = 'Q2,T2,TT,UU,VV,RH,MSLP,PSFC,U10,V10,RAINTOT',
+ fields = 'Q2,T2,TT,U,V,RH,MSLP,MSLPF,PSFC,U10,V10,RAINTOT',
  grid_filt = 3,
  ntimes_filt = 10,
  path_to_geofile = '/oceano/gmeteo/DATA/WRF/domains/Europe_15k',
  geofile = 'geo_em.d01.nc'
 /
- debug = .TRUE.,
  input_name = 'wrfout_d01_2001-11-10_00:00:00'
+ debug = .TRUE.,
  process = 'all'
  bit64 = .TRUE.
 
@@ -25,7 +25,7 @@
 !       "ntimes_filt" - number of times to compute space averaged values
 
 &interp_in
- interp_levels = 1000.,800.,500.,200.,
+ interp_levels = 1000.,850.,500.,200.,
  extrapolate = 1,
  interp_method = 1,
  p_top = 50.

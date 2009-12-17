@@ -67,13 +67,13 @@
 
       CHARACTER (LEN=80)                                 :: cval
       CHARACTER (LEN=31)                                 :: cname, test_dim_name
-      CHARACTER (LEN=80)                                 :: input_file, output_file, att_text
+      CHARACTER (LEN=300)                                 :: input_file, output_file, att_text
       CHARACTER (LEN=250)                                :: path_to_input
       CHARACTER (LEN=250)                                :: path_to_output
-      CHARACTER (LEN=250)                                :: input_name
+      CHARACTER (LEN=80)                                 :: input_name
       CHARACTER (LEN=250)                                :: output_name, tmp_name
       CHARACTER (LEN=10)                                 :: option
-      CHARACTER (LEN=132)                                :: command
+      CHARACTER (LEN=400)                                :: command
       CHARACTER (LEN=20)                                 :: process, dummy
       CHARACTER (LEN=2000)                               :: fields, process_these_fields
       REAL, DIMENSION(99)                                :: interp_levels
@@ -113,6 +113,7 @@
       CHARACTER(LEN=11)                                  :: unitsIN, varnameIN
       CHARACTER(LEN=60)                                  :: longdescIN
       CHARACTER(LEN=250)                                 :: path_to_geofile, geofile, geofilename
+      CHARACTER(LEN=300)                                 :: inputlong_name
 
       NAMELIST /io/ path_to_input, input_name, path_to_output, output_name,                     &
         process, fields, debug, bit64, grid_filt, ntimes_filt, path_to_geofile, geofile
@@ -149,8 +150,8 @@
         IF ( path_to_output(lent:lent) /= "/" ) THEN
            path_to_output = TRIM(path_to_output)//"/"
         ENDIF
-
-        input_name = TRIM(path_to_input)//TRIM(input_name)
+        inputlong_name = ' '
+        inputlong_name = TRIM(path_to_input)//TRIM(input_name)
 ! GMS.UC: Lluis Dec.09
         ! Geofile name file
         lent = len_trim(path_to_geofile)
@@ -163,8 +164,9 @@
         !  Build a UNIX command, and "ls", of all of the input files 
         loslen = LEN ( command )
         CALL all_spaces ( command , loslen ) 
-        WRITE ( command , FMT='("ls -1 ",A," > .foo")' ) TRIM ( input_name )
-           
+!        WRITE ( command , FMT='("ls -1 ",A300," > .foo")' ) TRIM ( inputlong_name )
+        WRITE ( command , FMT='("ls -1 ",A300," > .foo")' ) TRIM ( inputlong_name )
+        PRINT *,'COMMAND:',command   
         !  We stuck all of the matching files in the ".foo" file.  Now we place the 
         !  number of the those file (i.e. how many there are) in ".foo1". 
   
@@ -422,7 +424,6 @@ rcode = nf_enddef(mcid)
          rcode = nf_inq_varid(ncid, "P_TOP", ivar1)
          IF (ALLOCATED(data1)) deallocate(data1)
          allocate (data1(times_in_file,1,1,1))
-         PRINT *,'ivar1:',ivar1
          IF (ivar1 == 1 ) THEN
            PRINT *,"Extracting 'P_TOP' from 'namelist.pinterp'"
            data1=p_top
@@ -799,12 +800,31 @@ rcode = nf_enddef(mcid)
         ENDDO
 
         interpolate = .TRUE.
-        PRINT *,'Hola--.'
+
 ! GMS.UC:Lluis Dec.09
+! Allways write vector with vertical itnerpolated pressure leveles
+!        IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'PLEV') /= 0 ) THEN
+          !!! PLEV: Pressure levels vector 
+           jvar = jvar + 1
+           jshape2d=RESHAPE((/jshape(3),jshape(2),jshape(1)/),(/3/))
+           dims2d_out=1
+           dims2d_out(3)=dims_out(3)
+           varnameIN='PLEV'
+           longdescIN='Pressure levels'
+           unitsIN='Pa'
+           CALL def_var (mcid, jvar, varnameIN, 5, 1, jshape2d, "Z", longdescIN, unitsIN, "-", &
+             "XLONG XLAT")
+           IF (debug) THEN
+             write(6,*) 'VAR: PLEV idvar:',jvar
+             write(6,*) '     DIMS OUT: ',dims2d_out
+           ENDIF
+           rcode = nf_put_vara_real (mcid, jvar, 1, num_metgrid_levels, interp_levels*100.)
+           IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',pres_out(1,1,num_metgrid_levels/2,1)
+!         END IF
+
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'MSLP') /= 0 ) THEN
           PRINT *,'Computing and Writting Mean Sea Level pressure'
           !!! MSLP 
-!           start2d_dims=1
            jshape2d=RESHAPE((/jshape(1),jshape(2),jshape(4)/),(/3/))
            dims2d_out=RESHAPE((/dims_out(1),dims_out(2),dims_out(4),1/),(/4/))
            jvar = jvar + 1
@@ -821,7 +841,7 @@ rcode = nf_enddef(mcid)
            ALLOCATE (data2(dims_out(1), dims_out(2), dims_out(4), 1))
            data2=0.
            CALL mean_sealevelpress(data2, pres_field, interp_levels, psfc, ter, tk, qv,       &
-                          iweg-1, isng-1, ibtg-1, dims_in(4), dims_out(4),                    &          
+             iweg-1, isng-1, ibtg-1, dims_in(4), dims_out(4),                                 &          
                           num_metgrid_levels, LINLOG, extrapolate, MISSING)
            rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data2)
            IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data2(dims_out(1)/2,dims_out(2)/2,1,1)
@@ -1188,7 +1208,7 @@ END SUBROUTINE spatialfiltering
 
 !------------------------------------------------------------------------------
  SUBROUTINE mean_sealevelpress (data_out, pres_field, interp_levels, psfc, ter, tk, qv, ix, iy, iz, it, ito, &
-                     num_metgrid_levels, LINLOG, extrapolate, MISSING)
+        num_metgrid_levels, LINLOG, extrapolate, MISSING)
 ! New subroutine to compute mean_sealevel pressure values 
 
      INTEGER, INTENT(IN)                                           :: ix, iy, iz, it, ito
@@ -1257,6 +1277,7 @@ END SUBROUTINE spatialfiltering
          tvbotextrap=virtual(tbotextrap,qv(i,j,kupper,itt))
          data_out(i,j,itt,1) = psfc(i,j,itt)*((tvbotextrap+0.0065*ter(i,j))/tvbotextrap)**(1/expon)
 !         IF (i==ix/2 .AND. j==iy/2 ) THEN
+!         IF (ter(i,j) > 2500.) THEN
 !           PRINT *,itt,' ptarget',ptarget,'kupper:',kupper
 !           PRINT *,'tk:',tk(i,j,kupper,itt),'psfc:',psfc(i,j,itt)
 !           PRINT *,'tbot:',tbotextrap,'tvbot:',tvbotextrap,'ter:',ter(i,j)
