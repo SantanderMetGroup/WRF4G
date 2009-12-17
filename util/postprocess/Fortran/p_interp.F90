@@ -818,7 +818,7 @@ rcode = nf_enddef(mcid)
              write(6,*) 'VAR: PLEV idvar:',jvar
              write(6,*) '     DIMS OUT: ',dims2d_out
            ENDIF
-           rcode = nf_put_vara_real (mcid, jvar, 1, num_metgrid_levels, interp_levels*100.)
+           rcode = nf_put_vara_real (mcid, jvar, 1, num_metgrid_levels, interp_levels)
            IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',pres_out(1,1,num_metgrid_levels/2,1)
 !         END IF
 

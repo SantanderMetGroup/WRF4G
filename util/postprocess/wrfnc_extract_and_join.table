@@ -4,16 +4,21 @@ PSFC     ps       "surface pressure"          "surface_air_pressure"            
 RAINNC   prls     "Precipitation large scale" "large_scale_precipitation_amount"      "Kg m-2"  1 0
 RAINC    prc      "Precipitation convective"  "convective_precipitation_amount"       "Kg m-2"  1 0
 T2       tas      "Surface air temperature"   "air_temperature"                       "K"       1 0
+T2MAX    tasmax   "Max. surface air temperature" "air_temperature"                    "K"       1 0
+T2MIN    tasmin   "Min. surface air temperature" "air_temperature"                    "K"       1 0
 LANDMASK sftlf    "Land mask"                 "land_binary_mask"                      1         1 0
 HGT      orog     "Surface altitude"          "surface_altitude"                      m         1 0
+RH       hur      "Relative humidity"         "relative_humidity"                     1         1 0
 # Derived variables
 RAIN     pr       "Precipitation"             "precipitation_amount"                  "Kg m-2"  1 0
 WIND     wspd     "wind speed"                "wind speed"                            "m s-1"   1 0
 U10ER    uas      "Eastward surface wind"     "eastward_wind"                         "m s-1"   1 0
 V10ER    vas      "Northward surface wind"    "northward_wind"                        "m s-1"   1 0
-U10MER   uas      "Mean eastward surface wind" "eastward_wind"                        "m s-1"   1 0
-V10MER   vas      "Mean northward surface wind" "northward_wind"                      "m s-1"   1 0
+U10MER   uasmean  "Mean eastward surface wind" "eastward_wind"                        "m s-1"   1 0
+V10MER   vasmean  "Mean northward surface wind" "northward_wind"                      "m s-1"   1 0
+U10XER   uasmax   "Max. eastward surface wind" "eastward_wind"                        "m s-1"   1 0
+V10XER   vasmax   "Max. northward surface wind" "northward_wind"                      "m s-1"   1 0
 PRES     pres     "Air pressure"              "air_pressure"                          "Pa"      1 0
 GEOP     geop     "Geopotential"              "geopotential"                          "m2 s-2"  1 0
-TEMP     t        "Air temperature"           "air_temperature"                       "K"       1 0
+TEMP     ta       "Air temperature"           "air_temperature"                       "K"       1 0
 MSLP     psl      "Mean sea level pressure"   "air_pressure_at_sea_level"             "Pa"      1 0

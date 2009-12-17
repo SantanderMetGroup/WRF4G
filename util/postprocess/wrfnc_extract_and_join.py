@@ -148,7 +148,7 @@ def discard_suspect_files(filelist, criteria='uncommon_size'):
     i_file+=1
   return rval
 
-def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None):
+def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None, createp=None):
   inc = NetCDFFile(wrfncfile,'r')
   onc = NetCDFFile(opt.OFILE, "w")
   onc.history = "Created by %s on %s" % (sys.argv[0],time.ctime(time.time()))
@@ -180,6 +180,17 @@ def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None):
       oncptop.long_name = "Pressure at the top of the atmosphere"
       oncptop.units = "Pa"
       oncptop.assignValue(inc.variables["P_TOP"][0])
+  onc.sync()
+  if createp:
+    onc.createDimension("plev", inc.dimensions["num_metgrid_levels"])
+    oncz = onc.createVariable("plev",Numeric.Float64, ("plev",))
+    oncz.axis = "Z"
+    oncz.units = "Pa"
+    oncz.long_name = "Pressure levels"
+    oncz.positive = "down"
+    oncz.standard_name = "air_pressure"
+    if inc.variables.has_key("PLEV"):
+      oncz.assignValue(inc.variables["PLEV"])
   onc.sync()
   #
   #
@@ -240,6 +251,7 @@ dimension_mapping = {
   "south_north": "y",
   "west_east": "x",
   "bottom_top": "z",
+  "num_metgrid_levels": "plev",
   "bottom_top_stag": "z", # the variables should be de-staggered before copying them to the output file
 }
 
@@ -284,6 +296,7 @@ def get_oncvar(itime, incvar, onc, out_is_2D_but_in_3D=False, screenvar_at_2m=Fa
     if screenvar_at_10m:
       add_height_coordinate(onc, "heightv", 10)
       dims = dims[:1]+("heightv",)+dims[1:]
+    #pdb.set_trace()
     oncvar = onc.createVariable(vars[varname].standard_abbr, Numeric.Float32, dims)
     oncvar.long_name = vars[varname].long_name
     oncvar.standard_name = vars[varname].standard_name
@@ -337,6 +350,10 @@ if __name__ == "__main__":
     help="Create Z axis information"
   )
   parser.add_option(
+    "-p", action="store_true", default=False, dest="paxis",
+    help="Create pressure level axis information"
+  )
+  parser.add_option(
     "--time-bounds", dest="tbounds", metavar="H1,H2",
     help="Create a time_bnds variable to specify the period of time considered in each time record. H1 is the start time in hours from the current time record and H2 is the ending time"
   )
@@ -379,7 +396,7 @@ if __name__ == "__main__":
   #
   print files[0]
   initialdate = datetime.strptime(opt.refdate, '%Y-%m-%d_%H:%M:%S')
-  onc = create_bare_curvilinear_CF_from_wrfnc(files[0], initialdate, opt.zaxis)
+  onc = create_bare_curvilinear_CF_from_wrfnc(files[0], initialdate, opt.zaxis, opt.paxis)
   for line in csv.reader(open(opt.attributes, "r"), delimiter=" ", skipinitialspace=True):
     setattr(onc, line[0], line[1])
   onctime = onc.variables["time"]
@@ -423,6 +440,15 @@ if __name__ == "__main__":
         copyval = reshape(incvar[:nrecords], incvar.shape[:1]+(1,)+incvar.shape[1:])
         oncvar = get_oncvar(itime, incvar, onc, screenvar_at_10m=True)
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname in ["U10XER", "V10XER"]:
+        u = inc.variables["U10MAX"]
+        v = inc.variables["V10MAX"]
+        uer, ver = rotate_lcc_wind(u,v, onclat[:,:], onclon[:,:], inc.CEN_LON, inc.TRUELAT1, inc.TRUELAT2)
+        exec("incvar=%s" % varname[0].lower()) # muy cerdo
+        exec("copyval=%ser" % varname[0].lower()) # muy cerdo
+        copyval = reshape(incvar[:nrecords], incvar.shape[:1]+(1,)+incvar.shape[1:])
+        oncvar = get_oncvar(itime, incvar, onc, screenvar_at_10m=True)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       elif varname == "WIND":
         incvar = inc.variables["U10"]
         u = incvar[:]
@@ -431,10 +457,13 @@ if __name__ == "__main__":
         oncvar = get_oncvar(itime, incvar, onc)
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       elif varname == "RAIN":
-        incvar = inc.variables["RAINNC"]
-        pr = incvar[:nrecords] + inc.variables["RAINC"][:nrecords]
+        if inc.variables.has_key("RAINTOT"):
+          incvar = inc.variables["RAINTOT"]
+          pr = incvar[:nrecords]
+        else:
+          incvar = inc.variables["RAINNC"]
+          pr = incvar[:nrecords] + inc.variables["RAINC"][:nrecords]
         if not lastpr:
-          #pdb.set_trace()
           copyval = concatenate([zeros((1,)+pr[0].shape, pr.typecode()), pr[1:nrecords]-pr[:-1]])
         else:
           copyval = pr - concatenate([lastpr,pr[:-1]])
@@ -465,21 +494,30 @@ if __name__ == "__main__":
         oncvar = get_oncvar(itime, incvar, onc)
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       elif varname == "TEMP":
-        incvar = inc.variables['T']
-        pres = inc.variables['P'][:nrecords] + inc.variables["PB"][:nrecords]
-        copyval = compute_temperature(pres, incvar[:nrecords])
+        if inc.variables.has_key("TT"):
+          incvar = inc.variables['TT']
+          copyval = incvar
+        else:
+          incvar = inc.variables['T']
+          pres = inc.variables['P'][:nrecords] + inc.variables["PB"][:nrecords]
+          copyval = compute_temperature(pres, incvar[:nrecords])
         oncvar = get_oncvar(itime, incvar, onc)
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       elif varname == "MSLP":
-        incvar = inc.variables['P']
-        p = incvar[:]
-        pb = inc.variables['PB'][:]
-        ph = inc.variables['PH'][:]
-        phb = inc.variables['PHB'][:]
-        t = inc.variables['T'][:]
-        qvapor = inc.variables['QVAPOR'][:]
-        mslp = compute_mslp(p, pb, ph, phb, t , qvapor)
-        oncvar = get_oncvar(itime, incvar, onc, out_is_2D_but_in_3D=True)
+        if inc.variables.has_key("MSLP"):
+          incvar = inc.variables['MSLP']
+          mslp = incvar[:nrecords]
+          oncvar = get_oncvar(itime, incvar, onc)
+        else:
+          incvar = inc.variables['P']
+          p = incvar[:]
+          pb = inc.variables['PB'][:]
+          ph = inc.variables['PH'][:]
+          phb = inc.variables['PHB'][:]
+          t = inc.variables['T'][:]
+          qvapor = inc.variables['QVAPOR'][:]
+          mslp = compute_mslp(p, pb, ph, phb, t , qvapor)
+          oncvar = get_oncvar(itime, incvar, onc, out_is_2D_but_in_3D=True)
         oncvar[itime:itime+nrecords] = mslp[:nrecords].astype(oncvar.typecode())
       else:
         incvar = inc.variables[varname]
