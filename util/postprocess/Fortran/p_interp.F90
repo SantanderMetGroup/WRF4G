@@ -5,6 +5,8 @@
 !
 !=================================Make Executable============================
 !  Make executable:
+!  GMS.UC:
+!  pgf90 p_interp.F90 -L/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/lib -lnetcdf -lm -I/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/include -Mfree -o p_interp
 !    DEC Alpha
 !      f90 p_interp.F90 -L/usr/local/netcdf/lib -lnetcdf -lm  \
 !      -I/usr/local/netcdf/include  -free  -o p_interp
@@ -818,7 +820,7 @@ rcode = nf_enddef(mcid)
              write(6,*) 'VAR: PLEV idvar:',jvar
              write(6,*) '     DIMS OUT: ',dims2d_out
            ENDIF
-           rcode = nf_put_vara_real (mcid, jvar, 1, num_metgrid_levels, interp_levels)
+           rcode = nf_put_vara_real (mcid, jvar, 1, num_metgrid_levels, interp_levels*100.)
            IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',pres_out(1,1,num_metgrid_levels/2,1)
 !         END IF
 
@@ -1174,6 +1176,7 @@ INTEGER                                                   :: i,j,k,it,igrid, jgr
 INTEGER, INTENT(IN)                                       :: dx, dy, dz, dt, grid, ntimes
 REAL, DIMENSION(dx,dy,dz,dt), INTENT(IN)                  :: datain
 REAL, DIMENSION(dx,dy,dz,dt), INTENT(OUT)                 :: dataout
+REAL, DIMENSION(dx,dy,dz,dt)                              :: datafilt
 
 ! Filling border values (up grid-1)
 !!
@@ -1183,6 +1186,8 @@ DO i=0,grid-2
   dataout(:,1+i,:,:)=datain(:,1+i,:,:)
   dataout(:,dy-i,:,:)=datain(:,dy-i,:,:)
 END DO
+
+datafilt=datain
 
 ! Filtering
 !!
@@ -1194,7 +1199,7 @@ DO itime=1,ntimes
           dataout(i,j,k,it)=0.
           DO igrid=-grid/2,grid/2
             DO jgrid=-grid/2, grid/2
-              dataout(i,j,k,it)=dataout(i,j,k,it)+datain(i+igrid,j+jgrid,k,it)
+              dataout(i,j,k,it)=dataout(i,j,k,it)+datafilt(i+igrid,j+jgrid,k,it)
             ENDDO
           ENDDO
           dataout(i,j,k,it)=dataout(i,j,k,it)/(grid*grid)
@@ -1202,6 +1207,7 @@ DO itime=1,ntimes
       ENDDO
     ENDDO
   ENDDO
+  datafilt=dataout
 ENDDO
 
 END SUBROUTINE spatialfiltering
@@ -1594,4 +1600,4 @@ END SUBROUTINE spatialfiltering
 
  END SUBROUTINE def_var
 !------------------------------------------------------------------------------
-!------------------------------------------------------------------------------
+!--------------------------------------------------------------------------
