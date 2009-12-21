@@ -471,7 +471,7 @@ if __name__ == "__main__":
         lastpr = reshape(pr[-1], (1,)+pr[-1].shape)
         oncvar = get_oncvar(itime, incvar, onc)
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
-      elif varname == "T2":
+      elif varname in ["T2", "T2MAX", "T2MIN", "T2MEAN"]:
         incvar = inc.variables[varname]
         copyval = reshape(incvar[:nrecords], incvar.shape[:1]+(1,)+incvar.shape[1:])
         oncvar = get_oncvar(itime, incvar, onc, screenvar_at_2m=True)

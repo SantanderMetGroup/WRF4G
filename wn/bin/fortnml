@@ -108,7 +108,7 @@ class FortranNamelist:
         self.record_dict[current_label] = FortranNamelistRecord(current_label)
         if not current_label in self.ordered_records:
           self.ordered_records.append(current_label)
-      elif '/' in line:
+      elif line.strip() == "/":
         # Then lines following this are comments until the next '&'
         is_comment=True
       elif '=' in line:
@@ -117,7 +117,12 @@ class FortranNamelist:
           variable,values = line.split('=')
           variable = variable.lower()
           values = values.strip().rstrip(',')
-          values = coerce_value_list(values.split(','))
+          if values.startswith("'") and values.endswith("'") and not "'" in values[1:-1]:
+            # This is a single string with comma-separated values. Do not interpret it as 
+            # as comma-separated strings.
+            values = values[1:-1]
+          else:
+            values = coerce_value_list(values.split(','))
           self.record_dict[current_label].setValue(variable.strip(), values)
       else:
         if not is_comment:

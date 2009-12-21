@@ -99,7 +99,7 @@ function clean_all(){
     cd T/
       tar czf ../${ofile} *.TS
     cd ..
-    register_file -v ts $2 ${ofile}
+    register_file -v ts date_not_used ${ofile}
   fi
 }
 
