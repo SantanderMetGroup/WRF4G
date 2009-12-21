@@ -167,8 +167,7 @@
         loslen = LEN ( command )
         CALL all_spaces ( command , loslen ) 
 !        WRITE ( command , FMT='("ls -1 ",A300," > .foo")' ) TRIM ( inputlong_name )
-        WRITE ( command , FMT='("ls -1 ",A300," > .foo")' ) TRIM ( inputlong_name )
-        PRINT *,'COMMAND:',command   
+        WRITE ( command , FMT='("ls -1 ",A," > .foo")' ) TRIM ( inputlong_name )
         !  We stuck all of the matching files in the ".foo" file.  Now we place the 
         !  number of the those file (i.e. how many there are) in ".foo1". 
   
@@ -491,7 +490,7 @@ rcode = nf_enddef(mcid)
          rcode = nf_inq_varid(ncid, "PH", ivar1)
          ivar2=-1
          rcode = nf_inq_varid(ncid, "PHB", ivar2)
-         IF (ivar1*ivar2 == 1 ) THEN
+         IF (ivar1*ivar2 > 1 ) THEN
            IF (ALLOCATED(ght)) deallocate(ght)
            allocate (ght(iweg-1, isng-1, ibtg-1, times_in_file ))
            IF (ALLOCATED(phb)) deallocate(phb)
@@ -820,7 +819,7 @@ rcode = nf_enddef(mcid)
              write(6,*) 'VAR: PLEV idvar:',jvar
              write(6,*) '     DIMS OUT: ',dims2d_out
            ENDIF
-           rcode = nf_put_vara_real (mcid, jvar, 1, num_metgrid_levels, interp_levels*100.)
+           rcode = nf_put_vara_real (mcid, jvar, 1, num_metgrid_levels, interp_levels)
            IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',pres_out(1,1,num_metgrid_levels/2,1)
 !         END IF
 
@@ -1600,4 +1599,4 @@ END SUBROUTINE spatialfiltering
 
  END SUBROUTINE def_var
 !------------------------------------------------------------------------------
-!--------------------------------------------------------------------------
+!------------------------------------------------------------------------------

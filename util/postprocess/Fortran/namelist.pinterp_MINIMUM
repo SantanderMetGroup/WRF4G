@@ -1,38 +1,20 @@
 &io
- path_to_input = './'
- input_name = 'proves.nc'
- path_to_output = './'
- process = 'list',
- fields = 'Q2,T2,TT,U,V,RH,MSLP,MSLPF,PSFC,U10,V10,RAINTOT',
- grid_filt = 3,
- ntimes_filt = 10,
- path_to_geofile = '/oceano/gmeteo/DATA/WRF/domains/Europe_15k',
- geofile = 'geo_em.d01.nc'
+  path_to_input            = '/oceano/gmeteo/users/lluis/bustia',
+  input_name               = 'wrfout_d01_20010104T060000Z.nc',
+  path_to_output           = './',
+  fields                   = 'Q2,T2,TT,RH,GHT,MSLP,PSFC,U10,V10,RAINTOT,Times',
+  process                  = 'list',
+  debug                    = .TRUE.,
+  grid_filt                = 3,
+  ntimes_filt              = 10,
+  path_to_geofile          = '/oceano/gmeteo/DATA/WRF/domains/Europe_15k',
+  geofile                  = 'geo_em.d01.nc'
 /
- input_name = 'wrfout_d01_2001-11-10_00:00:00'
- debug = .TRUE.,
- process = 'all'
- bit64 = .TRUE.
-
-! process can be "all", "list", "all_list"
-!	"all" - process all fields in file
-!		diagnostics PRES, TT, GHT, RH are also calculated
-!   	"list" - list fields required in "fields"
-!   		avaliable diagnostics are PRES, TT, GHT, RH
-! GMS.UC: Lluis Dec.09
-! fields filtering
-!       "ngrid_filt" - grid box range to compute average values to obtain filtered MSLP (stored as SLPf)
-!       "ntimes_filt" - number of times to compute space averaged values
+  fields                   = 'Q2,T2,GHT,TT,RH,MSLP,PSFC,U10,V10,RAINTOT,Times',
 
 &interp_in
- interp_levels = 1000.,850.,500.,200.,
- extrapolate = 1,
- interp_method = 1,
- p_top = 50.
+  interp_levels            = 1000.0, 850.0, 500.0, 200.0,
+  p_top                    = 50.,
+  extrapolate              = 1,
+  interp_method            = 1,
 /
- unstagger_grid = .TRUE.
-
-# extrapolate = 0    ;; set values below ground and above model top to missing (default)
-# extrapolate = 1    ;; extrapolate below ground, and set above model top to model top values
-# interp_method = 1  ;; linear in p interpolation (default)
-# interp_method = 2  ;; linear in log p interpolation
