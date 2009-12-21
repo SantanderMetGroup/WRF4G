@@ -106,6 +106,7 @@
 ! GMS.UC:Lluis Dec.09
       REAL                                               :: p_top
       REAL, ALLOCATABLE, DIMENSION(:,:,:)                :: field2d_out
+      REAL, ALLOCATABLE, DIMENSION(:,:,:,:)              :: datageogrid
       CHARACTER(LEN=11), ALLOCATABLE, DIMENSION(:)       :: varnames
       INTEGER, DIMENSION(3)                              :: jshape2d
       INTEGER, DIMENSION(4)                              :: dims2d_out
@@ -516,10 +517,21 @@ rcode = nf_enddef(mcid)
          allocate (ter(iweg-1, isng-1))
          IF (ivar1 == 1) THEN
            PRINT *,"Obtaining terrain height from domain file:'"//TRIM(geofilename)//"'" 
-           rcode = nf_open(geofilename, 0, ncgid)
-           rcode = nf_inq_varid    ( ncgid, "HGT_M", ivar1 )
-           rcode = nf_get_var_real ( ncgid, ivar1, ter )
-           rcode = nf_close ( ncgid )
+!           rcode = nf_open(geofilename, 0, ncgid)
+!           rcode = nf_inq_varid    ( ncgid, "HGT_M", ivar1 )
+!           rcode = nf_get_var_real ( ncgid, ivar1, ter )
+!           rcode = nf_close ( ncgid )
+           IF (ALLOCATED(varnames)) DEALLOCATE(varnames)
+           ALLOCATE (varnames(1))
+           varnames=RESHAPE((/'HGT_M'/),(/1/))
+           PRINT *,'varnames allocated...'
+           IF (ALLOCATED(datageogrid)) DEALLOCATE(datageogrid)
+           ALLOCATE (datageogrid(iweg-1, isng-1, ibtg-1, 1))
+           PRINT *,'varnames and datageogrid matrixs allocated...'
+           CALL extract_from_geogrid(geofilename, varnames, 1, iweg-1, isng-1, ibtg-1, datageogrid) 
+           PRINT *,'datageogrid:',datageogrid(iweg/2,isng/2,1,1)
+           ter=datageogrid(1:(iweg-1),1:(isng-1),1,1)
+           DEALLOCATE(varnames, datageogrid)
          ELSE
            IF (ALLOCATED(data1)) deallocate(data1)
            allocate (data1(iweg-1, isng-1, 1, times_in_file ))
@@ -877,6 +889,7 @@ rcode = nf_enddef(mcid)
             , "XLONG XLAT")
           IF (ALLOCATED(data3)) DEALLOCATE(data3)
           ALLOCATE (data3(dims_out(1), dims_out(2), dims_out(4), 1))
+          IF (ALLOCATED(varnames)) DEALLOCATE(varnames)
           ALLOCATE (varnames(2))
           varnames=RESHAPE((/'RAINNC','RAINC'/),(/2/))
           CALL variablessum(ncid, varnames, 2, dims_out(1), dims_out(2), dims_out(4), 1, data3) 
@@ -1000,20 +1013,53 @@ rcode = nf_enddef(mcid)
  END PROGRAM p_interp
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
-!---------------------------------------------------------------------
 ! GMS.UC: Lluis Dec.09
+SUBROUTINE extract_from_geogrid(geoname, variables, Nvar, dx, dy, dz, geogrid_data)
+! Subroutine for extracting data from geo_em.d01.nc
+IMPLICIT NONE
+
+INCLUDE 'netcdf.inc'
+
+INTEGER                                                   :: i, ivar, rcode, ncgid
+INTEGER, INTENT(IN)                                       :: Nvar, dx, dy, dz
+CHARACTER(LEN=250), INTENT(IN)                            :: geoname
+CHARACTER(LEN=11), DIMENSION(Nvar), INTENT(IN)            :: variables
+REAL, DIMENSION(dx, dy, dz, Nvar), INTENT(OUT)            :: geogrid_data
+REAL, DIMENSION(dx, dy, dz)                               :: datageo
+
+!!!!!!!!!!! Variables
+!    ncgid: unit number of 'geo_em.d01.nc' file
+!    variables: vector with names of solicited variables
+!    Nvar: number of solicited variables
+!    dx, dy, dz: geogrid data dimension range
+!    geogrid_data: 5D matrix with all solicited data
+
+rcode = nf_open(geoname, 0, ncgid)
+
+DO ivar=1,Nvar
+  rcode = nf_inq_varid(ncgid, TRIM(variables(ivar)), i)
+  rcode = nf_get_var_real ( ncgid, i, datageo )
+  geogrid_data(1:dx,1:dy,1:dz,ivar) = datageo
+ENDDO
+
+rcode = nf_close ( ncgid )
+
+END SUBROUTINE extract_from_geogrid
+
+!---------------------------------------------------------------------
+
 SUBROUTINE variablessum(ncid, variables, Nvar, dx, dy, dz, dt, datasum)
 ! Subroutine to add 'Nvar' variables
 IMPLICIT NONE
 
 INCLUDE 'netcdf.inc'
 
-INTEGER                                               :: i, ivar, rcode
-INTEGER, INTENT(IN)                                   :: ncid, Nvar
-CHARACTER(LEN=11), DIMENSION(Nvar), INTENT(IN)        :: variables
-INTEGER, INTENT(IN)                                   :: dx, dy, dz, dt
-REAL, DIMENSION(dx,dy,dz,dt), INTENT(OUT)             :: datasum
-REAL, DIMENSION(dx,dy,dz,dt)                          :: dataval
+INTEGER                                                   :: i, ivar, rcode
+INTEGER, INTENT(IN)                                       :: ncid, Nvar
+CHARACTER(LEN=11), DIMENSION(Nvar), INTENT(IN)            :: variables
+INTEGER, INTENT(IN)                                       :: dx, dy, dz, dt
+REAL, DIMENSION(dx,dy,dz,dt), INTENT(OUT)                 :: datasum
+REAL, DIMENSION(dx,dy,dz,dt)                              :: dataval
 
 datasum=0.
 
