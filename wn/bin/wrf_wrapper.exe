@@ -1,0 +1,3 @@
+#! /bin/bash
+wrf.exe $* &
+test -f wrf.pid || echo "$!" > wrf.pid

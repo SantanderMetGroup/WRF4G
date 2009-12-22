@@ -319,8 +319,7 @@ fi
 cd ${LOCALDIR}/WRFV3/run || exit
   timelog_init "wrf"
     ls -l ########################################################## borrar
-    ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
-    echo $! > wrf.pid
+    ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     ${ROOTDIR}/WRFGEL/wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   
     wait $(cat monitor.pid)
