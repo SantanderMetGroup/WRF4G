@@ -58,7 +58,7 @@ test -d ${rundir} && mv ${rundir} ${oldrundir}
 command="cd ${rundir}"
 echo -e "2i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
 command="cat \$PE_HOSTFILE | awk '{print \$1\":\"\$2}' >& ${rundir}/WRFV3/run/wrf_gms"
-echo -e "64i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
+echo -e "67i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
 command="cat \$PE_HOSTFILE | awk '{print \$1\":\"\$2}'"
 echo -e "4i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
 command="echo \"LAUNCHER_WRF: \"\${LAUNCHER_WRF}"
@@ -77,5 +77,5 @@ cp -L WRF4G_ini.sh   ${rundir}/
 ##cat $PE_HOSTFILE | awk '{print $1":"$2}' > ${rundir}/wrf_gms
 
 echo "-S /bin/bash -N "${WRF4G_REALIZATION}" -P l.meteo "${depflag}" "${nodflag}" "${walltimeflag}" "${eoflag}" "$jobfile >> ${rootbuild}/wrf.chunk 
-qsub -S /bin/bash -N "${WRF4G_REALIZATION}" -P l.meteo ${depflag} ${nodflag} ${eoflag} $jobfile | awk '{print $3}'
+qsub -S /bin/bash -N "${WRF4G_REALIZATION}" -P l.meteo ${depflag} ${nodflag} ${eoflag} $jobfile | awk -F. '{print $3}'
 ##qsub -S /bin/bash -N "${WRF4G_REALIZATION}" -P l.meteo ${depflag} ${nodflag} ${walltimeflag} ${eoflag} $jobfile | awk '{print $3}'
