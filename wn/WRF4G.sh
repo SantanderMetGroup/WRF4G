@@ -320,7 +320,7 @@ cd ${LOCALDIR}/WRFV3/run || exit
   timelog_init "wrf"
     ls -l ########################################################## borrar
     ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
-! Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
+# Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
     sleep 5
     ${ROOTDIR}/WRFGEL/wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   
