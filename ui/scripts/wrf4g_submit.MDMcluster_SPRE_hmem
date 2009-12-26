@@ -51,8 +51,6 @@ test -d ${rundir} && mv ${rundir} ${oldrundir}
 #
 command="cd ${rundir}"
 echo -e "2i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
-command="mkdir -p \${LOCALDIR}/WRFV3/run/T"
-echo -e "64i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
 #
 #   Pack the sandbox
 #
