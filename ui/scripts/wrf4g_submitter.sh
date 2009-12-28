@@ -89,8 +89,8 @@ function cycle_chunks(){
   while test ${cyy}${cmm}${cdd}${chh} -lt ${eyy}${emm}${edd}${ehh}
   do
     export WRF4G_CHUNK="$(printf '%04d' ${chunkno})"
-    hours=`(expr ${chh} + ${chunk_size_h})`
-    final_date=`(date +%Y-%m-%d_%H:%M:%S -u -d"${cyy}${cmm}${cdd} $hours hours")`
+    let hours=chh+chunk_size_h
+    final_date=$(date +%Y-%m-%d_%H:%M:%S -u -d"${cyy}${cmm}${cdd} $hours hours")
     read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     if test ${fyy}${fmm}${fdd}${fhh} -gt ${eyy}${emm}${edd}${ehh}; then
       final_date=${realization_end_date}
@@ -154,13 +154,13 @@ function cycle_hindcasts(){
   current_date=${start_date}
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
   read eyy emm edd ehh trash <<< $(echo ${end_date} | tr '_:T-' '    ')
-  hours=`(expr ${chh} + ${simulation_length_h})`
-  final_date=`(date +%Y-%m-%d_%H:%M:%S -u -d"${cyy}${cmm}${cdd} $hours hours")`
+  let hours=chh+simulation_length_h
+  final_date=$(date +%Y-%m-%d_%H:%M:%S -u -d"${cyy}${cmm}${cdd} $hours hours")
   read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
   while test ${cyy}${cmm}${cdd}${chh} -le ${eyy}${emm}${edd}${ehh}
   do
-    hours=`(expr ${chh} + ${simulation_length_h})`
-    final_date=`(date +%Y-%m-%d_%H:%M:%S -u -d"${cyy}${cmm}${cdd} $hours hours")`
+    let hours=chh+simulation_length_h
+    final_date=$(date +%Y-%m-%d_%H:%M:%S -u -d"${cyy}${cmm}${cdd} $hours hours")
     read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     if test ${fyy}${fmm}${fdd}${fhh} -gt ${eyy}${emm}${edd}${ehh}; then
       final_date=${end_date}
@@ -170,8 +170,8 @@ function cycle_hindcasts(){
     #
     #  Cycle dates
     #
-    hoursnext=`(expr ${chh} + ${simulation_interval_h})`
-    current_date=`(date +%Y-%m-%d_%H:%M:%S -u -d"${cyy}${cmm}${cdd} $hoursnext hours")`
+    let hoursnext=chh+simulation_interval_h
+    current_date=$(date +%Y-%m-%d_%H:%M:%S -u -d"${cyy}${cmm}${cdd} $hoursnext hours")
     read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
   done
 }
