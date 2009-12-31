@@ -52,10 +52,10 @@ test -d ${rundir} && mv ${rundir} ${oldrundir}
 #  Enter a cd command in your job file to go to the run path.
 #  (qsub does not seem to have a flag to set the initial directory for the job)
 #
-numlinjob=`wc -l $jobfile`
-numlinjob=`expr ${numlinjob} - 2`
 command="cd ${rundir}"
 echo -e "2i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
+numlinjob=`wc -l $jobfile | awk '{print $1}'`
+numlinjob=`expr ${numlinjob} - 2`
 command="cat \$PE_HOSTFILE | awk '{print \$1\":\"\$2}' >& \$(cat \${ROOTDIR}/localdir|awk -F: '{print \$2}')/WRFV3/run/wrf_gms"
 echo -e "${numlinjob}i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
 #

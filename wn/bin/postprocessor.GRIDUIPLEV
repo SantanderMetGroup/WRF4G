@@ -11,7 +11,7 @@ wrfnc_file=$1        # The WRF file to postprocess
 if ! which p_interp; then
   thisdir=$(pwd)
   cd `cat ../../rootdir`
-    if test -e /software/ScientificLinux/4.6/etc/bashrc; then
+    if test -e /gpfs/csic_projects/meteo/WORK/GRIDUI/Apps/nco.tar.gz ; then
       cp /gpfs/csic_projects/meteo/WORK/GRIDUI/Apps/p_interp.tar.gz .
       cp /gpfs/csic_projects/meteo/WORK/GRIDUI/Apps/nco.tar.gz .
     else
@@ -50,7 +50,7 @@ pintnml . ${wrfnc_file}
 p_interp
 rm namelist.pinterp
 
-xptdsize=$( echo "print int($(stat -c %s ${wrfnc_file})*0.06)" | python )
+xptdsize=$( echo "print int($(stat -c %s ${wrfnc_file})*0.03)" | python )
 if test "$(stat -c %s ${wrfnc_file}_PLEV)" -ge ${xptdsize}; then
   mv "${wrfnc_file}_PLEV" "${wrfnc_file}" 
 fi
