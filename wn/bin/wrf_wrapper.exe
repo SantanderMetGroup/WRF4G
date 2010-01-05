@@ -1,4 +1,6 @@
 #! /bin/bash
+ulimit -s unlimited
+export MPICH_PROCESS_GROUP="no"
 ${0/_wrapper/} $* &
 test -f wrf.pid || echo "$!" > wrf.pid
 wait
