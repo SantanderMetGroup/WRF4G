@@ -1,0 +1,22 @@
+&io
+  path_to_input            = '.',
+  input_names              = 'proves.nc_PLEV',
+  WEattribute              = 'WEST-EAST_GRID_DIMENSION',
+  SNattribute              = 'SOUTH-NORTH_GRID_DIMENSION',
+  BTattribute              = 'BOTTOM-TOP_GRID_DIMENSION',
+  Timeattribute            = 'Times',
+  path_to_output           = './',
+  diagnostics              = 'PV',
+  process                  = 'list',
+  debug                    = .TRUE.,
+  filt                     = .FALSE.,
+  grid_filt                = 3,
+  ntimes_filt              = 10,
+  path_to_geofile          = '/oceano/gmeteo/DATA/WRF/domains/Europe_15k',
+  geofile                  = 'geo_em.d01.nc'
+/
+
+&levels
+  lev_process              = 'all',
+  p_levels                 = '1000.0, 850.0, 500.0, 200.10',
+/
