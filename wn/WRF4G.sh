@@ -193,7 +193,7 @@ else
           vcp ${VCPDEBUG} ${global_path}/${year}/'*'${yearmon}'*'.grb ln://`pwd`/grbData 
         done
       else
-        preprocessor.${global_preprocessor} ${global_path} ${start_date} ${end_date}
+        preprocessor.${global_preprocessor} ${global_path} ${chunk_start_date} ${chunk_end_date}
       fi
       ./link_grib.csh grbData/*.grb
     timelog_end

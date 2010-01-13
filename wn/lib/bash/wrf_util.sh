@@ -406,6 +406,21 @@ function get_yearmons(){
   done
 }
 
+function get_yearmondays(){
+  yeari=$1
+  moni=$2
+  dayi=$3
+  yearf=$4
+  monf=$5
+  dayf=$6
+  ymdi="$(echo $yeari $moni $dayi | awk '{printf "%4d%02d%02d",$1,$2,$3}')"
+  ymdf="$(echo $yearf $monf $dayf | awk '{printf "%4d%02d%02d",$1,$2,$3}')"
+  while test $ymdi -le $ymdf; do
+    echo ${ymdi}
+    ymdi=$(date --utc '+%Y%m%d' -d "${ymdi} 1 day")
+  done  
+}
+
 function date_wrf2iso(){
   echo "${1}Z" | tr -d ':-' | tr '_' 'T'
 }
