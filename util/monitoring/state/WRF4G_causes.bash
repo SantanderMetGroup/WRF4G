@@ -193,7 +193,9 @@ cat << EOF
 <link rel="stylesheet" type="text/css" href="WRF4Gstate.css" />
 </head>
 <body>
+<div class="subtitle">
 EMPTY -- empty
+</div>
 </body>
 </html>
 EOF
