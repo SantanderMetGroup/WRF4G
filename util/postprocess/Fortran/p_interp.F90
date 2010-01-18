@@ -65,7 +65,7 @@
       INTEGER,           ALLOCATABLE, DIMENSION(:,:,:,:) :: idata1, idata2
       INTEGER,                        DIMENSION(4)       :: start_dims = 1
       INTEGER,                        DIMENSION(4)       :: dims_in, dims_out
-      INTEGER,                        DIMENSION(6)       :: ishape, jshape
+      INTEGER,                        DIMENSION(8)       :: ishape, jshape
 
       CHARACTER (LEN=80)                                 :: cval
       CHARACTER (LEN=31)                                 :: cname, test_dim_name
@@ -103,20 +103,21 @@
       LOGICAL                                            :: fix_meta_stag=.FALSE.
       LOGICAL                                            :: bit64=.FALSE.
       LOGICAL                                            :: first=.TRUE.
-! GMS.UC:Lluis Dec.09
+! GMS.UC: Lluis Dec.09
       REAL                                               :: p_top
       REAL, ALLOCATABLE, DIMENSION(:,:,:)                :: field2d_out
       REAL, ALLOCATABLE, DIMENSION(:,:,:,:)              :: datageogrid
       CHARACTER(LEN=11), ALLOCATABLE, DIMENSION(:)       :: varnames
-      INTEGER, DIMENSION(3)                              :: jshape2d
-      INTEGER, DIMENSION(4)                              :: dims2d_out
+      INTEGER, DIMENSION(3)                              :: jshape2d, jshape1d
+      INTEGER, DIMENSION(4)                              :: dims2d_out, dims1d_out
       INTEGER                                            :: grid_filt, ntimes_filt
       INTEGER                                            :: ncgid
-      INTEGER                                            :: ivar1, ivar2
+      INTEGER                                            :: ivar1, ivar2, k 
       CHARACTER(LEN=11)                                  :: unitsIN, varnameIN
       CHARACTER(LEN=60)                                  :: longdescIN
       CHARACTER(LEN=250)                                 :: path_to_geofile, geofile, geofilename
       CHARACTER(LEN=300)                                 :: inputlong_name
+      LOGICAL                                            :: unstagvar
 
       NAMELIST /io/ path_to_input, input_name, path_to_output, output_name,                     &
         process, fields, debug, bit64, grid_filt, ntimes_filt, path_to_geofile, geofile
@@ -127,8 +128,6 @@
       output_name     = ' '
       interp_levels   = -99999.
       process         = 'all'
-
-      PRINT *,'Debug:',debug
 
       ! Read parameters from Fortran namelist
         DO funit=10,100
@@ -579,6 +578,7 @@ rcode = nf_enddef(mcid)
         ENDIF
         jvar = 0
         loop_variables : DO ivar = 1, nvars
+
           rcode = nf_inq_var(ncid, ivar, cval, itype, idm, ishape, natt)
 
           !!! Do we want this variable
@@ -623,31 +623,40 @@ rcode = nf_enddef(mcid)
           fix_meta_stag = .FALSE.
           rcode = nf_redef(mcid)
           DO ii = 1, idm
+            unstagvar = .FALSE. 
             test_dim_name = dnamei(ishape(ii))
             IF ( test_dim_name == 'bottom_top' .OR. test_dim_name == 'bottom_top_stag' ) THEN
                  IF ( test_dim_name == 'bottom_top_stag' ) fix_meta_stag = .TRUE.
                  test_dim_name = 'num_metgrid_levels'
                  interpolate = .TRUE.
+                 unstagvar = .TRUE. 
             ENDIF
             IF ( unstagger_grid .AND. test_dim_name == 'west_east_stag' )   THEN
                test_dim_name = 'west_east'
                fix_meta_stag = .TRUE.
+               unstagvar = .TRUE. 
             ENDIF
             IF ( unstagger_grid .AND. test_dim_name == 'south_north_stag' ) THEN
                test_dim_name = 'south_north'
                fix_meta_stag = .TRUE.
+               unstagvar = .TRUE. 
             ENDIF
             DO jj = 1,j
               IF ( test_dim_name == dnamej(jj) ) THEN
                 jshape(ii) = jj
               ENDIF
             ENDDO
-
             IF ( jshape(ii) == 0 ) THEN
+!! GMS.UC: Lluis. Jan 10 Correction in assignation of new dimensions (new dims) id
               j = j + 1
               jshape(ii) = j
-              dnamej(j) = dnamei(ishape(ii))
-              dvalj(j) = dvali(ishape(ii))
+              IF (unstagvar) THEN
+                dvalj(j) = dvali(ishape(ii)) - 1
+                dnamej(j) = test_dim_name
+              ELSE
+                dvalj(j) = dvali(ishape(ii))
+                dnamej(j) = dnamei(ishape(ii))
+              END IF
               rcode = nf_def_dim(mcid, dnamej(j), dvalj(j), j)
             ENDIF
           ENDDO
@@ -819,17 +828,17 @@ rcode = nf_enddef(mcid)
 !        IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'PLEV') /= 0 ) THEN
           !!! PLEV: Pressure levels vector 
            jvar = jvar + 1
-           jshape2d=RESHAPE((/jshape(3),jshape(2),jshape(1)/),(/3/))
-           dims2d_out=1
-           dims2d_out(3)=dims_out(3)
+           jshape1d=RESHAPE((/jshape(3),jshape(2),jshape(1)/),(/3/))
+           dims1d_out=1
+           dims1d_out(3)=dims_out(3)
            varnameIN='PLEV'
            longdescIN='Pressure levels'
            unitsIN='Pa'
-           CALL def_var (mcid, jvar, varnameIN, 5, 1, jshape2d, "Z", longdescIN, unitsIN, "-", &
+           CALL def_var (mcid, jvar, varnameIN, 5, 1, jshape1d, "Z", longdescIN, unitsIN, "-", &
              "XLONG XLAT")
            IF (debug) THEN
              write(6,*) 'VAR: PLEV idvar:',jvar
-             write(6,*) '     DIMS OUT: ',dims2d_out
+             write(6,*) '     DIMS OUT: ',dims1d_out
            ENDIF
            rcode = nf_put_vara_real (mcid, jvar, 1, num_metgrid_levels, interp_levels)
            IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',pres_out(1,1,num_metgrid_levels/2,1)
@@ -881,6 +890,8 @@ rcode = nf_enddef(mcid)
          ENDIF
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'RAINTOT') /= 0 ) THEN
         !!!! Accumulated total precipitation 
+          jshape2d=RESHAPE((/jshape(1),jshape(2),jshape(4)/),(/3/))
+          dims2d_out=RESHAPE((/dims_out(1),dims_out(2),dims_out(4),1/),(/4/))
           jvar = jvar + 1
           varnameIN='RAINTOT'
           longdescIN='Accumulated total precipitation'
