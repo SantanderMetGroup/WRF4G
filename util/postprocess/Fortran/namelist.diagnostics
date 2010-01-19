@@ -1,10 +1,10 @@
 &io
   path_to_input            = '.',
-  input_names              = 'proves.nc_PLEV',
-  WEattribute              = 'WEST-EAST_GRID_DIMENSION',
-  SNattribute              = 'SOUTH-NORTH_GRID_DIMENSION',
-  BTattribute              = 'BOTTOM-TOP_GRID_DIMENSION',
-  Timeattribute            = 'Times',
+  input_names              = 'wrfout_d01_2001-11-10_00:00:00_PLEV',
+  WEdimname                = 'west_east',
+  SNdimname                = 'south_north',
+  BTdimname                = 'num_metgrid_levels',
+  Timedimname              = 'Time',
   path_to_output           = './',
   diagnostics              = 'PV',
   process                  = 'list',
@@ -14,6 +14,7 @@
   ntimes_filt              = 10,
   path_to_geofile          = '/oceano/gmeteo/DATA/WRF/domains/Europe_15k',
   geofile                  = 'geo_em.d01.nc'
+  outfile                  = '20011110000000_DIAGS_PLEV.nc'
 /
 
 &levels

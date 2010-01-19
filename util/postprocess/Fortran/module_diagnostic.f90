@@ -8,9 +8,7 @@ MODULE module_diagnostic
 !
 !! OCEANO: pgf90 module_diagnostic.f90 -L/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/lib -lnetcdf -lm -I/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/include -Mfree -c
 
-!  USE module_constants
-
-  SUBROUTINE PV(ncfiles, Nfiles, varnames, Nvar, dx, dy, dz, dt, variableout)  
+  SUBROUTINE PV(debg, ncfiles, Nfiles, varnames, Nvar, dx, dy, dz, dt, variableout)  
 !   Subroutine to compute Potential Vorticity in PVU (in 1.E-5 PVU s-1)
 
     USE module_constants
@@ -21,30 +19,31 @@ MODULE module_diagnostic
 !   567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
 
     INTEGER, INTENT(IN)                                  :: Nfiles, Nvar
-    CHARACTER(LEN=11), DIMENSION(Nvar), INTENT(IN)       :: varnames
-!    INTEGER, DIMENSION(Nvar), INTENT(IN)                 :: Dimvar
-    CHARACTER(LEN=300), DIMENSION(Nfiles), INTENT(IN)    :: ncfiles
+    CHARACTER(LEN=50), DIMENSION(Nvar), INTENT(IN)       :: varnames
+    CHARACTER(LEN=500), DIMENSION(Nfiles), INTENT(IN)    :: ncfiles
     INTEGER, DIMENSION(Nfiles)                           :: ncids
     INTEGER                                              :: dx, dy, dz, dt
     INTEGER                                              :: idvar, ifile, rcode, ncid
     INTEGER, DIMENSION(Nvar)                             :: varfound
     REAL, DIMENSION(dx, dy, dz, dt)                      :: inu, inv, intemp 
-    REAL, DIMENSION(dx, dy)                              :: incor, inmapfac 
+    REAL, DIMENSION(dx, dy, dt)                          :: incor, inmapfac 
     REAL, DIMENSION(dx, dy, dz, dt), INTENT(OUT)         :: variableout
+    LOGICAL, INTENT(IN)                                  :: debg
 !!! Local variables 
     INTEGER                                              :: it, i, j, k
     INTEGER                                              :: ivar
     REAL, DIMENSION(dz)                                  :: inplev
-    REAL, DIMENSION(dx,dy,dz)                            :: exnf
+    REAL, DIMENSION(dz)                                  :: exnf
+!    REAL, DIMENSION(dx,dy,dz,dt)                         :: exnf
     REAL                                                 :: gridinc
     REAL, DIMENSION(dx, dy, dz, dt)                      :: dvx, dtx, duy, dty, dup, dvp, dtemp 
+    CHARACTER(LEN=50)                                    :: section
 
 !!!!!!!!!!!!!!!!!! Variables
 !      ncfiles: names of netcdf files as input 
 !      Nfiles: number of netcdf files as input
 !      varnames: vector with variable names to compute diagnostic
 !      Nvar: number of variables to compute diagnostics
-!!      Dimvar: dimension of variables to compute diagnostics
 !      ncids: ids of netCDF files
 !      idvar: var id within ncfile
 !      varfound: vector that controls if necessary variables have been found
@@ -70,118 +69,138 @@ MODULE module_diagnostic
 !     dvp: p derivate of v wind [ms-1m-1; dx, dy, dz, dt]
 !     dtemp: p derivate of temperature [ms-1m-1; dx, dy, dz, dt]
 
+    gridinc=15000.
+
 ! Adquiring initial variables
 !!
+    section='PVsub'
     varfound=0
-    DO ifile=1, Nfiles
-      ncids(ifile)=70+ifile
-      rcode = nf_open(ncfiles(ifile), 0, ncids(ifile)) 
-      DO ivar=1, Nvar
+
+    files_loop: DO ifile=1, Nfiles
+      rcode = nf_open(TRIM(ncfiles(ifile)), 0, ncids(ifile)) 
+      IF (debg) PRINT *,"Reading in file: '"//TRIM(ncfiles(ifile))//"' ..."
+      IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
+
+      variables: DO ivar=1, Nvar
+        IF (debg) PRINT *,ivar,':',varfound(ivar),"Looking for variable '"//TRIM(varnames(ivar))//"' "
         rcode = nf_inq_varid(ncids(ifile), TRIM(varnames(ivar)), idvar)
+        IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
+
         SELECT CASE (ivar)
         CASE(1)
-          rcode = nf_get_var_real ( ncid, ncids(ifile), inu ) 
-          varfound(ivar)=1
+          IF (varfound(ivar) /= 1) THEN
+            rcode = nf_get_var_real ( ncids(ifile), idvar, inu ) 
+            IF (rcode == 0) THEN
+              varfound(ivar)=1 
+            ELSE
+              PRINT *,"Error reading '"//TRIM(varnames(ivar))//"' "//nf_strerror(rcode)
+            END IF
+          END IF 
         CASE(2)
-          rcode = nf_get_var_real ( ncid, ncids(ifile), inv ) 
-          varfound(ivar)=1
+          IF (varfound(ivar) /= 1) THEN
+            rcode = nf_get_var_real ( ncids(ifile), idvar, inv ) 
+            IF (rcode == 0) varfound(ivar)=1 
+          END IF 
         CASE(3)
-          rcode = nf_get_var_real ( ncid, ncids(ifile), intemp )
-          varfound(ivar)=1
+          IF (varfound(ivar) /= 1) THEN
+            rcode = nf_get_var_real ( ncids(ifile), idvar, intemp ) 
+            IF (rcode == 0) varfound(ivar)=1 
+          END IF 
         CASE(4)
-          rcode = nf_get_var_real ( ncid, ncids(ifile), incor )
-          varfound(ivar)=1
+          IF (varfound(ivar) /= 1) THEN
+            rcode = nf_get_var_real ( ncids(ifile), idvar, incor ) 
+            IF (rcode == 0) varfound(ivar)=1 
+          END IF 
         CASE(5)
-          rcode = nf_get_var_real ( ncid, ncids(ifile), inmapfac )
-          varfound(ivar)=1
+          IF (varfound(ivar) /= 1) THEN
+            rcode = nf_get_var_real ( ncids(ifile), idvar, inmapfac ) 
+            IF (rcode == 0) varfound(ivar)=1 
+          END IF 
         CASE(6)
-          rcode = nf_get_var_real ( ncid, ncids(ifile), inplev )
-          varfound(ivar)=1
+          IF (varfound(ivar) /= 1) THEN
+            rcode = nf_get_var_real ( ncids(ifile), idvar, inplev ) 
+            IF (rcode == 0) varfound(ivar)=1 
+          END IF 
         END SELECT
-      END DO
-    END DO
+      END DO variables
+    END DO files_loop
+
     DO ivar=1, Nvar
-      IF (varfound(ivar)==0) THEN
-      PRINT *,"Necessary variable '"//TRIM(varnames(ivar))//"'not found!"
-      ENDIF
+      IF (varfound(ivar) /=1 ) PRINT *,"Necessary variable '"//TRIM(varnames(ivar))//"' not found!" 
     END DO
-    IF (ALL(varfound/=0).NEQV..TRUE.)  STOP
+    IF (.not. ALL(varfound/=0))  STOP
+
+    IF (debg) THEN
+      PRINT *,'Sample values of input variables'
+      PRINT *,'inu: ',inu(dx/2, dy/2, dz/2, dt/2)
+      PRINT *,'inv: ',inu(dx/2, dy/2, dz/2, dt/2)
+      PRINT *,'intemp: ',intemp(dx/2, dy/2, dz/2, dt/2)
+      PRINT *,'incor: ',incor(dx/2, dy/2, dt/2)
+      PRINT *,'inmapfac: ',inmapfac(dx/2, dy/2, dt/2)
+      PRINT *,'inplev: ',inplev(dz/2)
+    END IF
 
 ! Variable calculation (PV units 10E-6 SI)
 !!
-    DO j=1,dy
-      exnf(1:dx,j,1:dz)=SPREAD((100000./inplev)**rocp, 1, dx)
-    END DO
+!    DO j=1,dy
+!      exnf(:,:,:,:)=SPREAD((100000./inplev)**rocp, 3, dx*dt*dy)
+      exnf=(100000./inplev)**rocp
+!    END DO
+    IF (debg) PRINT *,'exnf: ',exnf(dz/2)
 ! x derivate
 !!
     DO i=2,dx-1
-      dvx(i,1:dy,1:dz,1:dt)=(inv(i+1,1:dy,1:dz,1:dt)-inv(i-1,1:dy,1:dz,1:dt))/gridinc
-      dtx(i,1:dy,1:dz,1:dt)=(intemp(i+1,1:dy,1:dz,1:dt)-intemp(i-1,1:dy,1:dz,1:dt))/gridinc
+      dvx(i,:,:,:)=(inv(i+1,:,:,:)-inv(i-1,:,:,:))/gridinc
+      dtx(i,:,:,:)=(intemp(i+1,:,:,:)-intemp(i-1,:,:,:))/gridinc
     END DO
+    IF (debg) PRINT *,'dvx: ',dvx(dx/2, dy/2, dz/2, dt/2)
+    IF (debg) PRINT *,'dtx: ',dtx(dx/2, dy/2, dz/2, dt/2)
 
 ! y derivate
 !!
     DO j=2,dy-1
-      duy(1:dx,j,1:dz,1:dt)=(inv(1:dx,j+1,1:dz,1:dt)-inv(1:dx,j-1,1:dz,1:dt))/gridinc
-      dty(1:dx,j,1:dz,1:dt)=(intemp(1:dx,j+1,1:dz,1:dt)-intemp(1:dx,j-1,1:dz,1:dt))/gridinc
+      duy(:,j,:,:)=(inv(:,j+1,:,:)-inv(:,j-1,:,:))/gridinc
+      dty(:,j,:,:)=(intemp(:,j+1,:,:)-intemp(:,j-1,:,:))/gridinc
     END DO
+    IF (debg) PRINT *,'duy: ',duy(dx/2, dy/2, dz/2, dt/2)
+    IF (debg) PRINT *,'dty: ',dty(dx/2, dy/2, dz/2, dt/2)
 
 ! Applying map correction
 !!
     DO k=1,dz
-      DO it=1,dt
-        dvx(1:dx,1:dy,k,it)=dvx(1:dx,1:dy,k,it)*inmapfac
-        duy(1:dx,1:dy,k,it)=duy(1:dx,1:dy,k,it)*inmapfac
-        dtx(1:dx,1:dy,k,it)=dtx(1:dx,1:dy,k,it)*inmapfac
-        dty(1:dx,1:dy,k,it)=dty(1:dx,1:dy,k,it)*inmapfac
-      END DO
+        dvx(:,:,k,:)=dvx(:,:,k,:)*inmapfac
+        duy(:,:,k,:)=duy(:,:,k,:)*inmapfac
+        dtx(:,:,k,:)=dtx(:,:,k,:)*inmapfac
+        dty(:,:,k,:)=dty(:,:,k,:)*inmapfac
     END DO
+    IF (debg) PRINT *,'inmapfac: ',inmapfac(dx/2, dy/2, dt/2)
 
-! z derivate
-!!
-    zlevels: DO k=1,dz
-      IF (k == 1) THEN
-        dup(1:dx,1:dy,k,1:dt)=(inu(1:dx,1:dy,k,1:dt)-inu(1:dx,1:dy,2,1:dt))/(inplev(1)-inplev(2)) 
-        dvp(1:dx,1:dy,k,1:dt)=(inv(1:dx,1:dy,k,1:dt)-inv(1:dx,1:dy,2,1:dt))/(inplev(1)-inplev(2)) 
-        dtemp(1:dx,1:dy,k,1:dt)=(intemp(1:dx,1:dy,k,1:dt)-intemp(1:dx,1:dy,2,1:dt))/(inplev(1)- &
-        inplev(2)) 
-      ELSE IF ( k == dz ) THEN
-        dup(1:dx,1:dy,k,1:dt)=(inu(1:dx,1:dy,k,1:dt)-inu(1:dx,1:dy,dz,1:dt))/(inplev(dz-1)-     &
-          inplev(dz))
-        dvp(1:dx,1:dy,k,1:dt)=(inv(1:dx,1:dy,k,1:dt)-inv(1:dx,1:dy,dz,1:dt))/(inplev(dz-1)-     &
-          inplev(dz))
-        dtemp(1:dx,1:dy,k,1:dt)=(intemp(1:dx,1:dy,k,1:dt)-intemp(1:dx,1:dy,dz,1:dt))/           &
-          (inplev(dz-1)-inplev(dz))
-      ELSE
-        dup(1:dx,1:dy,k,1:dt)=((inplev(k)-inplev(k+1))*(inu(1:dx,1:dy,k-1,1:dt)-                &
-          inu(1:dx,1:dy,k,1:dt))/(inplev(k-1)-inplev(k))+                                       &
-          (inplev(k-1)-inplev(k))*(inu(1:dx,1:dy,k,1:dt)-inu(1:dx,1:dy,k+1,1:dt))/(inplev(k)-   & 
-          inplev(k+1)))/(inplev(k-1)-inplev(k+1))
-        dvp(1:dx,1:dy,k,1:dt)=((inplev(k)-inplev(k+1))*(inv(1:dx,1:dy,k-1,1:dt)-                &
-          inv(1:dx,1:dy,k,1:dt))/(inplev(k-1)-inplev(k))+                                       &
-          (inplev(k-1)-inplev(k))*(inv(1:dx,1:dy,k,1:dt)-inv(1:dx,1:dy,k+1,1:dt))/(inplev(k)-   &
-          inplev(k+1)))/(inplev(k-1)-inplev(k+1))
-        dtemp(1:dx,1:dy,k,1:dt)=((inplev(k)-inplev(k+1))*(intemp(1:dx,1:dy,k-1,1:dt)-           &
-          intemp(1:dx,1:dy,k,1:dt))/(inplev(k-1)-inplev(k))+                                    &
-          (inplev(k-1)-inplev(k))*(intemp(1:dx,1:dy,k,1:dt)-intemp(1:dx,1:dy,k+1,1:dt))/        &
-          (inplev(k)-inplev(k+1)))/(inplev(k-1)-inplev(k+1))
-      END IF
-    END DO zlevels
+    CALL z_derivate(inu, dx, dy, dz, dt, inplev, dup)
+    CALL z_derivate(inv, dx, dy, dz, dt, inplev, dvp)
+    CALL z_derivate(intemp, dx, dy, dz, dt, inplev, dtemp)
+
+    IF (debg) PRINT *,'dup: ',dup(dx/2, dy/2, dz/2, dt/2)
+    IF (debg) PRINT *,'dvp: ',dvp(dx/2, dy/2, dz/2, dt/2)
+    IF (debg) PRINT *,'dtemp: ',dtemp(dx/2, dy/2, dz/2, dt/2)
 
 ! Variable computation
 !!
     DO k=1, dz
-      DO it=1, dt
-        variableout(1:dx,1:dy,k,it)=-g*exnf(1:dx,1:dy,k)*((incor(1:dx,1:dy)+dvx(1:dx,1:dy,k,it) &
-          -duy(1:dx,1:dy,k,it))*(dtemp(1:dx,1:dy,k,it)- rocp*(intemp(1:dx,1:dy,k,it)+tkelvin)   &
-          /inplev(k))-             & 
-          -dtx(1:dx,1:dy,k,it)*dvp(1:dx,1:dy,k,it)+dty(1:dx,1:dy,k,it)*dup(1:dx,1:dy,k,it))*1.E6 
-      END DO
+      variableout(:,:,k,:)=-g*exnf(k)*((incor(:,:,:)+dvx(:,:,k,:)                     &
+        -duy(:,:,k,:))*(dtemp(:,:,k,:)- rocp*(intemp(:,:,k,:)+tkelvin)                     &
+        /inplev(k))-                                                                       & 
+        -dtx(:,:,k,:)*dvp(:,:,k,:)+dty(:,:,k,:)*dup(:,:,k,:))*1.E6 
     END DO
+    IF (debg) PRINT *,'variableout: ',variableout(dx/2, dy/2, dz/2, dt/2)
 
     CALL borders3d(variableout, dx, dy, dz, dt)
 
-  RETURN
+    WHERE(variableout >= extremeval) variableout=errorval
+    WHERE(variableout <= -extremeval) variableout=errorval
+    IF (debg) PRINT *,'PV without extreme values: ',variableout(dx/2, dy/2, dz/2, dt/2)
+ 
+    PRINT *,"'PV' diagnostics SUCCESSFULLY computed..."
+    RETURN
  
   END SUBROUTINE PV
 
@@ -218,5 +237,33 @@ MODULE module_diagnostic
   RETURN
 
   END SUBROUTINE borders3D
+
+  SUBROUTINE z_derivate(field, dimx, dimy, dimz, dimt, p_lev, field_p)
+! Subroutine to compute z_derivate of a field
+
+  IMPLICIT NONE
+
+  INTEGER                                                :: k
+  INTEGER, INTENT(IN)                                    :: dimx, dimy, dimz, dimt
+  REAL, DIMENSION(dimx, dimy, dimz, dimt), INTENT(IN)    :: field
+  REAL, DIMENSION(dimz), INTENT(IN)                      :: p_lev                        
+  REAL, DIMENSION(dimx, dimy, dimz, dimt), INTENT(OUT)   :: field_p
+
+  field_p=0.
+! z derivate
+!!
+    zlevels: DO k=1,dimz
+      IF (k == 1) THEN
+        field_p(:,:,k,:)=(field(:,:,k,:)-field(:,:,2,:))/(p_lev(1)-p_lev(2)) 
+      ELSE IF ( k == dimz ) THEN
+        field_p(:,:,k,:)=(field(:,:,k-1,:)-field(:,:,dimz,:))/(p_lev(dimz-1)-p_lev(dimz))
+      ELSE
+        field_p(:,:,k,:)=((p_lev(k)-p_lev(k+1))*(field(:,:,k-1,:)-field(:,:,k,:))/              &
+          (p_lev(k-1)-p_lev(k)) +                                                               &
+          (p_lev(k-1)-p_lev(k))*(field(:,:,k,:)-field(:,:,k+1,:))/(p_lev(k)-p_lev(k+1)))/       &
+          (p_lev(k-1)-p_lev(k+1))
+      END IF
+    END DO zlevels
+  END SUBROUTINE z_derivate
 
 END MODULE module_diagnostic
