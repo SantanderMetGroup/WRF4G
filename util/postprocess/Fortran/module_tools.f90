@@ -8,14 +8,184 @@ MODULE module_tools
 !
 !! OCEANO: pgf90 module_tools.f90 -L/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/lib -lnetcdf -lm -I/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/include -Mfree -c module_tools
 !
-!!!!!!!!! Subroutines
+!!!!!!!!! Subroutines/Functions
+! diagnostic_inf: Subroutine to read diagnostic variable information from 
+!     'variables_diagnostics.inf' external ASCII file
+! diagnostic_inf_Ninvar: Subroutine to give number of input variables to copute varDIAG diagnostic
 ! def_nc_var: Subroutine to define a variable inside a netCDF file 
+! attribute_REALvalue: Subroutine to obtain a real value from an attribute from a netCDF file
 ! nc_dimensions: Subroutine to obtain range of dimensions of a netCDF file
 ! nc_Ndim: Subroutine to obtain number of dimensions of a netCDF file
 ! string_real: Subroutine to transform a string to a real value
 ! string_Realvalues: Subroutine to obtain real values from a 'namelist' string separated by comas
 ! string_values: Subroutine to obtain values from a 'namelist' string separated by comas
-! number_values: Subroutine to obtain number of variables from a 'namelist' variable with coma separation
+! number_values: Subroutine to obtain number of variables from a 'namelist' variable with coma    
+!    separation
+
+SUBROUTINE diagnostic_inf(debg, varDIAG, Ninvar, varinnames, NdimDIAG, shapeDIAG, longdescDIAG, &
+  unitsDIAG)
+! Subroutine to read diagnostic variable information from 'variables_diagnostics.inf' external 
+! ASCII file. File format:
+!*varDIAG*
+! Num_input_variables:  Ninvar 
+! Input_variables:      varinnames (coma separated) 
+! diagnostic_dim:       NdimDIAG 
+! diagnostic_dim_shape: shapeDIAG (coma separated) 
+! diagnostic_longdesc:  longdescDIAG 
+! diagnostic_units:     unitsDIAG 
+!    (blank line)
+!*varDIAG*
+! (...)
+
+  IMPLICIT NONE
+
+  CHARACTER(LEN=50), INTENT(IN)                          :: varDIAG
+  INTEGER, INTENT(IN)                                    :: Ninvar
+  INTEGER, INTENT(OUT)                                   :: NdimDIAG
+  INTEGER, DIMENSION(6), INTENT(OUT)                     :: shapeDIAG
+  CHARACTER(LEN=50), DIMENSION(Ninvar), INTENT(OUT)      :: varinnames
+  CHARACTER(LEN=250), INTENT(OUT)                        :: longdescDIAG
+  CHARACTER(LEN=50), INTENT(OUT)                         :: unitsDIAG
+  LOGICAL, INTENT(IN)                                    :: debg
+! Local variables
+  INTEGER                                                :: i, ilin
+  INTEGER                                                :: iunit, ios
+  INTEGER                                                :: Llabel, posvarDIAG
+  CHARACTER(LEN=1)                                       :: car
+  CHARACTER(LEN=50)                                      :: label 
+  LOGICAL                                                :: is_used
+
+!!!!!!!!!!!!!! Variables
+!  varDIAG: variable diagnostic name
+!  Ninvar: number of input variables necessary to compute diagnostic variable
+!  varinnames: varable input names variables
+!  NdimDIAG: number of dimension of diagnostic variable
+!  shapeDIAG: order of id dimensions of diagnostic varible
+!  longdescDIAG: long description of diagnostic variable
+!  unitsDIAG: units of diagnostic variable
+!  posvarDIAG: position of diagnostic variable inside information file
+
+!  Read parameters from diagnostic variables information file 'variables_diagnostics.inf' 
+   DO iunit=10,100
+     INQUIRE(unit=iunit, opened=is_used)
+     IF (.not. is_used) EXIT
+   END DO
+   OPEN(iunit, file='variables_diagnostics.inf', status='old', form='formatted', iostat=ios)
+   IF ( ios /= 0 ) STOP "ERROR opening 'variables_diagnostics.inf'"
+   ilin=1
+   posvarDIAG=0
+   DO 
+     READ(iunit,*,END=100)label
+     Llabel=LEN_TRIM(label)
+     IF (label(2:Llabel-1)==TRIM(varDIAG)) THEN
+       posvarDIAG=ilin
+       EXIT
+     END IF
+     ilin=ilin+1
+   END DO
+
+ 100 CONTINUE
+
+   IF (posvarDIAG == 0) THEN
+     PRINT *,"Diagnostic variable '"//TRIM(varDIAG)//"' not found in 'variables_diagnostics.inf'"
+     STOP
+   END IF
+
+   REWIND (iunit)
+
+   DO ilin=1,posvarDIAG
+     READ(iunit,*)car
+   END DO
+   shapeDIAG=1
+
+   READ(iunit,*)car, car
+   READ(iunit,*)car, (varinnames(i),i=1,Ninvar)
+   READ(iunit,*)car, NdimDIAG
+   READ(iunit,*)car, (shapeDIAG(i), i=1,NdimDIAG)
+   READ(iunit,*)car, longdescDIAG
+   READ(iunit,*)car, unitsDIAG 
+
+   CLOSE(iunit)
+
+   IF (debg) THEN
+     PRINT *,"Read information for '"//TRIM(varDIAG)//"' variable________"
+     PRINT *,'  Number of necessary input variables:', Ninvar
+     PRINT *,'  Name of input variables:', ('  '//TRIM(varinnames(i)//'  '),i=1,Ninvar)
+     PRINT *,'  Number of dimensions:', NdimDIAG
+     PRINT *,'  Shape of dimensions:', (shapeDIAG(i), i=1,NdimDIAG)
+     PRINT *,'  Long description:', TRIM(longdescDIAG)
+     PRINT *,'  Units:', TRIM(unitsDIAG)
+   END IF
+  
+END SUBROUTINE diagnostic_inf
+
+SUBROUTINE diagnostic_inf_Ninvar(varDIAG, debg, Ninvar)
+! Subroutine to give number of input variables to copute varDIAG diagnostic from
+!  'variables_diagnostics.inf' external ASCII file. File format:
+!*varDIAG*
+! Num_input_variables:  Ninvar
+! Input_variables:      varinnames (coma separated)
+! diagnostic_dim:       NdimDIAG
+! diagnostic_dim_shape: shapeDIAG (coma separated)
+! diagnostic_longdesc:  longdescDIAG
+! diagnostic_units:     unitsDIAG
+!    (blank line)
+!*varDIAG*
+! (...)
+
+  IMPLICIT NONE
+
+  CHARACTER(LEN=50), INTENT(IN)                          :: varDIAG
+  LOGICAL, INTENT(IN)                                    :: debg
+  INTEGER, INTENT(OUT)                                   :: Ninvar
+! Local variables
+  INTEGER                                                :: iunit, ios, ilin
+  INTEGER                                                :: posvarDIAG, Llabel
+  CHARACTER(LEN=1)                                       :: car
+  CHARACTER(LEN=50)                                      :: label
+  LOGICAL                                                :: is_used
+
+!  Read parameters from diagnostic variables information file 'variables_diagnostics.inf'
+   DO iunit=10,100
+     INQUIRE(unit=iunit, opened=is_used)
+     IF (.not. is_used) EXIT
+   END DO
+   OPEN(iunit, file='variables_diagnostics.inf', status='old', form='formatted', iostat=ios)
+   IF ( ios /= 0 ) STOP "ERROR opening 'variables_diagnostics.inf'"
+   ilin=1
+   posvarDIAG=0
+   DO
+     READ(iunit,*,END=100)label
+     Llabel=LEN_TRIM(label)
+     IF (label(2:Llabel-1)==TRIM(varDIAG)) THEN
+       posvarDIAG=ilin
+       EXIT
+     END IF
+     ilin=ilin+1
+   END DO
+
+ 100 CONTINUE
+
+   IF (posvarDIAG == 0) THEN
+     PRINT *,"Diagnostic variable '"//TRIM(varDIAG)//"' not found in 'variables_diagnostics.inf'"
+     STOP
+   END IF
+
+  REWIND (iunit)
+
+   DO ilin=1,posvarDIAG
+     READ(iunit,*)car
+   END DO
+
+   READ(iunit,*)car,Ninvar
+
+   IF (debg) THEN
+     PRINT *,"Read information for '"//TRIM(varDIAG)//"' variable________"
+     PRINT *,' Number of necessary input variables:', Ninvar
+   END IF
+   close(iunit)
+
+END SUBROUTINE diagnostic_inf_Ninvar
 
 SUBROUTINE def_nc_var (mcid, ivar, cval, itype, idm, jshape, order, desc, units, stag, coord, debg )
 ! Subroutine to define a variable inside a netCDF file
@@ -55,13 +225,13 @@ SUBROUTINE def_nc_var (mcid, ivar, cval, itype, idm, jshape, order, desc, units,
   section='def_nc_var'
 
   IF ( itype == 5 ) THEN
-    IF (debg) PRINT *,'Fixing netCDF id...'
-    rcode = nf_redef(mcid)
-    IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
+!    IF (debg) PRINT *,'Fixing netCDF id...'
+!    rcode = nf_redef(mcid)
+!    IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
     IF (debg) PRINT *,'Defining real variable'
     rcode = nf_def_var(mcid, trim(cval), NF_REAL, idm, jshape, ivar)
     IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
-    IF (debg) PRINT *,'Addiong real attribute in field'
+    IF (debg) PRINT *,'Adding real attribute in field'
     rcode = nf_put_att_int(mcid, ivar, "FieldType", NF_INT, 1, 104)
     IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
   ENDIF
@@ -113,6 +283,39 @@ SUBROUTINE def_nc_var (mcid, ivar, cval, itype, idm, jshape, order, desc, units,
 
 END SUBROUTINE def_nc_var
 
+SUBROUTINE attribute_REALvalue(file, dbg, attributename, value)
+! Subroutine to obtain a real value from an attribute from a netCDF file
+
+  IMPLICIT NONE
+
+  INCLUDE 'netcdf.inc'
+
+  CHARACTER(LEN=500), INTENT(IN)                         :: file
+  CHARACTER(LEN=50), INTENT(IN)                          :: attributename
+  REAL, INTENT(OUT)                                      :: value
+  LOGICAL, INTENT(IN)                                    :: dbg
+!!! Local vars
+  INTEGER                                                :: ncid, attid
+  INTEGER                                                :: rcode
+  CHARACTER(LEN=50)                                      :: section
+
+  section='attribute_REALvalue'
+
+  rcode = nf_open(file, 0, ncid)
+
+  PRINT *,'Attribute name: '//TRIM(attributename)
+  rcode =  nf_get_att_real(ncid, attid, TRIM(attributename), value)
+  IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
+
+  IF (dbg) THEN
+    PRINT *,"Attribute: #",attid," '"//TRIM(attributename)//'" :',value
+  END IF
+
+  rcode = nf_close(ncid)
+
+  RETURN
+END SUBROUTINE attribute_REALvalue
+
 SUBROUTINE nc_dimensions(file, dbg, ndims, Xdimname, Ydimname, Zdimname, Tdimname, dimsval,      &
   dimsname, dx, dy, dz, dt) 
 ! Subroutine to obtain range of dimensions of a netCDF file
@@ -150,6 +353,7 @@ SUBROUTINE nc_dimensions(file, dbg, ndims, Xdimname, Ydimname, Zdimname, Tdimnam
     IF (TRIM(dimsname(idim)) == TRIM(Zdimname)) dz=dimsval(idim)
     IF (TRIM(dimsname(idim)) == TRIM(Tdimname)) dt=dimsval(idim)
   END DO
+
   IF (dbg) THEN
     PRINT *,'Dimensions of file______________'
     DO idim=1,ndims

@@ -20,4 +20,6 @@
 &levels
   lev_process              = 'all',
   p_levels                 = '1000.0, 850.0, 500.0, 200.10',
+  X_grid_spacing           = 'DX',
+  Y_grid_spacing           = 'DY',
 /

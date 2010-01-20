@@ -8,8 +8,9 @@ MODULE module_diagnostic
 !
 !! OCEANO: pgf90 module_diagnostic.f90 -L/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/lib -lnetcdf -lm -I/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/include -Mfree -c
 
-  SUBROUTINE PV(debg, ncfiles, Nfiles, varnames, Nvar, dx, dy, dz, dt, variableout)  
-!   Subroutine to compute Potential Vorticity in PVU (in 1.E-5 PVU s-1)
+  SUBROUTINE PV(debg, ncfiles, Nfiles, varnames, Nvar, dimsin, Ndimsout, dimsout, grid_x,       &
+    grid_y, variableout) 
+!   Subroutine to compute Potential Vorticity in PVU (in 1.E-6 PVU s-1)
 
     USE module_constants
 
@@ -21,22 +22,27 @@ MODULE module_diagnostic
     INTEGER, INTENT(IN)                                  :: Nfiles, Nvar
     CHARACTER(LEN=50), DIMENSION(Nvar), INTENT(IN)       :: varnames
     CHARACTER(LEN=500), DIMENSION(Nfiles), INTENT(IN)    :: ncfiles
+    INTEGER, DIMENSION(4), INTENT(IN)                    :: dimsin, dimsout
+    INTEGER, INTENT(IN)                                  :: Ndimsout
+    REAL, INTENT(IN)                                     :: grid_x, grid_y
+    LOGICAL, INTENT(IN)                                  :: debg
+!!! Local variables 
     INTEGER, DIMENSION(Nfiles)                           :: ncids
     INTEGER                                              :: dx, dy, dz, dt
     INTEGER                                              :: idvar, ifile, rcode, ncid
     INTEGER, DIMENSION(Nvar)                             :: varfound
-    REAL, DIMENSION(dx, dy, dz, dt)                      :: inu, inv, intemp 
-    REAL, DIMENSION(dx, dy, dt)                          :: incor, inmapfac 
-    REAL, DIMENSION(dx, dy, dz, dt), INTENT(OUT)         :: variableout
-    LOGICAL, INTENT(IN)                                  :: debg
-!!! Local variables 
+    REAL, DIMENSION(dimsout(1), dimsout(2), dimsout(3),                                         &
+      dimsout(4))                                        :: inu, inv, intemp 
+    REAL, DIMENSION(dimsout(1), dimsout(2), dimsout(4))  :: incor, inmapfac 
+    REAL, DIMENSION(dimsout(1), dimsout(2), dimsout(3),                                         &
+      dimsout(4))                                        :: variableout
     INTEGER                                              :: it, i, j, k
     INTEGER                                              :: ivar
-    REAL, DIMENSION(dz)                                  :: inplev
-    REAL, DIMENSION(dz)                                  :: exnf
-!    REAL, DIMENSION(dx,dy,dz,dt)                         :: exnf
+    REAL, DIMENSION(dimsin(3))                           :: inplev
+    REAL, DIMENSION(dimsin(3))                           :: exnf
     REAL                                                 :: gridinc
-    REAL, DIMENSION(dx, dy, dz, dt)                      :: dvx, dtx, duy, dty, dup, dvp, dtemp 
+    REAL, DIMENSION(dimsout(1), dimsout(2), dimsout(3),                                         &
+      dimsout(4))                                        :: dvx, dtx, duy, dty, dup, dvp, dtemp 
     CHARACTER(LEN=50)                                    :: section
 
 !!!!!!!!!!!!!!!!!! Variables
@@ -44,6 +50,10 @@ MODULE module_diagnostic
 !      Nfiles: number of netcdf files as input
 !      varnames: vector with variable names to compute diagnostic
 !      Nvar: number of variables to compute diagnostics
+!      dimsin: range of 4 dimensions of input files 
+!      Ndimsout: number of dimensions of diagnostic variable 
+!      dimsout: range of Ndimsout variables of diagnostic variable
+!      grid_[x/y]: Grid spacing in X and Y direction
 !      ncids: ids of netCDF files
 !      idvar: var id within ncfile
 !      varfound: vector that controls if necessary variables have been found
@@ -69,23 +79,24 @@ MODULE module_diagnostic
 !     dvp: p derivate of v wind [ms-1m-1; dx, dy, dz, dt]
 !     dtemp: p derivate of temperature [ms-1m-1; dx, dy, dz, dt]
 
-    gridinc=15000.
+    dx=dimsout(1)
+    dy=dimsout(2)
+    dz=dimsout(3)
+    dt=dimsout(4)
 
 ! Adquiring initial variables
 !!
     section='PVsub'
     varfound=0
-
+    PRINT *,'varnames: ',varnames
     files_loop: DO ifile=1, Nfiles
       rcode = nf_open(TRIM(ncfiles(ifile)), 0, ncids(ifile)) 
       IF (debg) PRINT *,"Reading in file: '"//TRIM(ncfiles(ifile))//"' ..."
       IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
 
       variables: DO ivar=1, Nvar
-        IF (debg) PRINT *,ivar,':',varfound(ivar),"Looking for variable '"//TRIM(varnames(ivar))//"' "
         rcode = nf_inq_varid(ncids(ifile), TRIM(varnames(ivar)), idvar)
         IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
-
         SELECT CASE (ivar)
         CASE(1)
           IF (varfound(ivar) /= 1) THEN
@@ -128,8 +139,8 @@ MODULE module_diagnostic
     DO ivar=1, Nvar
       IF (varfound(ivar) /=1 ) PRINT *,"Necessary variable '"//TRIM(varnames(ivar))//"' not found!" 
     END DO
-    IF (.not. ALL(varfound/=0))  STOP
-
+    IF (.not. ALL(varfound/=0)) STOP
+   
     IF (debg) THEN
       PRINT *,'Sample values of input variables'
       PRINT *,'inu: ',inu(dx/2, dy/2, dz/2, dt/2)
@@ -142,16 +153,13 @@ MODULE module_diagnostic
 
 ! Variable calculation (PV units 10E-6 SI)
 !!
-!    DO j=1,dy
-!      exnf(:,:,:,:)=SPREAD((100000./inplev)**rocp, 3, dx*dt*dy)
       exnf=(100000./inplev)**rocp
-!    END DO
     IF (debg) PRINT *,'exnf: ',exnf(dz/2)
 ! x derivate
 !!
     DO i=2,dx-1
-      dvx(i,:,:,:)=(inv(i+1,:,:,:)-inv(i-1,:,:,:))/gridinc
-      dtx(i,:,:,:)=(intemp(i+1,:,:,:)-intemp(i-1,:,:,:))/gridinc
+      dvx(i,:,:,:)=(inv(i+1,:,:,:)-inv(i-1,:,:,:))/grid_x
+      dtx(i,:,:,:)=(intemp(i+1,:,:,:)-intemp(i-1,:,:,:))/grid_x
     END DO
     IF (debg) PRINT *,'dvx: ',dvx(dx/2, dy/2, dz/2, dt/2)
     IF (debg) PRINT *,'dtx: ',dtx(dx/2, dy/2, dz/2, dt/2)
@@ -159,8 +167,8 @@ MODULE module_diagnostic
 ! y derivate
 !!
     DO j=2,dy-1
-      duy(:,j,:,:)=(inv(:,j+1,:,:)-inv(:,j-1,:,:))/gridinc
-      dty(:,j,:,:)=(intemp(:,j+1,:,:)-intemp(:,j-1,:,:))/gridinc
+      duy(:,j,:,:)=(inv(:,j+1,:,:)-inv(:,j-1,:,:))/grid_y
+      dty(:,j,:,:)=(intemp(:,j+1,:,:)-intemp(:,j-1,:,:))/grid_y
     END DO
     IF (debg) PRINT *,'duy: ',duy(dx/2, dy/2, dz/2, dt/2)
     IF (debg) PRINT *,'dty: ',dty(dx/2, dy/2, dz/2, dt/2)
@@ -187,7 +195,7 @@ MODULE module_diagnostic
 !!
     DO k=1, dz
       variableout(:,:,k,:)=-g*exnf(k)*((incor(:,:,:)+dvx(:,:,k,:)                     &
-        -duy(:,:,k,:))*(dtemp(:,:,k,:)- rocp*(intemp(:,:,k,:)+tkelvin)                     &
+        -duy(:,:,k,:))*(dtemp(:,:,k,:)- rocp*(intemp(:,:,k,:))                     &
         /inplev(k))-                                                                       & 
         -dtx(:,:,k,:)*dvp(:,:,k,:)+dty(:,:,k,:)*dup(:,:,k,:))*1.E6 
     END DO

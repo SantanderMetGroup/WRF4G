@@ -1,0 +1,9 @@
+==Information file for each diagnose variable==
+*PV*
+ Num_input_variables      6
+ Input_variables          UU, VV, TT, F, MAPFAC_M, PLEV
+ diagnostic_dim           4
+ diagnostic_dim_shape     1, 2, 3, 4
+ diagnostic_longdesc      'Potential Vorticity'
+ diagnostic_units         'PVU (10-6 m2Ks-1kg-1)'
+ 

@@ -4,17 +4,22 @@ source /software/ScientificLinux/4.6/etc/bashrc
 f90=pgf90
 options='-L/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/lib -lnetcdf -lm -I/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/include -Mfree'
 
-basemodule=module_constants
-modules='module_tools module_diagnostic'
+basemodules='module_constants'
+modules='module_diagnostic module_tools'
 main=diagnostics_computation
 
-${f90} ${basemodule}.f90 ${options} -c ${basemodule}.o
-echo "${f90} ${basemodule}.f90 ${options} -c ${basemodule}.o"
+objmodules=''
+for module in ${basemodules}
+do
+  ${f90} ${module}.f90 ${options} -c ${module}.o
+  echo "${f90} ${module}.f90 ${options} -c ${module}.o"
+  objmodules=${objmodules}' '${module}.o
+### end basic modules
+done
 
-objmodules=${basemodule}.o
 for module in ${modules}
 do
-  ${f90} ${module}.f90 ${options} -c ${module}.o ${basemodule}.o
+  ${f90} ${module}.f90 ${options} -c ${module}.o ${objmodules}.o
   echo "${f90} ${module}.f90 ${options} -c ${module}.o ${basemodule}.o"
   objmodules=${objmodules}' '${module}.o
 ### end modules
