@@ -4,7 +4,7 @@
 source /software/ScientificLinux/4.6/etc/bashrc
 
 fullexp=SeaWind_I1540RF06
-postdir="/vols/tetis/escena/SEAWIND/SeaWind_I1540RF06__1989_2009"
+postdir="/vols/tetis/meteo4g/SEAWIND/SeaWind_I1540RF06__1989_2009"
 postrf0618="/vols/tetis/escena/SEAWIND/SeaWind_I1540RF0618__1989_2009"
 vars="psl,uasmax,vasmax,uasmean,vasmean"
 
@@ -13,7 +13,7 @@ mkdir -p $postrf0618
 cd $postrf0618
 
 yearmons=$( \
-  \ls ${postdir}/????/${fullexp}__*.nc \
+  find ${postdir} -name "${fullexp}__*.nc" \
     | sed -e 's/^.*__\([12][0-9][0-9][0-9][0123][0-9]\).*$/\1/' \
     | sort | uniq \
 )

@@ -2,7 +2,7 @@
 
 source /gpfs/csic_projects/meteo/software/ScientificLinux/4.6/etc/bashrc
 
-exp="Pswh0003"
+exp="Pswh1999"
 fullexp=SeaWind_I1540RF06
 sizethres=333981360
 
