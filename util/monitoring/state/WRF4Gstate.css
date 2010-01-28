@@ -1,7 +1,7 @@
 div.title {background-color:#FFAAAA; width:100%; height:10%; position:absolute; left:0%; top:0%; font-weight:bold; font-size:1.2em; font-align:center;}
 div.notdone {background-color:#0059A5; width:25%; height:50%; position:absolute; right:0%; top:10%; font-size:0.7em;}
 div.notsuccess {background-color:#AAAAFF; width:25%; height:50%; position:absolute; right:25%; top:10%; font-size:0.7em;}
-div.experiments {background-color:#0059A5; width:50%; height:90%; position:absolute; left:0%; top:10%; font-size:0.9em;}
+div.experiments {background-color:#0059A5; width:50%; height:90%; position:absolute; left:0%; top:10%; font-size:0.9em;overflow:scroll;}
 div.errs {background-color:#FFAAAA; width:50%; height:20%; position:absolute; right:0%; top:60%; font-size:0.25em;}
 div.outs {background-color:#AAAAFF; width:50%; height:20%; position:absolute; right:0%; top:80%; font-size:0.25em;}
 div.subtitle {width:100%; text-align:center; font-weight:bold;}
