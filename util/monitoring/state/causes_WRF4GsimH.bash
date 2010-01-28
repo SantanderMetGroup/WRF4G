@@ -120,6 +120,11 @@ rsl.error
 EOF
 
 cat << EOF > ${rootsh}/outtitle
+<HTML>  
+<head>
+<link rel="stylesheet" type="text/css" href="WRF4Gstate.css" />
+</head>
+<body>
 <div class="subtitle">
 rsl.out
 </div>

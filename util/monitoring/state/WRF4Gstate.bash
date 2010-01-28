@@ -24,12 +24,12 @@ cat << EOF
 <head>
 <link rel="stylesheet" type="text/css" href="WRF4Gstate.css" />
 <link rel="shortcut icon" href="wrf4g_sq_32x32.png" />
-<title>causes of WRF4G experiments</title>
+<title>state of WRF4G experiments</title>
 </head>
 <body>
 <div class="title">
 <img src="wrf4gp.png"></img>
-<b>WRF4G experiments' causes on ${now}</b>
+<b>WRF4G experiments' state on ${now}</b>
 </div>
 <div class="notsuccess">
 <iframe src=empty.html name="notsuccess" frameborder="0" width="100%" height="100%"></iframe>
@@ -52,6 +52,7 @@ EOF
 echo "##WRF4G experiments on "${now} > ${rootsh}/${outfile}
 if test -f experiments_WRF4G.inf
 then
+  echo "<tr><td>${HOSTNAME}</td><td> </td><td> </td><td> </td><td> </td><td> </td><td> </td><td> </td><td> </td></tr>" >> ${rootsh}/WRF4Gstate.html 
   cat experiments_WRF4G.inf | awk '{print $2}' >> ${rootsh}/${outfile} 
   Nexp=`wc -l experiments_WRF4G.inf | awk '{print $1}'`
   iexp=1
@@ -74,6 +75,7 @@ do
   user=`awk -f ${foresthome}/AWK/column.awk row=${iplace} col=1 ${rootsh}/WRF4G_running_places.inf` 
   machine=`awk -f ${foresthome}/AWK/column.awk row=${iplace} col=2 ${rootsh}/WRF4G_running_places.inf` 
   place=`awk -f ${foresthome}/AWK/column.awk row=${iplace} col=3 ${rootsh}/WRF4G_running_places.inf` 
+  echo "<tr><td>${machine}</td><td> </td><td> </td><td> </td><td> </td><td> </td><td> </td><td> </td><td> </td></tr>" >> ${rootsh}/WRF4Gstate.html 
 
   for file in ${extfiles}
   do 
