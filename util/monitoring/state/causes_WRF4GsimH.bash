@@ -152,14 +152,14 @@ do
       currentDATE=`cat $1/$6${SIMi}_${SIMf}/output/current_date.txt`
       if test ${currentDATE} -eq ${SIMf}'0000'
       then
-        echo "#"$istep"@ "$stepdate0" --> "${stepdate0F} >> ${rootsh}/verifying-datesSIM_d${idom}.inf 
-        echo "#"$istep"@ "$stepdate0" --> "${stepdate0F} >> ${rootsh}/success-datesSIM_d${idom}.inf 
+        echo "#"$istep"@ "$6" "$stepdate0" --> "${stepdate0F} >> ${rootsh}/verifying-datesSIM_d${idom}.inf 
+        echo "#"$istep"@ "$6" "$stepdate0" --> "${stepdate0F} >> ${rootsh}/success-datesSIM_d${idom}.inf 
       else
 # NOT finished simulation
 ##
         if ! test -f $1/$6${SIMi}_${SIMf}/log.tar.gz
         then
-          echo "#"$istep"@ "$stepdate0" --> "${stepdate0F} >> ${rootsh}/NOTverifyed-datesSIM_d${idom}.inf
+          echo "#"$istep"@ "$6" "$stepdate0" --> "${stepdate0F} >> ${rootsh}/NOTverifyed-datesSIM_d${idom}.inf
         else
           if test $7 == 'P'
           then
@@ -175,7 +175,7 @@ do
           fi
           if test ${numRSL} -gt 1 
           then
-            echo $6" #"$istep"@ "$stepdate0" --> "${stepdate0F} >> ${rootsh}/NOTsuccess-datesSIM_d${idom}.inf
+            echo $6" #"$istep"@ "$6" "$stepdate0" --> "${stepdate0F} >> ${rootsh}/NOTsuccess-datesSIM_d${idom}.inf
             echo "NOT SUCCESS -- not success"
             echo "Let see which errors give 'rsl.[error/out].[nnnn]' files..."
             rm -rf ${rootsh}/WRF4Gcauses/* 
@@ -199,19 +199,19 @@ do
             mv ${rootsh}/stepA ${rootsh}/NOTsuccessOUT-$6${SIMi}_${SIMf}SIM_d${idom}.inf.html
 #            exit
           else
-            echo "#"$istep"@ "$stepdate0" --> "${stepdate0F} >> ${rootsh}/NOTrsl-datesSIM_d${idom}.inf
+            echo "#"$istep"@ "$6" "$stepdate0" --> "${stepdate0F} >> ${rootsh}/NOTrsl-datesSIM_d${idom}.inf
 ###   End of RSLverification
           fi
         fi
 ### End of currentdate verification
       fi
     else
-      echo "#"$istep"@ "$stepdate0" --> "${stepdate0F} >> ${rootsh}/NOTverifyed-datesSIM_d${idom}.inf
+      echo "#"$istep"@ "$6" "$stepdate0" --> "${stepdate0F} >> ${rootsh}/NOTverifyed-datesSIM_d${idom}.inf
     echo $6${SIMi}_${SIMf}" 'current_date.txt' does not exist !!!!"
 ### End of existence of 'current_date.txt'
     fi 
   else 
-    echo "#"$istep"@ "$stepdate0" --> "${stepdate0F} >> ${rootsh}/NOTverifyed-datesSIM_d${idom}.inf
+    echo "#"$istep"@ "$6" "$stepdate0" --> "${stepdate0F} >> ${rootsh}/NOTverifyed-datesSIM_d${idom}.inf
     echo $6${SIMi}_${SIMf}" FOLDER does not exist !!!!"
   fi
 

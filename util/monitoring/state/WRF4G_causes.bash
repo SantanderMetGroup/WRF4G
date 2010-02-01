@@ -177,7 +177,7 @@ cat << EOF
 </div>
 EOF
 ) > ${rootsh}/${header}_NOTsuccess.html
-  tail -n $numNOTsuccess ${rootsh}/${header}_NOTsuccess-datesSIM_d1.inf | awk '{print substr($3,1,10)"_"substr($5,1,10)" <a class=\"link2\" href=NOTsuccessERROR-"$1substr($3,1,10)"_"substr($5,1,10)"SIM_d1.inf.html target=\"rslerrors\">error.rsl</a> <a class=\"link2\" href=NOTsuccessOUT-"$1substr($3,1,10)"_"substr($5,1,10)"SIM_d1.inf.html target=\"rslouts\">out.rsl</a><br>"}' >> ${rootsh}/${header}_NOTsuccess.html
+  tail -n $numNOTsuccess ${rootsh}/${header}_NOTsuccess-datesSIM_d1.inf | awk '{print $1substr($4,1,10)"_"substr($6,1,10)" <a class=\"link2\" href=NOTsuccessERROR-"substr($4,1,10)"_"substr($6,1,10)"SIM_d1.inf.html target=\"rslerrors\">error.rsl</a> <a class=\"link2\" href=NOTsuccessOUT-"$1substr($4,1,10)"_"substr($6,1,10)"SIM_d1.inf.html target=\"rslouts\">out.rsl</a><br>"}' >> ${rootsh}/${header}_NOTsuccess.html
 (
 cat << EOF
 </body>
@@ -217,7 +217,7 @@ cat << EOF
 </div>
 EOF
 ) > ${rootsh}/${header}_NOTrsl.html
-  tail -n $numNOTrsl ${rootsh}/${header}_NOTrsl-datesSIM_d1.inf | awk '{print substr($2,1,10)"_"substr($4,1,10)"<br>"}' >> ${rootsh}/${header}_NOTrsl.html
+  tail -n $numNOTrsl ${rootsh}/${header}_NOTrsl-datesSIM_d1.inf | awk '{print $2substr($3,1,10)"_"substr($5,1,10)"<br>"}' >> ${rootsh}/${header}_NOTrsl.html
 (
 cat << EOF
 </body>
@@ -257,7 +257,7 @@ cat << EOF
 </div>
 EOF
 ) > ${rootsh}/${header}_NOTverifyed.html
-  tail -n $numNOTfinished ${rootsh}/${header}_NOTverifyed-datesSIM_d1.inf | awk '{print substr($2,1,10)"_"substr($4,1,10)"<br>"}' >> ${rootsh}/${header}_NOTverifyed.html
+  tail -n $numNOTfinished ${rootsh}/${header}_NOTverifyed-datesSIM_d1.inf | awk '{print $2substr($3,1,10)"_"substr($5,1,10)"<br>"}' >> ${rootsh}/${header}_NOTverifyed.html
 (
 cat << EOF
 </body>
