@@ -1,0 +1,29 @@
+==Information file for each diagnose variable==
+*SH2O*
+ variable_dim           4
+ variable_dim_shape     1, 2, 3, 4
+ variable_dim_names     west_east, south_north, soil_layers_stag, Time
+ variable_longdesc      'Soil liquid water'
+ variable_units         'm3 m-3'
+
+*SMOIS*
+ variable_dim           4
+ variable_dim_shape     1, 2, 3, 4
+ variable_dim_names     west_east, south_north, soil_layers_stag, Time
+ variable_longdesc      'Soil moisture'
+ variable_units         'm3 m-3'
+
+*TMN*
+ variable_dim           3
+ variable_dim_shape     1, 2, 3
+ variable_dim_names     west_east, south_north, Time
+ variable_longdesc      'Soil temperature at lower boundary'
+ variable_units         'K'
+
+*TSLB*
+ variable_dim           4
+ variable_dim_shape     1, 2, 3, 4
+ variable_dim_names     west_east, south_north, soil_layers_stag, Time
+ variable_longdesc      'Soil temperature'
+ variable_units         K
+

@@ -1,0 +1,5 @@
+&vars
+  variablesIN           = 'TSLB,SMOIS,SH2O,TMN',
+  variablesCH           = 'TSLB,SMOIS,SH2O,TMN',
+  debug                 = .TRUE.,
+/
