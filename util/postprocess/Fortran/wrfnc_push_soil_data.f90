@@ -26,7 +26,7 @@ PROGRAM wrfnc_push_soil_data
 ! Program variables
   INTEGER                                                :: ivar
   INTEGER                                                :: funit, ios, ierr
-  LOGICAL                                                :: is_used
+  LOGICAL                                                :: new, is_used
   INTEGER                                                :: Nvariables
   INTEGER                                                :: Nnc_dims, Nnc_vars, Nnc_gatts,      &
     nc_idunlimid
@@ -42,6 +42,7 @@ PROGRAM wrfnc_push_soil_data
   NAMELIST /vars/ variablesIN, variablesCH, debug, substitution_kind, times_in, times_ch
 
 !!!!!!!!!!!!!!!!! Variables
+! new: logical flag to know if a new file will be created as result
 ! Nvariables: number of variables to change
 ! changevariables: vector with variables names
 ! originalfile: file to change variables
@@ -68,6 +69,8 @@ PROGRAM wrfnc_push_soil_data
 ! number_values: obtain number of variables from a 'namelist' variable with coma separation 
 ! spaces: function to give a number of spaces
 
+  new=.FALSE.
+  newfile=' '
 ! Getting arguments
 !!
   narg=COMMAND_ARGUMENT_COUNT()
@@ -79,7 +82,7 @@ PROGRAM wrfnc_push_soil_data
   END DO
   originalfile=arguments(1)
   changingfile=arguments(2)
-  newfile=arguments(3)
+  IF (narg==3) newfile=arguments(3)
 
   DEALLOCATE(arguments)
 
@@ -98,6 +101,12 @@ PROGRAM wrfnc_push_soil_data
     PRINT *,'Original file: ',TRIM(originalfile)
     PRINT *,'Source of new fields: ',TRIM(changingfile)
     PRINT *,'New output file: ',TRIM(newfile)
+  END IF
+
+  IF (LEN_TRIM(newfile) > 2) THEN
+    new=.TRUE.
+    PRINT *,"Changed results will be keep in new file: '"//TRIM(newfile)//"'"
+    CALL SYSTEM('cp '//TRIM(originalfile)//' '//TRIM(newfile))
   END IF
 
 ! Constructing variables names
@@ -173,18 +182,19 @@ PROGRAM wrfnc_push_soil_data
 ! Reading variables
 !!
   CALL change_var(debug, originalfile, changingfile, changeINvariables, changeCHvariables,      &
-    Nvariables, newfile, Ntimes_in, times_use_in, Ntimes_ch, times_use_ch) 
+    Nvariables, newfile, Ntimes_in, times_use_in, Ntimes_ch, times_use_ch, new) 
 
 END PROGRAM wrfnc_push_soil_data
 
-SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile, Ntin, tusein, Ntch, tusech) 
+SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile, Ntin, tusein, Ntch,      &
+  tusech, newf) 
 ! Subroutine to change variables of a file from another one
 
   IMPLICIT NONE
 
   INCLUDE 'netcdf.inc'
 
-  LOGICAL, INTENT(IN)                                    :: dbg
+  LOGICAL, INTENT(IN)                                    :: dbg, newf
   CHARACTER(LEN=500), INTENT(IN)                         :: origf, chanf, ofile 
   INTEGER, INTENT(IN)                                    :: Nvars
   CHARACTER(LEN=50), DIMENSION(Nvars), INTENT(IN)        :: varsIN, varsCH
@@ -197,6 +207,7 @@ SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile, Ntin, tus
   REAL, ALLOCATABLE, DIMENSION(:,:,:,:)                  :: variable4Din, variable4Dch, var4Duse
   REAL, ALLOCATABLE, DIMENSION(:,:,:)                    :: variable3Din, variable3Dch, var3Duse
   REAL, ALLOCATABLE, DIMENSION(:,:)                      :: variable2Din, variable2Dch, var2Duse
+  REAL, ALLOCATABLE, DIMENSION(:)                        :: variable1Din, variable1Dch, var1Duse
   CHARACTER(LEN=50), ALLOCATABLE, DIMENSION(:)           :: dimension_names
   INTEGER                                                :: ierr, rcode
   INTEGER                                                :: Ndimsvar_in, Ndimsvar_ch, Ndimsvar
@@ -217,7 +228,9 @@ SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile, Ntin, tus
 ! variable4D[in/ch]: 4D variable as [input/change] 
 ! variable3D[in/ch]: 2D variable as [input/change] 
 ! variable2D[in/ch]: 3D variable as [input/change]
-! var[4/3/2]Duse: [4/3/2]D variable to be used in changed file
+! variable1D[in/ch]: 1D variable as [input/change]
+! var[4/3/2/1]Duse: [4/3/2/1]D variable to be used in changed file
+! newf: result will be written in a new file
 ! Ndimsvar: number of dimensions of variable
 ! varname[IN/CH]: name of diagnostic variable
 ! shape: shape of variable
@@ -257,7 +270,6 @@ SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile, Ntin, tus
     END DO
     PRINT *,'dimsout: ',dims_out
 
-!    change_var: SELECT CASE(TRIM(varnameIN))
     change_var: SELECT CASE(Ndimsvar_in)
 
 ! 4D 
@@ -291,7 +303,11 @@ SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile, Ntin, tus
        CALL variable_use4D(variable4Din, variable4Dch, Ntin, tusein, Ntch, tusech, dims_out(1), &
          dims_out(2), dims_out(3), dims_out(4), dbg, var4Duse)
 
-       rcode = nf_open(origf, nf_write, origid)
+       IF (newf) THEN
+         rcode = nf_open(ofile, nf_write, origid)
+       ELSE
+         rcode = nf_open(origf, nf_write, origid)
+       END IF
        rcode = nf_put_var_real (origid, nc_var_id_in, var4Duse)
        IF (rcode /= 0) PRINT *,'Error writting change...',nf_strerror(rcode)
        rcode = nf_close(origid)
@@ -328,21 +344,199 @@ SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile, Ntin, tus
        CALL variable_use3D(variable3Din, variable3Dch, Ntin, tusein, Ntch, tusech, dims_out(1), &
          dims_out(2), dims_out(3), dbg, var3Duse)
 
-       rcode = nf_open(origf, nf_write, origid)
+       IF (newf) THEN
+         rcode = nf_open(ofile, nf_write, origid)
+       ELSE
+         rcode = nf_open(origf, nf_write, origid)
+       END IF
+
        rcode = nf_put_var_real (origid, nc_var_id_in, var3Duse)
        IF (rcode /= 0) PRINT *,'Error writting change...',nf_strerror(rcode)
        rcode = nf_close(origid)
 
        DEALLOCATE(variable3Din, variable3Dch, var3Duse)
+! 2D
+!!
+     CASE(2)
+       IF (dbg) PRINT *,'2D variable change'
+       PRINT *,'Changing '//TRIM(varnameIN)//' by '//TRIM(varnameCH)//'...'
 
-    END SELECT change_var
+       IF (ALLOCATED(variable2Din)) DEALLOCATE(variable2Din)
+       IF (ALLOCATED(variable2Dch)) DEALLOCATE(variable2Dch)
+       IF (ALLOCATED(var2Duse)) DEALLOCATE(var2Duse)
+       ALLOCATE(variable2Din(dims_out(1), dims_out(2)), STAT=ierr)
+       IF (ierr /= 0) PRINT *,"Error allocating 'variable2Din'"
+       ALLOCATE(variable2Dch(dims_out(1), dims_out(2)), STAT=ierr)
+       IF (ierr /= 0) PRINT *,"Error allocating 'variable2Dch'"
+       ALLOCATE(var2Duse(dims_out(1), dims_out(2)), STAT=ierr)
+       IF (ierr /= 0) PRINT *,"Error allocating 'var2Duse'"
 
-    DEALLOCATE(dims_out)
+       CALL read_var2D(dbg, origf, varnameIN, dims_out(1), dims_out(2), variable2Din)
+       CALL read_var2D(dbg, chanf, varnameCH, dims_out(1), dims_out(2), variable2Dch) 
+
+       IF (dbg) THEN
+         PRINT *,'VAR: '//TRIM(varnameIN)//' nc_id:',nc_var_id_in
+         PRINT *,'1/2 example value. IN:', variable2Din(dims_out(1)/2, dims_out(2)/2),          &
+           'CHANGE: ', variable2Dch(dims_out(1)/2, dims_out(2)/2)
+       ENDIF
+
+       CALL variable_use2D(variable2Din, variable2Dch, Ntin, tusein, Ntch, tusech, dims_out(1), &
+         dims_out(2), dbg, var2Duse)
+
+       IF (newf) THEN
+         rcode = nf_open(ofile, nf_write, origid)
+       ELSE
+         rcode = nf_open(origf, nf_write, origid)
+       END IF
+
+       rcode = nf_put_var_real (origid, nc_var_id_in, var2Duse)
+       IF (rcode /= 0) PRINT *,'Error writting change...',nf_strerror(rcode)
+       rcode = nf_close(origid)
+
+       DEALLOCATE(variable2Din, variable2Dch, var2Duse)
+
+! 1D
+!!
+     CASE(1)
+       IF (dbg) PRINT *,'1D variable change'
+       PRINT *,'Changing '//TRIM(varnameIN)//' by '//TRIM(varnameCH)//'...'
+
+       IF (ALLOCATED(variable1Din)) DEALLOCATE(variable1Din)
+       IF (ALLOCATED(variable1Dch)) DEALLOCATE(variable1Dch)
+       IF (ALLOCATED(var1Duse)) DEALLOCATE(var1Duse)
+       ALLOCATE(variable1Din(dims_out(1)), STAT=ierr)
+       IF (ierr /= 0) PRINT *,"Error allocating 'variable1Din'"
+       ALLOCATE(variable1Dch(dims_out(1)), STAT=ierr)
+       IF (ierr /= 0) PRINT *,"Error allocating 'variable1Dch'"
+       ALLOCATE(var1Duse(dims_out(1)), STAT=ierr)
+       IF (ierr /= 0) PRINT *,"Error allocating 'var1Duse'"
+
+       CALL read_var1D(dbg, origf, varnameIN, dims_out(1), variable1Din)
+       CALL read_var1D(dbg, chanf, varnameCH, dims_out(1), variable1Dch)
+
+       IF (dbg) THEN
+         PRINT *,'VAR: '//TRIM(varnameIN)//' nc_id:',nc_var_id_in
+         PRINT *,'1/2 example value. IN:', variable1Din(dims_out(1)/2), 'CHANGE: ',            &
+           variable1Dch(dims_out(1)/2)
+       ENDIF
+
+       CALL variable_use1D(variable1Din, variable1Dch, Ntin, tusein, Ntch, tusech, dims_out(1), &
+         dbg, var1Duse)
+
+       IF (newf) THEN
+         rcode = nf_open(ofile, nf_write, origid)
+       ELSE
+         rcode = nf_open(origf, nf_write, origid)
+       END IF
+
+       rcode = nf_put_var_real (origid, nc_var_id_in, var1Duse)
+       IF (rcode /= 0) PRINT *,'Error writting change...',nf_strerror(rcode)
+       rcode = nf_close(origid)
+
+       DEALLOCATE(variable1Din, variable1Dch, var1Duse)
+
+! N-D
+!!
+     CASE DEFAULT
+       PRINT *,'Nothing can be done for a variable with ',Ndimsvar_in,' dimensions!!!'
+       STOP
+
+     END SELECT change_var
+
+     DEALLOCATE(dims_out)
 
   END DO changeALL_vars 
 
   RETURN
 END SUBROUTINE change_var 
+
+SUBROUTINE variable_use1D(varin, varch, Nti, tuin, Ntc, tuch, dt, debg, varuse)
+! Subroutine to construct resultant 1D variable matrix as combination of selected time-steps
+
+  IMPLICIT NONE
+
+  INTEGER, INTENT(IN)                                          :: dt, Nti, Ntc
+  REAL, DIMENSION(dt), INTENT(IN)                              :: varin, varch
+  INTEGER, DIMENSION(Nti), INTENT(IN)                          :: tuin
+  INTEGER, DIMENSION(Ntc), INTENT(IN)                          :: tuch
+  REAL, DIMENSION(dt), INTENT(OUT)                             :: varuse
+  LOGICAL, INTENT(IN)                                          :: debg
+! Local
+  INTEGER                                                      :: itime
+
+!!!!!!!!!!!!!!!! Variables
+! var[in/ch]: 1D arrays with input[in]/changing[ch] values
+! Nt[i/c]: number of times to use for the change
+! tu[in/ch]: time-steps to be involved during the change
+! d[t]: dimension of arrays
+! var[use]: resultant 1D array after the change is made
+
+  IF (debg) PRINT *," 'variable_use1D' subroutine..."
+  varuse=0.
+
+  IF (tuin(1) == -9) THEN
+    PRINT *,'All time steps will be changed'
+    varuse=varch
+  ELSE
+    PRINT *,'Only some time steps will be changed'
+    varuse=varin
+    IF (Nti == Ntc) THEN
+      DO itime=1, Nti
+        varuse(tuin(itime))=varch(tuch(itime))
+      END DO
+    ELSE
+      DO itime=1, Nti
+        varuse(tuin(itime))=varch(tuch(1))
+      END DO
+    END IF
+  END IF
+
+  RETURN
+END SUBROUTINE variable_use1D
+
+SUBROUTINE variable_use2D(varin, varch, Nti, tuin, Ntc, tuch, dx, dt, debg, varuse)
+! Subroutine to construct resultant 2D variable matrix as combination of selected time-steps
+
+  IMPLICIT NONE
+
+  INTEGER, INTENT(IN)                                          :: dx, dt, Nti, Ntc
+  REAL, DIMENSION(dx, dt), INTENT(IN)                          :: varin, varch
+  INTEGER, DIMENSION(Nti), INTENT(IN)                          :: tuin
+  INTEGER, DIMENSION(Ntc), INTENT(IN)                          :: tuch
+  REAL, DIMENSION(dx, dt), INTENT(OUT)                         :: varuse
+  LOGICAL, INTENT(IN)                                          :: debg
+! Local
+  INTEGER                                                      :: itime
+
+!!!!!!!!!!!!!!!! Variables
+! var[in/ch]: 2D arrays with input[in]/changing[ch] values
+! Nt[i/c]: number of times to use for the change
+! tu[in/ch]: time-steps to be involved during the change
+! d[x/t]: dimension of arrays
+! var[use]: resultant 2D array after the change is made
+
+  IF (debg) PRINT *," 'variable_use2D' subroutine..."
+  varuse=0.
+
+  IF (tuin(1) == -9) THEN
+    PRINT *,'All time steps will be changed'
+    varuse=varch
+  ELSE
+    PRINT *,'Only some time steps will be changed'
+    varuse=varin
+    IF (Nti == Ntc) THEN
+      DO itime=1, Nti
+        varuse(:,tuin(itime))=varch(:,tuch(itime))
+      END DO
+    ELSE
+      DO itime=1, Nti
+        varuse(:,tuin(itime))=varch(:,tuch(1))
+      END DO
+    END IF
+  END IF
+
+  RETURN
+END SUBROUTINE variable_use2D
 
 SUBROUTINE variable_use3D(varin, varch, Nti, tuin, Ntc, tuch, dx, dy, dt, debg, varuse)
 ! Subroutine to construct resultant 3D variable matrix as combination of selected time-steps
@@ -479,6 +673,119 @@ SUBROUTINE variable_inf(file, varname, debg, nc_var_id, Ndimsvar, shape)
 
   RETURN
 END SUBROUTINE variable_inf
+
+SUBROUTINE read_var1D(debg, file, var, d1, variable1D)
+! Subroutine to read a 1D variable from a file
+
+  IMPLICIT NONE
+
+  INCLUDE 'netcdf.inc'
+
+  CHARACTER(LEN=50), INTENT(IN)                                :: var
+  CHARACTER(LEN=500), INTENT(IN)                               :: file
+  INTEGER, INTENT(IN)                                          :: d1
+  REAL, DIMENSION(d1), INTENT(OUT)                             :: variable1D
+  LOGICAL, INTENT(IN)                                          :: debg
+
+! Local
+  INTEGER                                                      :: ncid, rcode
+  INTEGER                                                      :: idvar
+  INTEGER                                                      :: varfound
+  CHARACTER(LEN=50)                                            :: section
+
+!!!!!!!!!!!!!!!! Variables
+! file: file to obtain variable
+! var: variable name
+! d1: range of dimensions
+! r_dims: range of dimensions
+! variable1D: 1-dimensional variable
+
+! Adquiring variable
+!!
+  section='read_var1d'
+  PRINT *,'var name: ',var
+  rcode = nf_open(file, 0, ncid)
+
+  varfound=0
+
+  IF (debg) PRINT *,"Reading in file: '"//TRIM(file)//"' ..."
+  IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
+  rcode = nf_inq_varid(ncid, TRIM(var), idvar)
+
+  IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
+  rcode = nf_get_var_real ( ncid, idvar, variable1D )
+
+  IF (rcode == 0) THEN
+    varfound=1
+  ELSE
+    PRINT *,"Error reading '"//TRIM(var)//"' "//nf_strerror(rcode)
+  END IF
+
+  IF (varfound /= 1) THEN
+    PRINT *,"Necessary variable '"//TRIM(var)//"' not found!"
+    STOP
+  ENDIF
+  rcode = nf_close(ncid)
+
+  RETURN
+END SUBROUTINE read_var1D
+
+SUBROUTINE read_var2D(debg, file, var, d1, d2, variable2D)
+! Subroutine to read a 2D variable from a file
+
+  IMPLICIT NONE
+
+  INCLUDE 'netcdf.inc'
+
+  CHARACTER(LEN=50), INTENT(IN)                                :: var
+  CHARACTER(LEN=500), INTENT(IN)                               :: file
+  INTEGER, INTENT(IN)                                          :: d1, d2
+  REAL, DIMENSION(d1, d2), INTENT(OUT)                         :: variable2D
+  LOGICAL, INTENT(IN)                                          :: debg
+
+! Local
+  INTEGER                                                      :: ncid, rcode
+  INTEGER                                                      :: idvar
+  INTEGER                                                      :: varfound
+  CHARACTER(LEN=50)                                            :: section
+
+!!!!!!!!!!!!!!!! Variables
+! file: file to obtain variable
+! var: variable name
+! d1, d2: range of dimensions
+! r_dims: range of dimensions
+! variable2D: 2-dimensional variable
+
+! Adquiring variable
+!!
+  section='read_var2d'
+  PRINT *,'var name: ',var
+  rcode = nf_open(file, 0, ncid)
+
+  varfound=0
+
+  IF (debg) PRINT *,"Reading in file: '"//TRIM(file)//"' ..."
+  IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
+  rcode = nf_inq_varid(ncid, TRIM(var), idvar)
+
+  IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
+  rcode = nf_get_var_real ( ncid, idvar, variable2D )
+
+  IF (rcode == 0) THEN
+    varfound=1
+  ELSE
+    PRINT *,"Error reading '"//TRIM(var)//"' "//nf_strerror(rcode)
+  END IF
+
+  IF (varfound /= 1) THEN
+    PRINT *,"Necessary variable '"//TRIM(var)//"' not found!"
+    STOP
+  ENDIF
+  rcode = nf_close(ncid)
+
+  RETURN
+END SUBROUTINE read_var2D
+
 
 SUBROUTINE read_var3D(debg, file, var, d1, d2, d3, variable3D)
 ! Subroutine to read a 3D variable from a file
