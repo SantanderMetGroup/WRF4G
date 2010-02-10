@@ -49,8 +49,9 @@ PROGRAM wrfnc_push_soil_data
 ! change_var: change variables of a file from another one
 ! read_var3D: read a 3D variable from a file
 ! read_var4D: read a 4D variable from a file
-! variable_inf: read variable information from 'variables.inf' external ASCII file
-! variable_Ndims: read variable number of dimensions from 'variables.inf' external ASCII file
+! variable_inf: read variable information from netCDF file
+! variable_inf_ascii: read variable information from 'variables.inf' external ASCII file
+! variable_Ndims_ascii: read variable number of dimensions from 'variables.inf' external ASCII file
 ! var_range_dimensions:
 ! nc_dimensions: obtain range of dimensions of a netCDF file
 ! nc_Ndim: obtain number of dimensions of a netCDF file
@@ -144,12 +145,13 @@ SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile)
   REAL, ALLOCATABLE, DIMENSION(:,:)                      :: variable2Din, variable2Dch
   CHARACTER(LEN=50), ALLOCATABLE, DIMENSION(:)           :: dimension_names
   INTEGER                                                :: ierr, rcode
-  INTEGER                                                :: Ndimsvar
+  INTEGER                                                :: Ndimsvar_in, Ndimsvar_ch, Ndimsvar
   INTEGER, ALLOCATABLE, DIMENSION(:)                     :: rangedims, start_dims, dims_out
-  INTEGER, DIMENSION(6)                                  :: jshape
   CHARACTER(LEN=50)                                      :: varnameIN, varnameCH, units
   CHARACTER(LEN=250)                                     :: longdesc
-  INTEGER                                                :: origid, nc_var_id
+  INTEGER                                                :: origid, nc_var_id_in, chanid,       &
+    nc_var_id_ch, nc_var_id
+  INTEGER, DIMENSION(6)                                  :: shape_in, shape_ch, jshape
   INTEGER, DIMENSION(4)                                  :: var_dimsid
   CHARACTER(LEN=50)                                      :: name
   INTEGER                                                :: val
@@ -168,40 +170,34 @@ SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile)
 ! units: units of variable
 ! longdesc: long description attribute of variable
 ! origid: id of original netCDF file
-! nc_var_id: variable id in netCDF original file
-
+! chanid: id of changing netCDF file
+! nc_var_id_[in/ch]: variable id in netCDF original[in]/changing[ch] file
+! shape_[in/ch]: shapes of original[in]/changing[ch] variables
+  IF (dbg) PRINT *,"Subroutine 'chang_var'..."
 !!
 ! changing variables 
 !!
 !!!
   changeALL_vars: DO ivar=1, Nvars
-   varnameIN=varsIN(ivar)
-   varnameCH=varsCH(ivar)
-   rcode = nf_open(origf, 0, origid)
-   rcode = nf_inq_varid(origid, varnameIN, nc_var_id)
-   rcode = nf_close(origid)
+    varnameIN=varsIN(ivar)
+    varnameCH=varsCH(ivar)
+    CALL variable_inf(origf, varnameIN, dbg, nc_var_id_in, Ndimsvar_in, shape_in)
+    CALL variable_inf(chanf, varnameCH, dbg, nc_var_id_ch, Ndimsvar_ch, shape_ch)
+    IF (Ndimsvar_in /= Ndimsvar_ch) PRINT *,'Variables with different number of dimensions! '// &
+      'original varibale '//TRIM(varnameIN)//' ndims: ',Ndimsvar_in
+    change_var: SELECT CASE(TRIM(varnameIN))
+    IF (ALLOCATED(dims_out)) DEALLOCATE(dims_out)
+    ALLOCATE(dims_out(Ndimsvar_in))
+    DO i=1, Ndimsvar_in
+      dims_out(i)=shape_in(i)
+    END DO
+    PRINT *,'dimsout: ',dims_out
 
-   change_var: SELECT CASE(TRIM(varnameIN))
 ! SH2O
 !!
      CASE('SH2O')
        PRINT *,'Changing '//TRIM(varnameIN)//' by '//TRIM(varnameCH)//'...'
-
-       CALL variable_Ndims(dbg, varnameIN, Ndimsvar)
-       IF (ALLOCATED(dimension_names)) DEALLOCATE(dimension_names)
-       IF (ALLOCATED(rangedims)) DEALLOCATE(rangedims)
-       IF (ALLOCATED(start_dims)) DEALLOCATE(start_dims)
-       IF (ALLOCATED(dims_out)) DEALLOCATE(dims_out)
-       ALLOCATE(dimension_names(Ndimsvar), rangedims(Ndimsvar), start_dims(Ndimsvar),           &
-         dims_out(Ndimsvar))
-
-       CALL variable_inf(dbg, varnameIN, Ndimsvar, jshape, dimension_names, longdesc, units)
-       CALL var_range_dimensions(origf, dbg, varnameIN, Ndimsvar, dimension_names, rangedims)
-
-       DO i=1,Ndimsvar
-         dims_out(i)=rangedims(jshape(i))
-       END DO
-
+   
        IF (ALLOCATED(variable4Din)) DEALLOCATE(variable4Din)
        IF (ALLOCATED(variable4Dch)) DEALLOCATE(variable4Dch)
        ALLOCATE(variable4Din(dims_out(1), dims_out(2), dims_out(3), dims_out(4)), STAT=ierr)
@@ -215,39 +211,23 @@ SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile)
          dims_out(4), variable4Dch)
 
        IF (dbg) THEN
-         PRINT *,'VAR: '//TRIM(varnameIN)//' nc_id:',nc_var_id
+         PRINT *,'VAR: '//TRIM(varnameIN)//' nc_id:',nc_var_id_in
          PRINT *,'1/2 example value. IN:', variable4Din(dims_out(1)/2, dims_out(2)/2,           &
            dims_out(3)/2, dims_out(4)/2), 'CHANGE: ', variable4Dch(dims_out(1)/2, dims_out(2)/2,&
            dims_out(3)/2, dims_out(4)/2)
        ENDIF
 
        rcode = nf_open(origf, nf_write, origid)
-       rcode = nf_put_var_real (origid, nc_var_id, variable4Dch)
+       rcode = nf_put_var_real (origid, nc_var_id_in, variable4Dch)
        IF (rcode /= 0) PRINT *,'Error writting change...',nf_strerror(rcode)
        rcode = nf_close(origid)
 
-       DEALLOCATE(dimension_names, rangedims, start_dims, dims_out)
        DEALLOCATE(variable4Din, variable4Dch)
 ! SMOIS
 !!
      CASE('SMOIS')
        PRINT *,'Changing '//TRIM(varnameIN)//' by '//TRIM(varnameCH)//'...'
 
-       CALL variable_Ndims(dbg, varnameIN, Ndimsvar)
-       IF (ALLOCATED(dimension_names)) DEALLOCATE(dimension_names)
-       IF (ALLOCATED(rangedims)) DEALLOCATE(rangedims)
-       IF (ALLOCATED(start_dims)) DEALLOCATE(start_dims)
-       IF (ALLOCATED(dims_out)) DEALLOCATE(dims_out)
-       ALLOCATE(dimension_names(Ndimsvar), rangedims(Ndimsvar), start_dims(Ndimsvar),           &
-         dims_out(Ndimsvar))
-
-       CALL variable_inf(dbg, varnameIN, Ndimsvar, jshape, dimension_names, longdesc, units)
-       CALL var_range_dimensions(origf, dbg, varnameIN, Ndimsvar, dimension_names, rangedims)
-
-       DO i=1,Ndimsvar
-         dims_out(i)=rangedims(jshape(i))
-       END DO
-
        IF (ALLOCATED(variable4Din)) DEALLOCATE(variable4Din)
        IF (ALLOCATED(variable4Dch)) DEALLOCATE(variable4Dch)
        ALLOCATE(variable4Din(dims_out(1), dims_out(2), dims_out(3), dims_out(4)), STAT=ierr)
@@ -261,39 +241,23 @@ SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile)
          dims_out(4), variable4Dch)
 
        IF (dbg) THEN
-         PRINT *,'VAR: '//TRIM(varnameIN)//' nc_id:',nc_var_id
+         PRINT *,'VAR: '//TRIM(varnameIN)//' nc_id:',nc_var_id_in
          PRINT *,'1/2 example value. IN:', variable4Din(dims_out(1)/2, dims_out(2)/2,           &
            dims_out(3)/2, dims_out(4)/2), 'CHANGE: ', variable4Dch(dims_out(1)/2, dims_out(2)/2,&
            dims_out(3)/2, dims_out(4)/2)
        ENDIF
 
        rcode = nf_open(origf, nf_write, origid)
-       rcode = nf_put_var_real (origid, nc_var_id, variable4Dch)
+       rcode = nf_put_var_real (origid, nc_var_id_in, variable4Dch)
        IF (rcode /= 0) PRINT *,'Error writting change...',nf_strerror(rcode)
        rcode = nf_close(origid)
 
-       DEALLOCATE(dimension_names, rangedims, start_dims, dims_out)
        DEALLOCATE(variable4Din, variable4Dch)
 !  TMN
 !!
      CASE('TMN')
        PRINT *,'Changing '//TRIM(varnameIN)//' by '//TRIM(varnameCH)//'...'
 
-       CALL variable_Ndims(dbg, varnameIN, Ndimsvar)
-       IF (ALLOCATED(dimension_names)) DEALLOCATE(dimension_names)
-       IF (ALLOCATED(rangedims)) DEALLOCATE(rangedims)
-       IF (ALLOCATED(start_dims)) DEALLOCATE(start_dims)
-       IF (ALLOCATED(dims_out)) DEALLOCATE(dims_out)
-       ALLOCATE(dimension_names(Ndimsvar), rangedims(Ndimsvar), start_dims(Ndimsvar),           &
-         dims_out(Ndimsvar))
-
-       CALL variable_inf(dbg, varnameIN, Ndimsvar, jshape, dimension_names, longdesc, units)
-       CALL var_range_dimensions(origf, dbg, varnameIN, Ndimsvar, dimension_names, rangedims)
-
-       DO i=1,Ndimsvar
-         dims_out(i)=rangedims(jshape(i))
-       END DO
-
        IF (ALLOCATED(variable3Din)) DEALLOCATE(variable3Din)
        IF (ALLOCATED(variable3Dch)) DEALLOCATE(variable3Dch)
        ALLOCATE(variable3Din(dims_out(1), dims_out(2), dims_out(3)), STAT=ierr)
@@ -307,38 +271,22 @@ SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile)
          variable3Dch)
 
        IF (dbg) THEN
-         PRINT *,'VAR: '//TRIM(varnameIN)//' nc_id:',nc_var_id
+         PRINT *,'VAR: '//TRIM(varnameIN)//' nc_id:',nc_var_id_in
          PRINT *,'1/2 example value. IN:', variable3Din(dims_out(1)/2, dims_out(2)/2,           &
            dims_out(3)/2), 'CHANGE: ', variable3Dch(dims_out(1)/2, dims_out(2)/2, dims_out(3)/2)
        ENDIF
 
        rcode = nf_open(origf, nf_write, origid)
-       rcode = nf_put_var_real (origid, nc_var_id, variable3Dch)
+       rcode = nf_put_var_real (origid, nc_var_id_in, variable3Dch)
        IF (rcode /= 0) PRINT *,'Error writting change...',nf_strerror(rcode)
        rcode = nf_close(origid)
 
-       DEALLOCATE(dimension_names, rangedims, start_dims, dims_out)
        DEALLOCATE(variable3Din, variable3Dch)
 !  TSLB
 !!
      CASE('TSLB')
        PRINT *,'Changing '//TRIM(varnameIN)//' by '//TRIM(varnameCH)//'...'
 
-       CALL variable_Ndims(dbg, varnameIN, Ndimsvar)
-       IF (ALLOCATED(dimension_names)) DEALLOCATE(dimension_names)
-       IF (ALLOCATED(rangedims)) DEALLOCATE(rangedims)
-       IF (ALLOCATED(start_dims)) DEALLOCATE(start_dims)
-       IF (ALLOCATED(dims_out)) DEALLOCATE(dims_out)
-       ALLOCATE(dimension_names(Ndimsvar), rangedims(Ndimsvar), start_dims(Ndimsvar),           &
-         dims_out(Ndimsvar))
-
-       CALL variable_inf(dbg, varnameIN, Ndimsvar, jshape, dimension_names, longdesc, units)
-       CALL var_range_dimensions(origf, dbg, varnameIN, Ndimsvar, dimension_names, rangedims)
-
-       DO i=1,Ndimsvar
-         dims_out(i)=rangedims(jshape(i))
-       END DO
-
        IF (ALLOCATED(variable3Din)) DEALLOCATE(variable3Din)
        IF (ALLOCATED(variable3Dch)) DEALLOCATE(variable3Dch)
        ALLOCATE(variable3Din(dims_out(1), dims_out(2), dims_out(3)), STAT=ierr)
@@ -352,24 +300,73 @@ SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile)
          variable3Dch)
 
        IF (dbg) THEN
-         PRINT *,'VAR: '//TRIM(varnameIN)//' nc_id:',nc_var_id
+         PRINT *,'VAR: '//TRIM(varnameIN)//' nc_id:',nc_var_id_in
          PRINT *,'1/2 example value. IN:', variable3Din(dims_out(1)/2, dims_out(2)/2,           &
            dims_out(3)/2), 'CHANGE: ', variable3Dch(dims_out(1)/2, dims_out(2)/2, dims_out(3)/2)
        ENDIF
 
        rcode = nf_open(origf, nf_write, origid)
-       rcode = nf_put_var_real (origid, nc_var_id, variable3Dch)
+       rcode = nf_put_var_real (origid, nc_var_id_in, variable3Dch)
        IF (rcode /= 0) PRINT *,'Error writting change...',nf_strerror(rcode)
        rcode = nf_close(origid)
 
-       DEALLOCATE(dimension_names, rangedims, start_dims, dims_out)
        DEALLOCATE(variable3Din, variable3Dch)
     END SELECT change_var
+
+    DEALLOCATE(dims_out)
 
   END DO changeALL_vars 
 
   RETURN
 END SUBROUTINE change_var 
+
+SUBROUTINE variable_inf(file, varname, debg, nc_var_id, Ndimsvar, shape)
+! Subroutine to obtain variable information from netCDF file
+
+  IMPLICIT NONE
+
+  INCLUDE 'netcdf.inc'
+
+  CHARACTER(LEN=500), INTENT(IN)                               :: file
+  CHARACTER(LEN=50), INTENT(IN)                                :: varname
+  INTEGER, INTENT(OUT)                                         :: nc_var_id, Ndimsvar
+  INTEGER, DIMENSION(6), INTENT(OUT)                           :: shape  
+  LOGICAL, INTENT(IN)                                          :: debg
+
+! Local
+  INTEGER                                                      :: ncid
+  INTEGER, DIMENSION(6)                                        :: dims  
+  INTEGER                                                      :: rcode, idim
+
+!!!!!!!!!!!!! Variables
+! file: netCDF file
+! varname: name of variable
+! nc_var_id: id of var in netCDF file
+! Ndimsvar: number of dimensions of 'varname'
+! shape: shape of dimensions of 'varname'
+
+  shape=1
+  dims=1
+
+  rcode = nf_open(file, 0, ncid)
+  rcode = nf_inq_varid(ncid, varname, nc_var_id)
+  rcode = nf_inq_varndims(ncid, nc_var_id, Ndimsvar)
+  rcode = nf_inq_vardimid(ncid, nc_var_id, dims)
+
+  DO idim=1, Ndimsvar
+    rcode = nf_inq_dimlen(ncid, dims(idim), shape(idim))
+  END DO
+
+  IF (debg) THEN
+    PRINT *,"'"//TRIM(varname)//"' information from '"//TRIM(file)//"'_____________"
+    PRINT *,'variable id:',nc_var_id
+    PRINT *,'number of dimensions:',Ndimsvar
+    PRINT *,'dimensions:',dims
+    PRINT *,'shape of variable:',shape
+  END IF
+
+  RETURN
+END SUBROUTINE variable_inf
 
 SUBROUTINE read_var3D(debg, file, var, d1, d2, d3, variable3D)
 ! Subroutine to read a 3D variable from a file
@@ -483,7 +480,7 @@ SUBROUTINE read_var4D(debg, file, var, d1, d2, d3, d4, variable4D)
   RETURN
 END SUBROUTINE read_var4D
 
-SUBROUTINE variable_inf(debg, var, Ndim, shape, dim_names, longdesc, units) 
+SUBROUTINE variable_inf_ascii(debg, var, Ndim, shape, dim_names, longdesc, units) 
 ! Subroutine to read variable information from 'variables.inf' external ASCII file. File format:
 !*var*
 ! variable_dim          Ndim 
@@ -573,9 +570,9 @@ SUBROUTINE variable_inf(debg, var, Ndim, shape, dim_names, longdesc, units)
      PRINT *,'  Units:', TRIM(units)
    END IF
   
-END SUBROUTINE variable_inf 
+END SUBROUTINE variable_inf_ascii 
 
-SUBROUTINE variable_Ndims(debg, var, Ndim)
+SUBROUTINE variable_Ndims_ascii(debg, var, Ndim)
 ! Subroutine to read variable number of dumensions from 'variables.inf' external ASCII file. 
 ! File format:
 !*var*
@@ -647,7 +644,7 @@ SUBROUTINE variable_Ndims(debg, var, Ndim)
      PRINT *,'  Number of dimensions:', Ndim
    END IF
 
-END SUBROUTINE variable_Ndims
+END SUBROUTINE variable_Ndims_ascii
 
 SUBROUTINE var_range_dimensions(file, dbg, var, ndims, dnames, dimsval)
 ! Subroutine to obtain range of dimensions of a netCDF file
