@@ -7,6 +7,8 @@ PROGRAM ids_netCDF
 !!!!!!!!!! COMPILATION
 !
 !! OCEANO: pgf90 ids_netCDF.f90 -L/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/lib -lnetcdf -lm -I/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/include -Mfree -o ids_netCDF 
+!
+!! TRUENO: gfortran ids_netCDF.f90 -L/home/lluis/bin/netcdf-4.0.1/lib -lnetcdf -lm -I/home/lluis/bin/netcdf-4.0.1/include -o ids_netCDF
 
 ! 34567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
 
@@ -24,7 +26,8 @@ PROGRAM ids_netCDF
   INTEGER                                                :: idvar, iddim, Rdim
   CHARACTER(LEN=50)                                      :: varname
   INTEGER                                                :: rcode
-  INTEGER, ALLOCATABLE, DIMENSION(:)                     :: idvars, dimnames
+  INTEGER, ALLOCATABLE, DIMENSION(:)                     :: idvars
+  CHARACTER, ALLOCATABLE, DIMENSION(:)                   :: dimnames
   INTEGER, DIMENSION(6)                                  :: varshape
   INTEGER                                                :: vartype, varndims, varnatts
 
@@ -63,17 +66,18 @@ PROGRAM ids_netCDF
   IF (rcode /= 0) PRINT *, rcode, nf_strerror(rcode)
 
   rcode = nf_inq(ncid, Ndims, Nvars, Ngatt, idunl)
-  PRINT *,"netCDF file'"//TRIM(file)//"' global information____________"
-  PRINT *,'number of dimensions: ',ndims
-  PRINT *,'number of variables: ',nvars
+  PRINT *,"netCDF file '"//TRIM(file)//"' global information____________"
+  PRINT *,'number of dimensions: ',Ndims
+  PRINT *,'number of variables: ',Nvars
   PRINT *,'number of global attributes: ',Ngatt
 
-  rcode = nf_inq_ndim(ncid, Ndims)
+  rcode = nf_inq_ndims(ncid, Ndims)
 
   PRINT *,'Dimensions of file______________'
-  DO idim=1,Ndims
+  DO idim=1, Ndims
+    PRINT *,idim
     rcode = nf_inq_dim(ncid, idim, dimnames(idim), Rdim)
-    WRITE(*,10)'dimension id:',idim,' name: ',TRIM(dimnames(idim)),' range: ',Rdim
+    WRITE(6,10)'dimension id:',idim,' name: ',TRIM(dimnames(idim)),' range: ',Rdim
   END DO 
 
   IF (ALLOCATED(idvars)) DEALLOCATE(idvars)
@@ -87,6 +91,6 @@ PROGRAM ids_netCDF
   END DO
   rcode = nf_close(ncid)
 
- 10 format(13a, 3i, 7a, 40a, a8, i6) 
+ 10 format(a13, i3, a7, a40, a8, i6) 
 
 END PROGRAM ids_netCDF
