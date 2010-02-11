@@ -27,7 +27,7 @@ echo "LAUNCHER_WRF=\"\""       >> wrf.chunk
 rootbuild=`pwd`
 walltimeflag="-l h_rt=15"
 ##eoflag="-e $PWD/error -o $PWD/output -l highmem -l h_vmem=8G,mem_free=3.6G" 
-eoflag="-e $PWD/error -o $PWD/output -l h_vmem=2G,mem_free=1.9G" 
+eoflag="-e $PWD/error -o $PWD/output -l h_vmem=6G,mem_free=1.9G" 
 rundir=${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
 #
 #   Avoid overwriting previous run directories. Move it to an unused name.
