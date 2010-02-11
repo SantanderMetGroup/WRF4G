@@ -26,7 +26,7 @@ if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
   echo "LAUNCHER_METGRID=\"\""                 >> wrf.chunk
   echo "LAUNCHER_REAL=\"\""                    >> wrf.chunk
   echo "LAUNCHER_WRF=\"$mpiexec -npernode ${PROCESSES_PER_NODE}\"" >> wrf.chunk
-  echo "export P4_GLOBMEMSIZE=33554432" >> wrf.chunk
+  echo "export P4_GLOBMEMSIZE=67108864" >> wrf.chunk
 else
   nodflag=""
   echo "LAUNCHER_METGRID=\"\""              >> wrf.chunk
@@ -62,4 +62,4 @@ mkdir -p ${rundir} || exit
 cp -L sandbox.tar.gz ${rundir}/
 cp -L WRF4G_ini.sh   ${rundir}/
 
-qsub -q macc -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} $jobfile | awk -F. '{print $1}'
+qsub -q ${WRF4G_QUEUE_NAME} -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} $jobfile | awk -F. '{print $1}'
