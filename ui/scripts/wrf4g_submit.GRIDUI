@@ -36,7 +36,8 @@ else
 fi
 rootbuild=`pwd`
 walltimeflag="-l h_rt=10"
-eoflag="-e $PWD/error -o $PWD/output -l mem_free=8G" 
+eoflag="-e $PWD/error -o $PWD/output -l virtual_free=3.6G" 
+#eoflag="-l mem_free=4G" 
 rundir=${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
 #
 #   Avoid overwriting previous run directories. Move it to an unused name.
@@ -56,14 +57,12 @@ command="cd ${rundir}"
 echo -e "2i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
 numlinjob=`wc -l $jobfile | awk '{print $1}'`
 numlinjob=`expr ${numlinjob} - 2`
-#command="cat \$PE_HOSTFILE | awk '{print \$1\":\"\$2}' >& \$(cat \${ROOTDIR}/localdir|awk -F: '{print \$2}')/WRFV3/run/wrf_gms"
-#echo -e "${numlinjob}i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
 command="echo LAUNCHER_WRF=\\\"$mpiexec -np \$(cat \$(cat \${ROOTDIR}/localdir|awk -F: '{print \$2}')/WRFV3/run/wrf_gms | awk -F: '{print \$2}') -machinefile wrf_gms \\\" >> \${ROOTDIR}/wrf.chunk"
 echo -e "${numlinjob}i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
 command="echo LAUNCHER_WRF=\\\"$mpiexec -np \$(cat \$(cat \${ROOTDIR}/localdir|awk -F: '{print \$2}')/WRFV3/run/wrf_gms | awk -F: '{print \$2}') -machinefile wrf_gms \\\" >> wrf.chunk"
 echo -e "${numlinjob}i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
-command="export LAUNCHER_WRF=\"$mpiexec -np \$(cat \$(cat \${ROOTDIR}/localdir|awk -F: '{print \$2}')/WRFV3/run/wrf_gms | awk -F: '{print \$2}') -machinefile wrf_gms \""
-echo -e "${numlinjob}i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
+#command="export LAUNCHER_WRF=\"$mpiexec -np \$(cat \$(cat \${ROOTDIR}/localdir|awk -F: '{print \$2}')/WRFV3/run/wrf_gms | awk -F: '{print \$2}') -machinefile wrf_gms \""
+#echo -e "${numlinjob}i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
 command="cat \$PE_HOSTFILE | awk '{print \$1\":\"\$2}' | grep \$HOSTNAME >& \$(cat \${ROOTDIR}/localdir|awk -F: '{print \$2}')/WRFV3/run/wrf_gms"
 echo -e "${numlinjob}i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
 #
@@ -77,5 +76,4 @@ mkdir -p ${rundir} || exit
 cp -L sandbox.tar.gz ${rundir}/
 cp -L WRF4G_ini.sh   ${rundir}/
 
-qsub -S /bin/bash -N "${WRF4G_REALIZATION}" -P l.meteo ${depflag} ${nodflag} ${eoflag} $jobfile | awk -F. '{print $3}'
-##qsub -S /bin/bash -N "${WRF4G_REALIZATION}" -P l.meteo ${depflag} ${nodflag} ${walltimeflag} ${eoflag} $jobfile | awk '{print $3}'
+qsub -S /bin/bash -N "${WRF4G_REALIZATION}" -P l.meteo ${depflag} ${nodflag} ${eoflag} $jobfile | awk '{print $3}'
