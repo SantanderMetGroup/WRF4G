@@ -24,7 +24,7 @@ PROGRAM ids_netCDF
   INTEGER                                                :: ncid, idim, ivar
   INTEGER                                                :: Ndims, Nvars, Ngatt, idunl 
   INTEGER                                                :: idvar, iddim, Rdim
-  CHARACTER(LEN=50)                                      :: varname
+  CHARACTER(LEN=50)                                      :: varname, dimname
   INTEGER                                                :: rcode
   INTEGER, ALLOCATABLE, DIMENSION(:)                     :: idvars
   CHARACTER, ALLOCATABLE, DIMENSION(:)                   :: dimnames
@@ -73,11 +73,15 @@ PROGRAM ids_netCDF
 
   rcode = nf_inq_ndims(ncid, Ndims)
 
+  IF (ALLOCATED(dimnames)) DEALLOCATE(dimnames)
+  ALLOCATE(dimnames(Ndims))
+
   PRINT *,'Dimensions of file______________'
   DO idim=1, Ndims
     PRINT *,idim
-    rcode = nf_inq_dim(ncid, idim, dimnames(idim), Rdim)
-    WRITE(6,10)'dimension id:',idim,' name: ',TRIM(dimnames(idim)),' range: ',Rdim
+    rcode = nf_inq_dim(ncid, idim, dimname, Rdim)
+    WRITE(6,10)'dimension id:',idim,' name: ',TRIM(dimname),' range: ',Rdim
+    dimnames(idim)=dimname
   END DO 
 
   IF (ALLOCATED(idvars)) DEALLOCATE(idvars)
@@ -87,10 +91,13 @@ PROGRAM ids_netCDF
   DO ivar=1, Nvars
     rcode = nf_inq_var(ncid, ivar, varname, vartype, varndims, varshape, varnatts)    
     PRINT *,'var id:',ivar,'name: ',TRIM(varname),' type:',vartype,' n. of dimensions: ',       &
-      varndims, ' var shape: ',(varshape(idim),idim=1,varndims),' n. of attributes: ', varnatts
+      varndims, ' var shape: ',(varshape(idim),idim=1,varndims),                                &
+      ' n. of attributes: ', varnatts
   END DO
   rcode = nf_close(ncid)
 
- 10 format(a13, i3, a7, a40, a8, i6) 
+  DEALLOCATE(dimnames)
+
+ 10 format(a13, i3, a7, a30, a8, i6) 
 
 END PROGRAM ids_netCDF
