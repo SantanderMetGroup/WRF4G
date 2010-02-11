@@ -1,0 +1,17 @@
+************* content of util/postprocess/Fortran
+
+Diagnostics/: Folder with all diagnostic computation structure
+
+.F90_______________
+ids_netCDF.f90: Fortran program to give all netCDF file ids
+p_interp.F90: Fortran program to interpolate to pressure levels wrfouts
+wrfnc_push_soil_data.f90: Fortran program to change some fields of a 
+   netCDF file using other netCDF
+
+NAMLIST___________
+namelist.pinterp
+namelist.pinterp_MINIMUM
+namelist.wrfnc_push_soil_data
+
+.INF______________
+variables.inf: ascii file with variables description
