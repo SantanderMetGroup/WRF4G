@@ -156,6 +156,7 @@
    IF ( config_flags%restart .or. grid%moved ) THEN
        first_trip_for_this_domain = .TRUE.
    ENDIF
+! WRF4G-UC May.09
 
 ! wig: Add a combined exponential+linear weight on the mother boundaries
 !      following code changes by Ruby Leung. For the nested grid, there

@@ -398,6 +398,24 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
    real(r8), dimension(its:ite,kts:kte,4)           :: absnxt ! Total nearest layer absorptivity
    real(r8), dimension(its:ite,kts:kte+1)           :: emstot ! Total emissivity
    CHARACTER(LEN=256) :: msgstr
+#ifdef CLWRF
+! CLWRF-UC June.09 
+#include <wrf_io_flags.h>
+   integer, SAVE                                     :: yrdata(cyr)
+   real(r8), SAVE                                    :: co2(cyr),n2o(cyr),ch4(cyr)                                     &
+                    ,cfc11(cyr),cfc12(cyr)
+   REAL, SAVE                                       :: co2vmr, n2ovmr, ch4vmr, f11vmr, f12vmr
+
+   INTEGER                                          :: yearIN, found_yearIN, iyear
+   LOGICAL, EXTERNAL                                :: wrf_dm_on_monitor
+   INTEGER, EXTERNAL                                :: get_unused_unit
+
+   INTEGER                                          :: istatus, iunit, idata                                          &
+                    ,VARCAM_in_years
+   LOGICAL                                          :: exists, READtrFILE
+!   LOGICAL, EXTERNAL                                :: ISNAND
+   CHARACTER(LEN=256)                               :: message
+#endif
 
 #if !defined(MAC_KLUDGE)
    lchnk = 1
@@ -430,6 +448,118 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
 ! of interpolation factors to within 32-bit roundoff
 ! assume that day of year is 1 for all input data
 !
+#ifdef CLWRF
+! CLWRF-UC June.09  (Copy from share/wrf_tsin.F)
+    IF (XTIME .eq. 0.) THEN
+      READtrFILE = .FALSE.
+    ENDIF   
+
+    IF ( .NOT. READtrFILE ) THEN
+      READtrFILE= .TRUE.
+   
+        INQUIRE(FILE='CAMtr_volume_mixing_ratio', EXIST=exists)
+   
+        IF (exists) THEN
+          iunit = get_unused_unit()
+          IF ( iunit <= 0 ) THEN
+            IF ( wrf_dm_on_monitor() ) THEN
+              CALL wrf_error_fatal('Error in module_ra_cam_support: could not find a free Fortran unit.')
+            END IF
+          END IF
+   
+          ! Read volume mixing ratio 
+          OPEN(UNIT=iunit, FILE='CAMtr_volume_mixing_ratio', FORM='formatted', STATUS='old', IOSTAT=istatus)
+   
+          IF (istatus == 0) THEN
+            ! Ignore first two linesm which constitute a header
+            READ(UNIT=iunit, FMT='(1X)')
+            READ(UNIT=iunit, FMT='(1X)')
+   
+            istatus = 0
+            idata = 1
+            DO WHILE (istatus == 0)
+!              READ(UNIT=iunit, *, IOSTAT=istatus)                                                             &
+              READ(UNIT=iunit, FMT='(I4, 5F5.1)', IOSTAT=istatus)                                                             &
+
+             yrdata(idata), co2(idata), n2o(idata), ch4(idata), cfc11(idata), cfc12(idata)
+             idata=idata+1
+           END DO
+           VARCAM_in_years = idata - 1
+           CLOSE(iunit)
+   
+         ENDIF
+       ELSE
+         PRINT *,'CAMtr_volume_mixing_ratio does not exists!'
+         CALL wrf_error_fatal('Not found CAM trace gasses file') 
+
+       ENDIF ! CAMtr_volume_mixing_ratio exists
+   
+   ENDIF ! File already opened and read 
+
+   found_yearIN=0
+   iyear=1
+   DO WHILE (found_yearIN == 0) 
+     IF (yrdata(iyear) .GT. yr )  THEN
+     yearIN=iyear
+     found_yearIN=1
+     ENDIF
+   iyear=iyear+1
+   ENDDO
+
+! Prevent yr > last year in data
+   IF (yearIN .eq. VARCAM_in_years) yearIN=VARCAM_in_years-1
+
+   IF (found_yearIN .NE. 0 ) THEN
+     nyrm = yrdata(yearIN-1)
+     nyrp = yrdata(yearIN)
+   ENDIF
+   CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, co2, co2vmr)
+   CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, n2o, n2ovmr)
+   CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, ch4, ch4vmr)
+   CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, cfc11, f11vmr)
+   CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, cfc12, f12vmr)
+
+! Verification of interpolated values. In case of no value 
+! original values extracted from ghg_surfvals.F90 module
+! co2
+   co2vmr=co2vmr*1.e-06
+
+!n2o
+   IF (n2ovmr .EQ. -99999.) THEN
+     n2ovmr=0.311e-6
+   ELSE
+     n2ovmr=n2ovmr*1.e-09
+   ENDIF
+
+!ch4
+   IF (ch4vmr .EQ. -99999.) THEN
+     ch4vmr=1.714e-6
+   ELSE
+     ch4vmr=ch4vmr*1.e-09
+   ENDIF
+
+!cfc11
+   IF (f11vmr .EQ. -99999.) THEN
+     f11vmr=0.280e-9
+   ELSE
+     f11vmr=f11vmr*1.e-12
+   ENDIF
+
+!cfc12
+   IF (f12vmr .EQ. -99999.) THEN
+     f12vmr=0.503-9
+   ELSE
+     f12vmr=f12vmr*1.e-12
+   ENDIF
+
+   IF ( wrf_dm_on_monitor() ) THEN
+     WRITE(message,*)'CAM-CLWRF________ year:',yr,' julian day:',julian
+     call wrf_debug( 75, message)
+     WRITE(message,*)'CAM-CLWRF co2vmr: ',co2vmr,' n2ovmr:',n2ovmr,' ch4vmr:',ch4vmr,' cfc11:',f11vmr,' cfc12:',f12vmr
+     call wrf_debug( 75, message)
+   ENDIF
+
+#else
    nyrm     = yr - yrdata(1) + 1
    nyrp     = nyrm + 1
    doymodel = yr*365.    + julian
@@ -439,6 +569,7 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
    fact1    = (doydatap - doymodel)/deltat
    fact2    = (doymodel - doydatam)/deltat
    co2vmr = (co2(nyrm)*fact1 + co2(nyrp)*fact2)*1.e-06
+#endif
 
    co2mmr=co2vmr*mwco2/mwdry
 !
@@ -559,6 +690,15 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
       else
         phyd(i,k)=phyd(i,k-1) - gravmks*rho_phy(i,k-1,j)*dz8w(i,k-1,j)
       endif
+#ifdef CLWRF
+!CLWRF-UC July.09
+!      IF (ISNAND(phyd(i,k))) THEN
+!         PRINT *,'phyd:',phyd(i,k),' p8w(',i,char(44),kts,char(44),j,'):',p8w(i,kts,j)
+!         PRINT *,'phyd:',phyd(i,k),' rho_phy:',rho_phy(i,k-1,j),' dz8w:',dz8w(i,k-1,j),' fp:',fp(i)
+!         PRINT *,' ERROR -- error -- ERROR -- error -- ERROR '
+!         CALL wrf_error_fatal('CLWRF-module_ra_cam. camrad: ERROR -- error -- Error of computation pint=NaN')
+!      ENDIF
+#endif
       enddo
       enddo
 
@@ -652,6 +792,10 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
                    fsns, fsnt    ,flns    ,flnt    , &
                    qrs, qrl, flwds, rel, rei,                       &
                    sols, soll, solsd, solld,                  &
+#ifdef CLWRF
+!CLWRF-UC June.09
+                   n2ovmr, ch4vmr, f11vmr, f12vmr  , &
+#endif
                    landfrac, zm, fsds)
 
       do k = kts,kte
@@ -1132,6 +1276,12 @@ subroutine get_aerosol(c, julday, julian, dt, gmt, xtime, m_psp, m_psn, aerosolj
             if (AEROSOLt(i, k, m) < speciesmin(m)) then
                write(6,*) 'AEROSOL_INTERPOLATE: negative mass mixing ratio, exiting'
                write(6,*) 'm, column, pver',m, i, k ,AEROSOLt(i, k, m)
+#ifdef CLWRF
+!CLWRF-UC July.09
+               print *,'naer:',naer,' pver:',pver,' ncol:',ncol
+               PRINT *,'ERROR -- error -- ERROR -- error -- ERROR -- error'
+               CALL wrf_error_fatal('CLWRF-module_ra_cam. : AEROSOLt=NaN')
+#endif
 !              call endrun ()
             end if
          end do
@@ -1416,6 +1566,10 @@ subroutine radctl(j, lchnk   ,ncol    , pcols, pver, pverp, pverr, pverrp, ppcns
                   fsns    ,fsnt    ,flns    ,flnt    , &
                   qrs     ,qrl     ,flwds   ,rel     ,rei     , &
                   sols    ,soll    ,solsd   ,solld   , &
+#ifdef CLWRF
+!CLWRF-UC June.09
+                  n2ovmr, ch4vmr, f11vmr, f12vmr     , &
+#endif
                   landfrac,zm      ,fsds     )
 !----------------------------------------------------------------------- 
 ! 
@@ -1596,7 +1750,11 @@ subroutine radctl(j, lchnk   ,ncol    , pcols, pver, pverp, pverr, pverrp, ppcns
 
    real(r8) aerosol(pcols, pver, naer_all) ! aerosol mass mixing ratios
    real(r8) scales(naer_all)               ! scaling factors for aerosols
-
+#ifdef CLWRF
+!CLWRF-UC July.09
+   real, INTENT(IN)        ::    n2ovmr, ch4vmr, f11vmr, f12vmr
+   CHARACTER (LEN=256)             message
+#endif
 
 !
 ! Interpolate ozone volume mixing ratio to model levels
@@ -1827,10 +1985,18 @@ subroutine radctl(j, lchnk   ,ncol    , pcols, pver, pverp, pverr, pverrp, ppcns
                        aerosol(:,:,idxVOLC))
 !        call t_stopf("radclwmx")
       else
+#ifdef CLWRF
+         WRITE(message,*)'CLWRF-CAM_call-trcmix n2ovmr:',n2ovmr,' ch4vmr:',ch4vmr,' f11vmr:',f11vmr,' f12vmr:',f12vmr
+         CALL wrf_debug(75, message)
+         call trcmix_clwrf(lchnk   ,ncol    ,pcols, pver,  &
+                     pmid    ,clat, n2ovmr, ch4vmr, f11vmr, f12vmr, n2o,   &
+                     ch4, cfc11, cfc12 )
+
+#else
          call trcmix(lchnk   ,ncol    ,pcols, pver,  &
                      pmid    ,clat, n2o     ,ch4     ,                     &
                      cfc11   ,cfc12   )
-
+#endif
 !        call t_startf("radclwmx")
          call radclwmx(lchnk     ,ncol    ,pcols, pver, pverp ,        &
                        lwupcgs   ,t       ,qm1(1,1,1)       ,o3vmr ,   &
@@ -7831,6 +7997,70 @@ subroutine radozn (lchnk, ncol, pcols, pver,pmid, pin, levsiz, ozmix, o3vmr)
    return
 end subroutine radozn
 
+
+#endif
+
+#ifdef CLWRF
+
+   SUBROUTINE interpolate_CAMgases(yr, julian, yeari, lini, yearf, gas, interp_gas)
+   IMPLICIT NONE
+! These subroutine interpolates a trace gas concentration from a non-homogeneously 
+! distributed gas concentration evolution
+   INTEGER, INTENT (IN)                          :: yr, yeari, lini, yearf
+   REAL, INTENT (IN)                             :: julian
+   REAL(r8), INTENT (IN)                         :: gas(500)
+   REAL, INTENT (OUT)                            :: interp_gas
+   REAL                                          :: doymodel, doydatam, doydatap    &
+                  ,deltat, fact1, fact2, gas1, gas2
+   CALL interpolate_lin(REAL(yeari), gas(lini-1), REAL(yearf), gas(lini), REAL(yr), gas1 )
+   CALL interpolate_lin(REAL(yeari), gas(lini-1), REAL(yearf), gas(lini), REAL(yr+1), gas2 )
+
+   doymodel = yr*365. + julian
+   doydatam = yeari*365. + 1 
+   doydatap = yearf*365. + 1.
+   deltat   = doydatap - doydatam
+   fact1 = (doydatap - doymodel)/deltat
+   fact2 = (doymodel - doydatam)/deltat
+   interp_gas = gas1*fact1+gas2*fact2 
+   IF (interp_gas .LT. 0. ) THEN
+     interp_gas=-99999.
+   ENDIF
+
+END SUBROUTINE interpolate_CAMgases
+
+   SUBROUTINE interpolate_lin(x1,y1,x2,y2,x0,y)
+   IMPLICIT NONE
+! Program to interpolate values y=a+b*x with:
+!       a=y1
+!       b=(y2-y1)/(x2-x1)
+!       x=(x2-x0)
+
+     REAL, INTENT (IN)                           :: x1,x2,x0
+     REAL(r8), INTENT (IN)                       :: y1,y2
+     REAL, INTENT (OUT)                          :: y
+     REAL                                        :: a,b,x
+
+    a=y1
+    b=(y2-y1)/(x2-x1)
+
+    IF (x0 .GE. x1) THEN
+      x=x0-x1
+    ELSE
+      x=x1-x0
+      b=-b
+    ENDIF
+
+    y=a+b*x
+    
+!    PRINT *,'y=a+b*x'
+!    IF (b .LT. 0.) THEN
+!      PRINT *,'y=',y1,' ',b,'*x'
+!    ELSE
+!      PRINT *,'y=',y1,'+',b,'*x'
+!    ENDIF
+!    PRINT *,'y(',x,')=',y
+
+END SUBROUTINE interpolate_lin
 
 #endif
 

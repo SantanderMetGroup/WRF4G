@@ -466,4 +466,376 @@ CONTAINS
 
    END SUBROUTINE diagnostic_output_calc
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+#ifdef CLWRF
+
+   SUBROUTINE clwrf_output_calc(                                      &
+                      ids,ide, jds,jde, kds,kde,                      &
+                      ims,ime, jms,jme, kms,kme,                      &
+                      ips,ipe, jps,jpe, kps,kpe,                      & ! patch  dims
+                      i_start,i_end,j_start,j_end,kts,kte,num_tiles   &
+                     ,dpsdt,dmudt                                     &
+                     ,p8w,pk1m,mu_2,mu_2m                             &
+                     ,u,v                                             &
+                     ,clwrfH,t2,q2,u10,v10                            & ! CLWRF
+                     ,t2clmin,t2clmax,tt2clmin,tt2clmax               & ! CLWRF
+                     ,t2clmean,t2clstd                                & ! CLWRF
+                     ,q2clmin,q2clmax,tq2clmin,tq2clmax               & ! CLWRF
+                     ,q2clmean,q2clstd                                & ! CLWRF
+                     ,u10clmax,v10clmax,spduv10clmax,tspduv10clmax    & ! CLWRF
+                     ,u10clmean,v10clmean,spduv10clmean               & ! CLWRF
+                     ,u10clstd,v10clstd,spduv10clstd                  & ! CLWRF
+                     ,raincclmax,rainncclmax,traincclmax,trainncclmax & ! CLWRF
+                     ,raincclmean,rainncclmean,raincclstd,rainncclstd & ! CLWRF
+                     ,raincv,rainncv,rainc,rainnc                     &
+                     ,i_rainc,i_rainnc                                &
+                     ,hfx,sfcevp,lh                                   &
+                     ,dt,xtime,sbw                                    &
+                     ,diag_print                                      &
+                     ,bucket_mm, bucket_J                             &
+                                                                      )
+!----------------------------------------------------------------------
+
+  USE module_dm, ONLY: wrf_dm_sum_real, wrf_dm_maxval
+  USE module_configure 
+
+   IMPLICIT NONE
+!======================================================================
+! Definitions
+!-----------
+!-- DT            time step (second)
+!-- XTIME         forecast time
+!-- SBW           specified boundary width - used later
+!
+!-- P8W           3D pressure array at full eta levels
+!-- MU            dry column hydrostatic pressure
+!-- RAINC         cumulus scheme precipitation since hour 0
+!-- RAINCV        cumulus scheme precipitation in one time step (mm)
+!-- RAINNC        explicit scheme precipitation since hour 0
+!-- RAINNCV       explicit scheme precipitation in one time step (mm)
+!-- HFX           surface sensible heat flux
+!-- LH            surface latent heat flux
+!-- SFCEVP        total surface evaporation
+!-- U             u component of wind - to be used later to compute k.e.
+!-- V             v component of wind - to be used later to compute k.e.
+!
+!-- ids           start index for i in domain
+!-- ide           end index for i in domain
+!-- jds           start index for j in domain
+!-- jde           end index for j in domain
+!-- kds           start index for k in domain
+!-- kde           end index for k in domain
+!-- ims           start index for i in memory
+!-- ime           end index for i in memory
+!-- jms           start index for j in memory
+!-- jme           end index for j in memory
+!-- ips           start index for i in patch
+!-- ipe           end index for i in patch
+!-- jps           start index for j in patch
+!-- jpe           end index for j in patch
+!-- kms           start index for k in memory
+!-- kme           end index for k in memory
+!-- i_start       start indices for i in tile
+!-- i_end         end indices for i in tile
+!-- j_start       start indices for j in tile
+!-- j_end         end indices for j in tile
+!-- kts           start index for k in tile
+!-- kte           end index for k in tile
+!-- num_tiles     number of tiles
+!
+! CLWRF-UC May.09 definitions
+!-----------
+! clwrfH: Interval (hour) of accumulation for computations 
+! [var]cl[min/max]: [minimum/maximum] of variable [var] during interval
+! t[var]cl[min/max]: Time (minutes) of [minimum/maximum] of variable 
+!    [var] during interval 
+! [var]clmean: mean of variable [var] during interval
+! [var]clstd: standard dev. of variable [var] during interval
+!    Variables are written on aux_hist_out7 (established
+!    in Registry)
+!
+!======================================================================
+
+   INTEGER,      INTENT(IN   )                     ::            &
+                                      ids,ide, jds,jde, kds,kde, &
+                                      ims,ime, jms,jme, kms,kme, &
+                                      ips,ipe, jps,jpe, kps,kpe, &
+                                                        kts,kte, &
+                                                      num_tiles
+
+   INTEGER, DIMENSION(num_tiles), INTENT(IN)       :: i_start,   &
+                                      i_end,j_start,j_end
+
+   INTEGER,      INTENT(IN   )                     :: diag_print
+   REAL,      INTENT(IN   )                        :: bucket_mm, &
+                                      bucket_J
+
+   REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),                 &
+                                       INTENT(IN ) :: u,v,p8w    
+
+   REAL, DIMENSION( ims:ime , jms:jme ), INTENT(IN) :: MU_2,     & 
+                                      RAINNCV, RAINCV, HFX,      &
+                                      SFCEVP, LH 
+
+   REAL, DIMENSION( ims:ime , jms:jme ),                         &
+                                     INTENT(INOUT) :: DPSDT,     &
+                                     DMUDT, RAINNC, RAINC,       &
+                                     MU_2M, PK1M
+ 
+   REAL,  INTENT(IN   )                            :: DT, XTIME
+   INTEGER,  INTENT(IN   )                         :: SBW
+   INTEGER, DIMENSION( ims:ime , jms:jme ),                      & 
+                                     INTENT(INOUT) :: I_RAINC,   &
+                                     I_RAINNC
+
+! LOCAL  VAR
+
+   INTEGER                                   :: i,j,k,its,ite,jts,jte,ij
+   INTEGER                                   :: idp,jdp,irc,jrc,irnc,jrnc,isnh,jsnh
+   INTEGER                                   :: prfreq
+
+   REAL                                      :: dpsdt_sum, dmudt_sum, dardt_sum,  & 
+                          drcdt_sum, drndt_sum
+   REAL                                      :: hfx_sum, lh_sum, sfcevp_sum,      &
+                          rainc_sum, rainnc_sum, raint_sum
+   REAL                                      :: dmumax, raincmax, rainncmax,      &
+                          snowhmax
+   LOGICAL, EXTERNAL                         :: wrf_dm_on_monitor
+   CHARACTER*256                             :: outstring
+   CHARACTER*6                               :: grid_str
+
+!!-------------------
+!! CLWRF-UC Nov.09
+
+   CHARACTER (LEN=80)                        :: timestr
+
+   REAL, DIMENSION( ims:ime , jms:jme ),                                          & 
+                          INTENT(IN)         :: t2, q2, u10, v10 
+   REAL, DIMENSION( ims:ime , jms:jme ),                                          &
+                          INTENT(OUT)        :: t2clmin, t2clmax, tt2clmin,       &
+                          tt2clmax, t2clmean, t2clstd,                            & 
+                          q2clmin, q2clmax, tq2clmin, tq2clmax, q2clmean, q2clstd,&
+                          u10clmax, v10clmax, spduv10clmax, tspduv10clmax,        &
+                          u10clmean, v10clmean, spduv10clmean,                    &
+                          u10clstd, v10clstd, spduv10clstd
+   REAL, DIMENSION( ims:ime , jms:jme ),                                          &
+                          INTENT(OUT)        :: raincclmax, rainncclmax,          &
+                          traincclmax, trainncclmax, raincclmean, rainncclmean,   & 
+                          raincclstd, rainncclstd 
+   REAL, PARAMETER                           :: minimum0= 1000000.,               &
+                          maximum0= -1000000. 
+   REAL                                      :: value
+   INTEGER, INTENT(IN)                       :: clwrfH
+   CHARACTER (LEN=256)                       :: message
+   REAL, SAVE                                :: nsteps
+
+!-----------------------------------------------------------------
+! Compute minutes from reference times clwrfH
+
+! Initialize [var] values
+! SET START AND END POINTS FOR TILES
+!  !$OMP PARALLEL DO   &
+!  !$OMP PRIVATE ( ij )
+
+  IF (MOD(NINT(XTIME),clwrfH) == 0) THEN
+    DO ij = 1 , num_tiles
+      IF  ( wrf_dm_on_monitor() ) THEN
+        WRITE(message, *)'CLWRF - I; tile: ',ij,' T2clmin:',                 & 
+           T2clmin(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' T2clmax:',               &
+           T2clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TT2clmin:',              &
+           TT2clmin(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TT2clmax:',              &
+           TT2clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' U10clmax:',              &
+           U10clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' V10clmax:',              &
+           V10clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TSPDUV10clmax:',         &
+           TSPDUV10clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,              &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2)
+      CALL wrf_debug(1, message)
+      WRITE( message, *)' CLWRF - II; RAINCclmax:',                          &
+           RAINCclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                 &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' RAINNCclmax:',           &
+           RAINNCclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TRAINCclmax:',           &
+           TRAINCclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TRAINNCclmax:',          &
+           TRAINNCclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,               &
+           j_start(ij)+(j_end(ij)-j_start(ij))/2)
+      CALL wrf_debug(1, message)
+    ENDIF
+    DO j = j_start(ij), j_end(ij)
+      DO i = i_start(ij), i_end(ij)
+        t2clmin(i,j)=minimum0
+        t2clmax(i,j)=maximum0
+        t2clmean(i,j)=0.0
+        t2clstd(i,j)=0.0
+        q2clmin(i,j)=minimum0
+        q2clmax(i,j)=maximum0
+        q2clmean(i,j)=0.0
+        q2clstd(i,j)=0.0
+        spduv10clmax(i,j)=0.0
+        u10clmean(i,j)=0.0
+        v10clmean(i,j)=0.0
+        spduv10clmean(i,j)=0.0
+        u10clstd(i,j)=0.0
+        v10clstd(i,j)=0.0
+        spduv10clstd(i,j)=0.0
+        raincclmax(i,j)=0.0
+        rainncclmax(i,j)=0.0
+        raincclmean(i,j)=0.0
+        rainncclmean(i,j)=0.0
+        raincclstd(i,j)=0.0
+        rainncclstd(i,j)=0.0
+        nsteps=0.
+      ENDDO
+    ENDDO
+  ENDDO
+  ELSE
+  nsteps=nsteps+1.
+!      DO j = j_start(ij), j_end(ij)
+!        DO i = i_start(ij), i_end(ij)
+!     DO j = jps, jpe
+!       DO i = ips, ipe
+! Temperature
+          CALL varstatistics(t2,xtime,ime-ims+1,jme-jms+1,t2clmin,t2clmax,   &
+            tt2clmin,tt2clmax,t2clmean,t2clstd)
+! Water vapor mixing ratio
+          CALL varstatistics(q2,xtime,ime-ims+1,jme-jms+1,q2clmin,q2clmax,   &
+            tq2clmin,tq2clmax,q2clmean,q2clstd)
+! Wind speed
+          CALL varstatisticsWIND(u10,v10,xtime,ime-ims+1,jme-jms+1,u10clmax, &
+            v10clmax,spduv10clmax,tspduv10clmax,u10clmean,v10clmean,         &
+            spduv10clmean,u10clstd,v10clstd,spduv10clstd)
+! Precipitation flux
+          CALL varstatisticsMAX(raincv/dt,xtime,ime-ims+1,jme-jms+1,         &
+            raincclmax,traincclmax,raincclmean,raincclstd) 
+          CALL varstatisticsMAX(rainncv/dt,xtime,ime-ims+1,jme-jms+1,        &
+            rainncclmax,trainncclmax,rainncclmean,rainncclstd)
+!          IF (MOD(NINT(XTIME),clwrfH) == 0) THEN
+          IF (MOD(NINT(XTIME+dt/60.),clwrfH) == 0) THEN
+    IF  ( wrf_dm_on_monitor() ) PRINT *,'nsteps=',nsteps,' xtime:',xtime,' clwrfH:',clwrfH 
+            t2clmean=t2clmean/nsteps
+            t2clstd=SQRT(t2clstd/nsteps-t2clmean**2)
+            q2clmean=q2clmean/nsteps
+            q2clstd=SQRT(q2clstd/nsteps-q2clmean**2)
+            u10clmean=u10clmean/nsteps
+            v10clmean=v10clmean/nsteps
+            spduv10clmean=spduv10clmean/nsteps
+            u10clstd=SQRT(u10clstd/nsteps-u10clmean**2)
+            v10clstd=SQRT(v10clstd/nsteps-v10clmean**2)
+            spduv10clstd=SQRT(spduv10clstd/nsteps-                 &
+              spduv10clmean**2)
+            raincclmean=raincclmean/nsteps
+            rainncclmean=rainncclmean/nsteps
+            raincclstd=SQRT(raincclstd/nsteps-raincclmean**2)
+            rainncclstd=SQRT(rainncclstd/nsteps-rainncclmean**2)
+          END IF
+!        ENDDO
+!      ENDDO
+  ENDIF
+!  !$OMP END PARALLEL DO
+
+   END SUBROUTINE clwrf_output_calc
+
+! UC.CLWRF Nov.09
+SUBROUTINE varstatisticsWIND(varu, varv, tt, dx, dy, varumax, varvmax,       &
+  varuvmax, tvaruvmax, varumean, varvmean, varuvmean, varustd, varvstd,     & 
+  varuvstd) 
+! Subroutine to compute variable statistics for a wind somponents 
+
+IMPLICIT NONE
+
+INTEGER                                                        :: i, j
+INTEGER, INTENT(IN)                                            :: dx, dy
+REAL, DIMENSION(dx,dy), INTENT(IN)                             :: varu, varv
+REAL, INTENT(IN)                                               :: tt
+REAL, DIMENSION(dx,dy), INTENT(INOUT)                          :: varumax,   &
+  varvmax, varuvmax, tvaruvmax, varumean, varvmean, varuvmean, varustd,      & 
+  varvstd, varuvstd
+REAL                                                           :: varuv
+
+DO i=1,dx
+  DO j=1,dy
+    varuv=sqrt(varu(i,j)*varu(i,j)+varv(i,j)*varv(i,j))
+      IF (varuv > varuvmax(i,j)) THEN
+        varumax(i,j)=varu(i,j)
+        varvmax(i,j)=varv(i,j)
+        varuvmax(i,j)=varuv
+        tvaruvmax(i,j)=tt
+      END IF
+    varuvmean(i,j)=varuvmean(i,j)+varuv
+    varuvstd(i,j)=varuvstd(i,j)+varuv**2
+  END DO
+END DO
+varumean=varumean+varu
+varvmean=varvmean+varv
+varustd=varustd+varu**2
+varvstd=varvstd+varv**2
+
+END SUBROUTINE varstatisticsWIND
+
+SUBROUTINE varstatisticsMAX(var, tt, dx, dy, varmax, tvarmax, varmean,       &
+   varstd)
+! Subroutine to compute variable statistics for a max only variable values
+
+IMPLICIT NONE
+
+INTEGER                                                        :: i,j
+INTEGER, INTENT(IN)                                            :: dx, dy
+REAL, DIMENSION(dx,dy), INTENT(IN)                             :: var
+REAL, INTENT(IN)                                               :: tt
+REAL, DIMENSION(dx,dy), INTENT(INOUT)                          :: varmax,    &
+  tvarmax, varmean, varstd
+
+DO i=1,dx
+  DO j=1,dy
+    IF (var(i,j) > varmax(i,j)) THEN
+      varmax(i,j)=var(i,j)
+      tvarmax(i,j)=tt
+    END IF
+  END DO
+END DO
+varmean=varmean+var
+varstd=varstd+var**2
+
+END SUBROUTINE varstatisticsMAX 
+
+SUBROUTINE varstatistics(var, tt, dx, dy, varmin, varmax, tvarmin, tvarmax,  & 
+  varmean, varstd) 
+! Subroutine to compute variable statistics
+
+IMPLICIT NONE
+
+INTEGER                                                        :: i,j
+INTEGER, INTENT(IN)                                            :: dx, dy
+REAL, DIMENSION(dx,dy), INTENT(IN)                             :: var
+REAL, INTENT(IN)                                               :: tt
+REAL, DIMENSION(dx,dy), INTENT(INOUT)                          :: varmin,    &
+  varmax, tvarmin, tvarmax, varmean, varstd
+
+DO i=1,dx
+  DO j=1,dy
+    IF (var(i,j) < varmin(i,j)) THEN
+      varmin(i,j)=var(i,j)
+      tvarmin(i,j)=tt
+    END IF
+    IF (var(i,j) > varmax(i,j)) THEN
+      varmax(i,j)=var(i,j)
+      tvarmax(i,j)=tt
+    END IF
+  END DO
+END DO
+varmean=varmean+var
+varstd=varstd+var**2
+
+END SUBROUTINE varstatistics
+
+
+#endif
+
 END MODULE module_diagnostics

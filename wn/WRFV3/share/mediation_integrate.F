@@ -107,6 +107,7 @@ SUBROUTINE med_before_solve_io ( grid , config_flags )
      CALL med_auxinput1_in ( grid , config_flags )
      WRITE ( message , FMT='(A,A,A,i3)' )  "Input data processed for " , &
         TRIM(config_flags%auxinput1_inname) , " for domain ",grid%id
+! WRF4G-UC May.09
      CALL wrf_debug ( 0 , message )
      CALL WRFU_AlarmRingerOff( grid%alarms( AUXINPUT1_ALARM ), rc=rc )
    ENDIF
@@ -128,6 +129,7 @@ SUBROUTINE med_before_solve_io ( grid , config_flags )
      CALL med_auxinput4_in ( grid , config_flags )
      WRITE ( message , FMT='(A,A,A,i3)' )  "Input data processed for " , &
         TRIM(config_flags%auxinput4_inname) , " for domain ",grid%id
+! WRF4G-UC May.09
      CALL wrf_debug ( 0 , message )
      CALL WRFU_AlarmRingerOff( grid%alarms( AUXINPUT4_ALARM ), rc=rc )
    ENDIF
@@ -1090,6 +1092,18 @@ SUBROUTINE med_last_solve_io ( grid , config_flags )
    TYPE (grid_config_rec_type) , INTENT(IN)   :: config_flags
   ! Local
    INTEGER                                    :: rc
+#ifdef WRF4G
+! WRF4G-UC May.09
+   LOGICAL , EXTERNAL                         :: wrf_dm_on_monitor
+
+   CHARACTER (LEN=80)                         :: timestrOUT, message
+
+    IF ( wrf_dm_on_monitor() ) THEN
+      WRITE(message,*)'WRF4G in med_last_solve_io'
+      CALL wrf_debug ( 1 , message )
+      CALL domain_clock_get( grid, current_timestr=timestrOUT)
+    ENDIF
+#endif
 
 #if (EM_CORE == 1)
    IF( WRFU_AlarmIsRinging( grid%alarms( HISTORY_ALARM ), rc=rc ) .AND. &
@@ -1147,7 +1161,6 @@ SUBROUTINE med_last_solve_io ( grid , config_flags )
 
    ! Write out time series
    CALL write_ts( grid )
-
    RETURN
 END SUBROUTINE med_last_solve_io
 
@@ -1202,7 +1215,6 @@ RECURSIVE SUBROUTINE med_restart_out ( grid , config_flags )
      CALL end_timing ( TRIM(message) )
    END IF
    CALL close_dataset ( rid , config_flags , "DATASET=RESTART" )
-
    ! call recursively for children, (if any)
    DO kid = 1, max_nests
       IF ( ASSOCIATED( grid%nests(kid)%ptr ) ) THEN
@@ -1236,6 +1248,14 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
    CHARACTER (LEN=256)                    :: message
    INTEGER                                :: ierr
 
+#ifdef WRF4G
+! WRF4G-UC May.09
+   CHARACTER*256                            :: timestr
+   CHARACTER*80                             :: fnameOUT
+   CHARACTER*80 , SAVE, DIMENSION (10,11)   :: timestrOUT   ! 10 domains, 11 output files
+   REAL                                     :: minSinceStr
+#endif
+
    IF ( wrf_dm_on_monitor() ) THEN
      CALL start_timing
    END IF
@@ -1247,61 +1267,157 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
 
    SELECT CASE( stream )
      CASE ( 0 )
+#ifdef WRF4G
+! WRF4G-UC May.09
+       IF ( wrf_dm_on_monitor() ) THEN
+         IF (grid%oid .eq. 0) THEN
+           CALL domain_clock_get(grid, current_timestr=timestrOUT(grid%id, stream+1))
+         ENDIF
+       ENDIF
+#endif
        CALL open_hist_w( grid, config_flags, stream, HISTORY_ALARM, &
                          config_flags%history_outname, grid%oid,    &
                          output_history, fname, n2, ierr )
        CALL output_history ( grid%oid, grid , config_flags , ierr )
      CASE ( 1 )
+#ifdef WRF4G
+! WRF4G-UC June.09
+       IF ( wrf_dm_on_monitor() ) THEN
+         IF (grid%auxhist1_oid .eq. 0) THEN
+           CALL domain_clock_get(grid, current_timestr=timestrOUT(grid%id, stream+1))
+         ENDIF
+       ENDIF
+#endif
        CALL open_hist_w( grid, config_flags, stream, AUXHIST1_ALARM,       &
                          config_flags%auxhist1_outname, grid%auxhist1_oid, &
                          output_aux_hist1, fname, n2, ierr )
        CALL output_aux_hist1 ( grid%auxhist1_oid, grid , config_flags , ierr )
      CASE ( 2 )
+#ifdef WRF4G
+! WRF4G-UC June.09
+       IF ( wrf_dm_on_monitor() ) THEN
+         IF (grid%auxhist2_oid .eq. 0) THEN
+           CALL domain_clock_get(grid, current_timestr=timestrOUT(grid%id, stream+1))
+         ENDIF
+       ENDIF
+#endif
        CALL open_hist_w( grid, config_flags, stream, AUXHIST2_ALARM,       &
                          config_flags%auxhist2_outname, grid%auxhist2_oid, &
                          output_aux_hist2, fname, n2, ierr )
        CALL output_aux_hist2 ( grid%auxhist2_oid, grid , config_flags , ierr )
      CASE ( 3 )
+#ifdef WRF4G
+! WRF4G-UC June.09
+       IF ( wrf_dm_on_monitor() ) THEN
+         IF (grid%auxhist3_oid .eq. 0) THEN
+           CALL domain_clock_get(grid, current_timestr=timestrOUT(grid%id, stream+1))
+         ENDIF
+       ENDIF
+#endif
        CALL open_hist_w( grid, config_flags, stream, AUXHIST3_ALARM,       &
                          config_flags%auxhist3_outname, grid%auxhist3_oid, &
                          output_aux_hist3, fname, n2, ierr )
        CALL output_aux_hist3 ( grid%auxhist3_oid, grid , config_flags , ierr )
      CASE ( 4 )
+#ifdef WRF4G
+! WRF4G-UC June.09
+       IF ( wrf_dm_on_monitor() ) THEN
+         IF (grid%auxhist4_oid .eq. 0) THEN
+           CALL domain_clock_get(grid, current_timestr=timestrOUT(grid%id, stream+1))
+         ENDIF
+       ENDIF
+#endif
        CALL open_hist_w( grid, config_flags, stream, AUXHIST4_ALARM,       &
                          config_flags%auxhist4_outname, grid%auxhist4_oid, &
                          output_aux_hist4, fname, n2, ierr )
        CALL output_aux_hist4 ( grid%auxhist4_oid, grid , config_flags , ierr )
      CASE ( 5 )
+#ifdef WRF4G
+! WRF4G-UC June.09
+       IF ( wrf_dm_on_monitor() ) THEN
+         IF (grid%auxhist5_oid .eq. 0) THEN
+           CALL domain_clock_get(grid, current_timestr=timestrOUT(grid%id, stream+1))
+         ENDIF
+       ENDIF
+#endif
        CALL open_hist_w( grid, config_flags, stream, AUXHIST5_ALARM,       &
                          config_flags%auxhist5_outname, grid%auxhist5_oid, &
                          output_aux_hist5, fname, n2, ierr )
        CALL output_aux_hist5 ( grid%auxhist5_oid, grid , config_flags , ierr )
      CASE ( 6 )
+#ifdef WRF4G
+! WRF4G-UC June.09
+       IF ( wrf_dm_on_monitor() ) THEN
+         IF (grid%auxhist6_oid .eq. 0) THEN
+           CALL domain_clock_get(grid, current_timestr=timestrOUT(grid%id, stream+1))
+         ENDIF
+       ENDIF
+#endif
        CALL open_hist_w( grid, config_flags, stream, AUXHIST6_ALARM,       &
                          config_flags%auxhist6_outname, grid%auxhist6_oid, &
                          output_aux_hist6, fname, n2, ierr )
        CALL output_aux_hist6 ( grid%auxhist6_oid, grid , config_flags , ierr )
      CASE ( 7 )
+#ifdef WRF4G
+! WRF4G-UC June.09
+       IF ( wrf_dm_on_monitor() ) THEN
+         IF (grid%auxhist7_oid .eq. 0) THEN
+           CALL domain_clock_get(grid, current_timestr=timestrOUT(grid%id, stream+1))
+         ENDIF
+       ENDIF
+#endif
        CALL open_hist_w( grid, config_flags, stream, AUXHIST7_ALARM,       &
                          config_flags%auxhist7_outname, grid%auxhist7_oid, &
                          output_aux_hist7, fname, n2, ierr )
        CALL output_aux_hist7 ( grid%auxhist7_oid, grid , config_flags , ierr )
      CASE ( 8 )
+#ifdef WRF4G
+! WRF4G-UC June.09
+       IF ( wrf_dm_on_monitor() ) THEN
+         IF (grid%auxhist8_oid .eq. 0) THEN
+           CALL domain_clock_get(grid, current_timestr=timestrOUT(grid%id, stream+1))
+         ENDIF
+       ENDIF
+#endif
        CALL open_hist_w( grid, config_flags, stream, AUXHIST8_ALARM,       &
                          config_flags%auxhist8_outname, grid%auxhist8_oid, &
                          output_aux_hist8, fname, n2, ierr )
        CALL output_aux_hist8 ( grid%auxhist8_oid, grid , config_flags , ierr )
      CASE ( 9 )
+#ifdef WRF4G
+! WRF4G-UC June.09
+       IF ( wrf_dm_on_monitor() ) THEN
+         IF (grid%auxhist9_oid .eq. 0) THEN
+           CALL domain_clock_get(grid, current_timestr=timestrOUT(grid%id, stream+1))
+         ENDIF
+       ENDIF
+#endif
        CALL open_hist_w( grid, config_flags, stream, AUXHIST9_ALARM,       &
                          config_flags%auxhist9_outname, grid%auxhist9_oid, &
                          output_aux_hist9, fname, n2, ierr )
        CALL output_aux_hist9 ( grid%auxhist9_oid, grid , config_flags , ierr )
      CASE ( 10 )
+#ifdef WRF4G
+! WRF4G-UC June.09
+       IF ( wrf_dm_on_monitor() ) THEN
+         IF (grid%auxhist10_oid .eq. 0) THEN
+           CALL domain_clock_get(grid, current_timestr=timestrOUT(grid%id, stream+1))
+         ENDIF
+       ENDIF
+#endif
        CALL open_hist_w( grid, config_flags, stream, AUXHIST10_ALARM,        &
                          config_flags%auxhist10_outname, grid%auxhist10_oid, &
                          output_aux_hist10, fname, n2, ierr )
        CALL output_aux_hist10 ( grid%auxhist10_oid, grid , config_flags , ierr )
      CASE ( 11 )
+#ifdef WRF4G
+! WRF4G-UC June.09
+       IF ( wrf_dm_on_monitor() ) THEN
+         IF (grid%auxhist11_oid .eq. 0) THEN
+           CALL domain_clock_get(grid, current_timestr=timestrOUT(grid%id, stream+1))
+         ENDIF
+       ENDIF
+#endif
        CALL open_hist_w( grid, config_flags, stream, AUXHIST11_ALARM,        &
                          config_flags%auxhist11_outname, grid%auxhist11_oid, &
                          output_aux_hist11, fname, n2, ierr )
@@ -1311,6 +1427,20 @@ SUBROUTINE med_hist_out ( grid , stream, config_flags )
    WRITE(message,*)'med_hist_out: opened ',TRIM(fname),' as ',TRIM(n2)
    CALL wrf_debug( 1, message )
 
+#ifdef WRF4G
+! WRF4G-UC May.09
+   IF ( wrf_dm_on_monitor() ) THEN
+     CALL domain_clock_get( grid, current_timestr=timestr, minutesSinceSimulationStart=minSinceStr)
+     IF ( minSinceStr .lt. (config_flags%frames_per_outfile-1)*config_flags%history_interval) THEN
+       WRITE(message,*)'WRF4G: First file for date:',TRIM(timestrOUT(1,1))
+       CALL wrf_debug( 1, message )
+     ENDIF
+     IF ( domain_clockisstoptime(grid) ) THEN
+       WRITE(message,*)'WRF4G: Last file for date:',TRIM(timestr)
+       CALL wrf_debug( 1, message )
+     ENDIF
+   ENDIF
+#endif
      grid%nframes(stream) = grid%nframes(stream) + 1
 
      SELECT CASE( stream )
@@ -1744,6 +1874,7 @@ integer myproc,i,j,k
        DO WHILE (currentTime .GE. grid%next_bdy_time )         ! next_bdy_time is set by input_boundary from bdy file
          CALL wrf_debug( 100 , 'med_latbound_in: calling input_boundary ' )
          CALL input_boundary ( grid%lbc_fid, grid , config_flags , ierr )
+! WRF4G-UC May.09
        ENDDO
        CALL WRFU_AlarmSet( grid%alarms( BOUNDARY_ALARM ), RingTime=grid%next_bdy_time, rc=rc )
 
