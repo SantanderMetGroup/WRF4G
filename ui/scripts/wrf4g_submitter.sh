@@ -9,7 +9,26 @@
 # function cycle_hindcasts(realization_name, start_date, end_date)
 # function cycle_time(realization_name, start_date, end_date)
 #
-arg1=$1
+isdry="no"
+justone="no"
+if test ${#} -ge 1; then
+  while test "$*"; do
+    case $1 in
+      --dry-run)
+          isdry="yes"
+        ;;
+      --run-just-one)
+          justone="yes"
+        ;;
+      *)
+        echo "Unknown argument: $1"
+        exit
+        ;;
+    esac
+    shift
+  done
+fi
+
 userdir=`pwd`
 wrf4g_root=$(dirname $(dirname $(dirname $0)))
 export PATH="${wrf4g_root}/wn/bin:${PATH}"
@@ -40,7 +59,7 @@ function get_nim_vars(){
 }
 
 function is_dry_run(){
-  test "${arg1}" = "--dry-run"
+  test "${isdry}" = "yes"
 }
 
 function if_not_dry(){
@@ -143,6 +162,7 @@ EOF
     current_date=${final_date}
     read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
     let chunkno++
+    test "${justone}" = "yes" && exit
   done
 }
 
@@ -163,6 +183,7 @@ function cycle_hindcasts(){
     final_date=$(date +%Y-%m-%d_%H:%M:%S -u -d"${cyy}${cmm}${cdd} $hours hours")
     read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     if test ${fyy}${fmm}${fdd}${fhh} -gt ${eyy}${emm}${edd}${ehh}; then
+      break # new behavior (delete these line to go back)
       final_date=${end_date}
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
