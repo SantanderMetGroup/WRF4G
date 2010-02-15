@@ -2,11 +2,12 @@
 
 source /gpfs/csic_projects/meteo/software/ScientificLinux/4.6/etc/bashrc
 
-exp="Pswh1991"
-fullexp=SeaWind_I1540RF06
+exp="afr1991"
+fullexp=SeaWind_N3028RF06
 sizethres=400621910
+sizethres=50000000
 
-postdir="/gpfs/csic_projects/meteo/METEO4G/SEAWIND/SeaWind_I1540RF06__1989_2009"
+postdir="/gpfs/csic_projects/meteo/METEO4G/SEAWIND/SeaWind_N3028RF06__1948_2009"
 datadir="/gpfs/csic_projects/meteo/WORK/WRF/experiments/${exp}"
 
 mkdir -p $postdir || exit
@@ -15,8 +16,8 @@ cd $postdir
 weajdir="/home/fital/WRF4G/util/postprocess"
   weajpy="${weajdir}/wrfnc_extract_and_join.py"
   weajtbl="${weajdir}/wrfnc_extract_and_join.table"
-  weajatt="${weajdir}/wrfnc_extract_and_join.gattr_ISEAWIND"
-geofile="/gpfs/csic_projects/meteo/WORK/WRF/domains/Europe_15k/geo_em.d01.nc"
+  weajatt="${weajdir}/wrfnc_extract_and_join.gattr_NSEAWIND"
+geofile="/gpfs/csic_projects/meteo/WORK/WRF/domains/Europe_30k/geo_em.d01.nc"
 
 function pintnml(){
   idir=$1
@@ -31,12 +32,12 @@ function pintnml(){
   debug                    = .TRUE.,
   grid_filt                = 3,
   ntimes_filt              = 10,
-  path_to_geofile          = '/gpfs/csic_projects/meteo/WORK/WRF/domains/Europe_15k',
+  path_to_geofile          = '/gpfs/csic_projects/meteo/WORK/WRF/domains/Europe_30k',
   geofile                  = 'geo_em.d01.nc'
 /
 
 &interp_in
-  interp_levels            = 1000.0, 850.0, 500.0, 200.0,
+  interp_levels            = 500.0,
   p_top                    = 50.,
   extrapolate              = 1,
   interp_method            = 1,
