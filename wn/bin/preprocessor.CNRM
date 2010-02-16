@@ -1,0 +1,271 @@
+#!/bin/bash
+ncrm_var_kind () {
+# Function to determine which kind of variable we want
+  var=$1
+  case ${var} in
+  'ta')
+     gribname='TT'
+     gribstatic='N'
+     gribcode='130'
+     units='K'
+     leveltype='100'
+  ;;
+  'ua')
+     gribname='UU'
+     gribstatic='N'
+     gribcode='131'
+     units='ms-1'
+     leveltype='100'
+ 
+  ;;
+  'va')
+     gribname='VV'
+     gribstatic='N'
+     gribcode='132'
+     units='ms-1'
+     leveltype='100'
+  
+  ;;
+  "hur")
+     gribname='RH'
+     gribstatic='N'
+     gribcode='157'
+     units='%'
+     leveltype='100'
+ 
+  ;;
+  "zg")
+     gribname='HGT'
+     gribstatic='N'
+     gribcode='129'
+     units='m'
+     leveltype='100'
+ 
+  ;;
+  "tas")
+     gribname='TT'
+     gribstatic='N'
+     gribcode='167'
+     units='K'
+     leveltype='1'
+ 
+  ;;
+  "uas")
+     gribname='UU'
+     gribstatic='N'
+     gribcode='165'
+     units='ms-1'
+     leveltype='1'
+ 
+  ;;
+  "vas")
+     gribname='VV'
+     gribstatic='N'
+     gribcode='166'
+     units='ms-1'
+     leveltype='1'
+ 
+  ;;
+  "hurs")
+     gribname='RH'
+     gribstatic='N'
+     gribcode='168'
+     units='%'
+     leveltype='1'
+ 
+  ;;
+  "snw")
+     gribname='SNOW'
+     gribstatic='N'
+     gribcode='142'
+     units='m'
+     leveltype='1'
+ 
+  ;;
+  "ps")
+     gribname='PSFC'
+     gribstatic='N'
+     gribcode='149'
+     units='Pa'
+     leveltype='1'
+ 
+  ;;
+  "psl")
+     gribname='PMSL'
+     gribstatic='N'
+     gribcode='151'
+     units='Pa'
+     leveltype='1'
+ 
+  ;;
+  "ts")
+     gribname='SKINTEMP'
+     gribstatic='N'
+     gribcode='235'
+     units='K'
+     leveltype='1'
+ 
+  ;;
+  "sst")
+     gribname='SST'
+     gribstatic='N'
+     gribcode='34'
+     units='K'
+     leveltype='1'
+ 
+  ;;
+  "orog")
+     gribname='SOILHGT'
+     gribstatic='Y'
+     gribcode='156'
+     units='m'
+     leveltype='1'
+ 
+  ;;
+  "sftlf")
+     gribname='LANDSEA'
+     gribstatic='Y'
+     gribcode='158'
+     units=''
+     leveltype='1'
+ 
+  esac
+  echo ${gribname}" "${gribstatic}" "${gribcode}" "${leveltype}" "${units}
+}
+# 170   ST007028     T of 7-28 cm ground layer                [K]
+# 183   ST028100     T of 28-100 cm ground layer              [K]
+# 236   ST100255     T of 100-255 cm ground layer             [K]
+#  39   SM000007     Soil moisture of 0-7 cm ground layer     [fraction]
+#  40   SM007028     Soil moisture of 7-28 cm ground layer    [fraction]
+#  41   SM028100     Soil moisture of 28-100 cm ground layer  [fraction]
+#  42   SM100255     Soil moisture of 100-255 cm ground layer [fraction]
+
+extract_date () {
+# Function to give date in any format and give any output
+  date=$1
+  kind=$2
+  output=$3
+  case ${kind} in
+  'dTh')
+##  [YYYY][MM][DD]T[HH][MI][SS]
+    year=`expr substr ${date} 1 4`
+    month=`expr substr ${date} 5 2`
+    day=`expr substr ${date} 7 2`
+    hour=`expr substr ${date} 10 2`
+    minute=`expr substr ${date} 12 2`
+    second=`expr substr ${date} 14 2`
+  ;;
+  'dh')
+##  [YYYY][MM][DD][HH][MI][SS]
+    year=`expr substr ${date} 1 4`
+    month=`expr substr ${date} 5 2`
+    day=`expr substr ${date} 7 2`
+    hour=`expr substr ${date} 9 2`
+    minute=`expr substr ${date} 11 2`
+    second=`expr substr ${date} 13 2`
+  esac
+
+  case ${output} in
+  'c')
+  echo ${year}${month}${day}${hour}${minute}${second}  
+  ;;
+  's')
+  echo ${year}" "${month}" "${day}" "${hour}" "${minute}" "${second}
+  ;;
+  'i')
+  echo ${year}"-"${month}"-"${day}"T"${hour}":"${minute}":"${second}
+  esac
+}
+
+#######    #######    #######    #######    #######    #######    #######    #######    ####### 
+    #######    #######    #######    #######    #######    #######    #######    ####### 
+if test $1 = '-h'
+then
+echo "*********************************"
+echo "*** Preprocessor to transform ***"
+echo "***  netCDF from CNRM to GRIB ***"
+echo "*********************************"
+echo "preprocessor.CNRM 'sDATE'([AAAA][MM][DD]T[HH][MI][SS]) 'eDATE'([AAAA][MM][DD]T[HH][MI][SS]) 'PREfix'(prefix of files)"
+#Preprocessor to transform netCDF from CNRM to GRIB
+# arg1: Starting date; [AAAA][MM][DD]T[HH][MI][SS]
+# arg2: Ending date; [AAAA][MM][DD]T[HH][MI][SS]
+# arg3: Prefix of files
+else
+rootsh=`pwd`
+
+#datadir="data"
+#datadir="/oceano/gmeteo/DATA/CNRM/CNRM-CM3/20C3M"
+#datastdir="/oceano/gmeteo/DATA/CNRM/CNRM-CM3/static"
+datadir='.'
+datastdir='.' 
+
+outdir=${rootsh}'/grbData'
+# Variables to process
+variables='hur uas hurs va psl vas snw zg ta orog tas ts sftlf ua'
+
+# Environment
+thisdir=$(pwd)
+cd `cat ../../rootdir`
+  if test -e /software/ScientificLinux/4.6/etc/bashrc; then
+    cp /oceano/gmeteo/WORK/MDM.UC/Apps/cdo.tar.gz .
+  else
+    vcp gsiftp://ce01.macc.unican.es:2812/oceano/gmeteo/WORK/MDM.UC/Apps/cdo.tar.gz .
+  fi
+  tar xzf cdo.tar.gz && rm cdo.tar.gz
+cd ${thisdir}
+
+sdate=$1
+edate=$2
+prefix=$3
+
+sdate=`extract_date $1 dTh i`
+edate=`extract_date $2 dTh i`
+
+yeari=`extract_date $1 dTh s | awk '{print $1}'`
+field=1
+rm ${rootsh}/tmp0.grb >& /dev/null
+
+for var in ${variables}
+do
+  rm ${rootsh}/tmp.grb >& /dev/null
+  rm ${rootsh}/tmp2.grb >& /dev/null
+
+  static=`ncrm_var_kind ${var} | awk '{print $2}'`
+  leveltype=`ncrm_var_kind ${var} | awk '{print $4}'`
+  file=$3${var}.${yeari}'.nc'
+  file=${datadir}/${file}
+  if test ${field} -eq 1
+  then
+    firstvar=${GRIBcode}
+  fi
+
+  echo "Processing "${file}" between "${sdate}" and "${edate}"..."
+# Fixing date
+##
+  if test ${static} = 'Y'
+  then
+    cdo -t cnrm_grib.table -f grb -copy -setpartab,cnrm_grib.table -setdate,${sdate} ${datastdir}/${var}'_A1.nc' ${rootsh}/tmp.grb
+  else
+    cdo -t cnrm_grib.table -f grb -copy -setpartab,cnrm_grib.table -seldate,${sdate},${edate} ${file} ${rootsh}/tmp.grb
+  fi
+
+  cdo setltype,${leveltype} ${rootsh}/tmp.grb ${rootsh}/tmp2.grb
+
+  if test ${field} -eq 1
+  then
+    cp ${rootsh}/tmp2.grb ${rootsh}/tmp0.grb
+  else
+    rm ${rootsh}/tmp.grb
+    cdo merge ${rootsh}/tmp2.grb ${rootsh}/tmp0.grb ${rootsh}/tmp.grb
+    cp ${rootsh}/tmp.grb ${rootsh}/tmp0.grb
+  fi
+
+  field=`expr ${field} + 1`
+### end variables
+done
+cp ${rootsh}/tmp0.grb ${outdir}/CNRM_${yeari}.grb
+rm ${rootsh}/tmp0.grb
+echo "Output saved as '"${outdir}"/CNRM_"${yeari}".grb'"
+cdo sinfov ${outdir}/CNRM_${yeari}.grb 
+
+fi
