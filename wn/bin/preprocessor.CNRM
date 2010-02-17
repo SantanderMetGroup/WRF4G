@@ -316,7 +316,7 @@ variables='hur uas hurs va psl vas snw zg ta orog tas ts sftlf ua'
 
 # Environment
 thisdir=$(pwd)
-cd `cat ../../rootdir`
+cd `cat ../rootdir`
   if test -e /software/ScientificLinux/4.6/etc/bashrc; then
     cp /oceano/gmeteo/WORK/MDM.UC/Apps/cdo.tar.gz .
   else
