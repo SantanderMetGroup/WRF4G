@@ -128,17 +128,93 @@ ncrm_var_kind () {
      gribcode='158'
      units=''
      leveltype='1'
- 
+  ;;
+  "STL1")
+     gribname='ST000007'
+     gribstatic='Y'
+     gribcode='139'
+     units='K'
+     leveltype='112'
+  ;;
+  "STL2")
+     gribname='ST000007'
+     gribstatic='Y'
+     gribcode='170'
+     units='K'
+     leveltype='112'
+  ;;
+  "STL3")
+     gribname='ST028100'
+     gribstatic='Y'
+     gribcode='183'
+     units='K'
+     leveltype='112'
+  ;;
+  "STL4")
+     gribname='ST100255'
+     gribstatic='Y'
+     gribcode='236'
+     units='K'
+     leveltype='112'
+  ;;
+  "SM000007")
+     gribname='SM000007'
+     gribstatic='Y'
+     gribcode='39'
+     units='fraction'
+     leveltype='112'
+  ;;
+  "SM007028")
+     gribname='SM000007'
+     gribstatic='Y'
+     gribcode='40'
+     units='fraction'
+     leveltype='112'
+  ;;
+  "SM028100")
+     gribname='SM028100'
+     gribstatic='Y'
+     gribcode='41'
+     units='fraction'
+     leveltype='112'
+  ;;
+  "SM100255")
+     gribname='SM100255'
+     gribstatic='Y'
+     gribcode='42'
+     units='fraction'
+     leveltype='112'
+  ;;
+  "SWVL1")
+     gribname='SW000007'
+     gribstatic='Y'
+     gribcode='43'
+     units='m3/m-3'
+     leveltype='112'
+  ;;
+  "SWVL2")
+     gribname='SW000007'
+     gribstatic='Y'
+     gribcode='44'
+     units='m3/m-3'
+     leveltype='112'
+  ;;
+  "SWVL3")
+     gribname='SW028100'
+     gribstatic='Y'
+     gribcode='45'
+     units='m3/m-3'
+     leveltype='112'
+  ;;
+  "SWVL4")
+     gribname='SW100255'
+     gribstatic='Y'
+     gribcode='46'
+     units='m3/m-3'
+     leveltype='112'
   esac
   echo ${gribname}" "${gribstatic}" "${gribcode}" "${leveltype}" "${units}
 }
-# 170   ST007028     T of 7-28 cm ground layer                [K]
-# 183   ST028100     T of 28-100 cm ground layer              [K]
-# 236   ST100255     T of 100-255 cm ground layer             [K]
-#  39   SM000007     Soil moisture of 0-7 cm ground layer     [fraction]
-#  40   SM007028     Soil moisture of 7-28 cm ground layer    [fraction]
-#  41   SM028100     Soil moisture of 28-100 cm ground layer  [fraction]
-#  42   SM100255     Soil moisture of 100-255 cm ground layer [fraction]
 
 extract_date () {
 # Function to give date in any format and give any output
@@ -174,6 +250,10 @@ extract_date () {
   ;;
   'i')
   echo ${year}"-"${month}"-"${day}"T"${hour}":"${minute}":"${second}
+  ;;
+  'i2')
+  echo ${year}"-"${month}"-"${day}" "${hour}":"${minute}
+  ;;
   esac
 }
 
@@ -185,21 +265,52 @@ echo "*********************************"
 echo "*** Preprocessor to transform ***"
 echo "***  netCDF from CNRM to GRIB ***"
 echo "*********************************"
-echo "preprocessor.CNRM 'sDATE'([AAAA][MM][DD]T[HH][MI][SS]) 'eDATE'([AAAA][MM][DD]T[HH][MI][SS]) 'PREfix'(prefix of files)"
+echo "preprocessor.CNRM 'sDATE'([AAAA][MM][DD]T[HH][MI][SS]) 'eDATE'([AAAA][MM][DD]T[HH][MI][SS]) 'PREfix'(prefix of files) 'FILEadd'(GRIB with adding variables)"
 #Preprocessor to transform netCDF from CNRM to GRIB
 # arg1: Starting date; [AAAA][MM][DD]T[HH][MI][SS]
 # arg2: Ending date; [AAAA][MM][DD]T[HH][MI][SS]
 # arg3: Prefix of files
+# arg4: File with adding variables
 else
 rootsh=`pwd`
 
-#datadir="data"
-#datadir="/oceano/gmeteo/DATA/CNRM/CNRM-CM3/20C3M"
-#datastdir="/oceano/gmeteo/DATA/CNRM/CNRM-CM3/static"
-datadir='.'
-datastdir='.' 
-
+datadir="/oceano/gmeteo/DATA/CNRM/CNRM-CM3/20C3M"
+datastdir="/oceano/gmeteo/DATA/CNRM/CNRM-CM3/static"
 outdir=${rootsh}'/grbData'
+
+cat << EOF > ${rootsh}/cnrm_grib.table
+ 129   zg           Geopotential height                      [m]
+ 130   ta           Temperature                              [K]
+ 131   ua           U wind                                   [ms-1]
+ 132   va           V wind                                   [ms-1]
+ 157   hur          Relative Humidity                        [%]
+ 156   orog         Terrain Height                           [m]
+ 158   sftlf        Land-Sea mask                            []
+ 167   tas          Temperature at 2m                        [K]
+ 168   hurs         Relative humidity at 2m                  [%]
+ 165   uas          U wind at 10m                            [ms-1]
+ 166   vas          V wind at 10m                            [ms-1]
+ 149   PSFC         Surface pressure                         [Pa]
+ 151   psl          Sea-level pressure                       [Pa]
+  34   SST          Sea-Surface Temperature                  [K]
+ 235   ts           Skin Temperature                         [K]
+ 141   snw          Water Equiv. of Acc. Snow Depth          [kgm-2]
+ 139   STL1         T of 0-7 cm ground layer                 [K]
+ 170   STL2         T of 7-28 cm ground layer                [K]
+ 183   STL3         T of 28-100 cm ground layer              [K]
+ 236   STL4         T of 100-255 cm ground layer             [K]
+  39   SWVL1        Soil water c. of 0-7 cm ground layer     [m3/m-3] 
+  40   SWVL2        Soil water c. of 7-28 cm ground layer    [m3/m-3]
+  41   SWVL3        Soil water c. of 28-100 cm ground layer  [m3/m-3]
+  42   SWVL4        Soil water c. of 100-255 cm ground layer [m3/m-3]
+  43   SM000007     Soil moisture of 0-7 cm ground layer     [fraction]
+  44   SM007028     Soil moisture of 7-28 cm ground layer    [fraction]
+  45   SM028100     Soil moisture of 28-100 cm ground layer  [fraction]
+  46   SM100255     Soil moisture of 100-255 cm ground layer [fraction]
+EOF
+
+mkdir -p grbData
+
 # Variables to process
 variables='hur uas hurs va psl vas snw zg ta orog tas ts sftlf ua'
 
@@ -249,7 +360,7 @@ do
     cdo -t cnrm_grib.table -f grb -copy -setpartab,cnrm_grib.table -seldate,${sdate},${edate} ${file} ${rootsh}/tmp.grb
   fi
 
-  cdo setltype,${leveltype} ${rootsh}/tmp.grb ${rootsh}/tmp2.grb
+  cdo -t ecmwf setltype,${leveltype} ${rootsh}/tmp.grb ${rootsh}/tmp2.grb
 
   if test ${field} -eq 1
   then
@@ -264,8 +375,48 @@ do
 ### end variables
 done
 cp ${rootsh}/tmp0.grb ${outdir}/CNRM_${yeari}.grb
-rm ${rootsh}/tmp0.grb
+rm ${rootsh}/tmp0.grb 
 echo "Output saved as '"${outdir}"/CNRM_"${yeari}".grb'"
 cdo sinfov ${outdir}/CNRM_${yeari}.grb 
 
+cdo ndate ${outdir}/CNRM_${yeari}.grb >& lin.inf
+Ndates=`cat lin.inf | grep timesteps. | awk '{print $7}'`
+
+# Variables to add
+##
+cd ${rootsh}
+ivar=1
+rm ${rootsh}/tmp.grb >& /dev/null
+
+cdo remapbil,${outdir}/CNRM_${yeari}.grb $4 ${rootsh}/$4.cnrm
+file=${rootsh}/$4.cnrm
+
+date_s=`extract_date $1 dTh i2 | awk '{print $1}'`
+time_s=`extract_date $1 dTh i2 | awk '{print $2}'`
+
+echo "Processing "${file}" between "${sdate}" and "${edate}"..."${Ndates}" time steps"
+cdo -t cnrm_grib.table -f grb -copy -setpartab,cnrm_grib.table -setdate,${sdate} ${rootsh}/$4.cnrm ${rootsh}/tmp.grb
+
+# Adding time-steps
+##
+idate=1
+rm ${rootsh}/tmp2.grb
+while test ${idate} -le ${Ndates}
+do
+  cdo cat ${rootsh}/tmp.grb ${rootsh}/tmp2.grb
+  idate=`expr ${idate} + 1`
+### End steps
+done
+
+cp ${rootsh}/tmp2.grb ${rootsh}/tmp1.grb
+cdo settaxis,${date_s},${time_s},6hours ${rootsh}/tmp1.grb ${rootsh}/tmp.grb
+
+cp ${rootsh}/tmp.grb ${outdir}/CNRMadd_${yeari}.grb
+rm ${rootsh}/tmp*.grb
+rm ${rootsh}/$4.cnrm
+echo "Output saved as '"${outdir}"/CNRMadd_"${yeari}".grb'"
+cdo sinfov ${outdir}/CNRMadd_${yeari}.grb
+
+# No new variables addded! 
+##
 fi

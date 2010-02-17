@@ -49,4 +49,5 @@ for ym in $yearmons; do
     rm -f s2.nc
   fi
   lastf=$file
+  test ${ym} -lt 200001 || break
 done

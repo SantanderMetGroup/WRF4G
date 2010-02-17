@@ -3,7 +3,7 @@
 
 source /software/ScientificLinux/4.6/etc/bashrc
 
-exp="Pswh1999"
+exp="Pswh1994"
 fullexp=SeaWind_I1540RF06
 sizethres=333981360
 
