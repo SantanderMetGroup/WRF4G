@@ -208,21 +208,31 @@ else
     timelog_end
     #
     #   Check for other input namelists and apply them
-    #   TODO: This is not working in wrf4G
     #
-    for ext in TSK SST SFC
+    for vtname in ${global_vtable_other}
     do
-      if [ -e Vtable.${global_name}${ext} ]; then
-        cat <<- End_of_nmlungrib > namelist.ungrib
-	&ungrib
-	 out_format = 'WPS'
-	 prefix = '${global_name}${ext}'
-	/
-	End_of_nmlungrib
-        ln -sf Vtable.${global_name}${ext} Vtable
-        cpp -P namelist.wps.in1 > namelist.wps
-        ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}${ext}.out || exit 202
+      fortnml --overwrite -f namelist.wps -s prefix@ungrib          ${vtname}
+      fortnml --overwrite -f namelist.wps -s end_date               ${chunk_start_date}  # single time step!!
+      fortnml --overwrite -f namelist.wps -a constants_name@metgrid ${vtname}:${iyy}-${imm}-${idd}_${ihh}
+      ln -sf ungrib/Variable_Tables_WRF4G/Vtable.${vtname} Vtable
+      rm -rf grbData/*.grb
+      if ! which cdo; then
+        thisdir=$(pwd)
+        cd `cat ../rootdir`
+          if test -e /software/ScientificLinux/4.6/etc/bashrc; then
+            cp /oceano/gmeteo/WORK/MDM.UC/Apps/cdo.tar.gz .
+          else
+            vcp gsiftp://ce01.macc.unican.es:2812/oceano/gmeteo/WORK/MDM.UC/Apps/cdo.tar.gz .
+          fi
+          tar xzf cdo.tar.gz && rm cdo.tar.gz
+        cd ${thisdir}
       fi
+      cdo setdate,${iyy}-${imm}-${idd} FAKESOIL.grb grbData/FAKESOIL.grb
+      ./link_grib.csh grbData/*.grb
+      ${ROOTDIR}/bin/ungrib.exe >& ${logdir}/ungrib_${vtname}_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
+      tail -3 ${logdir}/ungrib_${vtname}_${iyy}${imm}${idd}${ihh}.out \
+        | grep -q -i 'Successful completion of ungrib' \
+        || wrf4g_exit ${ERROR_UNGRIB_FAILED}
     done
     #
     #                     Fix fields
@@ -252,9 +262,9 @@ else
       fortnml_vardel namelist.wps opt_output_from_geogrid_path
       fortnml_vardel namelist.wps opt_metgrid_tbl_path
       fortnml_vardel namelist.wps opt_geogrid_tbl_path
-      fortnml_set  namelist.wps fg_name               "'${global_name}'"
       fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
       fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
+      fortnml -o -f namelist.wps -s fg_name ${global_name}
       set -v
       ${LAUNCHER_METGRID} ${ROOTDIR}/bin/metgrid.exe \
         >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
@@ -317,10 +327,15 @@ fi
 #                              WRF
 #------------------------------------------------------------------
 cd ${LOCALDIR}/WRFV3/run || exit
+  if test -n "${icbcprocessor}"; then
+    timelog_init "icbcprocessor"
+      icbcprocessor.${icbcprocessor} >&  ${logdir}/icbcproc_${ryy}${rmm}${rdd}${rhh}.out
+    timelog_end
+  fi
   timelog_init "wrf"
     ls -l ########################################################## borrar
     ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
-# Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
+    # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
     sleep 5
     ${ROOTDIR}/WRFGEL/wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   

@@ -11,6 +11,8 @@
 #
 isdry="no"
 justone="no"
+owforce="no"
+waitsec=0
 if test ${#} -ge 1; then
   while test "$*"; do
     case $1 in
@@ -19,6 +21,12 @@ if test ${#} -ge 1; then
         ;;
       --run-just-one)
           justone="yes"
+        ;;
+      --force)
+          owforce="yes"
+        ;;
+      --wait)
+          waitsec=$2; shift
         ;;
       *)
         echo "Unknown argument: $1"
@@ -91,11 +99,15 @@ function cycle_chunks(){
   if_not_dry echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}"
   #
   if test -d realizations/${realization_name}; then
-    echo ""
-    echo "    >>>   THE REALIZATION ALREADY EXISTS!!   <<<"
-    echo ""
-    echo -n "Are you sure you want to send this experiment again? [y/N] "
-    read yon
+    if test ${owforce} = "yes"; then
+      yon="y"
+    else
+      echo ""
+      echo "    >>>   THE REALIZATION ALREADY EXISTS!!   <<<"
+      echo ""
+      echo -n "Are you sure you want to send this experiment again? [y/N] "
+      read yon
+    fi
     test "${yon}" = "y" || exit
     tag=$(stat -c %y realizations | cut -c-19 | tr -d ': -')
     mv realizations realizations.${tag}
@@ -163,6 +175,7 @@ EOF
     read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
     let chunkno++
     test "${justone}" = "yes" && exit
+    sleep ${waitsec}
   done
 }
 

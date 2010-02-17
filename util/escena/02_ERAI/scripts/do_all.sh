@@ -10,7 +10,7 @@ do_climatol_wrf=0  # Only 1 in tetis!
 do_climatol_sp02=0 # Only 1 in oceano
 do_climatol_eobs=0 # Only 1 in oceano
 do_climatol_erai=0 
-do_plots=1
+do_plots=0
 
 read yeari yearf <<< ${pername//_/ }
 #
@@ -89,10 +89,10 @@ fi
 # Plots
 #
 if test ${do_plots} -ne 0; then
-#  # Check the plotting bits of these 2:
-#  bash do_plots.sh
-#  bash do_bias_plots.sh
-#  python monta_figs.py monta_figs.sclim
+  # Check the plotting bits of these 2:
+  bash do_plots.sh
+  bash do_bias_plots.sh
+  python monta_figs.py monta_figs.sclim
   for var in tasmax tasmin pr; do
     for region in $(seq 1 11); do
       bash do_mclim.sh $var $region

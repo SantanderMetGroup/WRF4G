@@ -61,6 +61,9 @@ class FortranNamelistRecord:
       del self.data[variable]
       self.ordered_keys.remove(variable)
   def appendValue(self, variable, value):
+    if not variable in self.ordered_keys:
+      self.ordered_keys.append(variable)
+      self.data[variable]=[]
     self.data[variable].extend(listify(value))
   def hasVariable(self, var):
     return var in self.ordered_keys

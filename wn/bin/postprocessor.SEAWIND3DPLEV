@@ -53,7 +53,7 @@ pintnml . ${wrfnc_file}
 p_interp
 rm namelist.pinterp
 
-xptdsize=$( echo "print int($(stat -c %s ${wrfnc_file})*0.03)" | python )
+xptdsize=$( echo "print int($(stat -c %s ${wrfnc_file})*0.025)" | python )
 if test "$(stat -c %s ${wrfnc_file}_PLEV)" -ge ${xptdsize}; then
   mv "${wrfnc_file}_PLEV" "${wrfnc_file}" 
 fi

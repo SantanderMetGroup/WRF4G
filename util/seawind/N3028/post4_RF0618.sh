@@ -13,7 +13,7 @@ mkdir -p $postrf0618
 cd $postrf0618
 
 yearmons=$( \
-  find ${postdir} -name "${fullexp}__*.nc" \
+  find -L ${postdir} -name "${fullexp}__*.nc" \
     | sed -e 's/^.*__\([12][0-9][0-9][0-9][0123][0-9]\).*$/\1/' \
     | sort | uniq \
 )
