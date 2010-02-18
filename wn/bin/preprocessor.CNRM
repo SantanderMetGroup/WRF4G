@@ -403,7 +403,7 @@ idate=1
 rm ${rootsh}/tmp2.grb
 while test ${idate} -le ${Ndates}
 do
-  cdo cat ${rootsh}/tmp.grb ${rootsh}/tmp2.grb
+  cdo -s cat ${rootsh}/tmp.grb ${rootsh}/tmp2.grb
   idate=`expr ${idate} + 1`
 ### End steps
 done

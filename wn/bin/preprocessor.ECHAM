@@ -1,0 +1,149 @@
+#!/bin/bash
+extract_date () {
+# Function to give date in any format and give any output
+  date=$1
+  kind=$2
+  output=$3
+  case ${kind} in
+  'dTh')
+##  [YYYY][MM][DD]T[HH][MI][SS]
+    year=`expr substr ${date} 1 4`
+    month=`expr substr ${date} 5 2`
+    day=`expr substr ${date} 7 2`
+    hour=`expr substr ${date} 10 2`
+    minute=`expr substr ${date} 12 2`
+    second=`expr substr ${date} 14 2`
+  ;;
+  'dh')
+##  [YYYY][MM][DD][HH][MI][SS]
+    year=`expr substr ${date} 1 4`
+    month=`expr substr ${date} 5 2`
+    day=`expr substr ${date} 7 2`
+    hour=`expr substr ${date} 9 2`
+    minute=`expr substr ${date} 11 2`
+    second=`expr substr ${date} 13 2`
+  esac
+
+  case ${output} in
+  'c')
+  echo ${year}${month}${day}${hour}${minute}${second}  
+  ;;
+  's')
+  echo ${year}" "${month}" "${day}" "${hour}" "${minute}" "${second}
+  ;;
+  'i')
+  echo ${year}"-"${month}"-"${day}"T"${hour}":"${minute}":"${second}
+  ;;
+  'i2')
+  echo ${year}"-"${month}"-"${day}" "${hour}":"${minute}
+  ;;
+  esac
+}
+
+#######    #######    #######    #######    #######    #######    #######    #######    ####### 
+    #######    #######    #######    #######    #######    #######    #######    ####### 
+if test $1 = '-h'
+then
+echo "*********************************"
+echo "*** Preprocessor to transform ***"
+echo "*** netCDF from ECHAM to GRIB ***"
+echo "***    for WRF simulations    ***"
+echo "*********************************"
+echo "preprocessor.ECHAM 'sDATE'([AAAA][MM][DD]T[HH][MI][SS]) 'eDATE'([AAAA][MM][DD]T[HH][MI][SS]) 'PREfix'(prefix of files) 'FILEadd'(GRIB with adding variables)"
+#Preprocessor to transform netCDF from CNRM to GRIB
+# arg1: Starting date; [AAAA][MM][DD]T[HH][MI][SS]
+# arg2: Ending date; [AAAA][MM][DD]T[HH][MI][SS]
+# arg3: Prefix of files (previous year [YYYY])
+# arg4: File with adding variables
+else
+rootsh=`pwd`
+
+#datadir='./'
+datadir="/oceano/gmeteo/DATA/MPI/ECHAM5/A1Br2/"
+outdir=${rootsh}'/grbData'
+
+cat << EOF > ${rootsh}/echam_grib.table
+ 139   STL1         T of 0-7 cm ground layer                 [K]
+ 170   STL2         T of 7-28 cm ground layer                [K]
+ 183   STL3         T of 28-100 cm ground layer              [K]
+ 236   STL4         T of 100-255 cm ground layer             [K]
+  39   SWVL1        Soil water c. of 0-7 cm ground layer     [m3/m-3] 
+  40   SWVL2        Soil water c. of 7-28 cm ground layer    [m3/m-3]
+  41   SWVL3        Soil water c. of 28-100 cm ground layer  [m3/m-3]
+  42   SWVL4        Soil water c. of 100-255 cm ground layer [m3/m-3]
+  43   SM000007     Soil moisture of 0-7 cm ground layer     [fraction]
+  44   SM007028     Soil moisture of 7-28 cm ground layer    [fraction]
+  45   SM028100     Soil moisture of 28-100 cm ground layer  [fraction]
+  46   SM100255     Soil moisture of 100-255 cm ground layer [fraction]
+EOF
+
+mkdir -p grbData
+
+# Environment
+thisdir=$(pwd)
+cd `cat ../rootdir`
+  if test -e /software/ScientificLinux/4.6/etc/bashrc; then
+    cp /oceano/gmeteo/WORK/MDM.UC/Apps/cdo.tar.gz .
+  else
+    vcp gsiftp://ce01.macc.unican.es:2812/oceano/gmeteo/WORK/MDM.UC/Apps/cdo.tar.gz .
+  fi
+  tar xzf cdo.tar.gz && rm cdo.tar.gz
+cd ${thisdir}
+
+sdate=$1
+edate=$2
+prefix=$3
+
+sdate=`extract_date $1 dTh i`
+edate=`extract_date $2 dTh i`
+
+yeari=`extract_date $1 dTh s | awk '{print $1}'`
+monthi=`extract_date $1 dTh s | awk '{print $2}'`
+
+cdo ndate $3${yeari}${monthi}.mm5 >& lin.inf
+Ndates=`cat lin.inf | grep timesteps. | awk '{print $7}'`
+rm lin.inf
+
+field=1
+rm ${rootsh}/tmp0.grb >& /dev/null
+
+# Variables to add
+##
+cd ${rootsh}
+ivar=1
+rm ${rootsh}/tmp.grb >& /dev/null
+
+cdo remapbil,$3${yeari}${monthi}.mm5 $4 ${rootsh}/$4.echam
+file=${rootsh}/$4.echam
+
+date_s=`extract_date $1 dTh i2 | awk '{print $1}'`
+time_s=`extract_date $1 dTh i2 | awk '{print $2}'`
+
+echo "Processing "$3${yeari}${monthi}" between "${sdate}" and "${edate}"..."${Ndates}" time steps"
+cdo -t echam_grib.table -f grb -copy -setpartab,echam_grib.table -setdate,${sdate} ${rootsh}/$4.echam ${rootsh}/tmp.grb
+
+cdo sinfov ${rootsh}/tmp.grb
+
+# Adding time-steps
+##
+idate=1
+rm ${rootsh}/tmp2.grb
+while test ${idate} -le ${Ndates}
+do
+  cdo -s cat ${rootsh}/tmp.grb ${rootsh}/tmp2.grb
+  idate=`expr ${idate} + 1`
+### End steps
+done
+
+cp ${rootsh}/tmp2.grb ${rootsh}/tmp1.grb
+cdo settaxis,${date_s},${time_s},6hours ${rootsh}/tmp1.grb ${rootsh}/tmp.grb
+
+cp ${rootsh}/tmp.grb ${outdir}/ECHAMadd_${yeari}${monthi}.grb
+rm ${rootsh}/tmp*.grb
+rm ${rootsh}/$4.echam
+echo "Output saved as '"${outdir}"/ECHAMadd_"${yeari}${monthi}".grb'"
+cdo sinfov ${outdir}/ECHAMadd_${yeari}${monthi}.grb
+
+# No new variables addded! 
+##
+fi
