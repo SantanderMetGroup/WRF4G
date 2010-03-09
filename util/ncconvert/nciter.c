@@ -4,7 +4,8 @@
  *   "$Header: /upc/share/CVS/netcdf-3/ncdump/nciter.c,v 1.7 2010/02/01 21:44:04 russ Exp $"
  *********************************************************************/
 
-#include "config.h"		/* for USE_NETCDF4 macro */
+/*#include "config.h"*/		/* for USE_NETCDF4 macro */
+#define USE_NETCDF4 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

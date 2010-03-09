@@ -4,7 +4,8 @@
  *   $ID$
  *********************************************************************/
 
-#include "config.h"		/* for USE_NETCDF4 macro */
+/*#include "config.h"*/		/* for USE_NETCDF4 macro */
+#define USE_NETCDF4 1
 #include <stdlib.h>
 #include <stdio.h>
 #ifndef _WIN32
@@ -28,6 +29,10 @@
 extern int optind;
 extern int opterr;
 extern char *optarg;
+
+static int DEFLATE_LEVEL=-1;
+static int SHUFFLE_VARS=NC_NOSHUFFLE;
+static int CONVERT_ULIM_DIMS=0;
 
 static char *progname; 		/* for error messages */
 static int nofill_flag = 1; /* default is not to fill, because fill
@@ -544,9 +549,10 @@ copy_dims(int igrp, int ogrp)
 		    name);
 	}	
 	CHECK(stat, nc_inq_dim);
-	if(is_unlim) {
+	if(is_unlim && !CONVERT_ULIM_DIMS) {
 	    stat = nc_def_dim(ogrp, name, NC_UNLIMITED, NULL);
 	} else {
+	    if(CONVERT_ULIM_DIMS && is_unlim) fprintf(stderr,"dim \"%s\" will be converted from unlimited to limited dim\n",name);
 	    stat = nc_def_dim(ogrp, name, length, NULL);
 	}
 	CHECK(stat, nc_def_dim);	
@@ -640,6 +646,15 @@ copy_var(int igrp, int varid, int ogrp)
 	    stat = copy_var_specials(igrp, varid, ogrp, o_varid);
 	    CHECK(stat, copy_var_specials);
 	}
+    if(DEFLATE_LEVEL>=0 && ((outkind == NC_FORMAT_NETCDF4 || outkind == NC_FORMAT_NETCDF4_CLASSIC))) {
+		int shuffle=NC_NOSHUFFLE, deflate=0, deflate_level=0;
+		deflate=1;deflate_level=DEFLATE_LEVEL;
+		shuffle=SHUFFLE_VARS;
+		fprintf(stderr,"var \"%s\" will be deflated%s at level %d\n",name,(SHUFFLE_VARS==NC_NOSHUFFLE)?"":" and shuffled",DEFLATE_LEVEL);
+		stat = nc_def_var_deflate(ogrp, o_varid, 
+					  shuffle, deflate, deflate_level);
+		CHECK(stat, nc_def_var_deflate);
+		}
     }
 #endif	/* USE_NETCDF4 */
     return stat;
@@ -950,6 +965,9 @@ usage(void)
   [-k n]    kind of netCDF format for output file, default same as input\n\
 	    1 classic, 2 64-bit offset, 3 netCDF-4, 4 netCDF-4 classic model\n\
   [-m n]    size in bytes of copy buffer\n\
+  [-d n]    deflate vars (n: deflate level [0-9])\n\
+  [-s]      shuffle vars\n\
+  [-u]      remove unlimited dims\n\
   infile    name of netCDF input file\n\
   outfile   name for netCDF output file\n"
 
@@ -1008,7 +1026,7 @@ main(int argc, char**argv)
        return 1;
     }
 
-    while ((c = getopt(argc, argv, "k:m:")) != EOF) {
+    while ((c = getopt(argc, argv, "k:m:d:us")) != EOF) {
 	switch(c) {
         case 'k': /* for specifying variant of netCDF format to be generated 
                      Possible values are:
@@ -1044,6 +1062,15 @@ main(int argc, char**argv)
 	    break;
 	case 'm':		/* non-default size of data copy buffer */
 	    copybuf_size = strtoll(optarg, NULL, 10);
+	    break;
+	case 'd':		/* deflate vars */
+	    DEFLATE_LEVEL = strtoll(optarg, NULL, 10);
+	    break;
+	case 'u':		/* deflate vars */
+	    CONVERT_ULIM_DIMS = 1;
+		break;
+	case 's':		/* deflate vars */
+	    SHUFFLE_VARS = NC_SHUFFLE;
 	    break;
 	default: 
 	    usage();
