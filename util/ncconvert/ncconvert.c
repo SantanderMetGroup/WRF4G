@@ -646,7 +646,7 @@ copy_var(int igrp, int varid, int ogrp)
 	    stat = copy_var_specials(igrp, varid, ogrp, o_varid);
 	    CHECK(stat, copy_var_specials);
 	}
-    if(DEFLATE_LEVEL>=0 && ((outkind == NC_FORMAT_NETCDF4 || outkind == NC_FORMAT_NETCDF4_CLASSIC))) {
+    if(ndims>0 && DEFLATE_LEVEL>=0 && ((outkind == NC_FORMAT_NETCDF4 || outkind == NC_FORMAT_NETCDF4_CLASSIC))) {
 		int shuffle=NC_NOSHUFFLE, deflate=0, deflate_level=0;
 		deflate=1;deflate_level=DEFLATE_LEVEL;
 		shuffle=SHUFFLE_VARS;
