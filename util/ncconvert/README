@@ -28,7 +28,9 @@ This netCDF 4.1 has been built with the following features:
   --version   -> netCDF 4.1
 
 Then you need the --cflags for compiling and --libs flags and compile
-gcc -o ncconvert ncconvert.c nciter.c -I/usr/local/include -L/usr/local/lib -lnetcdf -lhdf5_hl -lhdf5  -lz -lm
+bash-3.2$ gcc -o ncconvert ncconvert.c nciter.c -I/usr/local/include -L/usr/local/lib -lnetcdf -lhdf5_hl -lhdf5  -lz -lm
+or
+bash-3.2$ gcc -o ncconvert ncconvert.c nciter.c `nc-config --cflags` `nc-config --libs`
 
 for some help just execute:
 bash-3.2$ ./ncconvert.exe 
@@ -45,6 +47,370 @@ bash-3.2$ ./ncconvert.exe
 The the d,s and u options are only valid for netCDF format (-k 3 or -k 4)
 
 Example of use
-./ncconvert -d 9 -u -k 4 3B42.050511.0.6.nc file.nc
 
-Convert 3B42.050511.0.6.nc in classic format to netCDF-4 classic mode Deflating all variables at level 9 (-d 9) and convert unlimited dims to limit (-u)
+First we are getting an sample file (netCDF classic file) and dumping the information
+bash-3.2$ wget http://www.unidata.ucar.edu/software/netcdf/examples/ECMWF_ERA-40_subset.nc
+bash-3.2$ ncdump -c ECMWF_ERA-40_subset.nc
+netcdf ECMWF_ERA-40_subset {
+dimensions:
+        longitude = 144 ;
+        latitude = 73 ;
+        time = UNLIMITED ; // (62 currently)
+variables:
+        float longitude(longitude) ;
+                longitude:units = "degrees_east" ;
+                longitude:long_name = "longitude" ;
+        float latitude(latitude) ;
+                latitude:units = "degrees_north" ;
+                latitude:long_name = "latitude" ;
+        int time(time) ;
+                time:units = "hours since 1900-01-01 00:00:0.0" ;
+                time:long_name = "time" ;
+        short tcw(time, latitude, longitude) ;
+                tcw:scale_factor = 0.0013500981745481 ;
+                tcw:add_offset = 44.3250482744756 ;
+                tcw:_FillValue = -32767s ;
+                tcw:missing_value = -32767s ;
+                tcw:units = "kg m**-2" ;
+                tcw:long_name = "Total column water" ;
+        short tcwv(time, latitude, longitude) ;
+                tcwv:scale_factor = 0.001327110772669 ;
+                tcwv:add_offset = 43.5704635546154 ;
+                tcwv:_FillValue = -32767s ;
+                tcwv:missing_value = -32767s ;
+                tcwv:units = "kg m**-2" ;
+                tcwv:long_name = "Total column water vapour" ;
+        short lsp(time, latitude, longitude) ;
+                lsp:scale_factor = 8.03329303850659e-07 ;
+                lsp:add_offset = 0.0263210846406669 ;
+                lsp:_FillValue = -32767s ;
+                lsp:missing_value = -32767s ;
+                lsp:units = "m" ;
+                lsp:long_name = "Stratiform precipitation (Large-scale precipitation)" ;
+        short cp(time, latitude, longitude) ;
+                cp:scale_factor = 4.82483645945993e-07 ;
+                cp:add_offset = 0.0158085766594205 ;
+                cp:_FillValue = -32767s ;
+                cp:missing_value = -32767s ;
+                cp:units = "m" ;
+                cp:long_name = "Convective precipitation" ;
+        short msl(time, latitude, longitude) ;
+                msl:scale_factor = 0.1721754257462 ;
+                msl:add_offset = 99424.2653245743 ;
+                msl:_FillValue = -32767s ;
+                msl:missing_value = -32767s ;
+                msl:units = "Pa" ;
+                msl:long_name = "Mean sea level pressure" ;
+        short blh(time, latitude, longitude) ;
+                blh:scale_factor = 0.108739383344517 ;
+                blh:add_offset = 3570.14367055165 ;
+                blh:_FillValue = -32767s ;
+                blh:missing_value = -32767s ;
+                blh:units = "m" ;
+                blh:long_name = "Boundary layer height" ;
+        short tcc(time, latitude, longitude) ;
+                tcc:scale_factor = 1.52597204419215e-05 ;
+                tcc:add_offset = 0.499984740280558 ;
+                tcc:_FillValue = -32767s ;
+                tcc:missing_value = -32767s ;
+                tcc:units = "(0 - 1)" ;
+                tcc:long_name = "Total cloud cover" ;
+        short p10u(time, latitude, longitude) ;
+                p10u:scale_factor = 0.0007584155104299 ;
+                p10u:add_offset = -0.440509086897149 ;
+                p10u:_FillValue = -32767s ;
+                p10u:missing_value = -32767s ;
+                p10u:units = "m s**-1" ;
+                p10u:long_name = "10 metre U wind component" ;
+        short p10v(time, latitude, longitude) ;
+                p10v:scale_factor = 0.000664359461014752 ;
+                p10v:add_offset = -0.745888358484452 ;
+                p10v:_FillValue = -32767s ;
+                p10v:missing_value = -32767s ;
+                p10v:units = "m s**-1" ;
+                p10v:long_name = "10 metre V wind component" ;
+        short p2t(time, latitude, longitude) ;
+                p2t:scale_factor = 0.00183558351993706 ;
+                p2t:add_offset = 262.398478747535 ;
+                p2t:_FillValue = -32767s ;
+                p2t:missing_value = -32767s ;
+                p2t:units = "K" ;
+                p2t:long_name = "2 metre temperature" ;
+        short p2d(time, latitude, longitude) ;
+                p2d:scale_factor = 0.00161126451178551 ;
+                p2d:add_offset = 251.887106386855 ;
+                p2d:_FillValue = -32767s ;
+                p2d:missing_value = -32767s ;
+                p2d:units = "K" ;
+                p2d:long_name = "2 metre dewpoint temperature" ;
+        short e(time, latitude, longitude) ;
+                e:scale_factor = 1.16702451907916e-07 ;
+                e:add_offset = -0.00232199712964108 ;
+                e:_FillValue = -32767s ;
+                e:missing_value = -32767s ;
+                e:units = "m of water" ;
+                e:long_name = "Evaporation" ;
+        short lcc(time, latitude, longitude) ;
+                lcc:scale_factor = 1.52597204419215e-05 ;
+                lcc:add_offset = 0.499984740279558 ;
+                lcc:_FillValue = -32767s ;
+                lcc:missing_value = -32767s ;
+                lcc:units = "(0 - 1)" ;
+                lcc:long_name = "Low cloud cover" ;
+        short mcc(time, latitude, longitude) ;
+                mcc:scale_factor = 1.52597204419215e-05 ;
+                mcc:add_offset = 0.499984740279558 ;
+                mcc:_FillValue = -32767s ;
+                mcc:missing_value = -32767s ;
+                mcc:units = "(0 - 1)" ;
+                mcc:long_name = "Medium cloud cover" ;
+        short hcc(time, latitude, longitude) ;
+                hcc:scale_factor = 1.52597204419215e-05 ;
+                hcc:add_offset = 0.499984740280558 ;
+                hcc:_FillValue = -32767s ;
+                hcc:missing_value = -32767s ;
+                hcc:units = "(0 - 1)" ;
+                hcc:long_name = "High cloud cover" ;
+        short tco3(time, latitude, longitude) ;
+                tco3:scale_factor = 7.69770539069593e-08 ;
+                tco3:add_offset = 0.00736908367510674 ;
+                tco3:_FillValue = -32767s ;
+                tco3:missing_value = -32767s ;
+                tco3:units = "kg m**-2" ;
+                tco3:long_name = "Total column ozone" ;
+        short tp(time, latitude, longitude) ;
+                tp:scale_factor = 1.05226955985452e-06 ;
+                tp:add_offset = 0.0344776121286335 ;
+                tp:_FillValue = -32767s ;
+                tp:missing_value = -32767s ;
+                tp:units = "m" ;
+                tp:long_name = "Total precipitation" ;
+
+// global attributes:
+                :Conventions = "CF-1.0" ;
+                :history = "2004-09-15 17:04:29 GMT by mars2netcdf-0.92" ;
+data:
+
+ longitude = 0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 
+    32.5, 35, 37.5, 40, 42.5, 45, 47.5, 50, 52.5, 55, 57.5, 60, 62.5, 65, 
+    67.5, 70, 72.5, 75, 77.5, 80, 82.5, 85, 87.5, 90, 92.5, 95, 97.5, 100, 
+    102.5, 105, 107.5, 110, 112.5, 115, 117.5, 120, 122.5, 125, 127.5, 130, 
+    132.5, 135, 137.5, 140, 142.5, 145, 147.5, 150, 152.5, 155, 157.5, 160, 
+    162.5, 165, 167.5, 170, 172.5, 175, 177.5, 180, 182.5, 185, 187.5, 190, 
+    192.5, 195, 197.5, 200, 202.5, 205, 207.5, 210, 212.5, 215, 217.5, 220, 
+    222.5, 225, 227.5, 230, 232.5, 235, 237.5, 240, 242.5, 245, 247.5, 250, 
+    252.5, 255, 257.5, 260, 262.5, 265, 267.5, 270, 272.5, 275, 277.5, 280, 
+    282.5, 285, 287.5, 290, 292.5, 295, 297.5, 300, 302.5, 305, 307.5, 310, 
+    312.5, 315, 317.5, 320, 322.5, 325, 327.5, 330, 332.5, 335, 337.5, 340, 
+    342.5, 345, 347.5, 350, 352.5, 355, 357.5 ;
+
+ latitude = 90, 87.5, 85, 82.5, 80, 77.5, 75, 72.5, 70, 67.5, 65, 62.5, 60, 
+    57.5, 55, 52.5, 50, 47.5, 45, 42.5, 40, 37.5, 35, 32.5, 30, 27.5, 25, 
+    22.5, 20, 17.5, 15, 12.5, 10, 7.5, 5, 2.5, 0, -2.5, -5, -7.5, -10, -12.5, 
+    -15, -17.5, -20, -22.5, -25, -27.5, -30, -32.5, -35, -37.5, -40, -42.5, 
+    -45, -47.5, -50, -52.5, -55, -57.5, -60, -62.5, -65, -67.5, -70, -72.5, 
+    -75, -77.5, -80, -82.5, -85, -87.5, -90 ;
+
+ time = 898476, 898482, 898500, 898506, 898524, 898530, 898548, 898554, 
+    898572, 898578, 898596, 898602, 898620, 898626, 898644, 898650, 898668, 
+    898674, 898692, 898698, 898716, 898722, 898740, 898746, 898764, 898770, 
+    898788, 898794, 898812, 898818, 898836, 898842, 898860, 898866, 898884, 
+    898890, 898908, 898914, 898932, 898938, 898956, 898962, 898980, 898986, 
+    899004, 899010, 899028, 899034, 899052, 899058, 899076, 899082, 899100, 
+    899106, 899124, 899130, 899148, 899154, 899172, 899178, 899196, 899202 ;
+}
+
+
+after we are converting the file from classic format to netCDF-4 classic mode deflating all variables at level 9 (-d 9) and convert unlimited dims to limit (-u) 
+bash-3.2$ ./ncconvert -d 9 -u -k 4 ECMWF_ERA-40_subset.nc ECMWF_ERA-40_nc4classicmodel_subset_deflate9_noUlimDim.nc
+dim "time" will be converted from unlimited to limited dim
+var "longitude" will be deflated at level 9
+var "latitude" will be deflated at level 9
+var "time" will be deflated at level 9
+var "tcw" will be deflated at level 9
+var "tcwv" will be deflated at level 9
+var "lsp" will be deflated at level 9
+var "cp" will be deflated at level 9
+var "msl" will be deflated at level 9
+var "blh" will be deflated at level 9
+var "tcc" will be deflated at level 9
+var "p10u" will be deflated at level 9
+var "p10v" will be deflated at level 9
+var "p2t" will be deflated at level 9
+var "p2d" will be deflated at level 9
+var "e" will be deflated at level 9
+var "lcc" will be deflated at level 9
+var "mcc" will be deflated at level 9
+var "hcc" will be deflated at level 9
+var "tco3" will be deflated at level 9
+var "tp" will be deflated at level 9
+
+bash-3.2$ ncdump -c ECMWF_ERA-40_nc4classicmodel_subset_deflate9_noUlimDim.nc
+netcdf ECMWF_ERA-40_nc4classicmodel_subset_deflate9_noUlimDim {
+dimensions:
+        longitude = 144 ;
+        latitude = 73 ;
+        time = 62 ;
+variables:
+        float longitude(longitude) ;
+                longitude:units = "degrees_east" ;
+                longitude:long_name = "longitude" ;
+        float latitude(latitude) ;
+                latitude:units = "degrees_north" ;
+                latitude:long_name = "latitude" ;
+        int time(time) ;
+                time:units = "hours since 1900-01-01 00:00:0.0" ;
+                time:long_name = "time" ;
+        short tcw(time, latitude, longitude) ;
+                tcw:scale_factor = 0.0013500981745481 ;
+                tcw:add_offset = 44.3250482744756 ;
+                tcw:_FillValue = -32767s ;
+                tcw:missing_value = -32767s ;
+                tcw:units = "kg m**-2" ;
+                tcw:long_name = "Total column water" ;
+        short tcwv(time, latitude, longitude) ;
+                tcwv:scale_factor = 0.001327110772669 ;
+                tcwv:add_offset = 43.5704635546154 ;
+                tcwv:_FillValue = -32767s ;
+                tcwv:missing_value = -32767s ;
+                tcwv:units = "kg m**-2" ;
+                tcwv:long_name = "Total column water vapour" ;
+        short lsp(time, latitude, longitude) ;
+                lsp:scale_factor = 8.03329303850659e-07 ;
+                lsp:add_offset = 0.0263210846406669 ;
+                lsp:_FillValue = -32767s ;
+                lsp:missing_value = -32767s ;
+                lsp:units = "m" ;
+                lsp:long_name = "Stratiform precipitation (Large-scale precipitation)" ;
+        short cp(time, latitude, longitude) ;
+                cp:scale_factor = 4.82483645945993e-07 ;
+                cp:add_offset = 0.0158085766594205 ;
+                cp:_FillValue = -32767s ;
+                cp:missing_value = -32767s ;
+                cp:units = "m" ;
+                cp:long_name = "Convective precipitation" ;
+        short msl(time, latitude, longitude) ;
+                msl:scale_factor = 0.1721754257462 ;
+                msl:add_offset = 99424.2653245743 ;
+                msl:_FillValue = -32767s ;
+                msl:missing_value = -32767s ;
+                msl:units = "Pa" ;
+                msl:long_name = "Mean sea level pressure" ;
+        short blh(time, latitude, longitude) ;
+                blh:scale_factor = 0.108739383344517 ;
+                blh:add_offset = 3570.14367055165 ;
+                blh:_FillValue = -32767s ;
+                blh:missing_value = -32767s ;
+                blh:units = "m" ;
+                blh:long_name = "Boundary layer height" ;
+        short tcc(time, latitude, longitude) ;
+                tcc:scale_factor = 1.52597204419215e-05 ;
+                tcc:add_offset = 0.499984740280558 ;
+                tcc:_FillValue = -32767s ;
+                tcc:missing_value = -32767s ;
+                tcc:units = "(0 - 1)" ;
+                tcc:long_name = "Total cloud cover" ;
+        short p10u(time, latitude, longitude) ;
+                p10u:scale_factor = 0.0007584155104299 ;
+                p10u:add_offset = -0.440509086897149 ;
+                p10u:_FillValue = -32767s ;
+                p10u:missing_value = -32767s ;
+                p10u:units = "m s**-1" ;
+                p10u:long_name = "10 metre U wind component" ;
+        short p10v(time, latitude, longitude) ;
+                p10v:scale_factor = 0.000664359461014752 ;
+                p10v:add_offset = -0.745888358484452 ;
+                p10v:_FillValue = -32767s ;
+                p10v:missing_value = -32767s ;
+                p10v:units = "m s**-1" ;
+                p10v:long_name = "10 metre V wind component" ;
+        short p2t(time, latitude, longitude) ;
+                p2t:scale_factor = 0.00183558351993706 ;
+                p2t:add_offset = 262.398478747535 ;
+                p2t:_FillValue = -32767s ;
+                p2t:missing_value = -32767s ;
+                p2t:units = "K" ;
+                p2t:long_name = "2 metre temperature" ;
+        short p2d(time, latitude, longitude) ;
+                p2d:scale_factor = 0.00161126451178551 ;
+                p2d:add_offset = 251.887106386855 ;
+                p2d:_FillValue = -32767s ;
+                p2d:missing_value = -32767s ;
+                p2d:units = "K" ;
+                p2d:long_name = "2 metre dewpoint temperature" ;
+        short e(time, latitude, longitude) ;
+                e:scale_factor = 1.16702451907916e-07 ;
+                e:add_offset = -0.00232199712964108 ;
+                e:_FillValue = -32767s ;
+                e:missing_value = -32767s ;
+                e:units = "m of water" ;
+                e:long_name = "Evaporation" ;
+        short lcc(time, latitude, longitude) ;
+                lcc:scale_factor = 1.52597204419215e-05 ;
+                lcc:add_offset = 0.499984740279558 ;
+                lcc:_FillValue = -32767s ;
+                lcc:missing_value = -32767s ;
+                lcc:units = "(0 - 1)" ;
+                lcc:long_name = "Low cloud cover" ;
+        short mcc(time, latitude, longitude) ;
+                mcc:scale_factor = 1.52597204419215e-05 ;
+                mcc:add_offset = 0.499984740279558 ;
+                mcc:_FillValue = -32767s ;
+                mcc:missing_value = -32767s ;
+                mcc:units = "(0 - 1)" ;
+                mcc:long_name = "Medium cloud cover" ;
+        short hcc(time, latitude, longitude) ;
+                hcc:scale_factor = 1.52597204419215e-05 ;
+                hcc:add_offset = 0.499984740280558 ;
+                hcc:_FillValue = -32767s ;
+                hcc:missing_value = -32767s ;
+                hcc:units = "(0 - 1)" ;
+                hcc:long_name = "High cloud cover" ;
+        short tco3(time, latitude, longitude) ;
+                tco3:scale_factor = 7.69770539069593e-08 ;
+                tco3:add_offset = 0.00736908367510674 ;
+                tco3:_FillValue = -32767s ;
+                tco3:missing_value = -32767s ;
+                tco3:units = "kg m**-2" ;
+                tco3:long_name = "Total column ozone" ;
+        short tp(time, latitude, longitude) ;
+                tp:scale_factor = 1.05226955985452e-06 ;
+                tp:add_offset = 0.0344776121286335 ;
+                tp:_FillValue = -32767s ;
+                tp:missing_value = -32767s ;
+                tp:units = "m" ;
+                tp:long_name = "Total precipitation" ;
+
+// global attributes:
+                :Conventions = "CF-1.0" ;
+                :history = "2004-09-15 17:04:29 GMT by mars2netcdf-0.92" ;
+data:
+
+ longitude = 0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 
+    32.5, 35, 37.5, 40, 42.5, 45, 47.5, 50, 52.5, 55, 57.5, 60, 62.5, 65, 
+    67.5, 70, 72.5, 75, 77.5, 80, 82.5, 85, 87.5, 90, 92.5, 95, 97.5, 100, 
+    102.5, 105, 107.5, 110, 112.5, 115, 117.5, 120, 122.5, 125, 127.5, 130, 
+    132.5, 135, 137.5, 140, 142.5, 145, 147.5, 150, 152.5, 155, 157.5, 160, 
+    162.5, 165, 167.5, 170, 172.5, 175, 177.5, 180, 182.5, 185, 187.5, 190, 
+    192.5, 195, 197.5, 200, 202.5, 205, 207.5, 210, 212.5, 215, 217.5, 220, 
+    222.5, 225, 227.5, 230, 232.5, 235, 237.5, 240, 242.5, 245, 247.5, 250, 
+    252.5, 255, 257.5, 260, 262.5, 265, 267.5, 270, 272.5, 275, 277.5, 280, 
+    282.5, 285, 287.5, 290, 292.5, 295, 297.5, 300, 302.5, 305, 307.5, 310, 
+    312.5, 315, 317.5, 320, 322.5, 325, 327.5, 330, 332.5, 335, 337.5, 340, 
+    342.5, 345, 347.5, 350, 352.5, 355, 357.5 ;
+
+ latitude = 90, 87.5, 85, 82.5, 80, 77.5, 75, 72.5, 70, 67.5, 65, 62.5, 60, 
+    57.5, 55, 52.5, 50, 47.5, 45, 42.5, 40, 37.5, 35, 32.5, 30, 27.5, 25, 
+    22.5, 20, 17.5, 15, 12.5, 10, 7.5, 5, 2.5, 0, -2.5, -5, -7.5, -10, -12.5, 
+    -15, -17.5, -20, -22.5, -25, -27.5, -30, -32.5, -35, -37.5, -40, -42.5, 
+    -45, -47.5, -50, -52.5, -55, -57.5, -60, -62.5, -65, -67.5, -70, -72.5, 
+    -75, -77.5, -80, -82.5, -85, -87.5, -90 ;
+
+ time = 898476, 898482, 898500, 898506, 898524, 898530, 898548, 898554, 
+    898572, 898578, 898596, 898602, 898620, 898626, 898644, 898650, 898668, 
+    898674, 898692, 898698, 898716, 898722, 898740, 898746, 898764, 898770, 
+    898788, 898794, 898812, 898818, 898836, 898842, 898860, 898866, 898884, 
+    898890, 898908, 898914, 898932, 898938, 898956, 898962, 898980, 898986, 
+    899004, 899010, 899028, 899034, 899052, 899058, 899076, 899082, 899100, 
+    899106, 899124, 899130, 899148, 899154, 899172, 899178, 899196, 899202 ;
+}
