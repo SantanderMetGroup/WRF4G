@@ -1,0 +1,50 @@
+Compiling as any program base on netCDF-4 library you need to know the compiler an linker paramenters of you netCDF-4 installation. For example:
+bash-3.2$ nc-config --all
+
+This netCDF 4.1 has been built with the following features: 
+
+  --cc        -> cc
+  --cflags    ->  -I/usr/local/include
+  --libs      -> -L/usr/local/lib -lnetcdf -L/usr/local/lib -lhdf5_hl -lhdf5  -lz -lm 
+
+  --cxx       -> g++
+  --has-c++   -> yes
+
+  --fc        -> f77
+  --fflags    -> -g -O2 /usr/local/include
+  --flibs     -> -L/usr/local/lib -lnetcdf -L/usr/local/lib -lhdf5_hl -lhdf5  -lz -lm 
+  --has-f77   -> yes
+  --has-f90   -> no
+
+  --has-dap   -> no
+  --has-nc2   -> yes
+  --has-nc4   -> yes
+  --has-hdf5  -> yes
+  --has-hdf4  -> no
+  --has-szlib -> no
+
+  --prefix    -> /usr/local
+  --includedir-> /usr/local/include
+  --version   -> netCDF 4.1
+
+Then you need the --cflags for compiling and --libs flags and compile
+gcc -o ncconvert ncconvert.c nciter.c -I/usr/local/include -L/usr/local/lib -lnetcdf -lhdf5_hl -lhdf5  -lz -lm
+
+for some help just execute:
+bash-3.2$ ./ncconvert.exe 
+./ncconvert [-k n] [-m n] infile outfile
+  [-k n]    kind of netCDF format for output file, default same as input
+            1 classic, 2 64-bit offset, 3 netCDF-4, 4 netCDF-4 classic model
+  [-m n]    size in bytes of copy buffer
+  [-d n]    deflate vars (n: deflate level [0-9])
+  [-s]      shuffle vars
+  [-u]      remove unlimited dims
+  infile    name of netCDF input file
+  outfile   name for netCDF output file
+
+The the d,s and u options are only valid for netCDF format (-k 3 or -k 4)
+
+Example of use
+./ncconvert -d 9 -u -k 4 3B42.050511.0.6.nc file.nc
+
+Convert 3B42.050511.0.6.nc in classic format to netCDF-4 classic mode Deflating all variables at level 9 (-d 9) and convert unlimited dims to limit (-u)
