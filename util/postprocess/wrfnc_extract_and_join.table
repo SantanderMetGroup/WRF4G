@@ -8,6 +8,7 @@ T2MAX    tasmax   "Max. surface air temperature" "air_temperature"              
 T2MIN    tasmin   "Min. surface air temperature" "air_temperature"                    "K"       1 0
 LANDMASK sftlf    "Land mask"                 "land_binary_mask"                      1         1 0
 HGT      orog     "Surface altitude"          "surface_altitude"                      m         1 0
+HGT_M    orog     "Surface altitude"          "surface_altitude"                      m         1 0
 W        wa       "Upward air velocity"       "upward_air_velocity"                   "m/s"     1 0
 Q2       huss     "Surface specific humidity" "surface_specific_humidity"             1         1 0
 QVAPOR   hus      "Specific Humidity"         "specific humidity"                     1         1 0

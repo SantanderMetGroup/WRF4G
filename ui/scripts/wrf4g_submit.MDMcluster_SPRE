@@ -12,11 +12,8 @@ depid=$2
 
 source wrf4g.conf
 
-if test -n "${depid}"; then
-  depflag="-W depend=afterany:${depid}"
-else
-  depflag=""
-fi
+test -n "${depid}" && depflag="-W depend=afterany:${depid}" || depflag=""
+test -n "${WRF4G_QUEUE_WALLTIME}" && wtflag="-l walltime=${WRF4G_QUEUE_WALLTIME}" || wtflag=""
 
 mpiexec="/software/ScientificLinux/4.6/mpiexec/bin/mpiexec"
 mpiexec="/usr/bin/mpiexec"
@@ -62,4 +59,4 @@ mkdir -p ${rundir} || exit
 cp -L sandbox.tar.gz ${rundir}/
 cp -L WRF4G_ini.sh   ${rundir}/
 
-qsub -q ${WRF4G_QUEUE_NAME} -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} $jobfile | awk -F. '{print $1}'
+qsub -q ${WRF4G_QUEUE_NAME} -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} ${wtflag} $jobfile | awk -F. '{print $1}'

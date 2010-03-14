@@ -328,6 +328,8 @@ cd ${thisdir}
 sdate=$1
 edate=$2
 prefix=$3
+fakesoilgrb=$4
+fakesoilgrb=FAKESOIL.grb # This overrides de 4th argument! (shouldn't be there anyway...)
 
 sdate=`extract_date $1 dTh i`
 edate=`extract_date $2 dTh i`
@@ -388,14 +390,14 @@ cd ${rootsh}
 ivar=1
 rm ${rootsh}/tmp.grb >& /dev/null
 
-cdo remapbil,${outdir}/CNRM_${yeari}.grb $4 ${rootsh}/$4.cnrm
-file=${rootsh}/$4.cnrm
+cdo remapbil,${outdir}/CNRM_${yeari}.grb ${fakesoilgrb} ${rootsh}/${fakesoilgrb}.cnrm
+file=${rootsh}/${fakesoilgrb}.cnrm
 
 date_s=`extract_date $1 dTh i2 | awk '{print $1}'`
 time_s=`extract_date $1 dTh i2 | awk '{print $2}'`
 
 echo "Processing "${file}" between "${sdate}" and "${edate}"..."${Ndates}" time steps"
-cdo -t cnrm_grib.table -f grb -copy -setpartab,cnrm_grib.table -setdate,${sdate} ${rootsh}/$4.cnrm ${rootsh}/tmp.grb
+cdo -t cnrm_grib.table -f grb -copy -setpartab,cnrm_grib.table -setdate,${sdate} ${rootsh}/${fakesoilgrb}.cnrm ${rootsh}/tmp.grb
 
 # Adding time-steps
 ##
@@ -413,7 +415,7 @@ cdo settaxis,${date_s},${time_s},6hours ${rootsh}/tmp1.grb ${rootsh}/tmp.grb
 
 cp ${rootsh}/tmp.grb ${outdir}/CNRMadd_${yeari}.grb
 rm ${rootsh}/tmp*.grb
-rm ${rootsh}/$4.cnrm
+rm ${rootsh}/${fakesoilgrb}.cnrm
 echo "Output saved as '"${outdir}"/CNRMadd_"${yeari}".grb'"
 cdo sinfov ${outdir}/CNRMadd_${yeari}.grb
 

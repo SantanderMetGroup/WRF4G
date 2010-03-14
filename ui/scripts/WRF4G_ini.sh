@@ -79,6 +79,7 @@ else
   echo "Last restart date for this realization is ${restart_date}" >> WRF4G_ini.out
 fi
 current_date=$(get_date_current)
+echo "Current date for this realization is ${current_date}" >> WRF4G_ini.out
 if test "$(date2int ${current_date})" -ge "$(date2int ${chunk_end_date})"; then
   test -n "${LOCALDIR}" && rmdir ${LOCALDIR}
   w4gini_exit ${EXIT_CHUNK_ALREADY_FINISHED}

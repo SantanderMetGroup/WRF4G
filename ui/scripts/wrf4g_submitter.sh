@@ -217,6 +217,8 @@ function cycle_time(){
   case ${is_continuous} in
     0)
       echo "---> Hindcast run"
+      test -n "${simulation_length_h}" || exit
+      test -n "${simulation_interval_h}" || exit
       cycle_hindcasts ${realization_name} ${start_date} ${end_date}
       ;;
     1)

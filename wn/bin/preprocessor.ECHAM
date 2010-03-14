@@ -58,8 +58,6 @@ echo "preprocessor.ECHAM 'sDATE'([AAAA][MM][DD]T[HH][MI][SS]) 'eDATE'([AAAA][MM]
 else
 rootsh=`pwd`
 
-#datadir='./'
-datadir="/oceano/gmeteo/DATA/MPI/ECHAM5/A1Br2/"
 outdir=${rootsh}'/grbData'
 
 cat << EOF > ${rootsh}/echam_grib.table
@@ -90,17 +88,18 @@ cd `cat ../rootdir`
   tar xzf cdo.tar.gz && rm cdo.tar.gz
 cd ${thisdir}
 
-sdate=$1
-edate=$2
-prefix=$3
+global_path=$1
+sformateddate=$2
+eformateddate=$3
+prefix="${global_path}/ECHAM5-01223_U23_"
+fakesoilgrb=FAKESOIL.grb # This overrides de 4th argument! (shouldn't be there anyway...)
 
-sdate=`extract_date $1 dTh i`
-edate=`extract_date $2 dTh i`
+sdate=`echo ${sformateddate} | tr '_' 'T'`
+edate=`echo ${eformateddate} | tr '_' 'T'`
 
-yeari=`extract_date $1 dTh s | awk '{print $1}'`
-monthi=`extract_date $1 dTh s | awk '{print $2}'`
+read yeari monthi trash <<< `echo $sformateddate | tr '_T:-' '    '`
 
-cdo ndate $3${yeari}${monthi}.mm5 >& lin.inf
+cdo ndate ${prefix}${yeari}${monthi}.mm5 >& lin.inf
 Ndates=`cat lin.inf | grep timesteps. | awk '{print $7}'`
 rm lin.inf
 
@@ -113,14 +112,14 @@ cd ${rootsh}
 ivar=1
 rm ${rootsh}/tmp.grb >& /dev/null
 
-cdo remapbil,$3${yeari}${monthi}.mm5 $4 ${rootsh}/$4.echam
-file=${rootsh}/$4.echam
+cdo remapbil,${prefix}${yeari}${monthi}.mm5 ${fakesoilgrb} ${rootsh}/${fakesoilgrb}.echam
+file=${rootsh}/${fakesoilgrb}.echam
 
-date_s=`extract_date $1 dTh i2 | awk '{print $1}'`
-time_s=`extract_date $1 dTh i2 | awk '{print $2}'`
+date_s=`echo ${sformateddate} | tr '_' ' ' | awk '{print $1}'`
+time_s=`echo ${eformateddate} | tr '_' ' ' | awk '{print $2}'`
 
-echo "Processing "$3${yeari}${monthi}" between "${sdate}" and "${edate}"..."${Ndates}" time steps"
-cdo -t echam_grib.table -f grb -copy -setpartab,echam_grib.table -setdate,${sdate} ${rootsh}/$4.echam ${rootsh}/tmp.grb
+echo "Processing "${prefix}${yeari}${monthi}" between "${sdate}" and "${edate}"..."${Ndates}" time steps"
+cdo -t echam_grib.table -f grb -copy -setpartab,echam_grib.table -setdate,${sdate} ${rootsh}/${fakesoilgrb}.echam ${rootsh}/tmp.grb
 
 cdo sinfov ${rootsh}/tmp.grb
 
@@ -140,7 +139,7 @@ cdo settaxis,${date_s},${time_s},6hours ${rootsh}/tmp1.grb ${rootsh}/tmp.grb
 
 cp ${rootsh}/tmp.grb ${outdir}/ECHAMadd_${yeari}${monthi}.grb
 rm ${rootsh}/tmp*.grb
-rm ${rootsh}/$4.echam
+rm ${rootsh}/${fakesoilgrb}.echam
 echo "Output saved as '"${outdir}"/ECHAMadd_"${yeari}${monthi}".grb'"
 cdo sinfov ${outdir}/ECHAMadd_${yeari}${monthi}.grb
 

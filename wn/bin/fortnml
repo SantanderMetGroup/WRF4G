@@ -302,6 +302,9 @@ class WrfNamelist(FortranNamelist):
     #
     # LSM issues
     #
+    if self.getValue('sf_surface_physics')[0] == 7 and self.getValue('num_soil_layers')[0] != 2:
+      self.printWrfWarning('Pleim Xiu LSM selected but the soil levels are not 2. Fixing...')
+      self['physics'].setValue('num_soil_layers', 2)
     if self.getValue('sf_surface_physics')[0] == 3 and self.getValue('num_soil_layers')[0] != 6:
       self.printWrfWarning('RUC LSM selected but the soil levels are not 6. Fixing...')
       self['physics'].setValue('num_soil_layers', 6)

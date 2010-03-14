@@ -431,7 +431,10 @@ name=VV
         fill_missing=0.
 ========================================
 name=SST
-        interp_option=sixteen_pt+four_pt
+        interp_option=sixteen_pt+four_pt+wt_average_4pt+search
+        missing_value=-1e+30
+        interp_mask=LANDSEA(1)
+        masked=land
         fill_missing=0. 
         flag_in_output=FLAG_SST
 ========================================
