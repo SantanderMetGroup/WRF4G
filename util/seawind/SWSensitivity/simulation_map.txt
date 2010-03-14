@@ -1,0 +1,6 @@
+SeaWind_N1540_BL1_RF06 swh5a/swh5a
+SeaWind_N1540_BL2_RF06 swh5d/swh5d__2_2
+SeaWind_N1540_BL7_RF06 swh5d/swh5d__7_7
+SeaWind_E1540_BL1_RF06 swh2/swh2__1_1
+SeaWind_E1540_BL2_RF06 swh2/swh2__2_2
+SeaWind_E1540_BL7_RF06 swh2/swh2__7_7
