@@ -12,7 +12,7 @@ datetime <- function(name, time=TRUE){
   min    <- substr(name, 19, 20)
   
   if (time){
-    output <- paste(year, "-", month, "-", day, " ", hour, ":", min, sep="") 
+    output <- paste(year, "-", month, "-", day, " ", hour, ":", min, ":00", sep="") 
   }
   else{
     output <- paste(year, "-", month, "-", day, sep="")
@@ -57,7 +57,7 @@ for (tarfile in tarfiles){
 
       #Get the date and times and put them into the data array.
       times   <- as.POSIXct(data[1:nlim,2]*3600, origin=tsdate) 
-      times   <- as.character(times, format="%Y%m%d%H%M")
+      times   <- as.character(times, format="%Y%m%d%H%M%S")
       data    <- cbind(times, data[1:nlim,])
 
       filename<- paste(substr(tsfile,1,3), ".", substr(tarfile, 7, 10), ".d01.TS", sep="")#Filename to write.
@@ -79,7 +79,7 @@ for (tarfile in tarfiles){
 
       #Get the date and times and put them into the data array
       times <- as.POSIXct(data[iskip:nlim,2]*3600, origin=tsdate) 
-      times <- as.character(times, format="%Y%m%d%H%M")
+      times <- as.character(times, format="%Y%m%d%H%M%S")
       data <- cbind(times, data[iskip:nlim,])
 
       filename<- paste(substr(tsfile,1,3), ".", substr(tarfile, 7, 10), ".d01.TS", sep="")#Filename to write.
