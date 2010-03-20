@@ -1,0 +1,6 @@
+
+
+Estas scripts dejan los datos definitivos en POST2DIR (ver fichero 'dirs').
+
+De alli los muevo y coloco bien en /oceano/gmeteo/DATA/UC/ESCENA
+con la estructura del servidor de UCLM (asi hago rsyncs cuando se cambia algo)
