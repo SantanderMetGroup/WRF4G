@@ -12,6 +12,12 @@ depid=$2
 
 source wrf4g.conf
 
+test -n "${depid}" && depflag="-W depend=afterany:${depid}" || depflag=""
+test -n "${WRF4G_QUEUE_WALLTIME}" && wtflag="-l h_rt=${WRF4G_QUEUE_WALLTIME}" || wtflag=""
+
+OMPI_MCA_btl='self,sm,openib,tcp'
+mpiexec="/usr/lib64/openmpi/1.2.7-gcc/bin/mpirun"
+
 if test -n "${depid}"; then
   depflag="-hold_jid ${depid}"
 else
@@ -20,13 +26,11 @@ fi
 
 slots=`expr ${NUMBER_OF_NODES} '*' ${PROCESSES_PER_NODE}`
 
-mpiexec="mpiexec -npernode "${PROCESSES_PER_NODE}
-
 if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
   nodflag="-pe mpi ${slots}"
   echo "LAUNCHER_METGRID=\"\""                 >> wrf.chunk
   echo "LAUNCHER_REAL=\"\""                    >> wrf.chunk
-  echo "LAUNCHER_WRF=\"$mpiexec -np ${PROCESSES_PER_NODE} -machinefile wrf_gms \"" >> wrf.chunk
+  echo "LAUNCHER_WRF=\"$mpiexec -np ${slots} -x ${OMPI_MCA_btl}\"" >> wrf.chunk
   echo "export P4_GLOBMEMSIZE=67108864" >> wrf.chunk
 else
   nodflag=""
@@ -34,10 +38,9 @@ else
   echo "LAUNCHER_REAL=\"\""              >> wrf.chunk
   echo "LAUNCHER_WRF=\"\""               >> wrf.chunk
 fi
+
 rootbuild=`pwd`
-walltimeflag="-l h_rt=10"
-eoflag="-e $PWD/error -o $PWD/output -l virtual_free=3.6G" 
-#eoflag="-l mem_free=4G" 
+eoflag="-e $PWD/error -o $PWD/output -l h_vmem=${WRF4G_QUEUE_PEAKMEM},mem_free=${WRF4G_QUEUE_MEMORY}" 
 rundir=${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
 #
 #   Avoid overwriting previous run directories. Move it to an unused name.
@@ -55,16 +58,6 @@ test -d ${rundir} && mv ${rundir} ${oldrundir}
 #
 command="cd ${rundir}"
 echo -e "2i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
-numlinjob=`wc -l $jobfile | awk '{print $1}'`
-numlinjob=`expr ${numlinjob} - 2`
-command="echo LAUNCHER_WRF=\\\"$mpiexec -np \$(cat \$(cat \${ROOTDIR}/localdir|awk -F: '{print \$2}')/WRFV3/run/wrf_gms | awk -F: '{print \$2}') -machinefile wrf_gms \\\" >> \${ROOTDIR}/wrf.chunk"
-echo -e "${numlinjob}i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
-command="echo LAUNCHER_WRF=\\\"$mpiexec -np \$(cat \$(cat \${ROOTDIR}/localdir|awk -F: '{print \$2}')/WRFV3/run/wrf_gms | awk -F: '{print \$2}') -machinefile wrf_gms \\\" >> wrf.chunk"
-echo -e "${numlinjob}i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
-#command="export LAUNCHER_WRF=\"$mpiexec -np \$(cat \$(cat \${ROOTDIR}/localdir|awk -F: '{print \$2}')/WRFV3/run/wrf_gms | awk -F: '{print \$2}') -machinefile wrf_gms \""
-#echo -e "${numlinjob}i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
-command="cat \$PE_HOSTFILE | awk '{print \$1\":\"\$2}' | grep \$HOSTNAME >& \$(cat \${ROOTDIR}/localdir|awk -F: '{print \$2}')/WRFV3/run/wrf_gms"
-echo -e "${numlinjob}i\n${command}\n.\nw\nq\n" | ed $jobfile >& /dev/null
 #
 #   Pack the sandbox
 #
@@ -76,4 +69,4 @@ mkdir -p ${rundir} || exit
 cp -L sandbox.tar.gz ${rundir}/
 cp -L WRF4G_ini.sh   ${rundir}/
 
-qsub -S /bin/bash -N "${WRF4G_REALIZATION}" -P l.meteo ${depflag} ${nodflag} ${eoflag} $jobfile | awk '{print $3}'
+qsub -S /bin/bash -N "${WRF4G_REALIZATION}" -P ${WRF4G_QUEUE_NAME} ${depflag} ${nodflag} ${eoflag} ${wtflag} ${jobfile} | awk '{print $3}'
