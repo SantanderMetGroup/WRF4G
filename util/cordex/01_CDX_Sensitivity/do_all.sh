@@ -26,41 +26,52 @@ function process_realization() {
   for year in $(get_years ${wrfoutpath})
   do
     oname="${prettyname}_3H_sfc_${year}.nc"
-#    if test -f ${oname}; then
-#      echo "Cowardly refusing to overwrite ${oname}. Delete it yourself (if you dare!)"
-#      continue
-#    fi
-#    echo "Writing ${oname}"
-#    ${wxajcmd} -v T2,RAIN,U10ER,V10ER -o ${POSTDIR}/${oname} ${wrfoutpath}/wrfout_d01_${year}*.nc
-    cdo settime,00:00 -daysum -selvar,pr ${POSTDIR}/${oname} ${prettyname}_DM_pr_${year}.nc
-    cdo settime,00:00 -chname,tas,tasmax -daymax -selvar,tas ${POSTDIR}/${oname} ${prettyname}_DM_tasmax_${year}.nc
-    cdo settime,00:00 -chname,tas,tasmin -daymin -selvar,tas ${POSTDIR}/${oname} ${prettyname}_DM_tasmin_${year}.nc
-    cdo settime,00:00 -daymean -selvar,tas ${POSTDIR}/${oname} ${prettyname}_DM_tas_${year}.nc
+    if test -f ${oname}; then
+      echo "Cowardly refusing to overwrite ${oname}. Delete it yourself (if you dare!)"
+      continue
+    fi
+    echo "Writing ${oname}"
+    ${wxajcmd} -v T2,RAIN,U10ER,V10ER -o ${POSTDIR}/${oname} ${wrfoutpath}/wrfout_d01_${year}*.nc
+    cdo settime,00:00 -daysum -selvar,pr ${POSTDIR}/${oname} ${POSTDIR}/${prettyname}_DM_pr_${year}.nc
+    cdo settime,00:00 -chname,tas,tasmax -daymax -selvar,tas ${POSTDIR}/${oname} ${POSTDIR}/${prettyname}_DM_tasmax_${year}.nc
+    cdo settime,00:00 -chname,tas,tasmin -daymin -selvar,tas ${POSTDIR}/${oname} ${POSTDIR}/${prettyname}_DM_tasmin_${year}.nc
+    cdo settime,00:00 -daymean -selvar,tas ${POSTDIR}/${oname} ${POSTDIR}/${prettyname}_DM_tas_${year}.nc
+    cdo settime,00:00 -daymean -selvar,uas ${POSTDIR}/${oname} ${POSTDIR}/${prettyname}_DM_uas_${year}.nc
+    cdo settime,00:00 -daymean -selvar,vas ${POSTDIR}/${oname} ${POSTDIR}/${prettyname}_DM_vas_${year}.nc
   done
 }
 
 function clim_and_diff (){
-  for sim in CUKF BLMY BLPX MPW6 RARR LSRU
+  for sim in CUBM # CTRL CUKF BLMY MPW6 RARR LSRU # BLPX
   do
-    cdo timmean ${POSTDIR}/CORDEX_UC_WRF_SENS${sim}_3H_sfc_1998.nc ${POSTDIR}/CORDEX_UC_WRF_SENS${sim}_3H_sfc_1998_clim.nc
-    cdo sub ${POSTDIR}/CORDEX_UC_WRF_SENS${sim}_3H_sfc_1998_clim.nc ${POSTDIR}/CORDEX_UC_WRF_SENSCTRL_3H_sfc_1998_clim.nc \
-      ${POSTDIR}/CORDEX_UC_WRF_SENS${sim}_3H_sfc_1998_diff.nc
+    for var in uas vas pr tas tasmax tasmin
+    do
+      cdo timmean ${POSTDIR}/CORDEX_UC_WRF_SENS${sim}_DM_${var}_1998.nc ${POSTDIR}/CORDEX_UC_WRF_SENS${sim}_clim_${var}_1998.nc
+      test ${sim} != "CTRL" && \
+        cdo sub ${POSTDIR}/CORDEX_UC_WRF_SENS${sim}_clim_${var}_1998.nc ${POSTDIR}/CORDEX_UC_WRF_SENSCTRL_clim_${var}_1998.nc \
+          ${POSTDIR}/CORDEX_UC_WRF_SENS${sim}_diff_${var}_1998.nc
+    done
   done
 }
 
 function spread(){
-  cdo ensmax ${POSTDIR}/CORDEX_UC_WRF_SENS????_3H_sfc_1998_clim.nc s1
-  cdo ensmin ${POSTDIR}/CORDEX_UC_WRF_SENS????_3H_sfc_1998_clim.nc s2
-  cdo sub s1 s2 ${POSTDIR}/CORDEX_UC_WRF_SENS_spread.nc
+  for var in pr tas tasmax tasmin
+  do
+    cdo ensmax ${POSTDIR}/CORDEX_UC_WRF_SENS???[LMFY6RU]_clim_${var}_1998.nc s1
+    cdo ensmin ${POSTDIR}/CORDEX_UC_WRF_SENS???[LMFY6RU]_clim_${var}_1998.nc s2
+    cdo sub s1 s2 ${POSTDIR}/CORDEX_UC_WRF_SENS_spread_${var}.nc
+  done
 }
 
-process_realization CORDEX_UC_WRF_SENSCTRL
-process_realization CORDEX_UC_WRF_SENSCUKF
-process_realization CORDEX_UC_WRF_SENSBLMY
-process_realization CORDEX_UC_WRF_SENSBLPX
-process_realization CORDEX_UC_WRF_SENSMPW6
-process_realization CORDEX_UC_WRF_SENSRARR
-process_realization CORDEX_UC_WRF_SENSLSRU
+#process_realization CORDEX_UC_WRF_SENSCTRL
+#process_realization CORDEX_UC_WRF_SENSCUBM
+#process_realization CORDEX_UC_WRF_SENSCUKF
+#process_realization CORDEX_UC_WRF_SENSBLMY
+#process_realization CORDEX_UC_WRF_SENSBLPX
+#process_realization CORDEX_UC_WRF_SENSMPW6
+#process_realization CORDEX_UC_WRF_SENSRARR
+#process_realization CORDEX_UC_WRF_SENSLSRU
+process_realization CORDEX_UC_WRF_SENSCTL2
 #clim_and_diff
 #spread
 

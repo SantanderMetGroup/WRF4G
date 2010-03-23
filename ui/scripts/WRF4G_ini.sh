@@ -81,30 +81,59 @@ fi
 current_date=$(get_date_current)
 echo "Current date for this realization is ${current_date}" >> WRF4G_ini.out
 if test "$(date2int ${current_date})" -ge "$(date2int ${chunk_end_date})"; then
-  test -n "${LOCALDIR}" && rmdir ${LOCALDIR}
-  w4gini_exit ${EXIT_CHUNK_ALREADY_FINISHED}
+  if test ${is_continuous} -eq 1 \
+       -a $(date2int ${current_date}) -ne $(date2int ${end_date}) \
+       -a ${restart_date} -ne "-1" \
+       -a $(date2int ${restart_date}) -lt $(date2int ${chunk_end_date}) ; then
+    #
+    #  If this is a continuous run and this realization did not reach the end
+    #  and there is no restart file for a date at least as late the end of this
+    #  chunk, there is no way for the next chunk to continue, so we should
+    #  pitifully repeat this chunk to get the restart file. So, go ahead and
+    #  simulate!
+    #
+    echo "Pitifully repeating this finished chunk (restart file missing at the end)"
+    echo "chunk_restart_date=\"$(date_iso2wrf ${restart_date})\"" >> wrf.chunk
+  else
+    test -n "${LOCALDIR}" && rmdir ${LOCALDIR}
+    w4gini_exit ${EXIT_CHUNK_ALREADY_FINISHED}
+  fi
 elif test "${restart_date}" = "-1"; then
   if test "${chunk_is_restart}" = ".T."; then
     test -n "${LOCALDIR}" && rmdir ${LOCALDIR}
     w4gini_exit ${EXIT_RESTART_MISMATCH}
   fi
   echo "chunk_restart_date=\"${chunk_start_date}\"" >> wrf.chunk
-  test -n "${LOCALDIR}" && cp wrf.chunk ${LOCALDIR}/
 elif test "$(date2int ${restart_date})" -lt "$(date2int ${chunk_start_date})"; then
   test -n "${LOCALDIR}" && rmdir ${LOCALDIR}
   w4gini_exit ${EXIT_CHUNK_SHOULD_NOT_RUN}
 else
   #
-  #  Get the restart files, set the restart flag to true and set the new start date
+  #  Set the restart flag to true and set the new start date
   #
-  test -n "${LOCALDIR}" && cd ${LOCALDIR}
-    download_file rst ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
-  test -n "${LOCALDIR}" && cd ${ROOTDIR}
   if test "$(date2int ${restart_date})" -ne "$(date2int ${chunk_start_date})"; then
     echo 'chunk_is_restart=".T."' >> wrf.chunk
   fi
   echo "chunk_restart_date=\"$(date_iso2wrf ${restart_date})\"" >> wrf.chunk
-  test -n "${LOCALDIR}" && cp wrf.chunk ${LOCALDIR}/
+fi
+#######################################################################
+#
+#  IF YOU GOT HERE, WE ARE RUNNING THIS CHUNK
+#
+#######################################################################
+#
+#  Reload the modified wrf.chunk and copy it to the local directory if necessary
+#
+sed -e 's/\ *=\ */=/' wrf.chunk > source.it  || exit ${ERROR_MISSING_WRFCHUNK}
+source source.it && rm source.it
+test -n "${LOCALDIR}" && cp wrf.chunk ${LOCALDIR}/
+#
+#  Get the restart files, if this is a restart
+#
+if test ${chunk_is_restart} = ".T."; then
+  test -n "${LOCALDIR}" && cd ${LOCALDIR}
+    download_file rst ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
+  test -n "${LOCALDIR}" && cd ${ROOTDIR}
 fi
 set +v
 #

@@ -135,6 +135,7 @@ function wrf4g_exit(){
       ;;
   esac
   create_output_structure
+  test -f namelist.input && cp namelist.input ${logdir}/
   tar czf log.tar.gz ${logdir} && vcp log.tar.gz ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
   test "${LOCALDIR}" != "${ROOTDIR}" && mv ${logdir} ${ROOTDIR}/
   exit ${excode}
@@ -198,7 +199,7 @@ else
       ./link_grib.csh grbData/*.grb
     timelog_end
     timelog_init "ungrib"
-      ln -sf ungrib/Variable_Tables_WRF4G/Vtable.${global_name} Vtable
+      ln -sf ungrib/Variable_Tables/Vtable.${global_name} Vtable
       ${ROOTDIR}/bin/ungrib.exe \
         >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_UNGRIB_FAILED}
@@ -214,7 +215,7 @@ else
       fortnml --overwrite -f namelist.wps -s prefix@ungrib          ${vtname}
       fortnml --overwrite -f namelist.wps -s end_date               ${chunk_start_date}  # single time step!!
       fortnml --overwrite -f namelist.wps -a constants_name@metgrid ${vtname}:${iyy}-${imm}-${idd}_${ihh}
-      ln -sf ungrib/Variable_Tables_WRF4G/Vtable.${vtname} Vtable
+      ln -sf ungrib/Variable_Tables/Vtable.${vtname} Vtable
       rm -rf grbData/*.grb
       if ! which cdo; then
         thisdir=$(pwd)
@@ -317,7 +318,7 @@ else
     if test "${save_wps}" -eq 1; then
       timelog_init "wps put"
         create_output_structure
-        ${ROOTDIR}/WRFGEL/post_and_register wps "${chunk_start_date}"
+        ${ROOTDIR}/WRFGEL/post_and_register --no-bg wps "${chunk_start_date}"
       timelog_end
     fi
   cd ${LOCALDIR} || exit
@@ -336,7 +337,8 @@ cd ${LOCALDIR}/WRFV3/run || exit
     ls -l ########################################################## borrar
     ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
-    sleep 5
+    # This time is also useful to  to copy the wpsout data
+    sleep 60
     ${ROOTDIR}/WRFGEL/wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   
     wait $(cat monitor.pid)
