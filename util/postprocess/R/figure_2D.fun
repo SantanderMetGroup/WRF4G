@@ -1,5 +1,5 @@
 figure2D<-function(field, lcoast, imagename, minval, maxval, colbar,
-  longvarname, barkind, imagekind, show, imgsize=480)
+  longvarname, barkind, imagekind, show, imgsize=480, dig=4)
 #
 ## L. Fita, December (2009), Universidad de Cantabria
 
@@ -21,6 +21,7 @@ figure2D<-function(field, lcoast, imagename, minval, maxval, colbar,
 ## [show]: Wheter figure should be shown (1: yes, rest: no)
 ## [imgsize]: size in pixels of x dimension y dimension as imgsize*dy/dx.
 ## Output given figure as [imagename]
+## [dig] Number of significant digits on the labels of the colorbar(By default 3)
 
 ####################################################
 {
@@ -47,8 +48,8 @@ figure2D<-function(field, lcoast, imagename, minval, maxval, colbar,
       matrix(0.05,9)), bg=colbar[seq(1,length(colbar),length(colbar)/9)], 
       fg="gray",                                     ## gray borders
       inches=FALSE, add=TRUE)
-    text(seq(0.1,0.9,0.2), matrix(-0.1,4), labels=seq(minval, maxval, 
-      stepsval))
+    text(seq(0.1,0.9,0.2), matrix(-0.1,4), labels=signif(seq(minval, maxval, 
+      stepsval),digits=dig))
     text(0.5,-0.15,longvarname)}
 
   if (barkind=='ht') {
@@ -58,8 +59,8 @@ figure2D<-function(field, lcoast, imagename, minval, maxval, colbar,
       matrix(0.05,9)), bg=colbar[seq(1,length(colbar),length(colbar)/9)], 
       fg="gray",                                     ## gray borders
       inches=FALSE, add=TRUE)
-    text(seq(0.1,0.9,0.2), matrix(1.1,4), labels=seq(minval, maxval, 
-      stepsval))
+    text(seq(0.1,0.9,0.2), matrix(1.1,4), labels=signif(seq(minval, maxval, 
+      stepsval),digits=dig))
     text(0.5,1.15,longvarname)}
 
     if (barkind=='vl') {
@@ -68,8 +69,8 @@ figure2D<-function(field, lcoast, imagename, minval, maxval, colbar,
     symbols(matrix(-0.04,9), seq(0.1,0.9,0.1), rectangles=cbind(matrix(0.05,9),
       matrix(0.1,9)), bg=colbar[seq(1,length(colbar),length(colbar)/9)], 
       fg="gray", inches=FALSE, add=TRUE)
-    text(matrix(-0.08,4), seq(0.1,0.9,0.2), labels=seq(minval, maxval, 
-      stepsval), srt=90)
+    text(matrix(-0.08,4), seq(0.1,0.9,0.2), signif(seq(minval, maxval, 
+      stepsval),digits=dig), srt=90)
     text(-0.12, 0.5,longvarname, srt=90)}
 
     if (barkind=='vr') {
@@ -78,7 +79,8 @@ figure2D<-function(field, lcoast, imagename, minval, maxval, colbar,
     symbols(matrix(1.025,9), seq(0.1,0.9,0.1), rectangles=cbind(matrix(0.04,9),
       matrix(0.1,9)), bg=colbar[seq(1,length(colbar),length(colbar)/9)], 
       fg="gray", inches=FALSE, add=TRUE)
-    text(matrix(1.03,4), seq(0.1,0.9,0.2), labels=seq(minval, maxval, stepsval),
+    text(matrix(1.03,4), seq(0.1,0.9,0.2), signif(seq(minval, maxval, 
+      stepsval),digits=dig),
       srt=90)
     text(1.065, 0.5,longvarname, srt=90)}
 
