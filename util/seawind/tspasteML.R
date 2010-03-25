@@ -100,8 +100,6 @@ for (tarfile in tarfiles){
       for (j in 1:14){
         cat(paste(inidate, ",", enddate, "\n", sep=""), file=filedirs[j])
       }
-      
-      #Hours
       write.table(data[1:nlim, 2]  , file=filedirs[1], append=TRUE,
         quote    = FALSE, sep="      ", 
         col.names= FALSE, row.names=FALSE)
@@ -123,23 +121,39 @@ for (tarfile in tarfiles){
       #Interpolate the files witha different timestep.
       if (timestep != timestep1){
         for (m in 1:13){
-          interp   <- timestep_interp(data[iskip:nlim, 5 + m], data[iskip:nlim, 2]*60, timestep1)  
-          data[,2] <- interp[[1]]
-          data[,m] <- interp[[2]]        
-        }       
-      }
+	  interp <- timestep_interp(data[iskip:nlim, m + 5], data[iskip:nlim, 2]*60, timestep1, (iskip - 1)*timestep + timestep1)  
+          if (m==1){data2  <- array(0, c(length(interp[[2]]), 14))}
+          data2 <- as.data.frame(data2)
+	  data2[, 1]  <- interp[[1]]/60
+	  if (m != 2){data2[, m + 1]  <- interp[[2]]}
+        }   
+	#Write the data
+	  
+        filename<- paste(substr(tsfile,1,3), ".", substr(tarfile, 7, 10), ".d01.TS", sep="")#Filename to write.
 
-      #Filenames and directories.
-      filename <- paste(substr(tsfile,1,3), ".txt", sep="")
-      filedirs <- c(paste(datadir, "/", varnames[1:14], "/", filename, sep=""))
-      
-      write.table(data[iskip:nlim, 2]  , file=filedirs[1], append=TRUE,
-	quote    = FALSE, sep="      ", 
-	col.names= FALSE, row.names=FALSE)
-      for (l in 1:13){
-	write.table(sprintf(formats[l], data[1:nlim, 5 + l]) , file=filedirs[1 + l], append=TRUE,
+        write.table(data2[, 1], file=filedirs[1], append=TRUE,
+          quote    = FALSE, sep="      ", 
+          col.names= FALSE, row.names=FALSE)
+        for (k in 1:13){
+	  write.table(sprintf(formats[k], data2[, 1 + k])  , file=filedirs[1 + k], append=TRUE,
+	    quote    = FALSE, sep="      ", 
+	    col.names= FALSE, row.names=FALSE) 
+        }  
+      }
+      else{     
+
+	#Filenames and directories.
+	filename <- paste(substr(tsfile,1,3), ".txt", sep="")
+	filedirs <- c(paste(datadir, "/", varnames[1:14], "/", filename, sep=""))
+	
+	write.table(data[iskip:nlim, 2]  , file=filedirs[1], append=TRUE,
 	  quote    = FALSE, sep="      ", 
-	  col.names= FALSE, row.names=FALSE)   
+	  col.names= FALSE, row.names=FALSE)
+	for (l in 1:13){
+	  write.table(sprintf(formats[l], data[iskip:nlim, 5 + l]) , file=filedirs[1 + l], append=TRUE,
+	    quote    = FALSE, sep="      ", 
+	    col.names= FALSE, row.names=FALSE)   
+	}
       }
     }
   }
