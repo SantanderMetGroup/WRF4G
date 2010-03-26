@@ -4,8 +4,8 @@ RFLAG="-R-25/61/-44/46"
 NEARNREG="-R-13/8/33/46"
 RJFLAG="${RFLAG} -JM18c"
 BFLAG="-Bf5a10/f5a10WeSn"
-NCFILE=$1
-var=$(basename ${NCFILE//*_/} .nc)
+NCFILE1=$1
+NCFILE2=$2
 
 shift
 has_height_dim=0
@@ -17,6 +17,7 @@ zmin=0
 zmax=0
 dz=0
 out=""
+title="."
 while test "$*"
 do
   case $1 in
@@ -24,17 +25,17 @@ do
     is_curvilinear) is_curvilinear=1;;
     national_bound) national_bound=1;;
     no_nn) no_nn=1;;
+    cptreverse) cptreverse=1;;
     label) label=$2; shift;;
     title) title=$2; shift;;
-    addc) addc=$2; shift;;
     cpt) cptfile=$2; shift;;
-    var) var=$2; shift;;
+    u) uvar=$2; shift;;
+    v) vvar=$2; shift;;
     rec) rec=$2; shift;;
     zmin) zmin=$2; shift;;
     zmax) zmax=$2; shift;;
     dz) dz=$2; shift;;
     out) out=$2; shift;;
-    validrange) validrange=$2; shift;;
   esac
   shift
 done
@@ -44,9 +45,9 @@ test -n "${cptfile}" || cptfile="cpts/${var}.cpt"
 if test -n "$out"; then
   FNAMEOUT="figs/$(basename $out .eps)${label}.eps"
 else
-  FNAMEOUT="figs/$(basename $NCFILE .nc)${label}.eps"
+  FNAMEOUT="figs/$(basename $NCFILE1 .nc)${label}.eps"
 fi
-XYZFILE=$(basename $NCFILE .nc)${label}.xyz
+XYZFILE=$(basename $NCFILE1 .nc)${label}.xyz
 
 function py_getxyz_curv(){
   ncfilevar=$1
@@ -61,8 +62,8 @@ nc = NetCDFFile(ifile, "r")
 var = nc.variables[varname]
 lats = nc.variables["lat"]
 lons = nc.variables["lon"]
-for i in range(len(lats)):
-  for j in range(len(lats[0])):
+for i in range(0,len(lats),3):
+  for j in range(0,len(lats[0]),3):
     if ${has_height_dim}:
       print "%9.4f %9.4f %.5e" % (lons[i,j], lats[i,j], var[irec,0,i,j])
     else:
@@ -102,59 +103,34 @@ gmtset PAGE_ORIENTATION portrait
 
 if [ ${no_nn} -eq 0 ]; then
   if [ ${is_curvilinear} -ne 0 ]; then
-    py_getxyz_curv $NCFILE:${var} ${rec} > $XYZFILE
+    py_getxyz_curv ${NCFILE1}:${uvar} ${rec} > s1
+    py_getxyz_curv ${NCFILE2}:${vvar} ${rec} > s2
   else
-    py_getxyz $NCFILE:${var} ${rec} > $XYZFILE
+    py_getxyz ${NCFILE1}:${uvar} ${rec} > s1
+    py_getxyz ${NCFILE2}:${vvar} ${rec} > s2
   fi
-  awk '$1>180 {print $1-360,$2,$3} $1<=180 {print $1,$2,$3}' $XYZFILE > ${XYZFILE}.tmp; mv ${XYZFILE}.tmp $XYZFILE
-fi
-
-if test -n "${addc}"; then
-  awk '{print $1,$2,'${addc}'+$3}' $XYZFILE > ${XYZFILE}.tmp; mv ${XYZFILE}.tmp $XYZFILE
-fi
-if test -n "${validrange}"; then
-  read lim1 lim2 <<< ${validrange/,/ }
-  awk '$3 <= '${lim2}' && $3 >= '${lim1}'{print $1,$2,$3}' $XYZFILE > ${XYZFILE}.tmp; mv ${XYZFILE}.tmp $XYZFILE
+  paste s1 s2 | awk '{print $1,$2,sqrt($3*$3+$6*$6),atan2($6,$3)*180./3.14159265,sqrt($3*$3+$6*$6)/20.}' > $XYZFILE
+  awk '$1>180 {print $1-360,$2,$3,$4,$5} $1<=180 {print $1,$2,$3,$4,$5}' $XYZFILE > ${XYZFILE}.tmp; mv ${XYZFILE}.tmp $XYZFILE
 fi
 
 echo -n $XYZFILE; minmax $XYZFILE
 
 cres="-Dl"
 
-function pysymbol(){
-  python << end_of_py
-print "%.2f %.2f M" % (-0.5+${anglectl},            -0.50)
-print "%.2f %.2f D" % (            0.50, -0.5+${anglectl})
-print "%.2f %.2f D" % ( 0.5-${anglectl},             0.50)
-print "%.2f %.2f D" % (           -0.50,  0.5-${anglectl})
-print "%.2f %.2f D" % (-0.5+${anglectl},            -0.50)
-end_of_py
-}
-function pysymbolsq(){
-  python << end_of_py
-print "%.2f %.2f M" % (-0.5+${anglectl},           -0.50)
-print "%.2f %.2f D" % ( 0.5-${anglectl},            -0.5)
-print "%.2f %.2f D" % ( 0.5-${anglectl},             0.5)
-print "%.2f %.2f D" % (-0.5+${anglectl},            0.50)
-print "%.2f %.2f D" % (-0.5+${anglectl},           -0.50)
-end_of_py
-}
-
 if test $zmin -ne $zmax; then
   makecpt -C$cptfile -T${zmin}/$zmax/$dz -Z > pepe.cpt
+  cptfile=pepe.cpt
+fi
+
+if test -n "$cptreverse"; then
+  makecpt -C$cptfile -I > pepe2.cpt; mv pepe2.cpt pepe.cpt
   cptfile=pepe.cpt
 fi
 
 psxy /dev/null $RJFLAG -K > $FNAMEOUT
 #pscoast $RJFLAG -Gc -A0/0/1 ${cres} -O -K >> $FNAMEOUT
   if [ ${is_curvilinear} -ne 0 ]; then
-    anglectl=0.
-    pysymbol > tile.def
-    psxy ${XYZFILE} $RJFLAG -C${cptfile} -Sktile/0.1c -O -K >> $FNAMEOUT
-  else
-    anglectl=0.13
-    pysymbolsq > tile.def
-    psxy ${XYZFILE} $RJFLAG -C${cptfile} -Sktile/0.22c -O -K >> $FNAMEOUT
+    psxy ${XYZFILE} $RJFLAG -C${cptfile} -Sv0.015c/0.07c/0.05 -O -K >> $FNAMEOUT
   fi
   if [ ${national_bound} -eq 1 ]; then
     pscoast $RJFLAG -A0/0/1 ${cres} -N1/5,white -O -K >> $FNAMEOUT

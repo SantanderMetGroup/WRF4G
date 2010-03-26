@@ -1,10 +1,7 @@
 #! /bin/bash
 source /software/ScientificLinux/4.6/etc/bashrc
+source dirs
 scriptdir=$( (cd `dirname $0` && echo $PWD) )
-
-EXPDIR="/vols/tetis/meteo4g/WRF/experiments"
-POSTDIR="/vols/tetis/escena/CORDEX/post"
-mkdir -p ${POSTDIR}
 
 wxajcmd="python /oceano/gmeteo/WORK/chus/wrf4g/util/postprocess/wrfnc_extract_and_join.py -a /oceano/gmeteo/WORK/chus/wrf4g/util/postprocess/wrfnc_extract_and_join.gattr_CORDEX -t /oceano/gmeteo/WORK/chus/wrf4g/util/postprocess/wrfnc_extract_and_join.table -g /oceano/gmeteo/DATA/WRF/domains/CORDEX_Africa50_SMG1/geo_em.d01.nc -r 1950-01-01_00:00:00"
 tag=$(date +'%Y%m%d%H%M%S')

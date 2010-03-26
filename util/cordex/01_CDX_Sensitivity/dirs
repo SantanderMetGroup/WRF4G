@@ -1,0 +1,3 @@
+EXPDIR="/vols/tetis/meteo4g/WRF/experiments"
+POSTDIR="/vols/tetis/escena/CORDEX/post"
+POSTDIR="post"
