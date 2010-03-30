@@ -267,7 +267,7 @@ real(r8) :: gdst(ndstsz, nspint) ! dust asymmetry parameter
    real(r8) :: f11vmr = 0.280e-9         ! cfc11 volume mixing ratio
    real(r8) :: f12vmr = 0.503e-9         ! cfc12 volume mixing ratio
 
-integer, parameter :: cyr = 233  ! number of years of co2 data
+   integer, parameter :: cyr = 233  ! number of years of co2 data
 
    integer  :: yrdata(cyr) = &
  (/ 1869, 1870, 1871, 1872, 1873, 1874, 1875, &
@@ -1465,7 +1465,7 @@ subroutine trcmix_clwrf(lchnk   ,ncol     ,pcols, pver,       &
 
    real(r8), intent(in) :: pmid(pcols,pver)        ! model pressures
    real(r8), intent(in) :: clat(pcols)             ! latitude in radians for columns
-   real, intent(in) :: n2ovmr, ch4vmr, f11vmr, f12vmr
+   real(r8), intent(in) :: n2ovmr, ch4vmr, f11vmr, f12vmr
 !
 ! Output
 !

@@ -401,10 +401,9 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
 #ifdef CLWRF
 ! CLWRF-UC June.09 
 #include <wrf_io_flags.h>
-   integer, SAVE                                     :: yrdata(cyr)
-   real(r8), SAVE                                    :: co2(cyr),n2o(cyr),ch4(cyr)                                     &
-                    ,cfc11(cyr),cfc12(cyr)
-   REAL, SAVE                                       :: co2vmr, n2ovmr, ch4vmr, f11vmr, f12vmr
+   integer, DIMENSION(1:cyr), SAVE                  :: yrdata
+   real(r8), DIMENSION(1:cyr), SAVE                 :: co2, n2o, ch4, cfc11, cfc12 
+   REAL(r8)                                         :: co2vmr, n2ovmr, ch4vmr, f11vmr, f12vmr
 
    INTEGER                                          :: yearIN, found_yearIN, iyear
    LOGICAL, EXTERNAL                                :: wrf_dm_on_monitor
@@ -474,19 +473,28 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
             ! Ignore first two linesm which constitute a header
             READ(UNIT=iunit, FMT='(1X)')
             READ(UNIT=iunit, FMT='(1X)')
-   
+
             istatus = 0
             idata = 1
             DO WHILE (istatus == 0)
-!              READ(UNIT=iunit, *, IOSTAT=istatus)                                                             &
-              READ(UNIT=iunit, FMT='(I4, 5F5.1)', IOSTAT=istatus)                                                             &
+!              READ(UNIT=iunit, FMT='*', IOSTAT=istatus)                                                             &
+              READ(UNIT=iunit, FMT='(I4, 1x, F8.3,1x, 4(F10.3,1x))', IOSTAT=istatus)                                                             &
+              yrdata(idata), co2(idata), n2o(idata), ch4(idata), cfc11(idata), cfc12(idata)
+              IF ( wrf_dm_on_monitor() ) THEN
+                WRITE(message,*)'istatus:',istatus,' idata:',idata,' year:',yrdata(idata),      &
+                ' co2: ',co2(idata), ' n2o: ',n2o(idata),' ch4:',ch4(idata),' cfc11:',          &
+                  cfc11(idata),' cfc12:', cfc12(idata) 
+                call wrf_debug( 75, message) 
+              ENDIF
 
-             yrdata(idata), co2(idata), n2o(idata), ch4(idata), cfc11(idata), cfc12(idata)
-             idata=idata+1
-           END DO
+              idata=idata+1
+            END DO
+           IF (istatus /= -1) THEN
+             PRINT *,"Not normal ending of 'CAMtr_volume_mixing_ratio' file"
+             PRINT *,"Lecture ends with 'IOSTAT'=",istatus
+           END IF
            VARCAM_in_years = idata - 1
            CLOSE(iunit)
-   
          ENDIF
        ELSE
          PRINT *,'CAMtr_volume_mixing_ratio does not exists!'
@@ -513,11 +521,17 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
      nyrm = yrdata(yearIN-1)
      nyrp = yrdata(yearIN)
    ENDIF
+!   co2vmr=-99999.
+   n2ovmr=-99999.
+   ch4vmr=-99999.
+   f11vmr=-99999.
+   f12vmr=-99999.
    CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, co2, co2vmr)
-   CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, n2o, n2ovmr)
-   CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, ch4, ch4vmr)
-   CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, cfc11, f11vmr)
-   CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, cfc12, f12vmr)
+!   IF (co2(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, co2, co2vmr)
+   IF (n2o(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, n2o, n2ovmr)
+   IF (ch4(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, ch4, ch4vmr)
+   IF (cfc11(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, cfc11, f11vmr)
+   IF (cfc12(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, cfc12, f12vmr)
 
 ! Verification of interpolated values. In case of no value 
 ! original values extracted from ghg_surfvals.F90 module
@@ -525,29 +539,29 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
    co2vmr=co2vmr*1.e-06
 
 !n2o
-   IF (n2ovmr .EQ. -99999.) THEN
+   IF (n2ovmr < 0. ) THEN
      n2ovmr=0.311e-6
    ELSE
      n2ovmr=n2ovmr*1.e-09
    ENDIF
 
 !ch4
-   IF (ch4vmr .EQ. -99999.) THEN
+   IF (ch4vmr < 0. ) THEN
      ch4vmr=1.714e-6
    ELSE
      ch4vmr=ch4vmr*1.e-09
    ENDIF
 
 !cfc11
-   IF (f11vmr .EQ. -99999.) THEN
+   IF (f11vmr < 0. ) THEN
      f11vmr=0.280e-9
    ELSE
      f11vmr=f11vmr*1.e-12
    ENDIF
 
 !cfc12
-   IF (f12vmr .EQ. -99999.) THEN
-     f12vmr=0.503-9
+   IF (f12vmr < 0. ) THEN
+     f12vmr=0.503e-9
    ELSE
      f12vmr=f12vmr*1.e-12
    ENDIF
@@ -569,6 +583,12 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
    fact1    = (doydatap - doymodel)/deltat
    fact2    = (doymodel - doydatam)/deltat
    co2vmr = (co2(nyrm)*fact1 + co2(nyrp)*fact2)*1.e-06
+   IF ( wrf_dm_on_monitor() ) THEN
+     WRITE(message,*)'CAM________ year:',yr,' julian day:',julian
+     call wrf_debug( 75, message)
+     WRITE(message,*)'CAM co2vmr: ',co2vmr,' n2ovmr:',n2ovmr,' ch4vmr:',ch4vmr,' cfc11:',f11vmr,' cfc12:',f12vmr
+     call wrf_debug( 75, message)
+   ENDIF
 #endif
 
    co2mmr=co2vmr*mwco2/mwdry
@@ -1752,7 +1772,7 @@ subroutine radctl(j, lchnk   ,ncol    , pcols, pver, pverp, pverr, pverrp, ppcns
    real(r8) scales(naer_all)               ! scaling factors for aerosols
 #ifdef CLWRF
 !CLWRF-UC July.09
-   real, INTENT(IN)        ::    n2ovmr, ch4vmr, f11vmr, f12vmr
+   real(r8), INTENT(IN)        ::    n2ovmr, ch4vmr, f11vmr, f12vmr
    CHARACTER (LEN=256)             message
 #endif
 
@@ -8008,12 +8028,16 @@ end subroutine radozn
 ! distributed gas concentration evolution
    INTEGER, INTENT (IN)                          :: yr, yeari, lini, yearf
    REAL, INTENT (IN)                             :: julian
-   REAL(r8), INTENT (IN)                         :: gas(500)
-   REAL, INTENT (OUT)                            :: interp_gas
+   REAL(r8), DIMENSION(500), INTENT (IN)         :: gas
+   REAL(r8), INTENT (OUT)                        :: interp_gas
+!Local
+   REAL(r8)                                      :: yearini, yearend, gas1, gas2
    REAL                                          :: doymodel, doydatam, doydatap    &
-                  ,deltat, fact1, fact2, gas1, gas2
+                  ,deltat, fact1, fact2
+   yearini=yeari*1.
+   yearend=yr*1.
    CALL interpolate_lin(REAL(yeari), gas(lini-1), REAL(yearf), gas(lini), REAL(yr), gas1 )
-   CALL interpolate_lin(REAL(yeari), gas(lini-1), REAL(yearf), gas(lini), REAL(yr+1), gas2 )
+   CALL interpolate_lin(REAL(yeari), gas(lini-1), REAL(yearf), gas(lini), REAL(yr)+1., gas2 )
 
    doymodel = yr*365. + julian
    doydatam = yeari*365. + 1 
@@ -8037,8 +8061,8 @@ END SUBROUTINE interpolate_CAMgases
 
      REAL, INTENT (IN)                           :: x1,x2,x0
      REAL(r8), INTENT (IN)                       :: y1,y2
-     REAL, INTENT (OUT)                          :: y
-     REAL                                        :: a,b,x
+     REAL(r8), INTENT (OUT)                      :: y
+     REAL(r8)                                    :: a,b,x
 
     a=y1
     b=(y2-y1)/(x2-x1)
