@@ -402,7 +402,7 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
 ! CLWRF-UC June.09 
 #include <wrf_io_flags.h>
    integer, DIMENSION(1:cyr), SAVE                  :: yrdata
-   real(r8), DIMENSION(1:cyr), SAVE                 :: co2, n2o, ch4, cfc11, cfc12 
+   real(r8), DIMENSION(1:cyr), SAVE                 :: co2r, n2or, ch4r, cfc11r, cfc12r
    REAL(r8)                                         :: co2vmr, n2ovmr, ch4vmr, f11vmr, f12vmr
 
    INTEGER                                          :: yearIN, found_yearIN, iyear
@@ -413,6 +413,9 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
                     ,VARCAM_in_years
    LOGICAL                                          :: exists, READtrFILE
 !   LOGICAL, EXTERNAL                                :: ISNAND
+   CHARACTER(LEN=256)                               :: message
+#else
+   LOGICAL, EXTERNAL                                :: wrf_dm_on_monitor
    CHARACTER(LEN=256)                               :: message
 #endif
 
@@ -479,26 +482,105 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
             DO WHILE (istatus == 0)
 !              READ(UNIT=iunit, FMT='*', IOSTAT=istatus)                                                             &
               READ(UNIT=iunit, FMT='(I4, 1x, F8.3,1x, 4(F10.3,1x))', IOSTAT=istatus)                                                             &
-              yrdata(idata), co2(idata), n2o(idata), ch4(idata), cfc11(idata), cfc12(idata)
+              yrdata(idata), co2r(idata), n2or(idata), ch4r(idata), cfc11r(idata), cfc12r(idata)
               IF ( wrf_dm_on_monitor() ) THEN
-                WRITE(message,*)'istatus:',istatus,' idata:',idata,' year:',yrdata(idata),      &
-                ' co2: ',co2(idata), ' n2o: ',n2o(idata),' ch4:',ch4(idata),' cfc11:',          &
-                  cfc11(idata),' cfc12:', cfc12(idata) 
+                WRITE(message,*)'CLWRF reading...: istatus:',istatus,' idata:',idata,' year:',  &
+                  yrdata(idata), ' co2: ',co2r(idata), ' n2o: ',n2or(idata),' ch4:',ch4r(idata),&
+                  ' cfc11:', cfc11r(idata),' cfc12:', cfc12r(idata)
                 call wrf_debug( 75, message) 
               ENDIF
 
               idata=idata+1
             END DO
            IF (istatus /= -1) THEN
-             PRINT *,"Not normal ending of 'CAMtr_volume_mixing_ratio' file"
-             PRINT *,"Lecture ends with 'IOSTAT'=",istatus
+             PRINT *,'CLWRF -- clwrf -- CLWRF ALERT!'
+             PRINT *,"   Not normal ending of 'CAMtr_volume_mixing_ratio' file"
+             PRINT *,"   Lecture ends with 'IOSTAT'=",istatus
            END IF
            VARCAM_in_years = idata - 1
            CLOSE(iunit)
          ENDIF
        ELSE
-         PRINT *,'CAMtr_volume_mixing_ratio does not exists!'
-         CALL wrf_error_fatal('Not found CAM trace gasses file') 
+         PRINT *,"CLWRF -- clwrf -- CLWRF ALERT!"
+         PRINT *,"   'CAMtr_volume_mixing_ratio' does not exists"
+         PRINT *,'   Recovering original co2 A2 scenario concentrations'
+!        Recovering original co2 A2 concentrations:
+         yrdata=-9999.999
+         VARCAM_in_years = 233
+         yrdata(1:VARCAM_in_years) = &
+           (/ 1869, 1870, 1871, 1872, 1873, 1874, 1875, &
+           1876, 1877, 1878, 1879, 1880, 1881, 1882, &
+           1883, 1884, 1885, 1886, 1887, 1888, 1889, &
+           1890, 1891, 1892, 1893, 1894, 1895, 1896, &
+           1897, 1898, 1899, 1900, 1901, 1902, 1903, &
+           1904, 1905, 1906, 1907, 1908, 1909, 1910, &
+           1911, 1912, 1913, 1914, 1915, 1916, 1917, &
+           1918, 1919, 1920, 1921, 1922, 1923, 1924, &
+           1925, 1926, 1927, 1928, 1929, 1930, 1931, &
+           1932, 1933, 1934, 1935, 1936, 1937, 1938, &
+           1939, 1940, 1941, 1942, 1943, 1944, 1945, &
+           1946, 1947, 1948, 1949, 1950, 1951, 1952, &
+           1953, 1954, 1955, 1956, 1957, 1958, 1959, &
+           1960, 1961, 1962, 1963, 1964, 1965, 1966, &
+           1967, 1968, 1969, 1970, 1971, 1972, 1973, &
+           1974, 1975, 1976, 1977, 1978, 1979, 1980, &
+           1981, 1982, 1983, 1984, 1985, 1986, 1987, &
+           1988, 1989, 1990, 1991, 1992, 1993, 1994, &
+           1995, 1996, 1997, 1998, 1999, 2000, 2001, &
+           2002, 2003, 2004, 2005, 2006, 2007, 2008, &
+           2009, 2010, 2011, 2012, 2013, 2014, 2015, &
+           2016, 2017, 2018, 2019, 2020, 2021, 2022, &
+           2023, 2024, 2025, 2026, 2027, 2028, 2029, &
+           2030, 2031, 2032, 2033, 2034, 2035, 2036, &
+           2037, 2038, 2039, 2040, 2041, 2042, 2043, &
+           2044, 2045, 2046, 2047, 2048, 2049, 2050, &
+           2051, 2052, 2053, 2054, 2055, 2056, 2057, &
+           2058, 2059, 2060, 2061, 2062, 2063, 2064, &
+           2065, 2066, 2067, 2068, 2069, 2070, 2071, &
+           2072, 2073, 2074, 2075, 2076, 2077, 2078, &
+           2079, 2080, 2081, 2082, 2083, 2084, 2085, &
+           2086, 2087, 2088, 2089, 2090, 2091, 2092, &
+           2093, 2094, 2095, 2096, 2097, 2098, 2099, &
+           2100, 2101                               /)
+         co2r(1:VARCAM_in_years) = &
+           (/ 289.263, 289.263, 289.416, 289.577, 289.745, 289.919, 290.102, &
+             290.293, 290.491, 290.696, 290.909, 291.129, 291.355, 291.587, 291.824, &
+             292.066, 292.313, 292.563, 292.815, 293.071, 293.328, 293.586, 293.843, &
+             294.098, 294.35, 294.598, 294.842, 295.082, 295.32, 295.558, 295.797,   &
+             296.038, 296.284, 296.535, 296.794, 297.062, 297.338, 297.62, 297.91,   &
+             298.204, 298.504, 298.806, 299.111, 299.419, 299.729, 300.04, 300.352,  &
+             300.666, 300.98, 301.294, 301.608, 301.923, 302.237, 302.551, 302.863,  &
+             303.172, 303.478, 303.779, 304.075, 304.366, 304.651, 304.93, 305.206,  &
+             305.478, 305.746, 306.013, 306.28, 306.546, 306.815, 307.087, 307.365,  &
+             307.65, 307.943, 308.246, 308.56, 308.887, 309.228, 309.584, 309.956,   &
+             310.344, 310.749, 311.172, 311.614, 312.077, 312.561, 313.068, 313.599, &
+             314.154, 314.737, 315.347, 315.984, 316.646, 317.328, 318.026, 318.742, &
+             319.489, 320.282, 321.133, 322.045, 323.021, 324.06, 325.155, 326.299,  &
+             327.484, 328.698, 329.933, 331.194, 332.499, 333.854, 335.254, 336.69,  &
+             338.15, 339.628, 341.125, 342.65, 344.206, 345.797, 347.397, 348.98,    &
+             350.551, 352.1, 354.3637, 355.7772, 357.1601, 358.5306, 359.9046,       &
+             361.4157, 363.0445, 364.7761, 366.6064, 368.5322, 370.534, 372.5798,    &
+             374.6564, 376.7656, 378.9087, 381.0864, 383.2994, 385.548, 387.8326,    &
+             390.1536, 392.523, 394.9625, 397.4806, 400.075, 402.7444, 405.4875,     &
+             408.3035, 411.1918, 414.1518, 417.1831, 420.2806, 423.4355, 426.6442,   &
+             429.9076, 433.2261, 436.6002, 440.0303, 443.5168, 447.06, 450.6603,     &
+             454.3059, 457.9756, 461.6612, 465.3649, 469.0886, 472.8335, 476.6008,   &
+             480.3916, 484.2069, 488.0473, 491.9184, 495.8295, 499.7849, 503.7843,   &
+             507.8278, 511.9155, 516.0476, 520.2243, 524.4459, 528.7127, 533.0213,   &
+             537.3655, 541.7429, 546.1544, 550.6005, 555.0819, 559.5991, 564.1525,   &
+             568.7429, 573.3701, 578.0399, 582.7611, 587.5379, 592.3701, 597.2572,   &
+             602.1997, 607.1975, 612.2507, 617.3596, 622.524, 627.7528, 633.0616,    &
+             638.457, 643.9384, 649.505, 655.1568, 660.8936, 666.7153, 672.6219,     &
+             678.6133, 684.6945, 690.8745, 697.1569, 703.5416, 710.0284, 716.6172,   &
+             723.308, 730.1008, 736.9958, 743.993, 751.0975, 758.3183, 765.6594,     &
+             773.1207, 780.702, 788.4033, 796.2249, 804.1667, 812.2289, 820.4118,    &
+             828.6444, 828.6444 /)
+
+         n2or=-9999.999
+         ch4r=-9999.999
+         cfc11r=-9999.999
+         cfc12r=-9999.999
+!         CALL wrf_error_fatal('Not found CAM trace gasses file') 
 
        ENDIF ! CAMtr_volume_mixing_ratio exists
    
@@ -521,22 +603,25 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
      nyrm = yrdata(yearIN-1)
      nyrp = yrdata(yearIN)
    ENDIF
-!   co2vmr=-99999.
-   n2ovmr=-99999.
-   ch4vmr=-99999.
-   f11vmr=-99999.
-   f12vmr=-99999.
-   CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, co2, co2vmr)
-!   IF (co2(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, co2, co2vmr)
-   IF (n2o(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, n2o, n2ovmr)
-   IF (ch4(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, ch4, ch4vmr)
-   IF (cfc11(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, cfc11, f11vmr)
-   IF (cfc12(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, cfc12, f12vmr)
+   co2vmr=-9999.999
+   n2ovmr=-9999.999
+   ch4vmr=-9999.999
+   f11vmr=-9999.999
+   f12vmr=-9999.999
+   IF (co2r(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, co2r, co2vmr)
+   IF (n2or(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, n2or, n2ovmr)
+   IF (ch4r(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, ch4r, ch4vmr)
+   IF (cfc11r(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, cfc11r, f11vmr)
+   IF (cfc12r(1) > 0.) CALL interpolate_CAMgases(yr, julian, nyrm, yearIN, nyrp, cfc12r, f12vmr)
 
 ! Verification of interpolated values. In case of no value 
 ! original values extracted from ghg_surfvals.F90 module
 ! co2
-   co2vmr=co2vmr*1.e-06
+   IF (co2vmr < 0.) THEN
+     co2vmr=3.550e-4
+   ELSE
+     co2vmr=co2vmr*1.e-06
+   END IF
 
 !n2o
    IF (n2ovmr < 0. ) THEN
@@ -567,9 +652,10 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
    ENDIF
 
    IF ( wrf_dm_on_monitor() ) THEN
-     WRITE(message,*)'CAM-CLWRF________ year:',yr,' julian day:',julian
+     WRITE(message,*)'CAM-CLWRF interpolated values______ year:',yr,' julian day:',julian
      call wrf_debug( 75, message)
-     WRITE(message,*)'CAM-CLWRF co2vmr: ',co2vmr,' n2ovmr:',n2ovmr,' ch4vmr:',ch4vmr,' cfc11:',f11vmr,' cfc12:',f12vmr
+     WRITE(message,*)'  CAM-CLWRF co2vmr: ',co2vmr,' n2ovmr:',n2ovmr,' ch4vmr:',ch4vmr,' cfc11:'&
+       ,f11vmr,' cfc12:',f12vmr
      call wrf_debug( 75, message)
    ENDIF
 
@@ -584,9 +670,10 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
    fact2    = (doymodel - doydatam)/deltat
    co2vmr = (co2(nyrm)*fact1 + co2(nyrp)*fact2)*1.e-06
    IF ( wrf_dm_on_monitor() ) THEN
-     WRITE(message,*)'CAM________ year:',yr,' julian day:',julian
+     WRITE(message,*)'CAM interpolated values_____ year:',yr,' julian day:',julian
      call wrf_debug( 75, message)
-     WRITE(message,*)'CAM co2vmr: ',co2vmr,' n2ovmr:',n2ovmr,' ch4vmr:',ch4vmr,' cfc11:',f11vmr,' cfc12:',f12vmr
+     WRITE(message,*)'CAM co2vmr: ',co2vmr,' n2ovmr:',n2ovmr,' ch4vmr:',ch4vmr,' cfc11:',f11vmr,&
+       ' cfc12:',f12vmr
      call wrf_debug( 75, message)
    ENDIF
 #endif
@@ -1773,7 +1860,11 @@ subroutine radctl(j, lchnk   ,ncol    , pcols, pver, pverp, pverr, pverrp, ppcns
 #ifdef CLWRF
 !CLWRF-UC July.09
    real(r8), INTENT(IN)        ::    n2ovmr, ch4vmr, f11vmr, f12vmr
-   CHARACTER (LEN=256)             message
+   CHARACTER (LEN=256)         ::    message
+   LOGICAL, EXTERNAL                                :: wrf_dm_on_monitor
+#else
+   LOGICAL, EXTERNAL                                :: wrf_dm_on_monitor
+   CHARACTER (LEN=256)         ::    message
 #endif
 
 !
@@ -2006,8 +2097,10 @@ subroutine radctl(j, lchnk   ,ncol    , pcols, pver, pverp, pverr, pverrp, ppcns
 !        call t_stopf("radclwmx")
       else
 #ifdef CLWRF
-         WRITE(message,*)'CLWRF-CAM_call-trcmix n2ovmr:',n2ovmr,' ch4vmr:',ch4vmr,' f11vmr:',f11vmr,' f12vmr:',f12vmr
-         CALL wrf_debug(75, message)
+         IF ( wrf_dm_on_monitor() ) THEN
+           WRITE(message,*)'CLWRF-CAM_call-trcmix n2ovmr:',n2ovmr,' ch4vmr:',ch4vmr,' f11vmr:',f11vmr,' f12vmr:',f12vmr
+           CALL wrf_debug(75, message)
+         END IF
          call trcmix_clwrf(lchnk   ,ncol    ,pcols, pver,  &
                      pmid    ,clat, n2ovmr, ch4vmr, f11vmr, f12vmr, n2o,   &
                      ch4, cfc11, cfc12 )
@@ -2017,6 +2110,11 @@ subroutine radctl(j, lchnk   ,ncol    , pcols, pver, pverp, pverr, pverrp, ppcns
                      pmid    ,clat, n2o     ,ch4     ,                     &
                      cfc11   ,cfc12   )
 #endif
+         IF ( wrf_dm_on_monitor() ) THEN
+           WRITE(message,*)'CLWRF post_trcmix_values. n2o:', n2o(pcols/2,pver/2), ' ch4:',      &
+             ch4(pcols/2,pver/2),' cfc11:', cfc11(pcols/2,pver/2),' cfc12:', cfc12(pcols/2,pver/2) 
+           CALL wrf_debug(75, message)
+         END IF 
 !        call t_startf("radclwmx")
          call radclwmx(lchnk     ,ncol    ,pcols, pver, pverp ,        &
                        lwupcgs   ,t       ,qm1(1,1,1)       ,o3vmr ,   &

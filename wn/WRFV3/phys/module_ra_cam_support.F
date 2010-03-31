@@ -251,11 +251,11 @@ real(r8) :: gdst(ndstsz, nspint) ! dust asymmetry parameter
 
 #ifdef CLWRF
 ! UC-CLWRF June.09
-   real(r8) :: co2vmr          ! co2   volume mixing ratio
-   real(r8) :: n2ovmr          ! n2o   volume mixing ratio
-   real(r8) :: ch4vmr          ! ch4   volume mixing ratio
-   real(r8) :: f11vmr          ! cfc11 volume mixing ratio
-   real(r8) :: f12vmr          ! cfc12 volume mixing ratio
+   real(r8) :: co2vmr = 3.550e-4         ! co2   volume mixing ratio
+   real(r8) :: n2ovmr = 0.311e-6         ! n2o   volume mixing ratio
+   real(r8) :: ch4vmr = 1.714e-6         ! ch4   volume mixing ratio
+   real(r8) :: f11vmr = 0.280e-9         ! cfc11 volume mixing ratio
+   real(r8) :: f12vmr = 0.503e-9         ! cfc12 volume mixing ratio
 
    integer, parameter               :: cyr = 500     ! maximum num. of lines in 'CAMtr_volume_mixing_ratio' file
 #else
