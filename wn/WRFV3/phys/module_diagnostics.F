@@ -627,7 +627,7 @@ CONTAINS
                           maximum0= -1000000. 
    REAL                                      :: value
    INTEGER, INTENT(IN)                       :: clwrfH
-   CHARACTER (LEN=256)                       :: message
+   CHARACTER (LEN=1024)                       :: message
    REAL, SAVE                                :: nsteps
 
 !-----------------------------------------------------------------
@@ -641,33 +641,75 @@ CONTAINS
   IF (MOD(NINT(XTIME),clwrfH) == 0) THEN
     DO ij = 1 , num_tiles
       IF  ( wrf_dm_on_monitor() ) THEN
-        WRITE(message, *)'CLWRF - I; tile: ',ij,' T2clmin:',                 & 
-           T2clmin(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
-           j_start(ij)+(j_end(ij)-j_start(ij))/2),' T2clmax:',               &
-           T2clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
-           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TT2clmin:',              &
-           TT2clmin(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
-           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TT2clmax:',              &
-           TT2clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
-           j_start(ij)+(j_end(ij)-j_start(ij))/2),' U10clmax:',              &
-           U10clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
-           j_start(ij)+(j_end(ij)-j_start(ij))/2),' V10clmax:',              &
-           V10clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
-           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TSPDUV10clmax:',         &
-           TSPDUV10clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,              &
-           j_start(ij)+(j_end(ij)-j_start(ij))/2)
-      CALL wrf_debug(1, message)
-      WRITE( message, *)' CLWRF - II; RAINCclmax:',                          &
-           RAINCclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                 &
-           j_start(ij)+(j_end(ij)-j_start(ij))/2),' RAINNCclmax:',           &
-           RAINNCclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                &
-           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TRAINCclmax:',           &
-           TRAINCclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                &
-           j_start(ij)+(j_end(ij)-j_start(ij))/2),' TRAINNCclmax:',          &
-           TRAINNCclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,               &
-           j_start(ij)+(j_end(ij)-j_start(ij))/2)
-      CALL wrf_debug(1, message)
-    ENDIF
+        WRITE(message, *)'CLWRFdiag - T2; tile: ',ij,' T2clmin:',           & 
+          t2clmin(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' T2clmax:',               &
+          t2clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' TT2clmin:',              &
+          tt2clmin(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' TT2clmax:',              &
+          tt2clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' T2clmean:',              &
+          t2clmean(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' T2clstd:',               &
+          t2clstd(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2)
+        CALL wrf_debug(75, message)
+        WRITE(message, *)'CLWRFdiag - Q2; tile: ',ij,' Q2clmin:',           &
+          q2clmin(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' Q2clmax:',               &
+          q2clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' TQ2clmin:',              &
+          tq2clmin(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' TQ2clmax:',              &
+          tq2clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' Q2clmean:',              &
+          q2clmean(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' Q2clstd:',               &
+          q2clstd(i_start(ij)+(i_end(ij)-i_start(ij))/2,                    &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2)
+        CALL wrf_debug(75, message)
+        WRITE(message, *)'CLWRFdiag - WINDSPEED; tile: ',ij,' U10clmax:',   &
+          u10clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' V10clmax:',              &
+          v10clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' SPDUV10clmax:',          &
+          spduv10clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,               &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' TSPDUV10clmax:',         &
+          tspduv10clmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,              &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' U10clmean:',             &
+          u10clmean(i_start(ij)+(i_end(ij)-i_start(ij))/2,                  &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' V10clmean:',             &
+          v10clmean(i_start(ij)+(i_end(ij)-i_start(ij))/2,                  &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' SPDUV10clmean:',         &
+          spduv10clmean(i_start(ij)+(i_end(ij)-i_start(ij))/2,              &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' U10clstd:',              &
+          u10clstd(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' V10clstd:',              &
+          v10clstd(i_start(ij)+(i_end(ij)-i_start(ij))/2,                   &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' SPDUV10clstd:',          &
+          spduv10clstd(i_start(ij)+(i_end(ij)-i_start(ij))/2,               &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2)
+        CALL wrf_debug(75, message)
+        WRITE(message, *)'CLWRFdiag - RAIN; tile: ',ij,' RAINCclmax:',      &
+          raincclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                 &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' RAINNCclmax:',           &
+          rainncclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' TRAINCclmax:',           &
+          traincclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,                &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' TRAINNCclmax:',          &
+          trainncclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,               &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' RAINCclmean:',           &
+          raincclmean(i_start(ij)+(i_end(ij)-i_start(ij))/2,                &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' RAINNCclmean:',          &
+          rainncclmean(i_start(ij)+(i_end(ij)-i_start(ij))/2,               &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' RAINCclstd:',            &
+          raincclstd(i_start(ij)+(i_end(ij)-i_start(ij))/2,                 &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' RAINNCclstd:',           &
+          rainncclstd(i_start(ij)+(i_end(ij)-i_start(ij))/2,                &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2)
+        CALL wrf_debug(75, message)
+     ENDIF
     DO j = j_start(ij), j_end(ij)
       DO i = i_start(ij), i_end(ij)
         t2clmin(i,j)=minimum0
