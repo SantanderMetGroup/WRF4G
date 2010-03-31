@@ -251,6 +251,7 @@ dimension_mapping = {
   "south_north": "y",
   "west_east": "x",
   "bottom_top": "z",
+  "soil_level_stag": "z",
   "num_metgrid_levels": "plev",
   "bottom_top_stag": "z", # the variables should be de-staggered before copying them to the output file
 }
@@ -497,7 +498,7 @@ if __name__ == "__main__":
       elif varname == "PRES":
         incvar = inc.variables['P']
         copyval = incvar[:nrecords] + inc.variables["PB"][:nrecords]
-        oncvar = get_oncvar(itime, incvar, onc)
+        oncvar = get_oncvar(itime, incvar, onc)  
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       elif varname == "GEOP":
         incvar = inc.variables['PH']
@@ -532,6 +533,32 @@ if __name__ == "__main__":
           mslp = compute_mslp(p, pb, ph, phb, t , qvapor)
           oncvar = get_oncvar(itime, incvar, onc, out_is_2D_but_in_3D=True)
         oncvar[itime:itime+nrecords] = mslp[:nrecords].astype(oncvar.typecode())
+      elif varname=="RSS":
+        incvar = inc.variables['SWDOWN']
+        copyval = incvar[:nrecords]*(1 - inc.variables['ALBEDO'][:nrecords])
+        oncvar = get_oncvar(itime, incvar, onc)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname=="RLS":
+        incvar = inc.variables['GLW']
+        glw = incvar[:]
+        emis = inc.variables['EMISS'][:]
+        tskin = inc.variables['SKINTEMP'][:]
+        copyval = emis[:nrecords]*glw[:nrecords] - 5.67e-8*emis[:nrecords]*tskin[:nrecords]**4
+        oncvar = get_oncvar(itime, incvar, onc)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname=="MRSO":
+        incvar = inc.variables['SMOIS']
+        smois = incvar[:]
+        layer_width = inc.variables['DZS'][:]
+        smois = smois*layer_width[:,:,NewAxis,NewAxis]     
+        copyval = sum(smois, axis=1)*1000
+        oncvar = get_oncvar(itime, incvar, onc, out_is_2D_but_in_3D=True)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname=="MRSOS":
+        incvar = inc.variables['SMOIS']
+        copyval = incvar[:,0,:,:]*1000
+        oncvar = get_oncvar(itime, incvar, onc, out_is_2D_but_in_3D=True)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       else:
         incvar = inc.variables[varname]
         oncvar = get_oncvar(itime, incvar, onc)
