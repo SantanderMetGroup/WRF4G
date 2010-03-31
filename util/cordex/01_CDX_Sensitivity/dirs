@@ -1,3 +1,4 @@
 EXPDIR="/vols/tetis/meteo4g/WRF/experiments"
-POSTDIR="/vols/tetis/escena/CORDEX/post"
-POSTDIR="post"
+POSTDIR="/vols/tetis/escena/CORDEX/01_CDX_Sensitivity/data/post"
+POST2DIR="/vols/tetis/escena/CORDEX/01_CDX_Sensitivity/data/post2"
+#POSTDIR="post"

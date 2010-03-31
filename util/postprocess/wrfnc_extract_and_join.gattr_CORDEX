@@ -1,0 +1,6 @@
+Conventions "CF-1.4"
+title "CORDEX Africa Sensitivity Run"
+source "WRF 3.1.1 modified at the University of Cantabria"
+institution "Universidad de Cantabria (Spain)"
+references ""
+comment "The simulation was forced with ERA-Interim 2x2 deg data as boundary conditions"

@@ -31,7 +31,7 @@ function pintnml(){
   path_to_input            = '${idir}/',
   input_name               = '${ifile}',
   path_to_output           = '${idir}/',
-  fields                   = 'Q2,T2,GHT,TT,UU,VV,RH,MSLP,PSFC,U10,V10,RAINTOT,SWDOWN,GLW,QCLOUD,QICE,Times',
+  fields                   = 'Q2,T2,GHT,TT,U,V,RH,QVAPOR,MSLP,PSFC,U10,V10,RAINTOT,SWDOWN,GLW,LH,GRDFLX,HFX,QCLOUD,QICE,Times',
   process                  = 'list',
   debug                    = .FALSE.,
   grid_filt                = 3,
@@ -39,7 +39,7 @@ function pintnml(){
 /
 
 &interp_in
-  interp_levels            = 1000.0, 850.0, 500.0, 200.0,
+  interp_levels            = 1000.0, 925., 850.0, 700., 500.0, 300, 200.0, 100.,
   extrapolate              = 1,
   interp_method            = 1,
   unstagger_grid           = .TRUE.,

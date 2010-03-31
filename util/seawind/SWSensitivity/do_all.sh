@@ -2,7 +2,6 @@
 source /software/ScientificLinux/4.6/etc/bashrc
 scriptdir=$( (cd `dirname $0` && echo $PWD) )
 
-EXPDIR="/vols/tetis/meteo4g/WRF/experiments"
 wxajcmd="python /oceano/gmeteo/WORK/chus/wrf4g/util/postprocess/wrfnc_extract_and_join.py -a /oceano/gmeteo/WORK/chus/wrf4g/util/postprocess/wrfnc_extract_and_join.gattr_ISEAWIND -t /oceano/gmeteo/WORK/chus/wrf4g/util/postprocess/wrfnc_extract_and_join.table -g /oceano/gmeteo/DATA/WRF/domains/Europe_15k/geo_em.d01.nc -r 1950-01-01_00:00:00"
 tag=$(date +'%Y%m%d%H%M%S')
 
@@ -40,7 +39,7 @@ function get_eobs(){
   cdo div EOBS_sanom_200110_200112.nc EOBS_sstd_200110_200112.nc EOBS_sstdanom_200110_200112.nc
 }
 
-function process_realization() {
+function process_realization_18() {
   #
   #  function to process one single realization
   #
@@ -64,7 +63,8 @@ function process_realization() {
     cdo cat ${tag}__*.nc s2.nc
     cdo seldate,2001-10-01,2001-12-31 s2.nc ${prettyname}18_1H.nc
   fi
-  rm -f ${tag}__*.nc s2.nc
+  #rm -f ${tag}__*.nc s2.nc
+  rm -f s2.nc
   cdo daysum -selvar,pr ${prettyname}18_1H.nc ${prettyname}18_DM_pr.nc
   cdo daymean -addc,-273.15 -selvar,tas ${prettyname}18_1H.nc ${prettyname}18_DM_tas.nc
   cdo chname,tas,tasmin -addc,-273.15 -daymin -selvar,tas ${prettyname}18_1H.nc ${prettyname}18_DM_tasmin.nc
@@ -168,33 +168,36 @@ function dump_stats() {
 #
 #   Process all
 #
+EXPDIR="/vols/tetis/meteo4g/WRF/experiments"
+EXPDIR="/oceano/gmeteo/WORK/MDM.UC/WRF/experiments"
 #get_mask
 #get_eobs
-#for RA in N E I
-#do
-#  for PHYS in BL1 BL2 BL7
-#  do
-#    process_realization_18 SeaWind_${RA}1540_${PHYS}_RF06
-#    get_bias SeaWind_${RA}1540_${PHYS}_RF0618
-#    get_corr SeaWind_${RA}1540_${PHYS}_RF0618
-#    get_stdratio SeaWind_${RA}1540_${PHYS}_RF0618
-#    get_rmse SeaWind_${RA}1540_${PHYS}_RF0618
-#    #get_sbias SeaWind_${RA}1540_${PHYS}_RF0618
-#    #get_scorr SeaWind_${RA}1540_${PHYS}_RF0618
-#    #get_sstdratio SeaWind_${RA}1540_${PHYS}_RF0618
-#    #get_srmse SeaWind_${RA}1540_${PHYS}_RF0618
-#    for var in pr tas tasmax tasmin; do
-#      dump_stats SeaWind_${RA}1540_${PHYS}_RF06 ${var} > SeaWind_${RA}1540_${PHYS}_RF0618_stats_${var}.txt
-#    done
-#  done
-#done
-
-for real in SeaWind_N1540_BL1_SN SeaWind_N1540_BL1_GN
+for RA in I # N E I
 do
-  process_continuous_realization ${real}
-  get_bias ${real}
-  get_corr ${real}
-  get_stdratio ${real}
-  get_rmse ${real}
+  for PHYS in BL1 BL2 BL7
+  do
+    real="SeaWind_${RA}1540G_${PHYS}_RF06"
+    process_realization_18 ${real}
+    #get_bias ${real}18
+    #get_corr ${real}18
+    #get_stdratio ${real}18
+    #get_rmse ${real}18
+    #get_sbias ${real}18
+    #get_scorr ${real}18
+    #get_sstdratio ${real}18
+    #get_srmse ${real}18
+    #for var in pr tas tasmax tasmin; do
+    #  dump_stats ${real} ${var} > ${real}18_stats_${var}.txt
+    #done
+  done
 done
+
+#for real in SeaWind_N1540_BL1_SN SeaWind_N1540_BL1_GN
+#do
+#  process_continuous_realization ${real}
+#  get_bias ${real}
+#  get_corr ${real}
+#  get_stdratio ${real}
+#  get_rmse ${real}
+#done
 

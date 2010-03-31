@@ -70,6 +70,10 @@ function is_dry_run(){
   test "${isdry}" = "yes"
 }
 
+function should_not_run_this_chunk(){
+  test "$(date2int ${current_date}) -gt $(date2int ${queue_end_date})" -o "$(date2int ${final_date}) -lt $(date2int ${queue_start_date})"
+}
+
 function if_not_dry(){
   comando=$*
   if ! is_dry_run; then
@@ -129,7 +133,7 @@ function cycle_chunks(){
     fi
     if test ${is_restart} -eq 0 || 
       (test ${is_restart} -eq 1 && rematch "${rst_realization}" "${realization_name}" && rematch "${rst_chunk}" "${chunkno}" ; ) ; then
-      if is_dry_run; then
+      if is_dry_run ; then
         echo "  ${realization_name}  $(printf "%4d" ${chunkno})  ${current_date}  ${final_date}"
       else
         chunkdir="${userdir}/realizations/${realization_name}/$(printf '%04d' ${chunkno})"
@@ -156,7 +160,7 @@ EOF
         cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh ${chunkdir}/WRF4G_ini.sh
         if test -d "wrf4g_files"; then
           cd wrf4g_files/
-            tar czf ${chunkdir}/wrf4g_files.tar.gz *
+            tar czhf ${chunkdir}/wrf4g_files.tar.gz *
           cd ..
         fi
         cd ${chunkdir}

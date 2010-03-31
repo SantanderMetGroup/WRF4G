@@ -83,7 +83,7 @@ echo "Current date for this realization is ${current_date}" >> WRF4G_ini.out
 if test "$(date2int ${current_date})" -ge "$(date2int ${chunk_end_date})"; then
   if test ${is_continuous} -eq 1 \
        -a $(date2int ${current_date}) -ne $(date2int ${end_date}) \
-       -a ${restart_date} -ne "-1" \
+       -a ${restart_date} != "-1" \
        -a $(date2int ${restart_date}) -lt $(date2int ${chunk_end_date}) ; then
     #
     #  If this is a continuous run and this realization did not reach the end

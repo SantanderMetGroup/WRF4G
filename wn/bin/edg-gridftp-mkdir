@@ -1,0 +1,313 @@
+#!/usr/bin/perl
+
+use strict;
+use Getopt::Long;
+use File::Basename;
+use Cwd;
+
+=head1 NAME
+
+edg-gridftp-mkdir - Create a directory on a GridFTP server.
+
+=head1 SYNOPSIS
+
+edg-gridftp-mkdir [B<--proxy>=I<proxy>] [B<--timeout>=I<timeout>] [B<--parents>] I<URL> [I<URL> ...]
+
+edg-gridftp-mkdir B<--usage> 
+
+edg-gridftp-mkdir B<--help> 
+
+=head1 DESCRIPTION 
+
+B<edg-gridftp-mkdir> creates a directory on a GridFTP server.  This
+command will return a status of 0 if the directory was created
+successfully.  In all other cases, it will return a non-zero value and
+print an error message to the standard error.
+
+If the B<--parents> option is given any parent directories of the
+given URL will also be created. 
+
+If more than one URL is given, then the URLs are processed
+sequentially.  The processing will stop with the first failure.
+
+NOTE: The creation is only attempted if the URL does not already exist.
+If the given file is a regular file, this command will return success.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<--proxy>=I<proxy>
+
+Set the proxy to use for the GridFTP operation.  If this is unset,
+then the underlying GridFTP library will try to find the proxy in the
+usual locations.  This is useful if the proxy is in a non-standard
+location, or the caller is a daemon which must act on the behalf of
+a user. 
+
+=item B<--timeout>=I<timeout>
+    
+Set the overall time (in seconds) within which all the directory creations must
+complete. If no timeout is specified a default 120 second timeout will be used.
+A negative or zero timeout will report a timeout error before attempting to
+contact any of the FTP servers. If an operation times out some directories
+may have already been created and will remain.
+
+=item B<--parents>
+
+If this option is given, then any parent directories which do not
+already exist will also be created.  Note that internally the URL list
+is just expanded to include the parent URLs in the processing list.
+If an error occurs, it is possible that a partial path was created.
+
+=item B<--usage>
+
+Short description of the usage of this command is given.
+
+=item B<--help>
+
+A description of the usage of this command and information on all of
+the options is given. 
+
+=item I<URL>
+
+URLs of the following formats are accepted: 
+
+ftp://ftp.server.org//absolute/file/name
+gsiftp://gridftp.server.org/~/home/relative/dirname
+gridftp://gridftp.server.org/home/relative/dirname
+
+Note: for the URLs without a tilde, the server configuration
+determines whether the filename is absolute or relative.  On servers
+which do not restrict users to their home areas, the tilde notation
+will not work.
+
+=back
+
+=head1 AUTHOR
+
+Charles Loomis (charles.loomis@cern.ch). Later modifications by
+CERN IT-DM/SMD.
+
+=head1 LICENSE
+
+Copyright (c) 2002 by Charles A. Loomis, Jr. and Le Centre National de
+la Recherche Scientifique (CNRS).  All rights reserved.
+
+The software was distributed with and is covered by the European
+DataGrid License.  A copy of this license can be found in the included
+LICENSE file.  This license can also be obtained from
+http://www.eu-datagrid.org/license.
+
+The underlying GridFTP library is part of the Globus Toolkit (TM) and
+is covered by the Globus Toolkit Public License.  See
+http://www.globus.org for more information. 
+
+=cut
+
+# Set the base command name and the one for "exists".
+my $basecmd = "edg-gridftp-base-mkdir";
+my $baseexists = "edg-gridftp-base-exists";
+
+# Set a successful return.
+my $exitcode = 0;
+
+# Check that the options are specified correctly. 
+my %options;
+GetOptions(\%options, 'usage', 'help', 'proxy=s', 'timeout=i', 'parents') 
+    || printUsage(\*STDERR,0);
+
+# If usage or help is specified, print the appropriate thing. 
+printUsage(\*STDOUT,0) if ($options{usage});
+printUsage(\*STDOUT,1) if ($options{help});
+
+# If the proxy was specified, then check that the file exists and set
+# the appropriate environmental variable. 
+if ($options{proxy}) {
+    my $f = $options{proxy};
+    printUsage(\*STDERR,0,"Given proxy ($options{proxy}) isn't readable.") unless (-r $f);
+    $ENV{X509_USER_PROXY} = $f;
+}
+
+# Must be at least one URL given.
+printUsage(\*STDERR,0,"Must supply at least one URL.") unless ($#ARGV>=0);
+
+# Ensure that the base command can be found and executed. 
+my $tpath = libexecPath($0);
+my $exe = $tpath . "/$basecmd";
+my $chk = $tpath . "/$baseexists";
+die "Can't execute $exe.\n" if (! -x $exe);
+die "Can't execute $chk.\n" if (! -x $chk);
+
+# If the parents option was given, we need to expand the argument list
+# to include the parents of any of the URLs.
+my $aref;
+if ($options{parents}) {
+  $aref = expandParents(\@ARGV);
+} else {
+  $aref = \@ARGV;
+}
+my @expanded = @$aref;
+
+# calculate the time by which we must finish or timeout
+my $endtime = time();
+if (exists $options{timeout}) {
+    $endtime += $options{timeout};
+} else {
+    $endtime += 120;
+}
+
+# Now process all of the arguments.  The URL are processed
+# sequentially.  The processing ends at the first failure. 
+my $url;
+foreach $url (@expanded) {
+
+    my $remain = $endtime - time();
+    
+    if ($remain <= 0) {
+      print STDERR "$0: timeout exceeded\n";
+      $exitcode = 1;
+      last;
+    }
+
+    # Redirect the standard error to avoid spurious error messages.
+    open SAVEERR, ">&STDERR" or die "Cannot redirect STDERR.\n";
+    open STDERR, ">/dev/null" or die "Cannot redirect STDERR to /dev/null.\n";
+
+    open CMD, "$chk -t $remain '$url' |";
+    print while (<CMD>);
+    close CMD;
+    my $failed = ($?) ? 1 : 0;
+
+    # Now restore the usual standard error.
+    close STDERR;
+    open STDERR, ">&SAVEERR" or die "Cannot restore STDERR.\n";
+
+    $remain = $endtime - time();
+    
+    if ($remain <= 0) {
+      print STDERR "$0: timeout exceeded\n";
+      $exitcode = 1;
+      last;
+    }
+
+    # Only do the creation of the directory if it doesn't already
+    # exist.
+    if ($failed) {
+        
+        open CMD, "$exe -t $remain '$url' |";
+        print while (<CMD>);
+        close CMD;
+        
+        if ($?) {
+            if ($? & 0x7f) {
+              # exited with a signal, return the signal number
+              $exitcode = $? & 0x7f;
+            } else {
+              # return exit code
+              $exitcode = ($? >> 8);
+            }
+            last;
+        }
+    }
+}
+
+exit($exitcode);
+
+
+# This subroutine creates the libexec directory from the given
+# filename.  If the filename is given as the current working
+# directory, then it is used to generate the name. 
+sub libexecPath {
+    my ($fullname) = @_;
+    my ($fname, $fpath) = fileparse($fullname);
+    $fpath = cwd() if ("$fpath" eq ".");
+    my @parts = split(/\//, $fpath);
+    $parts[$#parts] = 'bin';
+    $fpath = join('/',@parts);
+
+    return $fpath;
+}
+
+# This subroutine expands the list of URLs to include the list of
+# parents of the given URLs (in the proper order for creation).  A
+# reference to the expanded array is returned.
+sub expandParents {
+
+    # The input URLs passed as an array reference.
+    my $aref = shift;
+    my @origurls = @$aref;
+
+    # The array which will contain the expanded URL list.
+    my @expanded;
+
+    foreach my $url (@origurls) {
+
+        # Include in the URL parsing the initial "empty" part of the
+        # path.  I.e. the home area or any redundant leading slashes.
+        $url =~ m!(\w+://(?:[\w\d\.-]+)(?::\d*)?/(?:~)?/*)(.*)! or 
+            die "Cannot parse URL ($url).\n";
+        my $parent = $1;
+        my $path = $2;
+
+        my @elements = split(/\//,$path);
+
+        foreach my $element (@elements) {
+            $parent .= "$element/";
+            push @expanded, $parent;
+        }
+    }
+
+    return \@expanded;
+  }
+
+
+
+# A subroutine to act like pod2usage.  Since EDG uses a very old
+# version of perl. 
+sub printUsage {
+
+    my $usageText = <<'END'
+
+SYNOPSIS
+
+edg-gridftp-mkdir [--proxy=proxy] [--timeout=timeout] [--parents] URL [URL ...]
+
+edg-gridftp-mkdir --usage 
+
+edg-gridftp-mkdir --help 
+
+END
+    ;
+
+    my $helpText = $usageText . <<'END'
+
+DESCRIPTION 
+
+edg-gridftp-mkdir creates a directory on a GridFTP server.  This
+command will return a status of 0 if the directory was created
+successfully.  In all other cases, it will return a non-zero value and
+print an error message to the standard error.
+
+If the --parents option is given any parent directories of the
+given URL will also be created. 
+
+If more than one URL is given, then the URLs are processed
+sequentially.  The processing will stop with the first failure.
+
+NOTE: The creation is only attempted if the URL does not already exist.
+If the given file is a regular file, this command will return success.
+
+END
+    ;
+
+    my ($fh, $level, $message) = @_;
+
+    print $fh "$message\n" if ($message);
+
+    my $text = ($level) ? ($helpText) : ($usageText);
+
+    print $fh "$text\n";
+
+    exit($level);
+}

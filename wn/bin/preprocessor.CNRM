@@ -1,220 +1,4 @@
 #!/bin/bash
-ncrm_var_kind () {
-# Function to determine which kind of variable we want
-  var=$1
-  case ${var} in
-  'ta')
-     gribname='TT'
-     gribstatic='N'
-     gribcode='130'
-     units='K'
-     leveltype='100'
-  ;;
-  'ua')
-     gribname='UU'
-     gribstatic='N'
-     gribcode='131'
-     units='ms-1'
-     leveltype='100'
- 
-  ;;
-  'va')
-     gribname='VV'
-     gribstatic='N'
-     gribcode='132'
-     units='ms-1'
-     leveltype='100'
-  
-  ;;
-  "hur")
-     gribname='RH'
-     gribstatic='N'
-     gribcode='157'
-     units='%'
-     leveltype='100'
- 
-  ;;
-  "zg")
-     gribname='HGT'
-     gribstatic='N'
-     gribcode='129'
-     units='m'
-     leveltype='100'
- 
-  ;;
-  "tas")
-     gribname='TT'
-     gribstatic='N'
-     gribcode='167'
-     units='K'
-     leveltype='1'
- 
-  ;;
-  "uas")
-     gribname='UU'
-     gribstatic='N'
-     gribcode='165'
-     units='ms-1'
-     leveltype='1'
- 
-  ;;
-  "vas")
-     gribname='VV'
-     gribstatic='N'
-     gribcode='166'
-     units='ms-1'
-     leveltype='1'
- 
-  ;;
-  "hurs")
-     gribname='RH'
-     gribstatic='N'
-     gribcode='168'
-     units='%'
-     leveltype='1'
- 
-  ;;
-  "snw")
-     gribname='SNOW'
-     gribstatic='N'
-     gribcode='142'
-     units='m'
-     leveltype='1'
- 
-  ;;
-  "ps")
-     gribname='PSFC'
-     gribstatic='N'
-     gribcode='149'
-     units='Pa'
-     leveltype='1'
- 
-  ;;
-  "psl")
-     gribname='PMSL'
-     gribstatic='N'
-     gribcode='151'
-     units='Pa'
-     leveltype='1'
- 
-  ;;
-  "ts")
-     gribname='SKINTEMP'
-     gribstatic='N'
-     gribcode='235'
-     units='K'
-     leveltype='1'
- 
-  ;;
-  "sst")
-     gribname='SST'
-     gribstatic='N'
-     gribcode='34'
-     units='K'
-     leveltype='1'
- 
-  ;;
-  "orog")
-     gribname='SOILHGT'
-     gribstatic='Y'
-     gribcode='156'
-     units='m'
-     leveltype='1'
- 
-  ;;
-  "sftlf")
-     gribname='LANDSEA'
-     gribstatic='Y'
-     gribcode='158'
-     units=''
-     leveltype='1'
-  ;;
-  "STL1")
-     gribname='ST000007'
-     gribstatic='Y'
-     gribcode='139'
-     units='K'
-     leveltype='112'
-  ;;
-  "STL2")
-     gribname='ST000007'
-     gribstatic='Y'
-     gribcode='170'
-     units='K'
-     leveltype='112'
-  ;;
-  "STL3")
-     gribname='ST028100'
-     gribstatic='Y'
-     gribcode='183'
-     units='K'
-     leveltype='112'
-  ;;
-  "STL4")
-     gribname='ST100255'
-     gribstatic='Y'
-     gribcode='236'
-     units='K'
-     leveltype='112'
-  ;;
-  "SM000007")
-     gribname='SM000007'
-     gribstatic='Y'
-     gribcode='39'
-     units='fraction'
-     leveltype='112'
-  ;;
-  "SM007028")
-     gribname='SM000007'
-     gribstatic='Y'
-     gribcode='40'
-     units='fraction'
-     leveltype='112'
-  ;;
-  "SM028100")
-     gribname='SM028100'
-     gribstatic='Y'
-     gribcode='41'
-     units='fraction'
-     leveltype='112'
-  ;;
-  "SM100255")
-     gribname='SM100255'
-     gribstatic='Y'
-     gribcode='42'
-     units='fraction'
-     leveltype='112'
-  ;;
-  "SWVL1")
-     gribname='SW000007'
-     gribstatic='Y'
-     gribcode='43'
-     units='m3/m-3'
-     leveltype='112'
-  ;;
-  "SWVL2")
-     gribname='SW000007'
-     gribstatic='Y'
-     gribcode='44'
-     units='m3/m-3'
-     leveltype='112'
-  ;;
-  "SWVL3")
-     gribname='SW028100'
-     gribstatic='Y'
-     gribcode='45'
-     units='m3/m-3'
-     leveltype='112'
-  ;;
-  "SWVL4")
-     gribname='SW100255'
-     gribstatic='Y'
-     gribcode='46'
-     units='m3/m-3'
-     leveltype='112'
-  esac
-  echo ${gribname}" "${gribstatic}" "${gribcode}" "${leveltype}" "${units}
-}
 
 extract_date () {
 # Function to give date in any format and give any output
@@ -278,43 +62,8 @@ datadir="/oceano/gmeteo/DATA/CNRM/CNRM-CM3/20C3M"
 datastdir="/oceano/gmeteo/DATA/CNRM/CNRM-CM3/static"
 outdir=${rootsh}'/grbData'
 
-cat << EOF > ${rootsh}/cnrm_grib.table
- 129   zg           Geopotential height                      [m]
- 130   ta           Temperature                              [K]
- 131   ua           U wind                                   [ms-1]
- 132   va           V wind                                   [ms-1]
- 157   hur          Relative Humidity                        [%]
- 156   orog         Terrain Height                           [m]
- 158   sftlf        Land-Sea mask                            []
- 167   tas          Temperature at 2m                        [K]
- 168   hurs         Relative humidity at 2m                  [%]
- 165   uas          U wind at 10m                            [ms-1]
- 166   vas          V wind at 10m                            [ms-1]
- 149   PSFC         Surface pressure                         [Pa]
- 151   psl          Sea-level pressure                       [Pa]
-  34   SST          Sea-Surface Temperature                  [K]
- 235   ts           Skin Temperature                         [K]
- 141   snw          Water Equiv. of Acc. Snow Depth          [kgm-2]
- 139   STL1         T of 0-7 cm ground layer                 [K]
- 170   STL2         T of 7-28 cm ground layer                [K]
- 183   STL3         T of 28-100 cm ground layer              [K]
- 236   STL4         T of 100-255 cm ground layer             [K]
-  39   SWVL1        Soil water c. of 0-7 cm ground layer     [m3/m-3] 
-  40   SWVL2        Soil water c. of 7-28 cm ground layer    [m3/m-3]
-  41   SWVL3        Soil water c. of 28-100 cm ground layer  [m3/m-3]
-  42   SWVL4        Soil water c. of 100-255 cm ground layer [m3/m-3]
-  43   SM000007     Soil moisture of 0-7 cm ground layer     [fraction]
-  44   SM007028     Soil moisture of 7-28 cm ground layer    [fraction]
-  45   SM028100     Soil moisture of 28-100 cm ground layer  [fraction]
-  46   SM100255     Soil moisture of 100-255 cm ground layer [fraction]
-EOF
-
 mkdir -p grbData
 
-# Variables to process
-variables='hur uas hurs va psl vas snw zg ta orog tas ts sftlf ua'
-
-# Environment
 thisdir=$(pwd)
 cd `cat ../rootdir`
   if test -e /software/ScientificLinux/4.6/etc/bashrc; then
@@ -327,98 +76,68 @@ cd ${thisdir}
 
 sdate=$1
 edate=$2
-prefix=$3
-fakesoilgrb=$4
-fakesoilgrb=FAKESOIL.grb # This overrides de 4th argument! (shouldn't be there anyway...)
+datadir=$3
+fakesoilgrb=FAKESOIL.grb 
 
 sdate=`extract_date $1 dTh i`
 edate=`extract_date $2 dTh i`
 
 yeari=`extract_date $1 dTh s | awk '{print $1}'`
 field=1
-rm ${rootsh}/tmp0.grb >& /dev/null
+rm -f ${rootsh}/tmp0.grb
 
-for var in ${variables}
-do
-  rm ${rootsh}/tmp.grb >& /dev/null
-  rm ${rootsh}/tmp2.grb >& /dev/null
+function get_fake_soil(){
+  infile=$1
+  outfile=grbData/`basename ${infile/mm5/soil.grb}`
+  ndates=$(cdo ntime ${infile})
+  cdo remapbil,${infile} ${fakesoilgrb} ${fakesoilgrb}.echam
+  cdo -t echam_grib.table -f grb setpartab,echam_grib.table ${fakesoilgrb}.echam tmp.grb # este comando hace algo realmente???
+  cdo sinfov tmp.grb
+  idate=1
+  rm -f tmp2.grb
+  while test "${idate}" -le "${ndates}"
+  do
+    cdo -s cat tmp.grb tmp2.grb
+    let idate++
+  done 
+  read date_s time_s <<< $(echo ${sformateddate} | tr '_' ' ')
+  cdo settaxis,${date_s},${time_s},6hours tmp2.grb ${outfile}
+  rm tmp*.grb
+  rm ls*.grb
+  rm ${fakesoilgrb}.echam
+}
 
-  static=`ncrm_var_kind ${var} | awk '{print $2}'`
-  leveltype=`ncrm_var_kind ${var} | awk '{print $4}'`
-  file=$3${var}.${yeari}'.nc'
-  file=${datadir}/${file}
-  if test ${field} -eq 1
-  then
-    firstvar=${GRIBcode}
-  fi
+cat > awkcmd << eof
+BEGIN {
+  FS="|"
+}
+function ltrim(s) { sub(/^[ \t]+/, "", s); return s }
+function rtrim(s) { sub(/[ \t]+$/, "", s); return s }
+function trim(s)  { return rtrim(ltrim(s)); }
+{
+  printf "%s;%s;%s;%s;%s;%s;%s;%s\n",
+  trim(\$1),trim(\$2),trim(\$3),trim(\$4),trim(\$5),trim(\$6),trim(\$8),trim(\$7)
+}
+eof
 
-  echo "Processing "${file}" between "${sdate}" and "${edate}"..."
-# Fixing date
-##
-  if test ${static} = 'Y'
-  then
-    cdo -t cnrm_grib.table -f grb -copy -setpartab,cnrm_grib.table -setdate,${sdate} ${datastdir}/${var}'_A1.nc' ${rootsh}/tmp.grb
-  else
-    cdo -t cnrm_grib.table -f grb -copy -setpartab,cnrm_grib.table -seldate,${sdate},${edate} ${file} ${rootsh}/tmp.grb
-  fi
+#
+#   Parse the Vtable
+#
+outfile="grbData/CNRM.grb"
+rm -f ${outfile}
+cat wrf4g_files/WPS/ungrib/Variable_Tables/Vtable.CNRM \
+  | sed -e '/^Code/d' -e '/^GRIB/d' -e '/^-----+/d' \
+  | awk -f awkcmd \
+  | while IFS=";" read gribcode leveltype gribl1 gribl2 ungribname units ncvar description
+  do
+    if test -n ${ncvar}; then
+      # There is a netcdf file with the data for this variable
+      file=$(ls ${datadir}/*6h_${ncvar}.${yeari}.nc)
+      test -n ${file} || file=$(ls ${datastdir}/${ncvar}_A1.nc) # Try to find it as a static field
+      cdo -f grb setcode,${gribcode} -setltype,${leveltype} -seldate,${sdate},${edate} ${file} tmp.grb
+      cat tmp.grb >> ${outfile}
+    else
+    fi
+  done
 
-  cdo -t ecmwf setltype,${leveltype} ${rootsh}/tmp.grb ${rootsh}/tmp2.grb
-
-  if test ${field} -eq 1
-  then
-    cp ${rootsh}/tmp2.grb ${rootsh}/tmp0.grb
-  else
-    rm ${rootsh}/tmp.grb
-    cdo merge ${rootsh}/tmp2.grb ${rootsh}/tmp0.grb ${rootsh}/tmp.grb
-    cp ${rootsh}/tmp.grb ${rootsh}/tmp0.grb
-  fi
-
-  field=`expr ${field} + 1`
-### end variables
-done
-cp ${rootsh}/tmp0.grb ${outdir}/CNRM_${yeari}.grb
-rm ${rootsh}/tmp0.grb 
-echo "Output saved as '"${outdir}"/CNRM_"${yeari}".grb'"
-cdo sinfov ${outdir}/CNRM_${yeari}.grb 
-
-cdo ndate ${outdir}/CNRM_${yeari}.grb >& lin.inf
-Ndates=`cat lin.inf | grep timesteps. | awk '{print $7}'`
-
-# Variables to add
-##
-cd ${rootsh}
-ivar=1
-rm ${rootsh}/tmp.grb >& /dev/null
-
-cdo remapbil,${outdir}/CNRM_${yeari}.grb ${fakesoilgrb} ${rootsh}/${fakesoilgrb}.cnrm
-file=${rootsh}/${fakesoilgrb}.cnrm
-
-date_s=`extract_date $1 dTh i2 | awk '{print $1}'`
-time_s=`extract_date $1 dTh i2 | awk '{print $2}'`
-
-echo "Processing "${file}" between "${sdate}" and "${edate}"..."${Ndates}" time steps"
-cdo -t cnrm_grib.table -f grb -copy -setpartab,cnrm_grib.table -setdate,${sdate} ${rootsh}/${fakesoilgrb}.cnrm ${rootsh}/tmp.grb
-
-# Adding time-steps
-##
-idate=1
-rm ${rootsh}/tmp2.grb
-while test ${idate} -le ${Ndates}
-do
-  cdo -s cat ${rootsh}/tmp.grb ${rootsh}/tmp2.grb
-  idate=`expr ${idate} + 1`
-### End steps
-done
-
-cp ${rootsh}/tmp2.grb ${rootsh}/tmp1.grb
-cdo settaxis,${date_s},${time_s},6hours ${rootsh}/tmp1.grb ${rootsh}/tmp.grb
-
-cp ${rootsh}/tmp.grb ${outdir}/CNRMadd_${yeari}.grb
-rm ${rootsh}/tmp*.grb
-rm ${rootsh}/${fakesoilgrb}.cnrm
-echo "Output saved as '"${outdir}"/CNRMadd_"${yeari}".grb'"
-cdo sinfov ${outdir}/CNRMadd_${yeari}.grb
-
-# No new variables addded! 
-##
-fi
+rm -f awkcmd

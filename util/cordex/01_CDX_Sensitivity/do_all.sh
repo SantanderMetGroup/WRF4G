@@ -13,6 +13,10 @@ function get_years(){
     | sort -n | uniq
 }
 
+function get_years(){
+  echo 1998
+}
+
 function process_realization() {
   #
   #  function to process one single realization
@@ -51,24 +55,42 @@ function clim_and_diff (){
   done
 }
 
-function spread(){
-  for var in pr tas tasmax tasmin
+function seasclim_and_diff (){
+  months=$1
+  label=$2
+  for sim in CTRL CUBM CUKF BLMY MPW6 RARR LSRU BLPX
   do
-    cdo ensmax ${POSTDIR}/CORDEX_UC_WRF_SENS???[LMFY6RU]_clim_${var}_1998.nc s1
-    cdo ensmin ${POSTDIR}/CORDEX_UC_WRF_SENS???[LMFY6RU]_clim_${var}_1998.nc s2
-    cdo sub s1 s2 ${POSTDIR}/CORDEX_UC_WRF_SENS_spread_${var}.nc
+    for var in uas vas pr tas tasmax tasmin
+    do
+      cdo timmean -selmon,${months} ${POSTDIR}/CORDEX_UC_WRF_${experiment}${sim}_DM_${var}_1998.nc \
+        ${POSTDIR}/CORDEX_UC_WRF_${experiment}${sim}_sclim${label}_${var}_1998.nc
+      test ${sim} != "CTRL" && \
+        cdo sub ${POSTDIR}/CORDEX_UC_WRF_${experiment}${sim}_sclim${label}_${var}_1998.nc ${POSTDIR}/CORDEX_UC_WRF_${experiment}CTRL_sclim${label}_${var}_1998.nc \
+          ${POSTDIR}/CORDEX_UC_WRF_${experiment}${sim}_sdiff${label}_${var}_1998.nc
+    done
   done
 }
 
-#process_realization CORDEX_UC_WRF_SENSCTRL
-#process_realization CORDEX_UC_WRF_SENSCUBM
-#process_realization CORDEX_UC_WRF_SENSCUKF
-#process_realization CORDEX_UC_WRF_SENSBLMY
-#process_realization CORDEX_UC_WRF_SENSBLPX
-#process_realization CORDEX_UC_WRF_SENSMPW6
-#process_realization CORDEX_UC_WRF_SENSRARR
-#process_realization CORDEX_UC_WRF_SENSLSRU
-process_realization CORDEX_UC_WRF_SENSCTL2
+function spread(){
+  for var in pr tas tasmax tasmin
+  do
+    cdo ensmax ${POSTDIR}/CORDEX_UC_WRF_${experiment}???[LMFY6RU]_clim_${var}_1998.nc s1
+    cdo ensmin ${POSTDIR}/CORDEX_UC_WRF_${experiment}???[LMFY6RU]_clim_${var}_1998.nc s2
+    cdo sub s1 s2 ${POSTDIR}/CORDEX_UC_WRF_${experiment}_spread_${var}.nc
+  done
+}
+
+experiment="SEN2"
+#process_realization CORDEX_UC_WRF_${experiment}CTRL
+#process_realization CORDEX_UC_WRF_${experiment}CUBM
+#process_realization CORDEX_UC_WRF_${experiment}CUKF
+#process_realization CORDEX_UC_WRF_${experiment}BLMY
+#process_realization CORDEX_UC_WRF_${experiment}BLPX
+#process_realization CORDEX_UC_WRF_${experiment}MPW6
+#process_realization CORDEX_UC_WRF_${experiment}RARR
+#process_realization CORDEX_UC_WRF_${experiment}LSRU
+#process_realization CORDEX_UC_WRF_${experiment}CTL2
 #clim_and_diff
+seasclim_and_diff 1,2,3 JFM
 #spread
 

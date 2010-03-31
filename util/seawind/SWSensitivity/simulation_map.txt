@@ -7,3 +7,7 @@ SeaWind_E1540_BL7_RF06 swh2/swh2__7_7
 SeaWind_I1540_BL1_RF06 swh7a/swh7a__1_1
 SeaWind_N1540_BL1_SN   swgn4/swgn4
 SeaWind_N1540_BL1_GN   swgn5/swgn5
+
+SeaWind_I1540G_BL1_RF06 swhI1540_MultiBL/swhI1540_MultiBL__1_1
+SeaWind_I1540G_BL2_RF06 swhI1540_MultiBL/swhI1540_MultiBL__2_2
+SeaWind_I1540G_BL7_RF06 swhI1540_MultiBL/swhI1540_MultiBL__2_2

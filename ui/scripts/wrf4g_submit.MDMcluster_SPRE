@@ -15,8 +15,8 @@ source wrf4g.conf
 test -n "${depid}" && depflag="-W depend=afterany:${depid}" || depflag=""
 test -n "${WRF4G_QUEUE_WALLTIME}" && wtflag="-l walltime=${WRF4G_QUEUE_WALLTIME}" || wtflag=""
 
-mpiexec="/software/ScientificLinux/4.6/mpiexec/bin/mpiexec"
-mpiexec="/usr/bin/mpiexec"
+#mpiexec="/software/ScientificLinux/4.6/mpiexec/bin/mpiexec"
+mpiexec="mpiexec"
 
 if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
   nodflag="-l nodes=${NUMBER_OF_NODES}:ppn=${PROCESSES_PER_NODE}"
