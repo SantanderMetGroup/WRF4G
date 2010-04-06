@@ -1,5 +1,7 @@
 PROGRAM wrfnc_push_soil_data
 ! Program to change some fields from a netCDF from another one
+! Example (in /oceano/gmeteo/users/lluis/WRF/p_interp):
+! ./wrfnc_push_soil_data wrfinput_d01.in.original wrfinput_d01.ch.original wrfinput_d01.new
 !
 !!
 ! GMS.UC: Februrary '10
@@ -7,8 +9,6 @@ PROGRAM wrfnc_push_soil_data
 !!!!!!!!!! COMPILATION
 !
 !! OCEANO: pgf90 wrfnc_push_soil_data.f90 -L/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/lib -lnetcdf -lm -I/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/include -Mfree -o wrfnc_push_soil_data
-!
-!! TRUENO: gfortran wrfnc_push_soil_data.f90 -L/home/lluis/bin/netcdf-4.0.1/lib -lnetcdf -lm -I//home/lluis/bin/netcdf-4.0.1/include -o wrfnc_push_soil_data
 
 ! 34567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
 
@@ -272,7 +272,7 @@ SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile, Ntin, tus
     END DO
     PRINT *,'dimsout: ',dims_out
 
-    changevar: SELECT CASE(Ndimsvar_in)
+    change_var: SELECT CASE(Ndimsvar_in)
 
 ! 4D 
 !!
@@ -443,7 +443,7 @@ SUBROUTINE change_var(dbg, origf, chanf, varsIN, varsCH, Nvars, ofile, Ntin, tus
        PRINT *,'Nothing can be done for a variable with ',Ndimsvar_in,' dimensions!!!'
        STOP
 
-     END SELECT changevar
+     END SELECT change_var
 
      DEALLOCATE(dims_out)
 
@@ -916,7 +916,7 @@ SUBROUTINE variable_inf_ascii(debg, var, Ndim, shape, dim_names, longdesc, units
   IMPLICIT NONE
 
   CHARACTER(LEN=50), INTENT(IN)                          :: var
-  INTEGER, INTENT(IN)                                    :: Ndim
+  INTEGER, INTENT(OUT)                                   :: Ndim
   INTEGER, DIMENSION(6), INTENT(OUT)                     :: shape
   CHARACTER(LEN=50), DIMENSION(Ndim), INTENT(OUT)        :: dim_names
   CHARACTER(LEN=250), INTENT(OUT)                        :: longdesc
@@ -974,7 +974,7 @@ SUBROUTINE variable_inf_ascii(debg, var, Ndim, shape, dim_names, longdesc, units
    shape=1
 
    READ(iunit,*)car
-   READ(iunit,*)label, label
+   READ(iunit,*)label, Ndim
    READ(iunit,*)label, (shape(i), i=1, Ndim)
    READ(iunit,*)label, (dim_names(i), i=1, Ndim)
    READ(iunit,*)label, longdesc
