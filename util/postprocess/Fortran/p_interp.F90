@@ -912,6 +912,29 @@ rcode = nf_enddef(mcid)
           IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
           DEALLOCATE(data3)
         ENDIF
+        IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'VIM') /= 0 ) THEN
+          !
+          !   vertically integrated moisture
+          ! 
+          jshape2d=RESHAPE((/jshape(1),jshape(2),jshape(4)/),(/3/))
+          dims2d_out=RESHAPE((/dims_out(1),dims_out(2),dims_out(4),1/),(/4/))
+          jvar = jvar + 1
+          varnameIN='VIM'
+          longdescIN='Vertically integrated moisture'
+          unitsIN='Kg'
+          CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
+            , "XLONG XLAT")
+          IF (ALLOCATED(data3)) DEALLOCATE(data3)
+          ALLOCATE (data3(dims_out(1), dims_out(2), dims_out(4), 1))
+          CALL massvertint(ncid, (/'QVAPOR'/), 1, dims_out(1), dims_out(2), dims_out(3), dims_out(4), data3) 
+          IF (debug) THEN
+            write(6,*) 'VAR: VIM idvar:',jvar
+            write(6,*) '     DIMS OUT: ',dims2d_out
+          ENDIF
+          rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3)
+          IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
+          DEALLOCATE(data3)
+        ENDIF
 
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'PRES') /= 0 ) THEN
            !!! PRES
@@ -1079,8 +1102,49 @@ DO ivar=1,Nvar
   rcode = nf_get_var_real ( ncid, i, dataval )
   datasum = datasum + dataval
 ENDDO
-
 END SUBROUTINE variablessum
+
+SUBROUTINE massvertint(ncid, variables, Nvar, nx, ny, nz, nt, integral)
+  ! Subroutine to vertically integrate a product of 'Nvar' variables
+  ! in eta vertical coordinates
+  IMPLICIT NONE
+  INCLUDE 'netcdf.inc'
+  INTEGER                                        :: i, iz, ivar, rcode
+  INTEGER, INTENT(IN)                            :: ncid, Nvar
+  CHARACTER(LEN=11), DIMENSION(Nvar), INTENT(IN) :: variables
+  INTEGER, INTENT(IN)                            :: nx, ny, nz, nt
+  REAL, DIMENSION(nx,ny,nt), INTENT(OUT)         :: integral
+  REAL, DIMENSION(nx,ny,nz,nt)                   :: dataval, integrand
+  REAL, DIMENSION(nz,nt)                         :: dz
+  REAL, DIMENSION(:,:,:,:), ALLOCATABLE          :: stagdata
+  integrand=1.
+  DO ivar=1,Nvar
+    rcode = nf_inq_varid(ncid, TRIM(variables(ivar)), i)
+    if (rcode .ne. nf_noerr) call handle_err(rcode)
+    IF (TRIM(variables(ivar))=='U') THEN
+      IF (ALLOCATED(stagdata)) DEALLOCATE(stagdata)
+      allocate (stagdata(nx+1,ny,nz,nt))
+      rcode = nf_get_var_real(ncid, i, stagdata)
+      dataval = 0.5 * ( stagdata(1:nx,:,:,:)+stagdata(2:nx+1,:,:,:) )
+    ELSEIF (TRIM(variables(ivar))=='V') THEN
+      IF (ALLOCATED(stagdata)) DEALLOCATE(stagdata)
+      allocate (stagdata(nx,ny+1,nz,nt))
+      rcode = nf_get_var_real(ncid, i, stagdata)
+      dataval = 0.5 * ( stagdata(:,1:ny,:,:)+stagdata(:,2:ny+1,:,:) )
+    ELSE
+      write(6,*) 'aquiiiiiiiiiiiiiiiiii'
+      rcode = nf_get_var_real(ncid, i, dataval)
+      write(6,*) 'aquiiiiiiiiiiiiiiiiii2'
+    ENDIF
+    integrand = integrand * dataval
+  ENDDO
+  rcode = nf_inq_varid(ncid, 'DNW', i)
+  rcode = nf_get_var_real(ncid, i, dz)
+  integral=0.
+  DO iz=1,nz
+    integral = integral + integrand(:,:,iz,:)* dz(iz,1)
+  ENDDO
+END SUBROUTINE massvertint
 
  SUBROUTINE handle_err(rcode)
     INTEGER rcode
