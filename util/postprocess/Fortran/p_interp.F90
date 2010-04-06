@@ -118,6 +118,7 @@
       CHARACTER(LEN=250)                                 :: path_to_geofile, geofile, geofilename
       CHARACTER(LEN=300)                                 :: inputlong_name
       LOGICAL                                            :: unstagvar
+      INTEGER                                            :: idim
 
       NAMELIST /io/ path_to_input, input_name, path_to_output, output_name,                     &
         process, fields, debug, bit64, grid_filt, ntimes_filt, path_to_geofile, geofile
@@ -916,8 +917,14 @@ rcode = nf_enddef(mcid)
           !
           !   vertically integrated moisture
           ! 
-          jshape2d=RESHAPE((/jshape(1),jshape(2),jshape(4)/),(/3/))
-          dims2d_out=RESHAPE((/dims_out(1),dims_out(2),dims_out(4),1/),(/4/))
+          rcode = nf_inq_varndims(ncid, i, ndims)
+          rcode = nf_inq_vardimid(ncid, i, ishape)
+          DO idim=1, ndims
+            rcode = nf_inq_dimlen(ncid, ishape(idim), dims_in(idim))
+          END DO
+
+          jshape2d=RESHAPE((/ishape(1),ishape(2),ishape(4)/),(/3/))
+          dims2d_out=RESHAPE((/dims_in(1),dims_in(2),dims_in(4),1/),(/4/))
           jvar = jvar + 1
           varnameIN='VIM'
           longdescIN='Vertically integrated moisture'
@@ -925,8 +932,9 @@ rcode = nf_enddef(mcid)
           CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
             , "XLONG XLAT")
           IF (ALLOCATED(data3)) DEALLOCATE(data3)
-          ALLOCATE (data3(dims_out(1), dims_out(2), dims_out(4), 1))
-          CALL massvertint(ncid, (/'QVAPOR'/), 1, dims_out(1), dims_out(2), dims_out(3), dims_out(4), data3) 
+          ALLOCATE (data3(dims_in(1), dims_in(2), dims_in(4), 1))
+          CALL massvertint(ncid, (/'QVAPOR'/), 1, debug, dims_in(1), dims_in(2), dims_in(3),    &
+            dims_in(4), data3) 
           IF (debug) THEN
             write(6,*) 'VAR: VIM idvar:',jvar
             write(6,*) '     DIMS OUT: ',dims2d_out
@@ -1104,7 +1112,7 @@ DO ivar=1,Nvar
 ENDDO
 END SUBROUTINE variablessum
 
-SUBROUTINE massvertint(ncid, variables, Nvar, nx, ny, nz, nt, integral)
+SUBROUTINE massvertint(ncid, variables, Nvar, dbg, nx, ny, nz, nt, integral)
   ! Subroutine to vertically integrate a product of 'Nvar' variables
   ! in eta vertical coordinates
   IMPLICIT NONE
@@ -1113,12 +1121,19 @@ SUBROUTINE massvertint(ncid, variables, Nvar, nx, ny, nz, nt, integral)
   INTEGER, INTENT(IN)                            :: ncid, Nvar
   CHARACTER(LEN=11), DIMENSION(Nvar), INTENT(IN) :: variables
   INTEGER, INTENT(IN)                            :: nx, ny, nz, nt
+  LOGICAL, INTENT(IN)                            :: dbg
   REAL, DIMENSION(nx,ny,nt), INTENT(OUT)         :: integral
   REAL, DIMENSION(nx,ny,nz,nt)                   :: dataval, integrand
   REAL, DIMENSION(nz,nt)                         :: dz
   REAL, DIMENSION(:,:,:,:), ALLOCATABLE          :: stagdata
+  INTEGER, DIMENSION(6)                          :: vardims, lengthvardims
+  INTEGER                                        :: idim, nvardims
   integrand=1.
+
+  IF (dbg) PRINT *,'Vertical sigma integration of ',Nvar,' variables...'
+      
   DO ivar=1,Nvar
+    IF (dbg) PRINT *,'  '//TRIM(variables(ivar))
     rcode = nf_inq_varid(ncid, TRIM(variables(ivar)), i)
     if (rcode .ne. nf_noerr) call handle_err(rcode)
     IF (TRIM(variables(ivar))=='U') THEN
@@ -1132,9 +1147,12 @@ SUBROUTINE massvertint(ncid, variables, Nvar, nx, ny, nz, nt, integral)
       rcode = nf_get_var_real(ncid, i, stagdata)
       dataval = 0.5 * ( stagdata(:,1:ny,:,:)+stagdata(:,2:ny+1,:,:) )
     ELSE
-      write(6,*) 'aquiiiiiiiiiiiiiiiiii'
+      rcode = nf_inq_varndims(ncid, i, nvardims)
+      rcode = nf_inq_vardimid(ncid, i, vardims)
+      DO idim=1, nvardims
+        rcode = nf_inq_dimlen(ncid, vardims(idim), lengthvardims(idim))
+      END DO
       rcode = nf_get_var_real(ncid, i, dataval)
-      write(6,*) 'aquiiiiiiiiiiiiiiiiii2'
     ENDIF
     integrand = integrand * dataval
   ENDDO
