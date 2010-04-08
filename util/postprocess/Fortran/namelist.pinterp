@@ -1,33 +1,18 @@
 &io
- path_to_input = '/oceano/gmeteo/users/lluis/bustia/'
- input_name = 'wrfout_d01_19950725T160000Z.nc'
- path_to_output = './'
- process = 'list'
- fields = 'PRES,TT,GHT,HGT,MSLP,MSLP10'
- debug = .TRUE.
+  path_to_input            = '/vols/tetis/meteo4g/WRF/experiments/scn7a/scn7a/output',
+  input_name               = 'wrfout_d01_19910513T000000Z.nc',
+  path_to_output           = '/vols/tetis/meteo4g/WRF/experiments/scn7a/scn7a/output',
+  fields                   = 'GHT,TT,RH,MSLP,U,V,VIM,VIMWIND,VIQC,VIQI,Times',
+  process                  = 'list',
+  debug                    = .TRUE.,
+  grid_filt                = 3,
+  ntimes_filt              = 10,
 /
- input_name = 'wrfout_d01_2001-11-10_00:00:00'
- process = 'all'
- bit64 = .TRUE.
-
-! process can be "all", "list", "all_list"
-!	"all" - process all fields in file
-!		diagnostics PRES, TT, GHT, RH are also calculated
-!   	"list" - list fields required in "fields"
-!   		avaliable diagnostics are PRES, TT, GHT, RH
 
 &interp_in
- interp_levels = 1000.,987.5,975.,962.5,950.,937.5,925., 
-                 900.,875.,850.,825.,800.,750.,700.,650.,  
-                 600.,550.,500.,450.,400.,350.,300.,250., 
-                 225.,200.,175.,150.,137.5,125.,112.5,100., 
-                 87.5,75.,62.5,50.,
- extrapolate = 1,
- interp_method = 1,
+  interp_levels            = 1000., 925., 850., 700., 600., 500., 400., 300., 200., 100.,
+  extrapolate              = 1,
+  interp_method            = 1,
+  unstagger_grid           = .TRUE., 
 /
- unstagger_grid = .TRUE.
-
-# extrapolate = 0    ;; set values below ground and above model top to missing (default)
-# extrapolate = 1    ;; extrapolate below ground, and set above model top to model top values
-# interp_method = 1  ;; linear in p interpolation (default)
-# interp_method = 2  ;; linear in log p interpolation
+  p_top                    = 50.,
