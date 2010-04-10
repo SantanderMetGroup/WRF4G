@@ -69,7 +69,7 @@
 
       CHARACTER (LEN=80)                                 :: cval
       CHARACTER (LEN=31)                                 :: cname, test_dim_name
-      CHARACTER (LEN=300)                                 :: input_file, output_file, att_text
+      CHARACTER (LEN=300)                                :: input_file, output_file, att_text
       CHARACTER (LEN=250)                                :: path_to_input
       CHARACTER (LEN=250)                                :: path_to_output
       CHARACTER (LEN=80)                                 :: input_name
@@ -119,7 +119,8 @@
       CHARACTER(LEN=300)                                 :: inputlong_name
       LOGICAL                                            :: unstagvar
       INTEGER                                            :: idim
-
+      REAL, ALLOCATABLE, DIMENSION(:,:,:,:,:)            :: data4
+ 
       NAMELIST /io/ path_to_input, input_name, path_to_output, output_name,                     &
         process, fields, debug, bit64, grid_filt, ntimes_filt, path_to_geofile, geofile
       NAMELIST /interp_in/ interp_levels, interp_method, extrapolate, unstagger_grid, p_top
@@ -1028,7 +1029,7 @@ rcode = nf_enddef(mcid)
           jvar = jvar + 1
           varnameIN='VIM'
           longdescIN='Vertically integrated moisture'
-          unitsIN='Kg'
+          unitsIN='Kg m-2'
           CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
             , "XLONG XLAT")
           IF (ALLOCATED(data3)) DEALLOCATE(data3)
@@ -1058,7 +1059,7 @@ rcode = nf_enddef(mcid)
           jvar = jvar + 1
           varnameIN='VIQC'
           longdescIN='Vertically integrated cloud water'
-          unitsIN='Kg'
+          unitsIN='Kg m-2'
           CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
             , "XLONG XLAT")
           IF (ALLOCATED(data3)) DEALLOCATE(data3)
@@ -1066,17 +1067,17 @@ rcode = nf_enddef(mcid)
           CALL massvertint(ncid, (/'QCLOUD     '/), 1, debug, dims_in(1), dims_in(2), dims_in(3),&
             dims_in(4), data3)
           IF (debug) THEN
-            write(6,*) 'VAR: VIQC idvar:',jvar
-            write(6,*) '     DIMS OUT: ',dims2d_out
+            PRINT *,'VAR: VIQC idvar:',jvar
+            PRINT *,'     DIMS OUT: ',dims2d_out
           ENDIF
           rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3)
-          IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
+          IF (debug) PRINT *, '     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
           DEALLOCATE(data3)
         ENDIF
 
-        IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'VIMWIND') /= 0 ) THEN
+        IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'VIWIND') /= 0 ) THEN
           !
-          !   vertically integrated transport 
+          !   vertically integrated wind 
           !
           rcode = nf_inq_varndims(ncid, i, ndims)
           rcode = nf_inq_vardimid(ncid, i, ishape)
@@ -1090,28 +1091,68 @@ rcode = nf_enddef(mcid)
           CALL multi_massvertint(ncid, (/'U          ','V          '/), 2, debug, dims_in(1),   &
             dims_in(2), dims_in(3), dims_in(4), data3)
           IF (debug) THEN
-            PRINT *,'Vertical transport integration'
-            write(6,*) 'VAR: VIMU, VIMV idvar:',jvar+1, char(44), jvar+2
-            write(6,*) '     DIMS OUT: ',dims2d_out
+            PRINT *, 'Vertical transport integration'
+            PRINT *, 'VAR: VIU, VIV idvar:',jvar+1, char(44), jvar+2
+            PRINT *, '     DIMS OUT: ',dims2d_out
+          ENDIF
+
+          jvar = jvar + 1
+          varnameIN='VIU'
+          longdescIN='Vertically integrated wind WE'
+          unitsIN='s-1 m-1'
+          CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
+            , "XLONG XLAT")
+          rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3(:,:,:,1))
+          IF (debug) PRINT *, '  VIU. SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
+          jvar = jvar + 1
+          varnameIN='VIV'
+          longdescIN='Vertically integrated wind SN'
+          unitsIN='s-1 m-1'
+          CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
+            , "XLONG XLAT")
+          rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3(:,:,:,2))
+          IF (debug) PRINT *, '  VIV. SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,2)
+          DEALLOCATE(data3)
+        ENDIF
+
+        IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'VIMWIND') /= 0 ) THEN
+          !
+          !   vertically integrated transport of moist
+          !
+          rcode = nf_inq_varndims(ncid, i, ndims)
+          rcode = nf_inq_vardimid(ncid, i, ishape)
+          DO idim=1, ndims
+            rcode = nf_inq_dimlen(ncid, ishape(idim), dims_in(idim))
+          END DO
+          jshape2d=RESHAPE((/jshape(1),jshape(2),jshape(4)/),(/3/))
+          dims2d_out=RESHAPE((/dims_in(1),dims_in(2),dims_in(4),1/),(/4/))
+          IF (ALLOCATED(data4)) DEALLOCATE(data4)
+          ALLOCATE (data4(dims_in(1), dims_in(2), dims_in(4), 1, 2))
+          CALL multi_transportvertint(ncid, (/'QVAPOR     '/),1,(/'U          ','V          '/),&
+            debug, dims_in(1), dims_in(2), dims_in(3), dims_in(4), data4) 
+          IF (debug) THEN
+            PRINT *,'Vertical transport integration of moist'
+            PRINT *,'     VAR: VIMU, VIMV idvar:',jvar+1, char(44), jvar+2
+            PRINT *,'     DIMS OUT: ',dims2d_out
           ENDIF
 
           jvar = jvar + 1
           varnameIN='VIMU'
-          longdescIN='Vertically integrated transport WE'
-          unitsIN='m s-1'
+          longdescIN='Vertically integrated transport WE of moist'
+          unitsIN='kg s-1 m-1'
           CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
             , "XLONG XLAT")
-          rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3(:,:,:,1))
-          IF (debug) write(6,*) '  VIMU. SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
+          rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data4(:,:,:,1,1))
+          IF (debug) PRINT *, '  VIMU. SAMPLE VALUE OUT = ',data4(dims_out(1)/2,dims_out(2)/2,1,1,1)
           jvar = jvar + 1
           varnameIN='VIMV'
-          longdescIN='Vertically integrated transport SN'
-          unitsIN='m s-1'
+          longdescIN='Vertically integrated transport SN of moist'
+          unitsIN='kg s-1 m-1'
           CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
             , "XLONG XLAT")
-          rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3(:,:,:,2))
-          IF (debug) write(6,*) '  VIMV. SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,2)
-          DEALLOCATE(data3)
+          rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data4(:,:,:,1,2))
+          IF (debug) PRINT *, '  VIMV. SAMPLE VALUE OUT = ',data4(dims_out(1)/2,dims_out(2)/2,1,1,2)
+          DEALLOCATE(data4)
         ENDIF
 
         IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'VIQI') /= 0 ) THEN
@@ -1128,7 +1169,7 @@ rcode = nf_enddef(mcid)
           jvar = jvar + 1
           varnameIN='VIQI'
           longdescIN='Vertically integrated cloud ice'
-          unitsIN='Kg'
+          unitsIN='Kg m-2'
           CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
             , "XLONG XLAT")
           IF (ALLOCATED(data3)) DEALLOCATE(data3)
@@ -1136,11 +1177,11 @@ rcode = nf_enddef(mcid)
           CALL massvertint(ncid, (/'QICE       '/), 1, debug, dims_in(1), dims_in(2), dims_in(3),&
             dims_in(4), data3)
           IF (debug) THEN
-            write(6,*) 'VAR: VIQI idvar:',jvar
-            write(6,*) '     DIMS OUT: ',dims2d_out
+            PRINT *, 'VAR: VIQI idvar:',jvar
+            PRINT *, '     DIMS OUT: ',dims2d_out
           ENDIF
           rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3)
-          IF (debug) write(6,*) '     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
+          IF (debug) PRINT *, '     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
           DEALLOCATE(data3)
         ENDIF
 
@@ -1216,6 +1257,81 @@ DO ivar=1,Nvar
 ENDDO
 END SUBROUTINE variablessum
 
+SUBROUTINE multi_transportvertint(ncid, variables, Nvar, winds, dbg, nx, ny, nz, nt, integrals)
+  ! Subroutine to vertically integrate a product of 'Nvar' variables
+  ! in eta vertical coordinates
+  IMPLICIT NONE
+  INCLUDE 'netcdf.inc'
+  INTEGER                                        :: i, iz, ivar, rcode
+  INTEGER, INTENT(IN)                            :: ncid, Nvar
+  CHARACTER(LEN=11), DIMENSION(Nvar), INTENT(IN) :: variables
+  CHARACTER(LEN=11), DIMENSION(2), INTENT(IN)    :: winds
+  INTEGER, INTENT(IN)                            :: nx, ny, nz, nt
+  LOGICAL, INTENT(IN)                            :: dbg
+  REAL, DIMENSION(nx,ny,nt,Nvar,2), INTENT(OUT)  :: integrals
+  REAL, DIMENSION(nx,ny,nz,nt)                   :: dataval, windu, windv
+  REAL, DIMENSION(nx,ny,nz,nt,2)                 :: integrand
+  REAL, DIMENSION(nx,ny,nt)                      :: mu, mub
+  REAL, DIMENSION(nz,nt)                         :: dz
+  REAL, DIMENSION(:,:,:,:), ALLOCATABLE          :: stagdata
+  INTEGER, DIMENSION(6)                          :: vardims, lengthvardims
+  INTEGER                                        :: idim, nvardims
+  INTEGER                                        :: iu, iv, idz, imu, imub
+  REAL, PARAMETER                                :: grav=9.81
+  REAL                                           :: dxm, dym
+
+  IF (dbg) PRINT *,'Vertical sigma integration of transport of ',Nvar,' variables...'
+  integrals=0.
+  rcode = nf_inq_varid(ncid, 'DNW', idz)
+  rcode = nf_inq_varid(ncid, 'MU', imu)
+  rcode = nf_inq_varid(ncid, 'MUB', imub)
+
+  rcode = nf_get_var_real(ncid, idz, dz)
+  rcode = nf_get_var_real(ncid, imu, mu)
+  rcode = nf_get_var_real(ncid, imub, mub)
+  rcode = nf_get_att_real(ncid, nf_global, 'DX', dxm)
+  rcode = nf_get_att_real(ncid, nf_global, 'DY', dym)
+
+  dz=ABS(dz)
+
+! Adquiring winds
+!!
+  rcode = nf_inq_varid(ncid, TRIM(winds(1)), iu)
+  IF (ALLOCATED(stagdata)) DEALLOCATE(stagdata)
+  ALLOCATE (stagdata(nx+1,ny,nz,nt))
+  rcode = nf_get_var_real(ncid, iu, stagdata)
+  windu = 0.5 * ( stagdata(1:nx,:,:,:)+stagdata(2:nx+1,:,:,:) )
+
+  rcode = nf_inq_varid(ncid, TRIM(winds(2)), iv)
+  IF (ALLOCATED(stagdata)) DEALLOCATE(stagdata)
+  ALLOCATE (stagdata(nx,ny+1,nz,nt))
+  rcode = nf_get_var_real(ncid, iv, stagdata)
+  windv = 0.5 * ( stagdata(:,1:ny,:,:)+stagdata(:,2:ny+1,:,:) )
+
+  DO ivar=1,Nvar
+    integrand=1.
+    IF (dbg) PRINT *,'  '//TRIM(variables(ivar))
+    rcode = nf_inq_varid(ncid, TRIM(variables(ivar)), i)
+    IF (rcode .ne. nf_noerr) call handle_err(rcode)
+    rcode = nf_inq_varndims(ncid, i, nvardims)
+    rcode = nf_inq_vardimid(ncid, i, vardims)
+    DO idim=1, nvardims
+      rcode = nf_inq_dimlen(ncid, vardims(idim), lengthvardims(idim))
+    END DO
+    rcode = nf_get_var_real(ncid, i, dataval)
+    integrand(:,:,:,:,1) = integrand(:,:,:,:,1) * dataval * windu
+    integrand(:,:,:,:,2) = integrand(:,:,:,:,2) * dataval * windv
+    DO iz=1,nz
+      integrals(:,:,:,ivar,:) = integrals(:,:,:,ivar,:) + integrand(:,:,iz,:,:)* dz(iz,1)
+    ENDDO
+!    integrals(:,:,:,ivar,1)=integrals(:,:,:,ivar,1)*(mu+mub)*dxm*dym/grav
+!    integrals(:,:,:,ivar,2)=integrals(:,:,:,ivar,2)*(mu+mub)*dxm*dym/grav
+    integrals(:,:,:,ivar,1)=integrals(:,:,:,ivar,1)*(mu+mub)/grav
+    integrals(:,:,:,ivar,2)=integrals(:,:,:,ivar,2)*(mu+mub)/grav
+  ENDDO
+
+END SUBROUTINE multi_transportvertint
+
 SUBROUTINE multi_massvertint(ncid, variables, Nvar, dbg, nx, ny, nz, nt, integrals)
   ! Subroutine to vertically integrate a product of 'Nvar' variables
   ! in eta vertical coordinates
@@ -1278,7 +1394,8 @@ SUBROUTINE multi_massvertint(ncid, variables, Nvar, dbg, nx, ny, nz, nt, integra
     DO iz=1,nz
       integrals(:,:,:,ivar) = integrals(:,:,:,ivar) + integrand(:,:,iz,:)* dz(iz,1)
     ENDDO
-    integrals(:,:,:,ivar)=integrals(:,:,:,ivar)*(mu+mub)*dxm*dym/grav
+!    integrals(:,:,:,ivar)=integrals(:,:,:,ivar)*(mu+mub)*dxm*dym/grav
+    integrals(:,:,:,ivar)=integrals(:,:,:,ivar)*(mu+mub)/grav
   ENDDO
 
 END SUBROUTINE multi_massvertint
@@ -1346,13 +1463,10 @@ SUBROUTINE massvertint(ncid, variables, Nvar, dbg, nx, ny, nz, nt, integral)
   integral=0.
   DO iz=1,nz
     integral = integral + integrand(:,:,iz,:)*dz(iz,1)
-    sum=sum+integrand(nx/2,ny/2,iz,1)
-    IF (TRIM(variables(1)) .eq. 'QVAPOR') THEN
-      PRINT *,integrand(nx/2,ny/2,iz,1),' sum:',sum,' int:',integral(nx/2,ny/2,1), ' dz:',dz(iz,1),' mu+mub:',mu(nx/2,ny/2,1)+mub(nx/2,ny/2,1)
-    ENDIF
   ENDDO
 
-  integral=integral*(mu+mub)*dxm*dym/grav
+!  integral=integral*(mu+mub)*dxm*dym/grav
+  integral=integral*(mu+mub)/grav
 
 END SUBROUTINE massvertint
 
