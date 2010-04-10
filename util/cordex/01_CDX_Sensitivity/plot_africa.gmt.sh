@@ -16,6 +16,7 @@ rec=0
 zmin=0
 zmax=0
 dz=0
+only_land=0
 out=""
 while test "$*"
 do
@@ -23,6 +24,7 @@ do
     has_height_dim) has_height_dim=1;;
     is_curvilinear) is_curvilinear=1;;
     national_bound) national_bound=1;;
+    only_land) only_land=1;;
     no_nn) no_nn=1;;
     label) label=$2; shift;;
     title) title=$2; shift;;
@@ -146,7 +148,7 @@ if test $zmin -ne $zmax; then
 fi
 
 psxy /dev/null $RJFLAG -K > $FNAMEOUT
-#pscoast $RJFLAG -Gc -A0/0/1 ${cres} -O -K >> $FNAMEOUT
+test "$only_land" -eq 1 && pscoast $RJFLAG -Gc -A0/0/1 ${cres} -O -K >> $FNAMEOUT
   if [ ${is_curvilinear} -ne 0 ]; then
     anglectl=0.
     pysymbol > tile.def
@@ -159,9 +161,9 @@ psxy /dev/null $RJFLAG -K > $FNAMEOUT
   if [ ${national_bound} -eq 1 ]; then
     pscoast $RJFLAG -A0/0/1 ${cres} -N1/5,white -O -K >> $FNAMEOUT
   fi
-#pscoast $RJFLAG -Q -O -K >> $FNAMEOUT
+test "$only_land" -eq 1 && pscoast $RJFLAG -Q -O -K >> $FNAMEOUT
 pscoast $RJFLAG $BFLAG -A0/0/1 ${cres} -W5 -O -K >> $FNAMEOUT
-pstext $RJFLAG << EOF >> $FNAMEOUT
+test -n "$title" && pstext $RJFLAG << EOF >> $FNAMEOUT
 -20 -40 40 0 0 LB ${title}
 EOF
 psxy /dev/null $RJFLAG -O >> $FNAMEOUT

@@ -2,3 +2,6 @@ EXPDIR="/vols/tetis/meteo4g/WRF/experiments"
 POSTDIR="/vols/tetis/escena/CORDEX/01_CDX_Sensitivity/data/post"
 POST2DIR="/vols/tetis/escena/CORDEX/01_CDX_Sensitivity/data/post2"
 #POSTDIR="post"
+DIAGDIR=diag
+FIGSDIR=$(pwd)/figs
+OBSDIR="/vols/tetis/escena/CORDEX/01_CDX_Sensitivity/data/obs"
