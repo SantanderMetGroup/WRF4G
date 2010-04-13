@@ -26,7 +26,7 @@ function pintnml(){
   path_to_input            = '${idir}/',
   input_name               = '${ifile}',
   path_to_output           = '${tmpdir}/',
-  fields                   = 'GHT,TT,RH,MSLP,U,V,U10,V10,RAINTOT,T2,SWDOWN,GLW,Times',
+  fields                   = 'U,V,QVAPOR,VIQC,VIQI,Times',
   process                  = 'list',
   debug                    = .TRUE.,
   grid_filt                = 3,
@@ -50,6 +50,10 @@ function get_yearmons(){
   find ${idir} -name wrfout_d01_\*.nc \
     | sed -e 's/^.*wrfout_d01_\(.*\)..T......Z.nc$/\1/' \
     | sort -n | uniq
+}
+
+function get_yearmons(){
+  echo 199801 199802 199803 199807 199808 199809
 }
 
 function get_filelist_yearmon() {
@@ -77,7 +81,7 @@ function get_3h_data(){
   expname=$1
   exppath=$(simulation_path ${expname})
   for yearmon in $(get_yearmons ${exppath}); do
-      outfile="${POSTDIR}/${expname}_3H_${yearmon}_3dvars.nc"
+      outfile="${POSTDIR}/${expname}_3H_${yearmon}_qvcl.nc"
       if test -f ${outfile}; then
         echo "I won't overwrite ${outfile}."
         continue
@@ -101,17 +105,12 @@ function get_3h_data(){
         echo "Too few files for month ${yearmon:4:2}: $(wc -l filelist.txt)"
         continue
       fi
-echo  ${wxajcmd} \
-        --from-file filelist.txt \
-        -o ${POSTDIR}/${expname}_3H_${yearmon}_3dvars.nc \
-        -v RH,GHT,TEMP,MSLP,T2,RAIN,U10ER,V10ER,SWDOWN,GLW \
-        -p
       ${wxajcmd} \
         --from-file filelist.txt \
-        -o ${POSTDIR}/${expname}_3H_${yearmon}_3dvars.nc \
-        -v RH,GHT,TEMP,MSLP,T2,RAIN,U10ER,V10ER,SWDOWN,GLW \
+        -o ${outfile} \
+        -v UER,VER,QVAPOR,VIQC,VIQI,RAINC \
         -p \
-        >& ${expname}_3H_${yearmon}_3dvars.log
+        >& $(basename ${outfile}.log)
       mv filelist.txt filelist_${yearmon}.txt
   done
 }
@@ -142,7 +141,7 @@ function procesa(){
       for mon in $(seq 1 12); do
         pmon=$(printf "%02d" ${mon})
         cdo -s ${splitlevel} ${seltime} \
-          -selvar,${var} ${POSTDIR}/${expname}_3H_${yr}${pmon}_3dvars.nc \
+          -selvar,${var} ${POSTDIR}/${expname}_3H_${yr}${pmon}_qvcl.nc \
           procesa_${yr}${pmon}_${var}
       done # mon
     done # yr
@@ -168,18 +167,12 @@ function procesa(){
 }
 
 exp=SEN2
-#for sim in CUBM CUKF BLMY MPW6 RARR LSRU BLPX CTRL
-for sim in RARR LSRU BLPX CTRL
+for sim in CUBM CUKF BLMY MPW6 RARR LSRU BLPX CTRL
 do
-  #get_3h_data CORDEX_UC_WRF_${exp}${sim}
-  procesa CORDEX_UC_WRF_${exp}${sim} pr  SFC DA_00:00 1998-1998
-  procesa CORDEX_UC_WRF_${exp}${sim} pr  SFC 3H_All   1998-1998
-  procesa CORDEX_UC_WRF_${exp}${sim} uas SFC DM_00:00 1998-1998
-  procesa CORDEX_UC_WRF_${exp}${sim} vas SFC DM_00:00 1998-1998
-  procesa CORDEX_UC_WRF_${exp}${sim} zg  850,500,200 DM_00:00 1998-1998
-  procesa CORDEX_UC_WRF_${exp}${sim} hur 850,500,200 DM_00:00 1998-1998
-  procesa CORDEX_UC_WRF_${exp}${sim} ta  850,500,200 DM_00:00 1998-1998
-  procesa CORDEX_UC_WRF_${exp}${sim} tas SFC DM_00:00 1998-1998
-  procesa CORDEX_UC_WRF_${exp}${sim} tas SFC DX_00:00 1998-1998
-  procesa CORDEX_UC_WRF_${exp}${sim} tas SFC DN_00:00 1998-1998
+  get_3h_data CORDEX_UC_WRF_${exp}${sim}
+  procesa CORDEX_UC_WRF_${exp}${sim} prc SFC 3H_All   1998-1998
+  procesa CORDEX_UC_WRF_${exp}${sim} prc  SFC DA_00:00 1998-1998
+  procesa CORDEX_UC_WRF_${exp}${sim} ua 850,500,200 DM_00:00 1998-1998
+  procesa CORDEX_UC_WRF_${exp}${sim} va 850,500,200 DM_00:00 1998-1998
+  procesa CORDEX_UC_WRF_${exp}${sim} hus 850,500,200 DM_00:00 1998-1998
 done
