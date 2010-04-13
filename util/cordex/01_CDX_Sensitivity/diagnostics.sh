@@ -60,3 +60,10 @@ function calc_latt(){
   cdo runmean,3 -zonmean -sellonlatbox,${lonrange},-90,90 $cdoopt s1 ${ofile}
   rm -f s1
 }
+
+function calc_lattlandonly(){
+  lonrange=$1; ifile=$2; ofile=$3; shift 3; cdoopt="$*"
+  cdo remapbil,CRU_mask.nc $ifile s1
+  cdo runmean,3 -zonmean -sellonlatbox,${lonrange},-90,90 -mul -setctomiss,0 CRU_mask.nc $cdoopt s1 ${ofile}
+  rm -f s1
+}

@@ -78,7 +78,7 @@ fi
 echo -n $XYZFILE; minmax $XYZFILE
 
 if test $zmin -ne $zmax; then
-  makecpt -C$cptfile -T${zmin}/$zmax/$dz -Z > pepe.cpt
+  makecpt -C$cptfile -T${zmin}/$zmax/$dz  > pepe.cpt
   cptfile=pepe.cpt
 fi
 

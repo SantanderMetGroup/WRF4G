@@ -16,10 +16,10 @@ experiment="SEN2"
 OUT="figs/3dc${sea}_${region}_${var}.eps"
 
 R="-R0/24/$(get_varrange $var)"
-R="-R-3/24/0/2"
+R="-R-3/24/0/$(cat ${DIAGDIR}/*_3DC${sea}_${region}_${period}_${var}.txt | minmax -I0.1 -C | awk '{printf "%s",$2}')"
 Roverlay="-R0/1/0/1"
 J="-JX10c/8c"
-B="-B3:hour:/$(get_vardz $var):${var}($(get_varunits $var)):WeSn"
+B="-B3:hour:/0.5:${var}($(get_varunits $var)):WeSn"
 OK="-O -K"
 xpos=0.05; xlen=0.05; xspace=0.02
 ypos=0.95; dy=0.05

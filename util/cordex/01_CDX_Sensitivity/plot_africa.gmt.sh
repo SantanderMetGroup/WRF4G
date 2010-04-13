@@ -8,7 +8,7 @@ NCFILE=$1
 var=$(basename ${NCFILE//*_/} .nc)
 
 shift
-has_height_dim=0
+has_height_dim=0 # No se usa ya. Lo detecta
 is_curvilinear=0
 national_bound=0
 no_nn=0
@@ -65,7 +65,7 @@ lats = nc.variables["lat"]
 lons = nc.variables["lon"]
 for i in range(len(lats)):
   for j in range(len(lats[0])):
-    if ${has_height_dim}:
+    if len(var.shape)==4:
       print "%9.4f %9.4f %.5e" % (lons[i,j], lats[i,j], var[irec,0,i,j])
     else:
       print "%9.4f %9.4f %.5e" % (lons[i,j], lats[i,j], var[irec,i,j])
@@ -91,7 +91,7 @@ except KeyError:
   lons = nc.variables["longitude"]
 for i in range(len(lons)):
   for j in range(len(lats)):
-    if ${has_height_dim}:
+    if len(var.shape)==4:
       print "%9.4f %9.4f %.5e" % (lons[i], lats[j], var[irec,0,j,i])
     else:
       print "%9.4f %9.4f %.5e" % (lons[i], lats[j], var[irec,j,i])
