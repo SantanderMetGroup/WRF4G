@@ -877,6 +877,167 @@ varstd=varstd+var**2
 
 END SUBROUTINE varstatistics
 
+   SUBROUTINE diagnostic_clwrf_clim(                                  &
+! clWRF module to compute necessary climatic variables
+!!
+                      ids,ide, jds,jde, kds,kde,                      &
+                      ims,ime, jms,jme, kms,kme,                      &
+                      ips,ipe, jps,jpe, kps,kpe,                      & ! patch  dims
+                      i_start,i_end,j_start,j_end,kts,kte,num_tiles   &
+                     ,dpsdt,dmudt                                     &
+                     ,p8w,pk1m,mu_2,mu_2m                             &
+                     ,u,v                                             &
+                     ,hfx,sfcevp,lh                                   &
+                     ,histout, swdown                                 &
+                     ,dsunshine, initime_sunshine                     &
+                     ,dt,xtime,sbw                                    &
+                     ,diag_print                                      &
+                                                                      )
+!----------------------------------------------------------------------
+
+  USE module_dm, ONLY: wrf_dm_sum_real, wrf_dm_maxval
+
+   IMPLICIT NONE
+!======================================================================
+! Definitions
+!-----------
+!-- DIAG_PRINT    print control: 0 - no diagnostics; 1 - dmudt only; 2 - all
+!-- DT            time step (second)
+!-- XTIME         forecast time
+!-- SBW           specified boundary width - used later
+!
+!-- P8W           3D pressure array at full eta levels
+!-- MU            dry column hydrostatic pressure
+!-- HFX           surface sensible heat flux
+!-- LH            surface latent heat flux
+!-- SFCEVP        total surface evaporation
+!-- U             u component of wind - to be used later to compute k.e.
+!-- V             v component of wind - to be used later to compute k.e.
+!-- SWDOWN        DOWNWARD SHORT WAVE FLUX AT GROUND SURFACE
+!
+!-- ids           start index for i in domain
+!-- ide           end index for i in domain
+!-- jds           start index for j in domain
+!-- jde           end index for j in domain
+!-- kds           start index for k in domain
+!-- kde           end index for k in domain
+!-- ims           start index for i in memory
+!-- ime           end index for i in memory
+!-- jms           start index for j in memory
+!-- jme           end index for j in memory
+!-- ips           start index for i in patch
+!-- ipe           end index for i in patch
+!-- jps           start index for j in patch
+!-- jpe           end index for j in patch
+!-- kms           start index for k in memory
+!-- kme           end index for k in memory
+!-- i_start       start indices for i in tile
+!-- i_end         end indices for i in tile
+!-- j_start       start indices for j in tile
+!-- j_end         end indices for j in tile
+!-- kts           start index for k in tile
+!-- kte           end index for k in tile
+!-- num_tiles     number of tiles
+!
+!======================================================================
+
+  INTEGER, INTENT(IN)                                   :: ids,ide, jds,jde, kds,kde,           &
+     ims,ime, jms,jme, kms,kme, &
+     ips,ipe, jps,jpe, kps,kpe, &
+     kts,kte, &
+     num_tiles
+
+   INTEGER, DIMENSION(num_tiles), INTENT(IN)             :: i_start,i_end,j_start,j_end 
+
+   INTEGER, INTENT(IN)                                   :: diag_print
+
+   REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),                                                &
+         INTENT(IN)                                      :: u, v, p8w
+
+   REAL, DIMENSION( ims:ime , jms:jme ), INTENT(IN)      :: MU_2, HFX, SFCEVP, LH
+
+   REAL, DIMENSION( ims:ime , jms:jme ), INTENT(INOUT)   :: DPSDT, DMUDT, MU_2M, PK1M  
+
+   REAL,  INTENT(IN)                                     :: DT, XTIME
+   INTEGER,  INTENT(IN)                                  :: SBW
+
+! LOCAL  VAR
+
+   INTEGER                                               :: i,j,k,its,ite,jts,jte,ij
+   INTEGER                                               :: idp,jdp,irc,jrc,irnc,jrnc,isnh,jsnh
+   INTEGER                                               :: prfreq
+
+   REAL                                                  :: no_points
+   LOGICAL, EXTERNAL                                     :: wrf_dm_on_monitor
+   CHARACTER*256                                         :: outstring
+   CHARACTER*6                                           :: grid_str
+
+! CLWRF.April 2010
+!-----------------------------------------------------------------
+! 34567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+   REAL, DIMENSION( ims:ime , jms:jme ), INTENT(OUT)     :: dsunshine, initime_sunshine 
+   REAL, DIMENSION( ims:ime , jms:jme ), INTENT(IN)      :: swdown
+
+! Local
+   REAL, PARAMETER                                       :: sunshine_start=120., nullvalue=-999.9
+   INTEGER, INTENT(IN)                                   :: histout
+
+!-----------------------------------------------------------------
+! SET START AND END POINTS FOR TILES
+!  !$OMP PARALLEL DO   &
+!  !$OMP PRIVATE ( ij )
+
+   DO ij = 1 , num_tiles
+
+! Initialization of variables
+      IF (xtime == 0.0) THEN
+!      IF (MOD(NINT(XTIME),histout) == 0) THEN
+
+        DO j=j_start(ij),j_end(ij)
+        DO i=i_start(ij),i_end(ij)
+          dsunshine(i,j) = 0.
+          initime_sunshine(i,j) = nullvalue
+        ENDDO
+        ENDDO
+      ENDIF
+
+! Climatic diagnostics
+!!
+      DO j=j_start(ij),j_end(ij)
+      DO i=i_start(ij),i_end(ij)
+!       diag_sunshine: 
+!!
+        IF ((swdown(i,j) >= sunshine_start) .AND. (initime_sunshine(i,j) == nullvalue)) THEN
+          initime_sunshine(i,j)=xtime
+          dsunshine(i,j)=0.
+        ELSE IF ((swdown(i,j) >= sunshine_start) .AND. (initime_sunshine(i,j) /= nullvalue)) THEN
+          dsunshine(i,j)=(xtime - initime_sunshine(i,j))*60.
+        ELSE IF ((swdown(i,j) < sunshine_start) .AND. (initime_sunshine(i,j) /= nullvalue)) THEN 
+          dsunshine(i,j) = (xtime - initime_sunshine(i,j))*60.
+          initime_sunshine(i,j)=nullvalue
+        ENDIF 
+      ENDDO
+      ENDDO
+
+!!!!!  !!!!!  !!!!!
+! Printing some results
+!!
+   IF ( wrf_dm_on_monitor() ) THEN
+     WRITE(outstring,*) 'CLWRF climatic values: ',ij,' sunshine:', dsunshine(i_start(ij)+       &
+       (i_end(ij)-i_start(ij))/2, j_start(ij)+(j_end(ij)-j_start(ij))/2),' tsunshine:',         &
+       initime_sunshine(i_start(ij)+(i_end(ij)-i_start(ij))/2, j_start(ij)+(j_end(ij)-          &
+       j_start(ij))/2),' swdown:',swdown(i_start(ij)+(i_end(ij)-i_start(ij))/2, j_start(ij)+    &
+       (j_end(ij)-j_start(ij))/2)
+     CALL wrf_debug ( 75, TRIM(outstring) )
+
+   END IF
+
+   ENDDO
+!  !$OMP END PARALLEL DO
+
+   END SUBROUTINE diagnostic_clwrf_clim
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #endif
 

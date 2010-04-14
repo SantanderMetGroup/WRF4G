@@ -3315,6 +3315,33 @@ BENCH_END(bc_2d_tim)
       &             ,KTS=k_start, KTE=min(k_end,kde-1)                     &
       &             ,NUM_TILES=grid%num_tiles                              &
       &                                                          )
+
+   CALL wrf_debug ( 200 , ' CLWRF: call diagnostic_calc' )
+
+   CALL diagnostic_clwrf_clim(                                             &
+      &              DPSDT=grid%dpsdt   ,DMUDT=grid%dmudt                  &
+      &             ,P8W=p8w   ,PK1M=grid%pk1m                             &
+      &             ,MU_2=grid%mu_2  ,MU_2M=grid%mu_2m                     &
+      &             ,U=grid%u_2    ,V=grid%v_2                             &
+      &             ,HFX=grid%hfx   ,SFCEVP=grid%sfcevp    ,LH=grid%lh     &
+      &             ,HISTOUT=config_flags%history_interval                 &
+      &             ,SWDOWN=grid%swdown                                    &
+      &             ,DSUNSHINE=grid%sunshine                               &
+      &             ,INITIME_SUNSHINE=grid%tsunshine                       &
+      &             ,DT=grid%dt      ,SBW=config_flags%spec_bdy_width      &
+      &             ,XTIME=grid%xtime                                      &
+                  ! Selection flag
+      &             ,DIAG_PRINT=config_flags%diag_print                    &
+                  ! Dimension arguments
+      &             ,IDS=ids,IDE=ide, JDS=jds,JDE=jde, KDS=kds,KDE=kde     &
+      &             ,IMS=ims,IME=ime, JMS=jms,JME=jme, KMS=kms,KME=kme     &
+      &             ,IPS=ips,IPE=ipe, JPS=jps,JPE=jpe, KPS=kps,KPE=kpe     &
+      &             ,I_START=grid%i_start,I_END=min(grid%i_end, ide-1)     &
+      &             ,J_START=grid%j_start,J_END=min(grid%j_end, jde-1)     &
+      &             ,KTS=k_start, KTE=min(k_end,kde-1)                     &
+      &             ,NUM_TILES=grid%num_tiles                              &
+      &                                                          )
+
 #endif
 
 #ifdef DM_PARALLEL
