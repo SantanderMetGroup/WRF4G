@@ -3324,7 +3324,7 @@ BENCH_END(bc_2d_tim)
       &             ,MU_2=grid%mu_2  ,MU_2M=grid%mu_2m                     &
       &             ,U=grid%u_2    ,V=grid%v_2                             &
       &             ,HFX=grid%hfx   ,SFCEVP=grid%sfcevp    ,LH=grid%lh     &
-      &             ,HISTOUT=config_flags%history_interval                 &
+      &             ,HISTOUT=config_flags%auxhist9_interval                &
       &             ,SWDOWN=grid%swdown                                    &
       &             ,DSUNSHINE=grid%sunshine                               &
       &             ,INITIME_SUNSHINE=grid%tsunshine                       &

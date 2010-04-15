@@ -990,13 +990,13 @@ END SUBROUTINE varstatistics
    DO ij = 1 , num_tiles
 
 ! Initialization of variables
-      IF (xtime == 0.0) THEN
-!      IF (MOD(NINT(XTIME),histout) == 0) THEN
+!      IF (xtime == 0.0) THEN
+      IF (MOD(NINT(XTIME),histout) == 0) THEN
 
         DO j=j_start(ij),j_end(ij)
         DO i=i_start(ij),i_end(ij)
           dsunshine(i,j) = 0.
-          initime_sunshine(i,j) = nullvalue
+          initime_sunshine(i,j) = 0. 
         ENDDO
         ENDDO
       ENDIF
@@ -1007,14 +1007,11 @@ END SUBROUTINE varstatistics
       DO i=i_start(ij),i_end(ij)
 !       diag_sunshine: 
 !!
-        IF ((swdown(i,j) >= sunshine_start) .AND. (initime_sunshine(i,j) == nullvalue)) THEN
+        IF ((swdown(i,j) >= sunshine_start) .AND. (initime_sunshine(i,j) == 0.)) THEN
           initime_sunshine(i,j)=xtime
           dsunshine(i,j)=0.
-        ELSE IF ((swdown(i,j) >= sunshine_start) .AND. (initime_sunshine(i,j) /= nullvalue)) THEN
-          dsunshine(i,j)=(xtime - initime_sunshine(i,j))*60.
-        ELSE IF ((swdown(i,j) < sunshine_start) .AND. (initime_sunshine(i,j) /= nullvalue)) THEN 
-          dsunshine(i,j) = (xtime - initime_sunshine(i,j))*60.
-          initime_sunshine(i,j)=nullvalue
+        ELSE IF ((swdown(i,j) >= sunshine_start)) THEN
+          dsunshine(i,j)=dsunshine(i,j)+dt
         ENDIF 
       ENDDO
       ENDDO
@@ -1023,7 +1020,7 @@ END SUBROUTINE varstatistics
 ! Printing some results
 !!
    IF ( wrf_dm_on_monitor() ) THEN
-     WRITE(outstring,*) 'CLWRF climatic values: ',ij,' sunshine:', dsunshine(i_start(ij)+       &
+     WRITE(outstring,*) 'CLWRFclim values: ',ij,' sunshine:', dsunshine(i_start(ij)+            &
        (i_end(ij)-i_start(ij))/2, j_start(ij)+(j_end(ij)-j_start(ij))/2),' tsunshine:',         &
        initime_sunshine(i_start(ij)+(i_end(ij)-i_start(ij))/2, j_start(ij)+(j_end(ij)-          &
        j_start(ij))/2),' swdown:',swdown(i_start(ij)+(i_end(ij)-i_start(ij))/2, j_start(ij)+    &

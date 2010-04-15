@@ -895,8 +895,8 @@ state    real  RAINNCVMEAN      ij      misc        1         -      h7       "R
 state    real  RAINCVSTD        ij      misc        1         -      h7       "RAINCVSTD"              "STANDARD DEV. CUMULUS PRECIPITATION FLUX IN CLWRFH HOURS"   "kg m-2 s-1"
 state    real  RAINNCVSTD       ij      misc        1         -      h7       "RAINNCVSTD"             "STANDARD DEV. GRID SCALE PRECIPITATION IN FLUX CLWRFH HOURS"    "kg m-2 s-1"
 # CLWRF-CLIM
-state    real  SUNSHINE         ij      misc        1         -      h        "SUNSHINE"               "SUNSHINE LENGTH"    "second"
-state    real  TSUNSHINE        ij      misc        1         -      h        "TSUNSHINE"              "TIME OF SUNSHINE"   "minute"
+state    real  SUNSHINE         ij      misc        1         -      h9       "SUNSHINE"               "SUNSHINE LENGTH"    "second"
+state    real  TSUNSHINE        ij      misc        1         -      h9       "TSUNSHINE"              "TIME OF SUNSHINE"   "minute"
 
 
 # upward and downward clearsky and total diagnostic fluxes for CAM radiation
