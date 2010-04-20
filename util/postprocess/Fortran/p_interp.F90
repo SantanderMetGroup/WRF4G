@@ -1087,9 +1087,9 @@ rcode = nf_enddef(mcid)
           jshape2d=RESHAPE((/jshape(1),jshape(2),jshape(4)/),(/3/))
           dims2d_out=RESHAPE((/dims_in(1),dims_in(2),dims_in(4),1/),(/4/))
           IF (ALLOCATED(data3)) DEALLOCATE(data3)
-          ALLOCATE (data3(dims_in(1), dims_in(2), dims_in(4), 2))
-          CALL multi_massvertint(ncid, (/'U          ','V          '/), 2, debug, dims_in(1),   &
-            dims_in(2), dims_in(3), dims_in(4), data3)
+          ALLOCATE (data3(dims_in(1), dims_in(2), dims_in(4), 3))
+          CALL multi_massvertint(ncid, (/'U          ','V          ','W           '/), 3, debug,& 
+            dims_in(1), dims_in(2), dims_in(3), dims_in(4), data3)
           IF (debug) THEN
             PRINT *, 'Vertical transport integration'
             PRINT *, 'VAR: VIU, VIV idvar:',jvar+1, char(44), jvar+2
@@ -1112,6 +1112,15 @@ rcode = nf_enddef(mcid)
             , "XLONG XLAT")
           rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3(:,:,:,2))
           IF (debug) PRINT *, '  VIV. SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,2)
+          jvar = jvar + 1
+          varnameIN='VIW'
+          longdescIN='Vertically integrated wind bottom-top'
+          unitsIN='s-1 m-1'
+          CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
+            , "XLONG XLAT")
+          rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3(:,:,:,3))
+          IF (debug) PRINT *, '  VIW. SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,3)
+
           DEALLOCATE(data3)
         ENDIF
 
@@ -1127,9 +1136,9 @@ rcode = nf_enddef(mcid)
           jshape2d=RESHAPE((/jshape(1),jshape(2),jshape(4)/),(/3/))
           dims2d_out=RESHAPE((/dims_in(1),dims_in(2),dims_in(4),1/),(/4/))
           IF (ALLOCATED(data4)) DEALLOCATE(data4)
-          ALLOCATE (data4(dims_in(1), dims_in(2), dims_in(4), 1, 2))
-          CALL multi_transportvertint(ncid, (/'QVAPOR     '/),1,(/'U          ','V          '/),&
-            debug, dims_in(1), dims_in(2), dims_in(3), dims_in(4), data4) 
+          ALLOCATE (data4(dims_in(1), dims_in(2), dims_in(4), 1, 3))
+          CALL multi_transportvertint(ncid, (/'QVAPOR     '/),1,(/'U          ','V          ',  &
+            'W          '/),debug, dims_in(1), dims_in(2), dims_in(3), dims_in(4), data4) 
           IF (debug) THEN
             PRINT *,'Vertical transport integration of moist'
             PRINT *,'     VAR: VIMU, VIMV idvar:',jvar+1, char(44), jvar+2
@@ -1152,6 +1161,14 @@ rcode = nf_enddef(mcid)
             , "XLONG XLAT")
           rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data4(:,:,:,1,2))
           IF (debug) PRINT *, '  VIMV. SAMPLE VALUE OUT = ',data4(dims_out(1)/2,dims_out(2)/2,1,1,2)
+          jvar = jvar + 1
+          varnameIN='VIMW'
+          longdescIN='Vertically integrated transport bottom-top of moist'
+          unitsIN='kg s-1 m-1'
+          CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
+            , "XLONG XLAT")
+          rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data4(:,:,:,1,3))
+          IF (debug) PRINT *, '  VIMV. SAMPLE VALUE OUT = ',data4(dims_out(1)/2,dims_out(2)/2,1,1,3)
           DEALLOCATE(data4)
         ENDIF
 
@@ -1265,18 +1282,19 @@ SUBROUTINE multi_transportvertint(ncid, variables, Nvar, winds, dbg, nx, ny, nz,
   INTEGER                                        :: i, iz, ivar, rcode
   INTEGER, INTENT(IN)                            :: ncid, Nvar
   CHARACTER(LEN=11), DIMENSION(Nvar), INTENT(IN) :: variables
-  CHARACTER(LEN=11), DIMENSION(2), INTENT(IN)    :: winds
+  CHARACTER(LEN=11), DIMENSION(3), INTENT(IN)    :: winds
   INTEGER, INTENT(IN)                            :: nx, ny, nz, nt
   LOGICAL, INTENT(IN)                            :: dbg
-  REAL, DIMENSION(nx,ny,nt,Nvar,2), INTENT(OUT)  :: integrals
-  REAL, DIMENSION(nx,ny,nz,nt)                   :: dataval, windu, windv
-  REAL, DIMENSION(nx,ny,nz,nt,2)                 :: integrand
+  REAL, DIMENSION(nx,ny,nt,Nvar,3), INTENT(OUT)  :: integrals
+  REAL, DIMENSION(nx,ny,nz,nt)                   :: dataval, windu, windv,   & 
+    windw
+  REAL, DIMENSION(nx,ny,nz,nt,3)                 :: integrand
   REAL, DIMENSION(nx,ny,nt)                      :: mu, mub
   REAL, DIMENSION(nz,nt)                         :: dz
   REAL, DIMENSION(:,:,:,:), ALLOCATABLE          :: stagdata
   INTEGER, DIMENSION(6)                          :: vardims, lengthvardims
   INTEGER                                        :: idim, nvardims
-  INTEGER                                        :: iu, iv, idz, imu, imub
+  INTEGER                                        :: iu, iv, iw, idz, imu, imub
   REAL, PARAMETER                                :: grav=9.81
   REAL                                           :: dxm, dym
 
@@ -1308,6 +1326,12 @@ SUBROUTINE multi_transportvertint(ncid, variables, Nvar, winds, dbg, nx, ny, nz,
   rcode = nf_get_var_real(ncid, iv, stagdata)
   windv = 0.5 * ( stagdata(:,1:ny,:,:)+stagdata(:,2:ny+1,:,:) )
 
+  rcode = nf_inq_varid(ncid, TRIM(winds(3)), iw)
+  IF (ALLOCATED(stagdata)) DEALLOCATE(stagdata)
+  ALLOCATE (stagdata(nx,ny,nz+1,nt))
+  rcode = nf_get_var_real(ncid, iw, stagdata)
+  windw = 0.5 * ( stagdata(:,:,1:nz,:)+stagdata(:,:,2:nz+1,:) )
+
   DO ivar=1,Nvar
     integrand=1.
     IF (dbg) PRINT *,'  '//TRIM(variables(ivar))
@@ -1321,13 +1345,16 @@ SUBROUTINE multi_transportvertint(ncid, variables, Nvar, winds, dbg, nx, ny, nz,
     rcode = nf_get_var_real(ncid, i, dataval)
     integrand(:,:,:,:,1) = integrand(:,:,:,:,1) * dataval * windu
     integrand(:,:,:,:,2) = integrand(:,:,:,:,2) * dataval * windv
+    integrand(:,:,:,:,3) = integrand(:,:,:,:,3) * dataval * windw
     DO iz=1,nz
       integrals(:,:,:,ivar,:) = integrals(:,:,:,ivar,:) + integrand(:,:,iz,:,:)* dz(iz,1)
     ENDDO
 !    integrals(:,:,:,ivar,1)=integrals(:,:,:,ivar,1)*(mu+mub)*dxm*dym/grav
 !    integrals(:,:,:,ivar,2)=integrals(:,:,:,ivar,2)*(mu+mub)*dxm*dym/grav
+!    integrals(:,:,:,ivar,3)=integrals(:,:,:,ivar,3)*(mu+mub)*dxm*dym/grav
     integrals(:,:,:,ivar,1)=integrals(:,:,:,ivar,1)*(mu+mub)/grav
     integrals(:,:,:,ivar,2)=integrals(:,:,:,ivar,2)*(mu+mub)/grav
+    integrals(:,:,:,ivar,3)=integrals(:,:,:,ivar,3)*(mu+mub)/grav
   ENDDO
 
 END SUBROUTINE multi_transportvertint
@@ -1382,6 +1409,11 @@ SUBROUTINE multi_massvertint(ncid, variables, Nvar, dbg, nx, ny, nz, nt, integra
       allocate (stagdata(nx,ny+1,nz,nt))
       rcode = nf_get_var_real(ncid, i, stagdata)
       dataval = 0.5 * ( stagdata(:,1:ny,:,:)+stagdata(:,2:ny+1,:,:) )
+    ELSEIF (TRIM(variables(ivar))=='W') THEN
+      IF (ALLOCATED(stagdata)) DEALLOCATE(stagdata)
+      allocate (stagdata(nx,ny,nz+1,nt))
+      rcode = nf_get_var_real(ncid, i, stagdata)
+      dataval = 0.5 * ( stagdata(:,:,1:nz,:)+stagdata(:,:,2:nz+1,:) )
     ELSE
       rcode = nf_inq_varndims(ncid, i, nvardims)
       rcode = nf_inq_vardimid(ncid, i, vardims)
