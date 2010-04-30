@@ -135,13 +135,20 @@ class FortranNamelist:
           self.record_dict[current_label].appendValue(variable.strip(), values)
   def __getitem__(self, item):
     return self.record_dict[item]
-  def printNamelist(self):
+  def printNamelist(self, record=None):
     rval = ""
-    for rec in self.ordered_records:
-      rval += "%s\n" % str(self.record_dict[rec])
+    if record:
+      rval += "%s\n" % str(self.record_dict[record])
+    else:  
+      for rec in self.ordered_records:
+        rval += "%s\n" % str(self.record_dict[rec])
     return rval
   def setValue(self, variable, value, record=""):
     if record:
+      if not self.record_dict.has_key(record):
+        self.record_dict[record] = FortranNamelistRecord(record)
+        if not record in self.ordered_records:
+          self.ordered_records.append(record)
       self[record].setValue(variable, value)
     else:
       gotit=False
@@ -345,6 +352,10 @@ if __name__ == "__main__":
     help="Append the provided values to this namelist entry. A specific record can be specified through variable@record syntax"
   )
   parser.add_option(
+    "-r", "--record", metavar="RECORD", dest="thisrecord",
+    help="Dump only the selected RECORD"
+  )
+  parser.add_option(
     "-s", "--set", metavar="VARIABLE[@RECORD]", dest="variable_s",
     help="Set the provided values to this namelist entry. A specific record can be specified through variable@record syntax"
   )
@@ -407,4 +418,7 @@ if __name__ == "__main__":
   if opt.overwrite:
     nml.overWriteNamelist()
   elif not opt.quiet:
-    print nml.printNamelist()
+    if opt.thisrecord:
+      print nml.printNamelist(opt.thisrecord)
+    else:
+      print nml.printNamelist()
