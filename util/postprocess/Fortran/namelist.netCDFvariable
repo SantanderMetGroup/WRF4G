@@ -1,0 +1,6 @@
+&io
+  file                 = 'wrfout_d01_20011112T000000Z.nc',
+  variable             = 'QVAPOR',
+  timestep             = 1,
+  level                = 1,
+/
