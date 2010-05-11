@@ -1,6 +1,15 @@
 &io
-  file                 = 'wrfout_d01_20011112T000000Z.nc',
+  ncfile               = '/oceano/gmeteo/SCRATCH/lluis/estudios/SEAWIND/scaling/gcc_gfortran/cores8/wrfout_d01_2001-11-12_00:00:00',
   variable             = 'QVAPOR',
-  timestep             = 1,
-  level                = 1,
+  timestep             = -1,
+  level                = -1,
+  xpoint               = -1,
+  ypoint               = -1,
+  output_path          = '.',
 /
+
+# timstep < 0: all time-steps
+# level < 0: all levels
+# xpoint < 0: all xpoints
+# ypoint < 0: all ypoints
+
