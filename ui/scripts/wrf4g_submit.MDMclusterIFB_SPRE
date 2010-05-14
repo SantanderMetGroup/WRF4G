@@ -16,29 +16,26 @@ depid=$2
 
 source wrf4g.conf
 
-if test -n "${depid}"; then
-  depflag="-W depend=afterany:${depid}"
-else
-  depflag=""
-fi
+test -n "${depid}" && depflag="-W depend=afterany:${depid}" || depflag=""
+test -n "${WRF4G_QUEUE_WALLTIME}" && wtflag="-l walltime=${WRF4G_QUEUE_WALLTIME}" || wtflag=""
 
 mpiexec="/software/ScientificLinux/4.6/mpiexec/bin/mpiexec"
 
 if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
-  nodflag="-l nodes=${NUMBER_OF_NODES}:ppn=8"
-  echo "LAUNCHER_METGRID=\"\"" >> wrf.chunk
-  echo "LAUNCHER_REAL=\"\"" >> wrf.chunk
+  nodflag="-l nodes=${NUMBER_OF_NODES}:ppn=${PROCESSES_PER_NODE}"
+  echo "LAUNCHER_METGRID=\"\""                 >> wrf.chunk
+  echo "LAUNCHER_REAL=\"\""                    >> wrf.chunk
   echo "LAUNCHER_WRF=\"$mpiexec -comm mpich-ib -npernode ${PROCESSES_PER_NODE}\""  >> wrf.chunk
-  echo "export P4_GLOBMEMSIZE=33554432" >> wrf.chunk
-  echo "export IBV_FORK_SAFE=1" >> wrf.chunk
+  echo "export P4_GLOBMEMSIZE=67108864" >> wrf.chunk
+#  echo "export IBV_FORK_SAFE=1" >> wrf.chunk
 else
   nodflag=""
-  echo "LAUNCHER_METGRID=\"\""           >> wrf.chunk
+  echo "LAUNCHER_METGRID=\"\""              >> wrf.chunk
   echo "LAUNCHER_REAL=\"\""              >> wrf.chunk
   echo "LAUNCHER_WRF=\"\""               >> wrf.chunk
 fi
 
-rundir=${WRF4G_RUN}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
+rundir=${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
 #
 #   Avoid overwriting previous run directories. Move it to an unused name.
 #
@@ -66,4 +63,4 @@ mkdir -p ${rundir} || exit
 cp -L sandbox.tar.gz ${rundir}/
 cp -L WRF4G_ini.sh   ${rundir}/
 
-qsub -q infiniband -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} $jobfile | awk -F. '{print $1}'
+qsub -q ${WRF4G_QUEUE_NAME} -N "${WRF4G_REALIZATION}" ${depflag} ${nodflag} ${wtflag} $jobfile | awk -F. '{print $1}'
