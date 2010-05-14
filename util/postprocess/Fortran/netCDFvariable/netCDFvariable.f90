@@ -16,7 +16,8 @@ PROGRAM netCDFvariable
   
 ! namelist
   CHARACTER(LEN=300)                                      :: ncfile, output_path
-  CHARACTER(LEN=50)                                       :: variable
+  CHARACTER(LEN=50)                                       :: variable, longname, latname,       &
+    timename
   INTEGER                                                 :: timestep, level, xpoint, ypoint
   
 ! Local
@@ -36,14 +37,19 @@ PROGRAM netCDFvariable
   CHARACTER(LEN=1), DIMENSION(4)                          :: dimallname, dimonename
   CHARACTER(LEN=4)                                        :: I_S4
   CHARACTER(LEN=20), ALLOCATABLE, DIMENSION(:)            :: dimsname
-  REAL, ALLOCATABLE, DIMENSION(:,:,:,:,:,:)               :: ncvariable,output  
+  REAL, ALLOCATABLE, DIMENSION(:,:,:,:,:,:)               :: ncvariable,output, nclon, nclat
+  CHARACTER(LEN=19), ALLOCATABLE, DIMENSION(:,:,:,:,:,:)  :: nctime
   LOGICAL                                                 :: is_used
+  CHARACTER(LEN=50)                                       :: join_vecchar
   
-  NAMELIST /io/ ncfile, variable, timestep, level, xpoint, ypoint, output_path
+  NAMELIST /io/ ncfile, variable, timestep, level, xpoint, ypoint, output_path, longname,       &
+    latname, timename
   
 !!!!!!!!!!!! Variables
 ! ncfile: netCDF file from which variable will be extracted
 ! variable: name of variable to be extracted
+! longname, latname: longitude and latitude name of variables within netCDF file
+! timename: time variable name within netCDF file
 ! output_path: direction to which ASCII output will be written
 ! timestep, level, xpoint, ypoint: specific coordenates to select (if any <0 all length will be
 !   taken)
@@ -69,9 +75,13 @@ PROGRAM netCDFvariable
 ! dimsname: name of dimensions
 ! ncvariable: matrix with specific variable
 ! output: matrix with values of variable to be outputed
+! nclon, nclat: longitude and latitude matrix values
+! nctime: time values vector
 
 !!!!!!!!!!!! Function
+! get_variable_ncid: subroutine to get a variable from a netCDF id and by its name
 ! I_S4: function to transform an integer to a string of 4 characters 
+
 
 ! Read parameters from Fortran namelist
   DO funit=10,100
@@ -173,8 +183,19 @@ PROGRAM netCDFvariable
     PRINT *,'Value on dimension 4: ',timestep,' is larger than variable dimension dim4:',dimt
     STOP
   END IF
-  
-  
+
+  IF (LEN_TRIM(longname) > 1) THEN
+    IF (ALLOCATED(nclon)) DEALLOCATE(nclon)
+    ALLOCATE(nclon(dimx,dimy,1,1,1,1))
+    IF (ALLOCATED(nclat)) DEALLOCATE(nclat)
+    ALLOCATE(nclat(dimx,dimy,1,1,1,1))
+    IF (ALLOCATED(nctime)) DEALLOCATE(nctime)
+    ALLOCATE(nctime(dimt,1,1,1,1,1))
+    CALL get_variable_id(ncid, longname, dimx, dimy, 1, 1, 1, 1, dimslength, nclon)
+    CALL get_variable_id(ncid, latname, dimx, dimy, 1, 1, 1, 1, dimslength, nclat)
+    CALL get_variable_string_id(ncid, timename, dimt, 1, 1, 1, 1, 1, dimslength, 19, nctime)
+  END IF
+    
 ! Output writting
   Loutput=LEN_TRIM(output_path)
   IF (output_path(Loutput:Loutput) /= '/') output_path(Loutput+1:Loutput+1)='/'  
@@ -265,13 +286,17 @@ PROGRAM netCDFvariable
       ELSE 
         output(:,:,1,1,1,1)=ncvariable(:,:,level,timestep,1,1)
       END IF
-    CASE DEFAULT
+    CASE(1)
       IF (ALLOCATED(output)) DEALLOCATE(output)
       ALLOCATE(output(dimall(1),1,1,1,1,1))
       IF (xpoint<0) output(:,1,1,1,1,1)=ncvariable(:,ypoint,level,timestep,1,1)
       IF (ypoint<0) output(:,1,1,1,1,1)=ncvariable(xpoint,:,level,timestep,1,1)
       IF (level<0) output(:,1,1,1,1,1)=ncvariable(xpoint,ypoint,:,timestep,1,1)
       IF (timestep<0) output(:,1,1,1,1,1)=ncvariable(xpoint,ypoint,level,:,1,1)      
+    CASE DEFAULT
+      IF (ALLOCATED(output)) DEALLOCATE(output)
+      ALLOCATE(output(1,1,1,1,1,1))
+      output(1,1,1,1,1,1)=ncvariable(xpoint,ypoint,level,timestep,1,1)      
   END SELECT
   PRINT *,'Resultant output dimensions________ '
   DO i=1,6
@@ -280,7 +305,7 @@ PROGRAM netCDFvariable
   
   DEALLOCATE(ncvariable)
 
-  PRINT *,'Writting output', numdimall
+  PRINT *,'Writting output'
 ! Writting output
 !!
 
@@ -296,7 +321,7 @@ PROGRAM netCDFvariable
 	    //I_S4(-1)//'.dat', status='unknown')
           WRITE(12,8)'#'//TRIM(ncfile)
           DO i3=1, dimall(3)
-            WRITE(12,15)(output(i1,i2,i3,i4,1,1), i4=1, dimall(4))
+            WRITE(12,20)(output(i1,i2,i3,i4,1,1), i4=1, dimall(4))
           END DO
           CLOSE(unit=12)
         END DO
@@ -313,7 +338,7 @@ PROGRAM netCDFvariable
           I_S4(dimone(1))
 
         DO i2=1,dimall(2)
-           WRITE(12,15)(output(i1,i2,i3,1,1,1), i3=1, dimall(3))
+           WRITE(12,20)(output(i1,i2,i3,1,1,1), i3=1, dimall(3))
 	END DO
       CLOSE(unit=12)
 
@@ -329,7 +354,7 @@ PROGRAM netCDFvariable
         I_S4(dimone(1))//' & '//dimonename(2)//'= '//I_S4(dimone(2))
 
       DO i1=1,dimall(1)
-         WRITE(12,15)(output(i1,i2,1,1,1,1), i2=1, dimall(2))
+         WRITE(12,20)(output(i1,i2,1,1,1,1), i2=1, dimall(2))
       END DO
       CLOSE(unit=12)
 
@@ -345,7 +370,12 @@ PROGRAM netCDFvariable
         '= '//I_S4(dimone(3))
 
       DO i1=1,dimall(1)
-         WRITE(12,18)i1,output(i1,1,1,1,1,1)
+	 IF ((timestep < 0) .AND. (LEN_TRIM(timename) > 1)) THEN
+  	    WRITE(12,15)nctime(i1,1,1,1,1,1), nclon(dimone(2),dimone(3),1,1,1,1),             &
+	      nclat(dimone(2),dimone(3),1,1,1,1), output(i1,1,1,1,1,1)
+	 ELSE
+           WRITE(12,30)i1,output(i1,1,1,1,1,1)	 
+	 END IF
       END DO
       CLOSE(unit=12)
       
@@ -360,22 +390,149 @@ PROGRAM netCDFvariable
         I_S4(dimone(1))//' & '//dimonename(2)//'= '//I_S4(dimone(2))//' & '//dimonename(3)//  &
         '= '//I_S4(dimone(3))//' & '//dimonename(4)//'= '//I_S4(dimone(4))
 
-      WRITE(12,10)dimone,ncvariable(1,1,1,1,1,1)
+      IF (LEN_TRIM(timename) > 1) THEN
+	WRITE(12,15)nctime(timestep,1,1,1,1,1), nclon(dimone(2),dimone(3),1,1,1,1),           &
+	  nclat(dimone(2),dimone(3),1,1,1,1), output(1,1,1,1,1,1)
+      ELSE
+        WRITE(12,10)dimone,output(1,1,1,1,1,1)	 
+      END IF
+
       CLOSE(unit=12)
 
   END SELECT
 
+  DEALLOCATE(output, nclon, nclat)
   PRINT *,'============================================='
   PRINT *,"SUCCESSFULL END of 'netCDFvariable'.........."
   PRINT *,'============================================='
-  DEALLOCATE(output)
         
 8  format(500a)
 10 format(4(i10,1x),e20.10,1x)
-15 format(500(e20.10,1x))
-18 format(i10,1x,e20.10,1x)
+15 format(a19,1x,3(e20.10,1x))
+20 format(500(e20.10,1x))
+30 format(i10,1x,e20.10,1x)
 
 END PROGRAM netCDFvariable
+
+CHARACTER(LEN=50) FUNCTION join_vecchar(vecchar, Nchar)
+! Function to join 'Nchar' characters as a 1char vector of Nchar values
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: Nchar
+  CHARACTER(LEN=1), DIMENSION(Nchar), INTENT(IN)          :: vecchar
+! Local
+  INTEGER                                                 :: i
+
+  DO i=1,Nchar
+    join_vecchar(i:i)=vecchar(i)
+  END DO
+
+END FUNCTION join_vecchar
+
+SUBROUTINE get_variable_string_id(idnc, varname, dim1, dim2, dim3, dim4, dim5, dim6, dimsvec,    &
+  Nchar, varmat)
+! Subroutine to get a variable from a netCDF id by its name
+
+  IMPLICIT NONE
+
+  INCLUDE 'netcdf.inc'
+ 
+  INTEGER, INTENT(IN)                                     :: idnc, dim1, dim2, dim3, dim4, dim5, &
+    dim6, Nchar
+  INTEGER, DIMENSION(6), INTENT(IN)                       :: dimsvec
+  CHARACTER(LEN=50), INTENT(IN)                           :: varname
+  CHARACTER(LEN=Nchar), DIMENSION(dim1,dim2,dim3,dim4,dim5,dim6),                                &
+    INTENT(OUT)                                           :: varmat
+! Local
+  INTEGER                                                 :: i,j
+  INTEGER                                                 :: rcode, varid, numvardims
+  INTEGER, DIMENSION(6)                                   :: vardimsid=0
+  CHARACTER(LEN=1), ALLOCATABLE, DIMENSION(:,:,:,:,:,:)   :: readvar
+  CHARACTER(LEN=50)                                       :: join_vecchar, stringvalue
+  
+  rcode=nf_inq_varid(idnc, TRIM(varname), varid)
+  rcode=nf_inq_varndims(idnc, varid, numvardims)
+  rcode=nf_inq_vardimid(idnc, varid, vardimsid)
+  PRINT *,"Variable '"//TRIM(varname)//"' information____________"
+  PRINT *,'varid: ',varid
+  PRINT *,'varndims: ',numvardims
+  PRINT *,'vardimsid: ',vardimsid(1:numvardims)
+
+  IF (ALLOCATED(readvar)) DEALLOCATE(readvar)
+  SELECT CASE (numvardims)
+    CASE (4)
+      ALLOCATE(readvar(dimsvec(vardimsid(1)), dimsvec(vardimsid(2)), dimsvec(vardimsid(3)),      &
+        dimsvec(vardimsid(4)), 1, 1))
+    CASE (3)
+      ALLOCATE(readvar(dimsvec(vardimsid(1)), dimsvec(vardimsid(2)), dimsvec(vardimsid(3)),      &
+        1, 1, 1))
+    CASE (2)
+      ALLOCATE(readvar(dimsvec(vardimsid(1)), dimsvec(vardimsid(2)), 1, 1, 1, 1))
+    CASE (1)
+      ALLOCATE(readvar(dimsvec(vardimsid(1)), 1, 1, 1, 1, 1))	
+    CASE DEFAULT
+      ALLOCATE(readvar(1,1,1,1,1,1))
+  END SELECT
+
+  rcode = nf_get_var_text ( idnc, varid, readvar)
+  DO i=1,dimsvec(vardimsid(2))
+    stringvalue=join_vecchar(readvar(:,i,1,1,1,1), dimsvec(vardimsid(1)))
+    varmat(i,1,1,1,1,1)=stringvalue(1:Nchar)
+  END DO
+  
+  DEALLOCATE(readvar)
+  
+END SUBROUTINE get_variable_string_id
+
+SUBROUTINE get_variable_id(idnc, varname, dim1, dim2, dim3, dim4, dim5, dim6, dimsvec, varmat)
+! Subroutine to get a variable from a netCDF id by its name
+
+  IMPLICIT NONE
+
+  INCLUDE 'netcdf.inc'
+  
+  INTEGER, INTENT(IN)                                     :: idnc, dim1, dim2, dim3, dim4, dim5, &
+    dim6
+  INTEGER, DIMENSION(6), INTENT(IN)                       :: dimsvec
+  CHARACTER(LEN=50), INTENT(IN)                           :: varname
+  REAL, DIMENSION(dim1,dim2,dim3,dim4,dim5,dim6),                                                &
+    INTENT(OUT)                                           :: varmat
+! Local
+  INTEGER                                                 :: rcode, varid, numvardims
+  INTEGER, DIMENSION(6)                                   :: vardimsid
+  REAL, ALLOCATABLE, DIMENSION(:,:,:,:,:,:)               :: readvar
+  
+  rcode=nf_inq_varid(idnc, TRIM(varname), varid)
+  rcode=nf_inq_varndims(idnc, varid, numvardims)
+  rcode=nf_inq_vardimid(idnc, varid, vardimsid)
+  PRINT *,"Variable '"//TRIM(varname)//"' information____________"
+  PRINT *,'varid: ',varid
+  PRINT *,'varndims: ',numvardims
+  PRINT *,'vardimsid: ',vardimsid(1:numvardims)
+
+  IF (ALLOCATED(readvar)) DEALLOCATE(readvar)
+  SELECT CASE (numvardims)
+    CASE (4)
+      ALLOCATE(readvar(dimsvec(vardimsid(1)), dimsvec(vardimsid(2)), dimsvec(vardimsid(3)),      &
+        dimsvec(vardimsid(4)), 1, 1))
+    CASE (3)
+      ALLOCATE(readvar(dimsvec(vardimsid(1)), dimsvec(vardimsid(2)), dimsvec(vardimsid(3)),      &
+        1, 1, 1))
+    CASE (2)
+      ALLOCATE(readvar(dimsvec(vardimsid(1)), dimsvec(vardimsid(2)), 1, 1, 1, 1))
+    CASE (1)
+      ALLOCATE(readvar(dimsvec(vardimsid(1)), 1, 1, 1, 1, 1))
+    CASE DEFAULT
+      ALLOCATE(readvar(1,1,1,1,1,1))
+  END SELECT
+
+  rcode = nf_get_var_real ( idnc, varid, readvar)
+  
+  varmat=readvar(1:dim1,1:dim2,1:dim3,1:dim4,1:dim5,1:dim6)
+  DEALLOCATE(readvar)
+  
+END SUBROUTINE get_variable_id
 
 CHARACTER(LEN=4) FUNCTION I_S4(integerNum)
 ! Function to transform an integer to a string of Nchar characters
