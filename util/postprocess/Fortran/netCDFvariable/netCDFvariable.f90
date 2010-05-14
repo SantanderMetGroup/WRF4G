@@ -124,8 +124,8 @@ PROGRAM netCDFvariable
     CASE (3)
       dimx=dimslength(vardimsid(1))
       dimy=dimslength(vardimsid(2))
-      dimz=dimslength(vardimsid(3))
-      dimt=1
+      dimt=dimslength(vardimsid(3))
+      dimz=1
       
       IF (ALLOCATED(ncvariable)) DEALLOCATE(ncvariable)
       ALLOCATE(ncvariable(dimx, dimy, dimz, dimt,1,1))
@@ -309,7 +309,8 @@ PROGRAM netCDFvariable
         OPEN(unit=12, file=TRIM(output_path)//TRIM(variable)//'_'//dimallname(1)//I_S4(i1)//  &
 	  '_'//dimallname(2)//I_S4(-1)//'_'//dimallname(3)//I_S4(-1)//'_'//dimonename(1)//    &
 	  I_S4(dimone(1))//'.dat', status='unknown')
-        WRITE(12,8)'#'//TRIM(ncfile)//' @ '//dimonename(1)//'= '//I_S4(dimone(1))
+        WRITE(12,8)'#'//TRIM(ncfile)//' '//TRIM(variable)//' @ '//dimonename(1)//'= '//       &
+          I_S4(dimone(1))
 
         DO i2=1,dimall(2)
            WRITE(12,15)(output(i1,i2,i3,1,1,1), i3=1, dimall(3))
@@ -324,8 +325,8 @@ PROGRAM netCDFvariable
       OPEN(unit=12, file=TRIM(output_path)//TRIM(variable)//'_'//dimallname(1)//I_S4(-1)//    &
 	'_'//dimallname(2)//I_S4(-1)//'_'//dimonename(1)//I_S4(dimone(1))//'_'//dimonename(2) &
 	//I_S4(dimone(2))//'.dat', status='unknown')
-      WRITE(12,8)'#'//TRIM(ncfile)//' @ '//dimonename(1)//'= '//I_S4(dimone(1))//' & '//      &
-        dimonename(2)//'= '//I_S4(dimone(2))
+      WRITE(12,8)'#'//TRIM(ncfile)//' '//TRIM(variable)//' @ '//dimonename(1)//'= '//         &
+        I_S4(dimone(1))//' & '//dimonename(2)//'= '//I_S4(dimone(2))
 
       DO i1=1,dimall(1)
          WRITE(12,15)(output(i1,i2,1,1,1,1), i2=1, dimall(2))
@@ -339,8 +340,9 @@ PROGRAM netCDFvariable
       OPEN(unit=12, file=TRIM(output_path)//TRIM(variable)//'_'//dimallname(1)//I_S4(-1)//    &
 	'_'//dimonename(1)//I_S4(dimone(1))//'_'//dimonename(2)//I_S4(dimone(2))//'_'//       &
 	dimonename(3)//I_S4(dimone(3))//'.dat', status='unknown')
-      WRITE(12,8)'#'//TRIM(ncfile)//' @ '//dimonename(1)//'= '//I_S4(dimone(1))//' & '//      &
-        dimonename(2)//'= '//I_S4(dimone(2))//' & '//dimonename(3)//'= '//I_S4(dimone(3))
+      WRITE(12,8)'#'//TRIM(ncfile)//' '//TRIM(variable)//' @ '//dimonename(1)//'= '//         &
+        I_S4(dimone(1))//' & '//dimonename(2)//'= '//I_S4(dimone(2))//' & '//dimonename(3)//  &
+        '= '//I_S4(dimone(3))
 
       DO i1=1,dimall(1)
          WRITE(12,18)i1,output(i1,1,1,1,1,1)
@@ -354,9 +356,9 @@ PROGRAM netCDFvariable
       OPEN(unit=12, file=TRIM(output_path)//TRIM(variable)//'_'//dimonename(1)//              &
         I_S4(dimone(1))//'_'//dimonename(2)//I_S4(dimone(2))//'_'//dimonename(3)//            &
 	I_S4(dimone(3))//'_'//dimonename(4)//I_S4(dimone(4))//'.dat', status='unknown')
-      WRITE(12,8)'#'//TRIM(ncfile)//' @ '//dimonename(1)//'= '//I_S4(dimone(1))//' & '//      &
-        dimonename(2)//'= '//I_S4(dimone(2))//' & '//dimonename(3)//'= '//I_S4(dimone(3))//   &
-	' & '//dimonename(4)//'= '//I_S4(dimone(4))
+      WRITE(12,8)'#'//TRIM(ncfile)//' '//TRIM(variable)//' @ '//dimonename(1)//'= '//         &
+        I_S4(dimone(1))//' & '//dimonename(2)//'= '//I_S4(dimone(2))//' & '//dimonename(3)//  &
+        '= '//I_S4(dimone(3))//' & '//dimonename(4)//'= '//I_S4(dimone(4))
 
       WRITE(12,10)dimone,ncvariable(1,1,1,1,1,1)
       CLOSE(unit=12)
@@ -387,7 +389,7 @@ CHARACTER(LEN=4) FUNCTION I_S4(integerNum)
   INTEGER                                                 :: partInt, ipot, pot
   
   IF (integerNum < 0) THEN
-    I_S4='000*'
+    I_S4='0all'
   ELSE
     partInt=integerNum
     DO ipot=1,Nchar
