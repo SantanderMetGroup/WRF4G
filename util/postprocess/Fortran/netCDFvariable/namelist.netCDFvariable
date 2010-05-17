@@ -6,6 +6,7 @@
   xpoint               = 10,
   ypoint               = 10,
   output_path          = '.',
+  lonlattime           = 1,
   longname             = 'XLONG',
   latname              = 'XLAT',
   timename             = 'Times',

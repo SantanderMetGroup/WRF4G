@@ -19,6 +19,7 @@ PROGRAM netCDFvariable
   CHARACTER(LEN=50)                                       :: variable, longname, latname,       &
     timename
   INTEGER                                                 :: timestep, level, xpoint, ypoint
+  INTEGER                                                 :: lonlattime
   
 ! Local
   INTEGER                                                 :: i
@@ -42,12 +43,14 @@ PROGRAM netCDFvariable
   LOGICAL                                                 :: is_used
   CHARACTER(LEN=50)                                       :: join_vecchar
   
-  NAMELIST /io/ ncfile, variable, timestep, level, xpoint, ypoint, output_path, longname,       &
-    latname, timename
+  NAMELIST /io/ ncfile, variable, timestep, level, xpoint, ypoint, output_path, lonlattime,     &
+    longname, latname, timename
   
 !!!!!!!!!!!! Variables
 ! ncfile: netCDF file from which variable will be extracted
 ! variable: name of variable to be extracted
+! lonlattime: controls if lonfitude, latitude and time values are to be used in output (1: yes, 0:
+!    no)
 ! longname, latname: longitude and latitude name of variables within netCDF file
 ! timename: time variable name within netCDF file
 ! output_path: direction to which ASCII output will be written
@@ -184,7 +187,7 @@ PROGRAM netCDFvariable
     STOP
   END IF
 
-  IF (LEN_TRIM(longname) > 1) THEN
+  IF (lonlattime == 1) THEN
     IF (ALLOCATED(nclon)) DEALLOCATE(nclon)
     ALLOCATE(nclon(dimx,dimy,1,1,1,1))
     IF (ALLOCATED(nclat)) DEALLOCATE(nclat)
@@ -370,7 +373,7 @@ PROGRAM netCDFvariable
         '= '//I_S4(dimone(3))
 
       DO i1=1,dimall(1)
-	 IF ((timestep < 0) .AND. (LEN_TRIM(timename) > 1)) THEN
+	 IF ((timestep < 0) .AND. (lonlattime == 1)) THEN
   	    WRITE(12,15)nctime(i1,1,1,1,1,1), nclon(dimone(2),dimone(3),1,1,1,1),             &
 	      nclat(dimone(2),dimone(3),1,1,1,1), output(i1,1,1,1,1,1)
 	 ELSE
@@ -390,7 +393,7 @@ PROGRAM netCDFvariable
         I_S4(dimone(1))//' & '//dimonename(2)//'= '//I_S4(dimone(2))//' & '//dimonename(3)//  &
         '= '//I_S4(dimone(3))//' & '//dimonename(4)//'= '//I_S4(dimone(4))
 
-      IF (LEN_TRIM(timename) > 1) THEN
+      IF (lonlattime == 1) THEN
 	WRITE(12,15)nctime(timestep,1,1,1,1,1), nclon(dimone(2),dimone(3),1,1,1,1),           &
 	  nclat(dimone(2),dimone(3),1,1,1,1), output(1,1,1,1,1,1)
       ELSE
