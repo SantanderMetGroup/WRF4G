@@ -3,10 +3,12 @@ PROGRAM netCDFvariable
   
 ! =================================Make Executable============================
 !  Make executable:
-!  GMS.UC:
+!  Trueno:
 !  gfortran netCDFvariable.f90 -L/home/lluis/bin/netcdf-4.0.1/lib -lnetcdf -lm -I/home/lluis/bin/netcdf-4.0.1/include -o netCDFvariable
-!  GMS.UC 
+!  GMS.UC oceano-pgi
 !  pgf90 netCDFvariable.f90 -L/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/lib -lnetcdf -lm -I/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/include -Mfree -o netCDFvariable
+!  GMS.UC oceano-gfortran
+!  gfortran /oceano/gmeteo/WORK/markel/wrf4g/util/postprocess/Fortran/netCDFvariable/netCDFvariable.f90 -L/software/ScientificLinux/4.6/netcdf/4.1.1/gcc-gfortran4.1.2/lib -lnetcdf -lm -I/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/include -o netCDFvariable 
 !  GRIDUI
 !  gfortran netCDFvariable.f90 -L/gpfs/csic_projects/meteo/software/ScientificLinux/5.3/netcdf/gcc_gfortran_NOhdf5/lib -lnetcdf -lm -I/gpfs/csic_projects/meteo/software/ScientificLinux/5.3/netcdf/gcc_gfortran_NOhdf5/include -o netCDFvariable
 
@@ -341,7 +343,15 @@ PROGRAM netCDFvariable
           I_S4(dimone(1))
 
         DO i2=1,dimall(2)
-           WRITE(12,20)(output(i1,i2,i3,1,1,1), i3=1, dimall(3))
+          IF ((lonlattime == 1) .AND. (varndims == 3) .AND. (timestep < 0) .AND. (xpoint < 0) &
+            .AND. (ypoint < 0)) THEN 
+            DO i3=1,dimall(3)
+              WRITE(12,15)nctime(i1,1,1,1,1,1), nclon(i2,i3,1,1,1,1), nclat(i2,i3,1,1,1,1),   &
+                output(i1,i2,i3,1,1,1)
+            END DO
+          ELSE
+            WRITE(12,20)(output(i1,i2,i3,1,1,1), i3=1, dimall(3))
+          END IF
 	END DO
       CLOSE(unit=12)
 
