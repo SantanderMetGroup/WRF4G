@@ -1,15 +1,16 @@
 &io
-  ncfile               = '/oceano/gmeteo/SCRATCH/lluis/estudios/SEAWIND/scaling/gcc_gfortran/cores8/wrfout_d01_2001-11-12_00:00:00',
-  variable             = 'U10',
-  timestep             = 3,
+  ncfile               = '/oceano/gmeteo/WORK/antonio/GSFC/TRMM/TRMM_clim_pr_1998jfma_SAM.nc',
+  variable             = 'pr',
+  timestep             = 1,
   level                = 1,
-  xpoint               = 10,
-  ypoint               = 10,
+  xpoint               = -1,
+  ypoint               = -1,
   output_path          = '.',
   lonlattime           = 1,
-  longname             = 'XLONG',
-  latname              = 'XLAT',
-  timename             = 'Times',
+  intime               = 1,
+  longname             = 'lon',
+  latname              = 'lat',
+  timename             = 'time',
 /
 
 # timstep < 0: all time-steps

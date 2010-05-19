@@ -21,7 +21,7 @@ PROGRAM netCDFvariable
   CHARACTER(LEN=50)                                       :: variable, longname, latname,       &
     timename
   INTEGER                                                 :: timestep, level, xpoint, ypoint
-  INTEGER                                                 :: lonlattime
+  INTEGER                                                 :: lonlattime, intime
   
 ! Local
   INTEGER                                                 :: i
@@ -46,7 +46,7 @@ PROGRAM netCDFvariable
   CHARACTER(LEN=50)                                       :: join_vecchar
   
   NAMELIST /io/ ncfile, variable, timestep, level, xpoint, ypoint, output_path, lonlattime,     &
-    longname, latname, timename
+    intime, longname, latname, timename
   
 !!!!!!!!!!!! Variables
 ! ncfile: netCDF file from which variable will be extracted
@@ -55,6 +55,7 @@ PROGRAM netCDFvariable
 !    no)
 ! longname, latname: longitude and latitude name of variables within netCDF file
 ! timename: time variable name within netCDF file
+! intime: whether time variable is an integer (1) or not (0)
 ! output_path: direction to which ASCII output will be written
 ! timestep, level, xpoint, ypoint: specific coordenates to select (if any <0 all length will be
 !   taken)
@@ -94,7 +95,7 @@ PROGRAM netCDFvariable
     IF (.not. is_used) EXIT
   END DO
   OPEN(funit, file='namelist.netCDFvariable', status='old', form='formatted', iostat=ios)
-  IF ( ios /= 0 ) STOP "ERROR opening namelist.netdCDFvariable"
+  IF ( ios /= 0 ) STOP "ERROR opening 'namelist.netdCDFvariable'"
   READ(funit, io)
   CLOSE(funit)
   
@@ -198,7 +199,11 @@ PROGRAM netCDFvariable
     ALLOCATE(nctime(dimt,1,1,1,1,1))
     CALL get_variable_id(ncid, longname, dimx, dimy, 1, 1, 1, 1, dimslength, nclon)
     CALL get_variable_id(ncid, latname, dimx, dimy, 1, 1, 1, 1, dimslength, nclat)
-    CALL get_variable_string_id(ncid, timename, dimt, 1, 1, 1, 1, 1, dimslength, 19, nctime)
+    IF (intime == 1) THEN
+      CALL get_variable_id(ncid, timename, dimt, 1, 1, 1, 1, 1, dimslength, nctime)
+    ELSE
+      CALL get_variable_string_id(ncid, timename, dimt, 1, 1, 1, 1, 1, dimslength, 19, nctime)
+    END IF
   END IF
     
 ! Output writting
@@ -346,8 +351,13 @@ PROGRAM netCDFvariable
           IF ((lonlattime == 1) .AND. (varndims == 3) .AND. (timestep < 0) .AND. (xpoint < 0) &
             .AND. (ypoint < 0)) THEN 
             DO i3=1,dimall(3)
-              WRITE(12,15)nctime(i1,1,1,1,1,1), nclon(i2,i3,1,1,1,1), nclat(i2,i3,1,1,1,1),   &
-                output(i1,i2,i3,1,1,1)
+              IF (intime == 1) THEN
+                WRITE(12,18)nctime(i1,1,1,1,1,1), nclon(i2,i3,1,1,1,1), nclat(i2,i3,1,1,1,1), &
+                  output(i1,i2,i3,1,1,1)
+              ELSE
+                WRITE(12,15)nctime(i1,1,1,1,1,1), nclon(i2,i3,1,1,1,1), nclat(i2,i3,1,1,1,1), &
+                  output(i1,i2,i3,1,1,1)
+              ENDIF
             END DO
           ELSE
             WRITE(12,20)(output(i1,i2,i3,1,1,1), i3=1, dimall(3))
@@ -384,8 +394,13 @@ PROGRAM netCDFvariable
 
       DO i1=1,dimall(1)
 	 IF ((timestep < 0) .AND. (lonlattime == 1)) THEN
-  	    WRITE(12,15)nctime(i1,1,1,1,1,1), nclon(dimone(2),dimone(3),1,1,1,1),             &
-	      nclat(dimone(2),dimone(3),1,1,1,1), output(i1,1,1,1,1,1)
+           IF (intime == 1) THEN
+             WRITE(12,18)nctime(i1,1,1,1,1,1), nclon(i2,i3,1,1,1,1), nclat(i2,i3,1,1,1,1),      &
+               output(i1,i2,i3,1,1,1)
+           ELSE
+  	     WRITE(12,15)nctime(i1,1,1,1,1,1), nclon(dimone(2),dimone(3),1,1,1,1),              &
+ 	       nclat(dimone(2),dimone(3),1,1,1,1), output(i1,1,1,1,1,1)
+           ENDIF
 	 ELSE
            WRITE(12,30)i1,output(i1,1,1,1,1,1)	 
 	 END IF
@@ -404,8 +419,13 @@ PROGRAM netCDFvariable
         '= '//I_S4(dimone(3))//' & '//dimonename(4)//'= '//I_S4(dimone(4))
 
       IF (lonlattime == 1) THEN
-	WRITE(12,15)nctime(timestep,1,1,1,1,1), nclon(dimone(2),dimone(3),1,1,1,1),           &
-	  nclat(dimone(2),dimone(3),1,1,1,1), output(1,1,1,1,1,1)
+        IF (intime == 1) THEN
+          WRITE(12,18)nctime(i1,1,1,1,1,1), nclon(i2,i3,1,1,1,1), nclat(i2,i3,1,1,1,1),         &
+            output(i1,i2,i3,1,1,1)
+        ELSE
+  	  WRITE(12,15)nctime(timestep,1,1,1,1,1), nclon(dimone(2),dimone(3),1,1,1,1),           &
+	    nclat(dimone(2),dimone(3),1,1,1,1), output(1,1,1,1,1,1)
+        ENDIF
       ELSE
         WRITE(12,10)dimone,output(1,1,1,1,1,1)	 
       END IF
@@ -422,6 +442,7 @@ PROGRAM netCDFvariable
 8  format(500a)
 10 format(4(i10,1x),e20.10,1x)
 15 format(a19,1x,3(e20.10,1x))
+18 format(i19,1x,3(e20.10,1x))
 20 format(500(e20.10,1x))
 30 format(i10,1x,e20.10,1x)
 
