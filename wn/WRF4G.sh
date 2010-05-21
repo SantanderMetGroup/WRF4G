@@ -44,8 +44,11 @@ export WRFGEL_SCRIPT="echo"
 #
 # Running WRF
 #
+echo "Previous__________"
+ulimit -a
 ulimit -s unlimited
-
+echo "After_____________"
+ulimit -a
 function setup_namelist_input(){
   ln -s ../../WPS/namelist.wps
   fortnml_set    namelist.input run_days    0
@@ -203,7 +206,7 @@ else
       ${ROOTDIR}/bin/ungrib.exe \
         >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_UNGRIB_FAILED}
-      tail -3 ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
+      cat ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'Successful completion of ungrib' \
         || wrf4g_exit ${ERROR_UNGRIB_FAILED}
     timelog_end
@@ -231,7 +234,7 @@ else
       cdo setdate,${iyy}-${imm}-${idd} FAKESOIL.grb grbData/FAKESOIL.grb
       ./link_grib.csh grbData/*.grb
       ${ROOTDIR}/bin/ungrib.exe >& ${logdir}/ungrib_${vtname}_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
-      tail -3 ${logdir}/ungrib_${vtname}_${iyy}${imm}${idd}${ihh}.out \
+      cat ${logdir}/ungrib_${vtname}_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'Successful completion of ungrib' \
         || wrf4g_exit ${ERROR_UNGRIB_FAILED}
     done
@@ -270,7 +273,7 @@ else
       ${LAUNCHER_METGRID} ${ROOTDIR}/bin/metgrid.exe \
         >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_METGRID_FAILED}
-      tail -3 ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
+      cat ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'Successful completion of metgrid' \
         || wrf4g_exit ${ERROR_METGRID_FAILED}
       # Clean
@@ -293,7 +296,7 @@ else
       ${LAUNCHER_REAL} ${ROOTDIR}/bin/real.exe \
         >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_REAL_FAILED}
-      tail -3 ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
+      cat ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'SUCCESS COMPLETE REAL_EM' \
         || wrf4g_exit ${ERROR_REAL_FAILED}
       # Clean
@@ -335,10 +338,16 @@ cd ${LOCALDIR}/WRFV3/run || exit
   fi
   timelog_init "wrf"
     ls -l ########################################################## borrar
+    sleep 1
+    echo "${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out"
+    ls -la ${LAUNCHER_WRF}
+    ls -la ${ROOTDIR}/bin/wrf_wrapper.exe
+    ls -la ${logdir}
     ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
     # This time is also useful to  to copy the wpsout data
     sleep 5
+    ps -ef | grep wrf.exe
     ${ROOTDIR}/WRFGEL/wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   
     wait $(cat monitor.pid)
