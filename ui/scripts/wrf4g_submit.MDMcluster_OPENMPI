@@ -16,12 +16,13 @@ test -n "${depid}" && depflag="-W depend=afterany:${depid}" || depflag=""
 test -n "${WRF4G_QUEUE_WALLTIME}" && wtflag="-l walltime=${WRF4G_QUEUE_WALLTIME}" || wtflag=""
 
 mpiexec="/software/ScientificLinux/4.6/openmpi/1.4/gccgfortran/bin/mpirun"
+slots=`expr ${NUMBER_OF_NODES} '*' ${PROCESSES_PER_NODE}`
 
 if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
   nodflag="-l nodes=${NUMBER_OF_NODES}:ppn=${PROCESSES_PER_NODE}"
   echo "LAUNCHER_METGRID=\"\""                 >> wrf.chunk
   echo "LAUNCHER_REAL=\"\""                    >> wrf.chunk
-  echo "LAUNCHER_WRF=\"$mpiexec -np ${slots}\"" >> wrf.chunk
+  echo "LAUNCHER_WRF=\"$mpiexec -npernode ${PROCESSES_PER_NODE}\"" >> wrf.chunk
   echo "export P4_GLOBMEMSIZE=67108864" >> wrf.chunk
 else
   nodflag=""
