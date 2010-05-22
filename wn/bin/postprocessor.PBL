@@ -31,7 +31,7 @@ function pintnml(){
   path_to_input            = '${idir}/',
   input_name               = '${ifile}',
   path_to_output           = '${idir}/',
-  fields                   = 'Times,Q2,QVAPOR,T2,GHT,TT,U,V,W,RH,MSLP,PSFC,U10,V10,RAINC,RAINNC,PRES,ACLHF,ACHFX,LH,QFX,HFX,PBLH,UST,TKE_MYJ,EL_MYJ,QKE,Z0,POTEVP'
+  fields                   = 'Times,Q2,QVAPOR,T2,GHT,TT,U,V,W,RH,MSLP,PSFC,U10,V10,RAINC,RAINNC,PRES,ACLHF,ACHFX,LH,QFX,HFX,PBLH,UST,TKE_MYJ,EL_MYJ,QKE,Z0,POTEVP,REGIME'
   process                  = 'list',
   debug                    = .FALSE.,
 /
