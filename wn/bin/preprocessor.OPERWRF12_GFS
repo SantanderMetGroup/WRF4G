@@ -1,0 +1,16 @@
+#!/bin/bash
+global_path=$1       # Path to the data
+sformateddate=$2     # initial date to process as YYYY-MM-DD_HH:MM:SS
+eformateddate=$3     # end date to process
+
+if test -f /software/ScientificLinux/4.6/etc/bashrc; then
+  source /software/ScientificLinux/4.6/etc/bashrc
+fi
+
+inidate=$(echo ${sformateddate:0:10} | tr -d '-') 
+initime=$(echo ${sformateddate:11:2})
+foldername=gfs_${inidate}${initime}
+
+mkdir -p grbData
+cd grbData
+vcp ${global_path}/${foldername}/*.grb ln:.
