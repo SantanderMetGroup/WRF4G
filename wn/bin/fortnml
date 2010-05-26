@@ -102,6 +102,7 @@ class FortranNamelist:
     fid.close()
     self.record_dict={}
     self.ordered_records=[]
+    is_comment = True
     for line in data:
       if '&' in line:
         # Then this line is a namelist title
