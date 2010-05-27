@@ -43,10 +43,11 @@ export PATH="${wrf4g_root}/wn/bin:${PATH}"
 #
 #  Load wrf.input et al.
 #
-sed -e 's/\ *=\ */=/' wrf4g.conf > source.it       || exit ${ERROR_MISSING_WRF4GCNF}
-source source.it && rm source.it
-sed -e 's/\ *=\ */=/' wrf.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
-source source.it && rm source.it
+sed -e 's/\ *=\ */=/' wrf4g.conf > source.txt       || exit ${ERROR_MISSING_WRF4GCNF}
+source source.txt && rm source.txt
+sed -e 's/\ *=\ */=/' wrf.input > source.txt        || exit ${ERROR_MISSING_WRFINPUT}
+source source.txt && rm source.txt
+echo "is_multiphysics -> $is_multiphysics"
 source ${wrf4g_root}/wn/lib/bash/wrf_util.sh       || exit ${ERROR_MISSING_WRFUTIL}
 #
 #  export some variables
@@ -79,6 +80,12 @@ function if_not_dry(){
   if ! is_dry_run; then
     $comando
   fi
+}
+
+function cannot_mkdir(){
+  dir=$1
+  echo "Could not create directory ${dir}. Exiting..."
+  exit
 }
 
 function rematch(){
@@ -137,7 +144,7 @@ function cycle_chunks(){
         echo "  ${realization_name}  $(printf "%4d" ${chunkno})  ${current_date}  ${final_date}"
       else
         chunkdir="${userdir}/realizations/${realization_name}/$(printf '%04d' ${chunkno})"
-        mkdir -p ${chunkdir}
+        mkdir -p ${chunkdir} || cannot_mkdir ${chunkdir}
         echo "  ---> chunk: ${chunkno} - ${current_date} -> ${final_date}"
         test ${chunkno} -eq 1 && restart_flag=".F." || restart_flag=".T."
         #

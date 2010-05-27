@@ -21,6 +21,8 @@ LH       hfls     "Upward latent heat flux at surface"   "surface_upward_latent_
 GRDFLX   hfso     "Upward soil heat flux"                "upward_heat_flux_at_ground_level_in_soil"  "W m-2" 1 0
 SWDOWN   rsds     "Downward SW surface radiation"        "surface_downwelling_shortwave_flux_in_air" "W m-2" 1 0
 GLW      rlds     "Downward LW surface radiation"        "surface_downwelling_longwave_flux_in_air"  "W m-2" 1 0      
+LWUPT    rlnt     "Net upward longwave flux at TOA"      "toa_net_upward_longwave_flux"              "W m-2" 1 0
+SWUPT    rsnt     "Net upward shortwave flux at TOA"     "toa_net_upward_shortwave_flux"             "W m-2" 1 0
 PBLH     zmla     "Atmosphere_boundary_layer_thickness"  "atmosphere_boundary_layer_thickness"       "m"     1 0
 UST      ustar    "Frictional velocity in similarity theory" "frictional_velocity_in_similarity_theory"         "m s-1"  1 0 
 TKE_MYJ  tkemyj   "Specific turbulent kinetic Energy in MYJ scheme" "specific_turbulent_kinetic_energy_in_myj"  "m 2 s-2" 1 0
@@ -35,6 +37,7 @@ RH       hur      "Relative humidity"         "relative_humidity"               
 GHT      zg       "Geopotential height"       "geopotential_height"                   "m"       1 0
 # Derived variables
 RAIN     pr       "Precipitation"             "precipitation_amount"                  "Kg m-2"  1 0
+RAINFORWARD pr    "Precipitation"             "precipitation_amount"                  "Kg m-2"  1 0
 WIND     wspd     "wind speed"                "wind_speed"                            "m s-1"   1 0
 U10ER    uas      "Eastward surface wind"     "eastward_wind"                         "m s-1"   1 0
 V10ER    vas      "Northward surface wind"    "northward_wind"                        "m s-1"   1 0
@@ -50,8 +53,10 @@ TEMP     ta       "Air temperature"           "air_temperature"                 
 MSLP     psl      "Mean sea level pressure"   "air_pressure_at_sea_level"             "Pa"      1 0
 RSS      rss      "Net SW surface radiation"  "surface_net_downward_shortwave_flux"   "W m-2"   1 0
 RLS      rls      "Net LW surface radiation " "surface_net_downward_longwave_flux"    "W m-2"   1 0
-MRSOS    mrsos    "Moisture of upper 0.1 m soil layer" "moisture_content_of_soil_layer" "kg m-2"   1 0
+MRSOS    mrsos    "Moisture of soil layer" "moisture_content_of_soil_layer" "kg m-2"   1 0
+SMOIS    mrsos    "Moisture of soil layer" "moisture_content_of_soil_layer" "kg m-2"   1 0
 MRSO     mrso     "Total soil moisture content"        "soil_moisture_content"          "kg m-2"   1 0
 CLT      clt      "Total cloud area(fraction)"           "cloud_area_fraction"            1        1 0
+CLD      clwi      "Total cloud water and ice"       "cloud_water_and_ice_content"   "kg m-2"  1 0
 SNW      prsn     "Snowfall"                             "snowfall_flux"              "kg m-2 s-1" 1 0
 PRW      prw      "Column water vapour content" "atmosphere_water_vapor_content"      "kg m-2"     1 0

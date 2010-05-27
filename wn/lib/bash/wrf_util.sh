@@ -352,16 +352,21 @@ function tuple_item(){
 function get_timestep(){
   deltax=$1
   factor=${2:-6} # defaults to 6 times dx in km
-  HOUR_DIVISORS="1 2 3 4 5 6 8 9 10 12 15 16 18 20 24 25 30 36 40 45 48 50 60 72 75 80 90 100 120 144 150 180 200 225 240 300 360 400 450 600 720 900 1200"
-  tstep=$(echo "${factor}*${deltax}/1000" | bc)
-  for hd in ${HOUR_DIVISORS}; do
-    if test ${hd} -le ${tstep}; then
-      time_step=$hd
-    else
-      break
-    fi
-  done
-  echo "${time_step}"
+  if test "${factor:0:6}" = "manual"; then
+    read text value <<< ${factor//:/ }
+    echo ${value}
+  else
+    HOUR_DIVISORS="1 2 3 4 5 6 8 9 10 12 15 16 18 20 24 25 30 36 40 45 48 50 60 72 75 80 90 100 120 144 150 180 200 225 240 300 360 400 450 600 720 900 1200"
+    tstep=$(echo "${factor}*${deltax}/1000" | bc)
+    for hd in ${HOUR_DIVISORS}; do
+      if test ${hd} -le ${tstep}; then
+        time_step=$hd
+      else
+        break
+      fi
+    done
+    echo "${time_step}"
+  fi
 }
 
 function get_ptop(){

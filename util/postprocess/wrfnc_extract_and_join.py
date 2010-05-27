@@ -95,20 +95,6 @@ def compute_mslp(p, pb, ph, phb, t , qvapor):
   sea_level_pressure = p[:,:,0,:] * exp((2.*g*z_half_lowest)/ (R*(t_sea_level+t_surf)))
   return transpose(sea_level_pressure)
 
-def correct_negprecip(rainarr, lrec):
-    # las integraciones de jp no son continuas. Esto evita los 
-    # brincos en la precip.
-    mask = greater_equal(rainarr, 0.0)
-    if lrec == 0:
-      mask2 = less_equal(rainarr, 0.1)
-      mask = mask * mask2
-    nbad = add.reduce(ravel(logical_not(mask)))
-    if nbad: 
-      print "Neg. precip at", nbad, "sites, localrec:" , lrec
-      return mask * rainarr
-    else:
-      return rainarr
-
 def charr2str(carr):
   # Forma totalmente cerda...
   return "".join(carr.tolist())
@@ -148,7 +134,7 @@ def discard_suspect_files(filelist, criteria='uncommon_size'):
     i_file+=1
   return rval
 
-def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None, createp=None):
+def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None, createp=None, createsoil=None):
   inc = NetCDFFile(wrfncfile,'r')
   onc = NetCDFFile(opt.OFILE, "w")
   onc.history = "Created by %s on %s" % (sys.argv[0],time.ctime(time.time()))
@@ -165,6 +151,7 @@ def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None, create
   oncy.long_name = "y coordinate of projection"
   oncy.standard_name = "projection_y_coordinate"
   oncy[:len(oncy)] = (arange(1,len(oncy)+1)-len(oncy)/2)*inc.DY
+  onc.sync()
   if createz:
     onc.createDimension("z", inc.dimensions["bottom_top"])
     oncz = onc.createVariable("z",Numeric.Float64, ("z",))
@@ -180,7 +167,7 @@ def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None, create
       oncptop.long_name = "Pressure at the top of the atmosphere"
       oncptop.units = "Pa"
       oncptop.assignValue(inc.variables["P_TOP"][0])
-  onc.sync()
+    onc.sync()
   if createp:
     onc.createDimension("plev", inc.dimensions["num_metgrid_levels"])
     oncz = onc.createVariable("plev",Numeric.Float64, ("plev",))
@@ -191,7 +178,22 @@ def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None, create
     oncz.standard_name = "air_pressure"
     if inc.variables.has_key("PLEV"):
       oncz.assignValue(inc.variables["PLEV"])
-  onc.sync()
+    onc.sync()
+  if createsoil:
+    if opt.fullfile:
+      thisinc = NetCDFFile(opt.fullfile,'r')
+    else:
+      thisinc = inc
+    onc.createDimension("slev", thisinc.dimensions["soil_layers_stag"])
+    oncz = onc.createVariable("slev",Numeric.Float64, ("slev",))
+    oncz.axis = "Z"
+    oncz.long_name = "Soil level"
+    oncz.units = "m"
+    oncz.positive = "down"
+    oncz.standard_name = "depth_below_surface"
+    if thisinc.variables.has_key("ZS"):
+      oncz.assignValue(thisinc.variables["ZS"][0])
+    onc.sync()
   #
   #
   #
@@ -247,11 +249,21 @@ def add_height_coordinate(onc, coorname, val):
     hvar.units = "m"
     hvar[0] = array(val, 'f')
 
+def add_depth_coordinate(onc, coorname, val):
+  # TODO: Hay que aniadir las boundaries...
+  if not onc.variables.has_key(coorname):
+    onc.createDimension(coorname,1)
+    hvar = onc.createVariable(coorname, 'f', (coorname,))
+    hvar.long_name = "depth below the surface"
+    hvar.standard_name = "depth"
+    hvar.units = "m"
+    hvar[0] = array(val, 'f')
+
 dimension_mapping = {
   "south_north": "y",
   "west_east": "x",
   "bottom_top": "z",
-  "soil_level_stag": "z",
+  "soil_layers_stag": "slev",
   "num_metgrid_levels": "plev",
   "bottom_top_stag": "z", # the variables should be de-staggered before copying them to the output file
 }
@@ -351,6 +363,10 @@ if __name__ == "__main__":
     help="Create Z axis information"
   )
   parser.add_option(
+    "-s", action="store_true", default=False, dest="saxis",
+    help="Create soil layer axis information"
+  )
+  parser.add_option(
     "-p", action="store_true", default=False, dest="paxis",
     help="Create pressure level axis information"
   )
@@ -369,6 +385,10 @@ if __name__ == "__main__":
   parser.add_option(
     "-g", "--geofile", metavar="geo_em.d0X.nc", dest="geofile",
     help="geo_em file to be used. For instance if you already removed geographic variables from the input files"
+  )
+  parser.add_option(
+    "--fullfile", metavar="wrfout_d0X_allvars.nc", dest="fullfile",
+    help="wrfout file to be used for variables not found in the data files. For instance if you removed variables as the eta or soil levels."
   )
   (opt, args) = parser.parse_args()
 
@@ -397,7 +417,7 @@ if __name__ == "__main__":
   #
   print files[0]
   initialdate = datetime.strptime(opt.refdate, '%Y-%m-%d_%H:%M:%S')
-  onc = create_bare_curvilinear_CF_from_wrfnc(files[0], initialdate, opt.zaxis, opt.paxis)
+  onc = create_bare_curvilinear_CF_from_wrfnc(files[0], initialdate, opt.zaxis, opt.paxis, opt.saxis)
   for line in csv.reader(open(opt.attributes, "r"), delimiter=" ", skipinitialspace=True):
     setattr(onc, line[0], line[1])
   onctime = onc.variables["time"]
@@ -408,9 +428,11 @@ if __name__ == "__main__":
   #
   if opt.discard:
     files = discard_suspect_files(files, opt.discard)
+  nfiles = len(files)
   itime = 0
   lastpr = None
-  for f in files:
+  for ifile in range(nfiles):
+    f = files[ifile]
     if DEBUG: print "Processing file %s" % f
     inc = NetCDFFile(f,'r')
     incTimes = inc.variables["Times"]
@@ -439,7 +461,6 @@ if __name__ == "__main__":
         else:   
 	  u = inc.variables["U"]
 	  v = inc.variables["V"]
-        
         uer, ver = rotate_lcc_wind(u,v, onclat[:,:], onclon[:,:], inc.CEN_LON, inc.TRUELAT1, inc.TRUELAT2)
         exec("incvar=%s" % varname[0].lower()) # muy cerdo
         exec("copyval=%ser" % varname[0].lower()) # muy cerdo       
@@ -477,6 +498,40 @@ if __name__ == "__main__":
         else:
           incvar = inc.variables["RAINNC"]
           pr = incvar[:nrecords] + inc.variables["RAINC"][:nrecords]
+        if not lastpr:
+          copyval = concatenate([zeros((1,)+pr[0].shape, pr.typecode()), pr[1:nrecords]-pr[:-1]])
+        else:
+          copyval = pr - concatenate([lastpr,pr[:-1]])
+        copyval = where(copyval<0., 0, copyval)
+        lastpr = reshape(pr[-1], (1,)+pr[-1].shape)
+        oncvar = get_oncvar(itime, incvar, onc)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname == "RAINFORWARD":
+        if inc.variables.has_key("RAINTOT"):
+          incvar = inc.variables["RAINTOT"]
+          pr = incvar[:nrecords]
+        else:
+          incvar = inc.variables["RAINNC"]
+          pr = incvar[:nrecords] + inc.variables["RAINC"][:nrecords]
+        if ifile == nfiles-1:
+          copyval = concatenate([pr[1:nrecords]-pr[:-1], zeros((1,)+pr[0].shape, pr.typecode())])
+        else:
+          nextinc = NetCDFFile(files[ifile+1],'r')
+          if nextinc.variables.has_key("RAINTOT"):
+            nextpr = nextinc.variables["RAINTOT"]
+            nextpr = reshape(nextpr[0], (1,)+nextpr[0].shape)
+          else:
+            nextpr = nextinc.variables["RAINNC"]
+            nextpr = reshape(nextpr[0] + nextinc.variables["RAINC"][0], nextpr[0].shape)
+          nextinc.close()
+          copyval = concatenate([pr[1:nrecords], nextpr]) - pr
+        copyval = where(copyval<0., 0, copyval)
+        lastpr = reshape(pr[-1], (1,)+pr[-1].shape)
+        oncvar = get_oncvar(itime, incvar, onc)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname == "RAINC":
+        incvar = inc.variables["RAINC"]
+        pr = incvar[:nrecords]
         if not lastpr:
           copyval = concatenate([zeros((1,)+pr[0].shape, pr.typecode()), pr[1:nrecords]-pr[:-1]])
         else:
@@ -558,6 +613,11 @@ if __name__ == "__main__":
         incvar = inc.variables['SMOIS']
         copyval = incvar[:,0,:,:]*1000
         oncvar = get_oncvar(itime, incvar, onc, out_is_2D_but_in_3D=True)
+        oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
+      elif varname=="CLD":
+        incvar = inc.variables['VIQC']
+        copyval = incvar[:nrecords] + inc.variables['VIQI'][:nrecords]
+        oncvar = get_oncvar(itime, incvar, onc)
         oncvar[itime:itime+nrecords] = copyval[:nrecords].astype(oncvar.typecode())
       else:
         incvar = inc.variables[varname]
