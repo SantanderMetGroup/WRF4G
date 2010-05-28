@@ -35,10 +35,10 @@ set x2data time
 set timefmt "%Y-%m-%d_%H:%M:%S"
 set format x "%Y-%m"
 set format x2 "%Y-%m"
-set xtics xlargeval*6 
-set x2tics xlargeval*6 
-set mxtics 6 
-set mx2tics 6 
+set xtics xlargeval*2 
+set x2tics xlargeval*2 
+set mxtics 2 
+set mx2tics 2 
 set ytics mirror
 set grid
 set grid mxtics
@@ -90,9 +90,10 @@ portion_between () {
 #######    #######   #######    #######    #######    #######    #######    #######    #######     
     #######   #######    #######    #######    #######    #######    #######    #######     
 rootsh=`pwd`
+c1=\"
 
-experiments='scne1'
-#experiments='scnc1 scne1 scne3'
+#experiments='scne1'
+experiments='scnc1 scne1 scne3'
 variables='RAINCV RAINNCV T2 Q2 U10 V10'
 outputpath=${rootsh}/simstate
 
@@ -235,29 +236,30 @@ EOF
     for var in ${variables}
     do
       ndata=`wc -l  ${outputpath}/${branch}_${var}_X${xpoint2S}_Y${ypoint2S}.dat | awk '{print $1}'`
-      echo "ndata: "${ndata}
       draw_paint ${outputpath} ${branch} ${var} ${xpoint2S} ${ypoint2S} ${ndata}
-      htmlvariables=${htmlvariables}" "<a href=${c1}${branch}"_"${var}"_X"${xpoint2S}"_Y"${ypoint2S}".html"${c1}" class="${c1}"lcos"${c1}" target="${c1}"cosmig"${c1}">"${var}" X"${xpoint2S}" Y"${ypoint2S}"</a> | "
-#      alphnum=`num_alph ${ifig}`
-#      modfig=`expr ${ifig} % 2`
-#      if test ${modfig} -eq 0
-#      then
-        cat << EOF >> ${outputpath}/${branch}".html
-<div class="cos2III${alphnum}">
-  <img src="${branch}_${variable}_X${xpoint2S}_Y${ypoint2S}.png"  height="450px"></img>
+      htmlvariables=${htmlvariables}' <a href='${c1}${branch}'_'${var}'_X'${xpoint2S}'_Y'${ypoint2S}'.html'${c1}' class='${c1}'lcos'${c1}' target='${c1}'cosimg'${c1}'>'${var}' X'${xpoint2S}' Y'${ypoint2S}'</a> | '
+      cat << EOF > ${outputpath}/${branch}_${var}_X${xpoint2S}_Y${ypoint2S}.html
+<HTML>
+<head>
+<link rel="stylesheet" type"text/css" href="./simstate.css" />
+</head>
+<body>
+<div class="varimg">
+${var} <br>
+  <img src=${c1}${branch}_${var}_X${xpoint2S}_Y${ypoint2S}.png${c1}  height=${c1}450px${c1}></img>
 </div>
+</body>
+</HTML>
 EOF
-      else
-        cat << EOF >> ${outputpath}/${branch}.html
-<div class="cos2III${alphnum}">
-  <img src="${branch}_${variable}_X${xpoint2S}_Y${ypoint2S}.png"  height="450px"></img>
-</div>
-EOF
-      fi
       ifig=`expr ${ifig} + 1`
 ### End of variables
     done
     cat << EOF >> ${outputpath}/${branch}.html
+  ${htmlvariables}
+  </div>
+  <div class="varimg">
+    <iframe src="empty.html" width="100%" height="100%" name="cosimg"></iframe>
+  </div>
 </body>
 </HTML>
 EOF
