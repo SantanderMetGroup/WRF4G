@@ -12,8 +12,8 @@ nlev=$(seq ${inilev} ${inc} ${endlev} | wc -w)
 makecpt -C${scale} -T${inilev}/${endlev}/${inc} -Z | awk '/^[^A-Z]/ && NR > 3 {print $1, $2,$3, $4, '\n', $5, $6, $7}'\
                                                    | awk '{print "set rgb ", $2, $3, $4}' \
                                                    | cat -n                               \
-                                                   | awk '{print $2, $3, $1, $4, $5, $6}'
+                                                   | awk '{print $2, $3, $1 + 16, $4, $5, $6}'
 
 echo 'set clevs ' $(seq ${inilev} ${inc} ${endlev})
-echo 'set ccols ' $(seq 1 ${nlev})
+echo 'set ccols ' $(seq 17 $(expr 17 + ${nlev}))
 }
