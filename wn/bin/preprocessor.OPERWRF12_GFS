@@ -9,7 +9,7 @@ fi
 
 inidate=$(echo ${sformateddate:0:10} | tr -d '-') 
 initime=$(echo ${sformateddate:11:2})
-foldername=gfs_${inidate}${initime}
+foldername=gfs${inidate}${initime}
 
 mkdir -p grbData
 cd grbData
