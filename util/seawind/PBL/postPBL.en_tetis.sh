@@ -1,5 +1,6 @@
 #! /bin/bash
-#PBS -q tetis
+#PBS -q centos5
+#PBL -N postPBL
 
 source /software/ScientificLinux/4.6/etc/bashrc
 
@@ -8,11 +9,12 @@ pbl="1_1"
 fullexp=SeaWind_I1540_MultiBL
 sizethres=333981360
 
-postdir="/oceano/gmeteo/WORK/markel/master/swhI1540_MultiBL/" #Cambiar por ¿?
+postdir="/oceano/gmeteo/WORK/meteo4g/SEAWIND/swhI1540_MultiBL" #-->/vols/oceano/TresTeras
+tempdir="/localtmp/postPBL"
 datadir="/oceano/gmeteo/WORK/meteo4g/WRF/experiments/${exp}"
 
-mkdir -p $postdir || exit
-cd $postdir
+mkdir -p $tempdir || exit
+cd $tempdir
 
 weajdir="/oceano/gmeteo/WORK/markel/wrf4g/util/postprocess"
   weajpy="${weajdir}/wrfnc_extract_and_join.py"
@@ -52,7 +54,7 @@ for dir in ${datadir}/${exp}__${pbl}__*
 do
   read expname pbl dates trash <<< ${dir//__/ }
   read datei datef <<< ${dates//_/ }
-  if test -f "${datei:0:4}/${fullexp}__${pbl}__${datei}.nc"; then
+  if test -f "${postdir}/${pbl}/${fullexp}__${pbl}__${datei}.nc"; then
     echo "There is a full file for this date ($datei). Won't waste my time"
     continue
   fi
@@ -77,7 +79,7 @@ do
     fi
   done
   python ${weajpy} -p \
-    -v PSFC,GHT,Q2,T2,U10ER,V10ER,UER,VER,MSLP,W,RH,TEMP,Q2,QVAPOR,T2,RAINC,RAINNC,ACLHF,ACHFX,LH,QFX,HFX,PBLH,UST,Z0,POTEVP,REGIME \
+    -v PSFC,GHT,Q2,T2,U10ER,V10ER,UER,VER,MSLP,W,RH,TEMP,Q2,QVAPOR,T2,RAINC,RAINNC,ACLHF,ACHFX,LH,QFX,HFX,PBLH,UST,TKE_MYJ,EL_MYJ,Z0,POTEVP,REGIME \
     -r 1940-01-01_00:00:00 \
     -t ${weajtbl} -a ${weajatt} \
     -g ${geofile} \
@@ -99,8 +101,8 @@ do
   #
   # merge and delete
   #
-  outname="${datei:0:4}/${fullexp}__${pbl}__${datei}.nc"
-  mkdir -p ${datei:0:4}
+  outname="${pbl}/${fullexp}__${pbl}__${datei}.nc"
+  mkdir -p ${pbl}
   echo "Writing $outname"
   cdo merge ${outnamep} ${outnamex} ${outname}
   if test $(stat -c %s ${outname}) -ge ${sizethres}; then
@@ -109,3 +111,5 @@ do
     echo "Something went wrong! keeping the original files"
   fi
 done
+
+rsync -vae ${tempdir}/* ${postdir}
