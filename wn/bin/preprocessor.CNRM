@@ -1,94 +1,51 @@
-#!/bin/bash
+#! /bin/bash
+#
+# Sample preprocessor in shell.
+#
+# This can be any kind of executable accepting three arguments:
+#
+global_path=$1       # Path to the data
+sformateddate=$2     # initial date to process as YYYY-MM-DD_HH:MM:SS
+eformateddate=$3     # end date to process
+fakesoilgrb=FAKESOIL.grb
+#
+# and creating a directory grbData with grib data for those dates and ready to
+# be linked by 'link_grib.csh grbData/*.grb'
+#
+source wrf_util.sh 
+read iyy imm trash <<< `echo $sformateddate | tr '_T:-' '    '`
+read fyy fmm trash <<< `echo $eformateddate | tr '_T:-' '    '`
 
-extract_date () {
-# Function to give date in any format and give any output
-  date=$1
-  kind=$2
-  output=$3
-  case ${kind} in
-  'dTh')
-##  [YYYY][MM][DD]T[HH][MI][SS]
-    year=`expr substr ${date} 1 4`
-    month=`expr substr ${date} 5 2`
-    day=`expr substr ${date} 7 2`
-    hour=`expr substr ${date} 10 2`
-    minute=`expr substr ${date} 12 2`
-    second=`expr substr ${date} 14 2`
-  ;;
-  'dh')
-##  [YYYY][MM][DD][HH][MI][SS]
-    year=`expr substr ${date} 1 4`
-    month=`expr substr ${date} 5 2`
-    day=`expr substr ${date} 7 2`
-    hour=`expr substr ${date} 9 2`
-    minute=`expr substr ${date} 11 2`
-    second=`expr substr ${date} 13 2`
-  esac
+if ! which cdo; then
+  thisdir=$(pwd)
+  cd `cat ../rootdir`
+    if test -e /software/ScientificLinux/4.6/etc/bashrc; then
+      cp /oceano/gmeteo/WORK/MDM.UC/Apps/cdo.tar.gz .
+    else
+      cp /gpfs/csic_projects/meteo/WORK/GRIDUI/Apps/cdo.tar.gz .
+    fi
+    tar xzf cdo.tar.gz && rm cdo.tar.gz
+  cd ${thisdir}
+fi
 
-  case ${output} in
-  'c')
-  echo ${year}${month}${day}${hour}${minute}${second}  
-  ;;
-  's')
-  echo ${year}" "${month}" "${day}" "${hour}" "${minute}" "${second}
-  ;;
-  'i')
-  echo ${year}"-"${month}"-"${day}"T"${hour}":"${minute}":"${second}
-  ;;
-  'i2')
-  echo ${year}"-"${month}"-"${day}" "${hour}":"${minute}
-  ;;
-  esac
-}
-
-#######    #######    #######    #######    #######    #######    #######    #######    ####### 
-    #######    #######    #######    #######    #######    #######    #######    ####### 
-if test $1 = '-h'
-then
-echo "*********************************"
-echo "*** Preprocessor to transform ***"
-echo "***  netCDF from CNRM to GRIB ***"
-echo "*********************************"
-echo "preprocessor.CNRM 'sDATE'([AAAA][MM][DD]T[HH][MI][SS]) 'eDATE'([AAAA][MM][DD]T[HH][MI][SS]) 'PREfix'(prefix of files) 'FILEadd'(GRIB with adding variables)"
-#Preprocessor to transform netCDF from CNRM to GRIB
-# arg1: Starting date; [AAAA][MM][DD]T[HH][MI][SS]
-# arg2: Ending date; [AAAA][MM][DD]T[HH][MI][SS]
-# arg3: Prefix of files
-# arg4: File with adding variables
-else
-rootsh=`pwd`
-
-datadir="/oceano/gmeteo/DATA/CNRM/CNRM-CM3/20C3M"
-datastdir="/oceano/gmeteo/DATA/CNRM/CNRM-CM3/static"
-outdir=${rootsh}'/grbData'
-
-mkdir -p grbData
-
-thisdir=$(pwd)
-cd `cat ../rootdir`
-  if test -e /software/ScientificLinux/4.6/etc/bashrc; then
-    cp /oceano/gmeteo/WORK/MDM.UC/Apps/cdo.tar.gz .
-  else
-    vcp gsiftp://ce01.macc.unican.es:2812/oceano/gmeteo/WORK/MDM.UC/Apps/cdo.tar.gz .
-  fi
-  tar xzf cdo.tar.gz && rm cdo.tar.gz
-cd ${thisdir}
-
-sdate=$1
-edate=$2
-datadir=$3
-fakesoilgrb=FAKESOIL.grb 
-
-sdate=`extract_date $1 dTh i`
-edate=`extract_date $2 dTh i`
-
-yeari=`extract_date $1 dTh s | awk '{print $1}'`
-field=1
-rm -f ${rootsh}/tmp0.grb
+cat << EOF > echam_grib.table
+ 139   STL1         T of 0-7 cm ground layer                 [K]
+ 170   STL2         T of 7-28 cm ground layer                [K]
+ 183   STL3         T of 28-100 cm ground layer              [K]
+ 236   STL4         T of 100-255 cm ground layer             [K]
+  39   SWVL1        Soil water c. of 0-7 cm ground layer     [m3/m-3] 
+  40   SWVL2        Soil water c. of 7-28 cm ground layer    [m3/m-3]
+  41   SWVL3        Soil water c. of 28-100 cm ground layer  [m3/m-3]
+  42   SWVL4        Soil water c. of 100-255 cm ground layer [m3/m-3]
+  43   SM000007     Soil moisture of 0-7 cm ground layer     [fraction]
+  44   SM007028     Soil moisture of 7-28 cm ground layer    [fraction]
+  45   SM028100     Soil moisture of 28-100 cm ground layer  [fraction]
+  46   SM100255     Soil moisture of 100-255 cm ground layer [fraction]
+EOF
 
 function get_fake_soil(){
   infile=$1
-  outfile=grbData/`basename ${infile/mm5/soil.grb}`
+  outfile=grbData/`basename ${infile/.grb/soil.grb}`
   ndates=$(cdo ntime ${infile})
   cdo remapbil,${infile} ${fakesoilgrb} ${fakesoilgrb}.echam
   cdo -t echam_grib.table -f grb setpartab,echam_grib.table ${fakesoilgrb}.echam tmp.grb # este comando hace algo realmente???
@@ -99,7 +56,7 @@ function get_fake_soil(){
   do
     cdo -s cat tmp.grb tmp2.grb
     let idate++
-  done 
+  done
   read date_s time_s <<< $(echo ${sformateddate} | tr '_' ' ')
   cdo settaxis,${date_s},${time_s},6hours tmp2.grb ${outfile}
   rm tmp*.grb
@@ -107,37 +64,16 @@ function get_fake_soil(){
   rm ${fakesoilgrb}.echam
 }
 
-cat > awkcmd << eof
-BEGIN {
-  FS="|"
-}
-function ltrim(s) { sub(/^[ \t]+/, "", s); return s }
-function rtrim(s) { sub(/[ \t]+$/, "", s); return s }
-function trim(s)  { return rtrim(ltrim(s)); }
-{
-  printf "%s;%s;%s;%s;%s;%s;%s;%s\n",
-  trim(\$1),trim(\$2),trim(\$3),trim(\$4),trim(\$5),trim(\$6),trim(\$8),trim(\$7)
-}
-eof
+echo "Linking global data from: ${global_path}"
+mkdir -p grbData
 
-#
-#   Parse the Vtable
-#
-outfile="grbData/CNRM.grb"
-rm -f ${outfile}
-cat wrf4g_files/WPS/ungrib/Variable_Tables/Vtable.CNRM \
-  | sed -e '/^Code/d' -e '/^GRIB/d' -e '/^-----+/d' \
-  | awk -f awkcmd \
-  | while IFS=";" read gribcode leveltype gribl1 gribl2 ungribname units ncvar description
-  do
-    if test -n ${ncvar}; then
-      # There is a netcdf file with the data for this variable
-      file=$(ls ${datadir}/*6h_${ncvar}.${yeari}.nc)
-      test -n ${file} || file=$(ls ${datastdir}/${ncvar}_A1.nc) # Try to find it as a static field
-      cdo -f grb setcode,${gribcode} -setltype,${leveltype} -seldate,${sdate},${edate} ${file} tmp.grb
-      cat tmp.grb >> ${outfile}
-    else
-    fi
-  done
-
-rm -f awkcmd
+for yearmon in $(get_yearmons $iyy $imm $fyy $fmm)
+do
+  year=${yearmon:0:4}
+  vcp -v ${global_path}/CNRM_*${yearmon}.grb `pwd`/grbData/
+  ifile=$(ls grbData/CNRM_*${yearmon}.grb)
+  test -f "${ifile}" || exit
+  get_fake_soil $ifile
+  # get a separate code for the SST (in CNRM SST: #34, TS: #235)
+##  cdo setcode,177 -selcode,169 $ifile grbData/`basename ${infile/mm5/sst.grb}`
+done
