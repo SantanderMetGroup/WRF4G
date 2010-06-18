@@ -13,4 +13,4 @@ foldername=gfs${inidate}${initime}
 
 mkdir -p grbData
 cd grbData
-vcp ${global_path}/${foldername}/*.grb ln:.
+vcp ${global_path}/${foldername}/\*.grb ln:.
