@@ -15,15 +15,15 @@ source wrf4g.conf
 test -n "${depid}" && depflag="-W depend=afterany:${depid}" || depflag=""
 test -n "${WRF4G_QUEUE_WALLTIME}" && wtflag="-l walltime=${WRF4G_QUEUE_WALLTIME}" || wtflag=""
 
-#mpiexec="/software/ScientificLinux/4.6/openmpi/1.4/gccgfortran/bin/mpirun"
-mpiexec="mpiexec"
+mpiexec="/software/CentOS/5.2/openmpi/1.4.2/gcc-gfortran4.1.2/bin/mpiexec"
+#mpiexec="mpiexec"
 slots=`expr ${NUMBER_OF_NODES} '*' ${PROCESSES_PER_NODE}`
 
 if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
   nodflag="-l nodes=${NUMBER_OF_NODES}:ppn=${PROCESSES_PER_NODE}"
   echo "LAUNCHER_METGRID=\"\""                 >> wrf.chunk
   echo "LAUNCHER_REAL=\"\""                    >> wrf.chunk
-  echo "LAUNCHER_WRF=\"$mpiexec -npernode ${PROCESSES_PER_NODE}\"" >> wrf.chunk
+  echo "LAUNCHER_WRF=\"$mpiexec\"" >> wrf.chunk
   echo "export P4_GLOBMEMSIZE=67108864" >> wrf.chunk
 else
   nodflag=""
@@ -33,9 +33,7 @@ else
 fi
 
 rundir=${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
-export LD_LIBRARY_PATH=/software/CentOS/5.2/openmpi/1.4.2/gcc-gfortran4.1.2/lib/:$LD_LIBRARY_PATH
-export PATH=/software/CentOS/5.2/openmpi/1.4.2/gcc-gfortran4.1.2/bin/:$PATH
-which mpiexec
+#export LD_LIBRARY_PATH=/software/CentOS/5.2/openmpi/1.4.2/gcc-gfortran4.1.2/lib/:$LD_LIBRARY_PATH
 #
 #   Avoid overwriting previous run directories. Move it to an unused name.
 #
