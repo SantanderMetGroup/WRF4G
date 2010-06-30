@@ -142,7 +142,21 @@ set +v
 test -n "${LOCALDIR}" && cd ${LOCALDIR}
 mkdir -p log
 vcp ${WRF4G_APPS}/WRF4Gbin-${WRF_VERSION}.tar.gz .
-tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz && rm -f WRF4Gbin-${WRF_VERSION}.tar.gz || w4gini_exit ${ERROR_MISSING_WRF4GBIN}
+tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz || w4gini_exit ${ERROR_MISSING_WRF4GBIN}
+if test -n "${LOCALDIR}"; then
+  for node in $(cat $PBS_NODEFILE | sort | uniq)
+  do
+    if test "${node}" != "$(hostname)"; then
+      echo "Creating WRF4G structure in ${node}:${LOCALDIR}"
+      ssh ${node} mkdir -p ${LOCALDIR}
+      cat WRF4Gbin-${WRF_VERSION}.tar.gz | ssh ${node} "tar xz -C ${LOCALDIR} -f -"
+      if test -f ${ROOTDIR}/wrf4g_files.tar.gz ; then
+        cat ${ROOTDIR}/wrf4g_files.tar.gz | ssh ${node} "tar xz -C ${LOCALDIR} -f -"
+      fi
+    fi
+  done
+fi
+rm -f WRF4Gbin-${WRF_VERSION}.tar.gz
 tar xzf ${ROOTDIR}/sandbox.tar.gz WRFV3/run/namelist.input # La namelist buena esta aqui!
 mv wrfrst* WRFV3/run >& /dev/null || :
 rm -f ${ROOTDIR}/sandbox.tar.gz 
