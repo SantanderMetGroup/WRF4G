@@ -16,7 +16,6 @@ test -n "${depid}" && depflag="-W depend=afterany:${depid}" || depflag=""
 test -n "${WRF4G_QUEUE_WALLTIME}" && wtflag="-l walltime=${WRF4G_QUEUE_WALLTIME}" || wtflag=""
 
 mpiexec="/software/CentOS/5.2/openmpi/1.4.2/gcc-gfortran4.1.2/bin/mpiexec"
-#mpiexec="mpiexec"
 slots=`expr ${NUMBER_OF_NODES} '*' ${PROCESSES_PER_NODE}`
 
 if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
@@ -33,7 +32,8 @@ else
 fi
 
 rundir=${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
-#export LD_LIBRARY_PATH=/software/CentOS/5.2/openmpi/1.4.2/gcc-gfortran4.1.2/lib/:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/software/CentOS/5.2/openmpi/1.4.2/gcc-gfortran4.1.2/lib/:$LD_LIBRARY_PATH
+
 #
 #   Avoid overwriting previous run directories. Move it to an unused name.
 #
