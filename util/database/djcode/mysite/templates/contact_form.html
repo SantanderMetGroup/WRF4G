@@ -1,0 +1,22 @@
+<html>
+<head>
+    <title>Contact us</title>
+</head>
+<body>
+   <h1>Contanct us</h1>
+
+   {% if errors %}
+      <ul>
+         {%for error in errors}
+         <li>{{ error}}</li>
+         {% endfor %}
+      </ul>
+   {% endif %}
+   <form action="/contact/" method="post">
+       <p>Subject: <input type="text" name="subject"><p>
+       <p>Your e-mail(optional): <input type "text" name="e-mail"></p>
+       <p>Message: <textarea name="message" rows="10" cols="50"></textarea></p>
+       <input type="submit" value="Submit">
+   </form>
+</body>
+</html>
