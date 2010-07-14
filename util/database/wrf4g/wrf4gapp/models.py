@@ -6,26 +6,26 @@ from django.db import models
 
 class Experiment_db(models.Model):
       name=models.CharField(max_length=100)
-      end_date=models.DateField() # format date.datetime
-      start_date=models.DateField() # format date.datime
+      end_date=models.DateTimeField() # format datetime.datetime
+      start_date=models.DateTimeField() # format datetime.datime
       status=models.CharField(max_length=1)# Options=[D,R,Q,S] Done,Run,Queue,Schedule
 
 # Class Realization_db
 
 class Realization_db(models.Model):
       name=models.CharField(max_length=100)
-      exp_id=models.ForeignKey(Experiment_db)# experiment_id
-      end_date=models.DateField() # format date.datetime
-      start_date=models.DateField() # format date.datime
+      exp=models.ForeignKey(Experiment_db)# experiment_id
+      end_date=models.DateTimeField() # format datetime.datetime
+      start_date=models.DateTimeField() # format datetime.datime
 
 # Class Chunk_db
       
 class Chunk_db(models.Model):
       name=models.CharField(max_length=100)
-      rea_id=models.ForeignKey(Realization_db) # realization_id
-      end_date=models.DateField() # format date.datetime
-      start_date=models.DateField() # format date.datime
-      current_date=models.DateField() # format date.datetime
+      rea=models.ForeignKey(Realization_db) # realization_id
+      end_date=models.DateTimeField() # format datetime.datetime
+      start_date=models.DateTimeField() # format datetime.datime
+      current_date=models.DateTimeField() # format datetime.datetime
       wps_file=models.BooleanField()# True or False Be Careful!! mysql True=1 False=0
       status=models.CharField(max_length=1)# Options=[D,R,Q,S] Done,Run,Queue,Schedule
 
@@ -42,9 +42,9 @@ class File_Type_db(models.Model):
 class File_db(models.Model):
       type_file=models.ForeignKey(File_Type_db)
       path=models.CharField(max_length=100)
-      rea_id=models.ForeignKey(Realization_db) # realization_id
-      end_date=models.DateField() # format date.datetime
-      start_date=models.DateField() # format date.datime
+      rea=models.ForeignKey(Realization_db) # realization_id
+      end_date=models.DateTimeField() # format datetime.datetime
+      start_date=models.DateTimeField() # format datetime.datime
 
 
       
