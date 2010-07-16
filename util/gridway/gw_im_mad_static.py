@@ -26,6 +26,18 @@ import logging
 import logging.handlers
 from optparse import OptionParser
 
+LOG_FILENAME = '/tmp/im_mad.log'
+if os.path.exists(LOG_FILENAME):
+	os.remove(LOG_FILENAME)		
+# Set up a specific logger with our desired output level
+logger = logging.getLogger('Logger')
+logger.setLevel(logging.DEBUG)
+# Add the log message handler to the logger
+handler = logging.handlers.RotatingFileHandler(LOG_FILENAME)
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler) 
+
 class GwImMad:
 	""" Information manager MAD 
 	
@@ -58,24 +70,12 @@ class GwImMad:
 	def __init__(self,hostlist):
 		self.hostlist = hostlist
 		self.host = {} #hostname:hostfile
-	   
-		LOG_FILENAME = '/tmp/im_mad.log'
-		if os.path.exists(LOG_FILENAME):
-			os.remove(LOG_FILENAME)		
-		# Set up a specific logger with our desired output level
-		self.logger = logging.getLogger('Logger')
-		self.logger.setLevel(logging.DEBUG)
-		# Add the log message handler to the logger
-		handler = logging.handlers.RotatingFileHandler(LOG_FILENAME)
-		formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-		handler.setFormatter(formatter)
-		self.logger.addHandler(handler) 
 		
 	def Menu(self):
 		"""Choose the OPERATION through the command line"""
 		while True:
 			input = sys.stdin.readline().split()
-			self.logger.debug(" ".join(input))
+			logger.debug(" ".join(input))
 			if len(input) == 4:
 				OPERATION,HID,HOST,ARGS = input
 				if OPERATION == 'INIT':
@@ -89,18 +89,15 @@ class GwImMad:
 				else:
 					out = 'wrong command'
 					print_stdout(out)
-					self.logger.debug(out)
+					logger.debug(out)
 			else:
 				out = 'incorrect number of arguments'
 				print_stdout(out)
-				self.logger.debug(out)
+				logger.debug(out)
 
 	def __INIT(self, args):
 		"""Initializes the MAD (i.e. INIT - - -)"""
-		OPERATION,HID,HOST,ARGS = args
-		out = OPERATION + ' ' + HID + ' ' + 'SUCCESS' + ' ' + ARGS
-		print_stdout(out)
-		self.logger.debug(out)
+		answer(args,'SUCCESS','-')
 
 	def __DISCOVER(self, args):
 		"""Discovers hosts (i.e. DISCOVER - - -)"""
@@ -109,21 +106,15 @@ class GwImMad:
 			try:
 				f = open(self.hostlist,'r')
 			except IOError:
-				out = OPERATION + ' ' + HID + ' ' + 'FAILURE' + ' ' + 'Can\'t open ' + self.hostlist + ' file'
-				print_stdout(out)
-				self.logger.debug(out)
+				answer(args,'FAILURE','Can\'t  open ' + self.hostlist + ' file')
 			else:
 				for line in f.readlines():
 					self.host[line.split()[0]] = line.split()[1]
 					f.close()
 					host = " ".join([host for host in self.host.keys()])
-					out = OPERATION + ' ' + HID + ' ' + 'SUCCESS' + ' ' + host
-					print_stdout(out)
-					self.logger.debug(out)
+					answer(args,'SUCCESS',host)
 		else:
-			out = OPERATION + ' ' + HID + ' ' + 'FAILURE' + ' ' + 'Can\'t access ' + self.hostlist + ' file'
-			print_stdout(out)
-			self.logger.debug(out)
+			answer(args,'FAILURE','Can\'t access ' + self.hostlist + ' file')
 
 	def __MONITOR(self, args):
 		"""Monitors a host (i.e. MONITOR HID HOST -) """
@@ -134,31 +125,26 @@ class GwImMad:
 				try:
 					f = open(path_host,'r')
 				except IOError:
-					out = OPERATION + ' ' + HID + ' ' + 'FAILURE' + ' ' + 'Can\'t open ' + path_host + ' file'
-					print_stdout(out)
-					self.logger.debug(out)
+					answer(args,'FAILURE','Can\'t  open ' + path_host + ' file')
 				else:
 					data = " ".join(" ".join(f.readlines()).split())
 					f.close()
-					out = OPERATION + ' ' + HID + ' ' + 'SUCCESS' + ' ' + data
-					print_stdout(out)
-					self.logger.debug(out)
+					answer(args,'SUCCESS',data)
 			else:
-				out = OPERATION + ' ' + HID + ' ' + 'FAILURE' + ' ' + 'Can\'t access ' + path_host + ' file'
-				print_stdout(out)
-				self.logger.debug(out)
+				answer(args,'FAILURE','Can\'t access ' + path_host + ' file')
 		else:
-			out = OPERATION + ' ' + HID + ' ' + 'FAILURE' + ' ' + 'There ' + HOST
-			print_stdout(out)
-			self.logger.debug(out)
+			answer(args,'FAILURE','There ' + HOST)
 
 	def __FINALIZE(self, args):
 		"""Finalizes the MAD (i.e. FINALIZE - - -)"""
-		OPERATION,HID,HOST,ARGS = args
-		out = OPERATION + ' ' + HID + ' ' + 'SUCCESS' + ' ' + ARGS
-		print_stdout(out)
-		self.logger.debug(out)
+		answer(args,'SUCCESS','-')
 		sys.exit(0)
+
+def answer(args,RESULT,INFO):
+	OPERATION,HID,HOST,ARGS = args
+	out = OPERATION + ' ' + HID + ' ' + RESULT + ' ' + INFO
+	print_stdout(out)
+	logger.debug(out)
 
 def print_stdout(text):
 	sys.stdout.write(text + '\n')
