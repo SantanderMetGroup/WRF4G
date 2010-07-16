@@ -159,24 +159,36 @@ for rea in /oceano/gmeteo/SCRATCH/MDM.UC/experiments/oper_gfs${sdate}/*; do
 
 done
 
-phys1="4_1_1_1_1_1_1"
-phys2="5_1_1_1_2_2_2"
+#Generates a nclm to merge the 2 physics creating a new dimension "ensemble".
 
-# #Changes the name of the variables to classify them by physics combinations and merges the 2 datasets.
-# 
-# cdo merge \
-#   -chname,tas,tas1,tasmax,tasmax1,tasmin,tasmin1,pr,pr1,uas,uas1,vas,vas1 ${outdir}/oper_gfs_mgrama_${sdate}__${phys1}_d01.nc \
-#   -chname,tas,tas2,tasmax,tasmax2,tasmin,tasmin2,pr,pr2,uas,uas2,vas,vas2 ${outdir}/oper_gfs_mgrama_${sdate}__${phys2}_d01.nc \
-#   ${outdir}/oper_gfs_mgrama_${sdate}_d01.nc.temp
-# 
-# #Global attributes to store the model configurations for simulations 1 and 2.
-# 
-# cdo setgatt,physics_combinations,"1=4_1_1_1_1_1_1;2=5_1_1_1_2_2_2;\
-# Legend={mp_physics}_{cu_physics}_{ra_lw_physics}_{ra_sw_physics}_{sf_sfclay_physics}_{bl_pbl_physics}_{sf_surface_physics}" \
-#     ${outdir}/oper_gfs_mgrama_${sdate}_d01.nc.temp7 \
-#     ${outdir}/oper_gfs_mgrama_${sdate}_d01.nc
-# 
-# #Axis types (It seems that CDOs don't carry them when processing a file :( )
+cd ${outdir}
+
+cat << __EOF > oper_gfs_mgrama_${sdate}_d01.ncml
+
+  <netcdf xmlns="http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2">
+	  <variable name="ensemble" type="String">
+	  <attribute name="long_name" value="Ensemble of physics perturbations"/>
+	  <attribute name="_CoordinateAxisType" value="Ensemble" />
+	  </variable>
+	  <aggregation dimName="ensemble" type="joinNew">
+		  <variableAgg name="tasmin"/>
+		  <variableAgg name="tasmax"/>
+		  <variableAgg name="pr"/>
+		  <variableAgg name="uas"/>
+		  <variableAgg name="vas"/>
+		  <variableAgg name="tas"/>
+		  <netcdf location="oper_gfs_mgrama_2010071312__4_1_1_1_1_1_1_d01.nc" coordValue="4_1_1_1_1_1_1"/>
+		  <netcdf location="oper_gfs_mgrama_2010071312__5_1_1_1_2_2_2_d01.nc" coordValue="5_1_1_1_2_2_2"/>
+      </aggregation>
+  </netcdf>
+
+__EOF
+
+java="/oceano/gmeteo/users/markel/usr/jre1.6.0_13/bin/java"
+netcdf_java="/oceano/gmeteo/users/markel/usr/netcdfAll-4.1.jar"
+
+${java} -Xmx512m -classpath ${netcdf_java} ucar.nc2.dataset.NetcdfDataset \
+ -in oper_gfs_mgrama_${sdate}_d01.ncml -out oper_gfs_mgrama_${sdate}_d01.nc
 
 
 rm -f grid15.cdo
