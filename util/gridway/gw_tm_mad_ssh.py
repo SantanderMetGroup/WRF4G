@@ -78,12 +78,12 @@ class GwTmMad:
 	
 	Where:
 
-    -OPERATION: Is the operation specified in the request that originated 
-        the response or CALLBACK, in the case of an asynchronous notification of a state change.
-    -JID: It is the job identifier, as provided in the START request.
-    -TID: It is the transfer identifier, as provided in the CP request.
-    -RESULT: It is the result of the operation. Could be SUCCESS or FAILURE.
-    -INFO: If RESULT is FAILURE, it contains the cause of failure."""
+    	-OPERATION: Is the operation specified in the request that originated 
+        	the response or CALLBACK, in the case of an asynchronous notification of a state change.
+    	-JID: It is the job identifier, as provided in the START request.
+    	-TID: It is the transfer identifier, as provided in the CP request.
+    	-RESULT: It is the result of the operation. Could be SUCCESS or FAILURE.
+    	-INFO: If RESULT is FAILURE, it contains the cause of failure."""
 
        def __init__(self):
                 self.queue_remote_command = Queue()
