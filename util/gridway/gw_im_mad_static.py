@@ -173,10 +173,10 @@ def main():
 	else:
 		print_stdout('option not implemented')
 		sys.exit(-1)
-
-    MAD_IM = GwImMad(options.HOSTLIST)
-    MAD_IM.Menu()
-    return 0
+	
+	MAD_IM = GwImMad(options.HOSTLIST)
+	MAD_IM.Menu()
+	return 0
 
 if __name__ == '__main__':
 	main()
