@@ -26,17 +26,8 @@ import logging
 import logging.handlers
 from optparse import OptionParser
 
-LOG_FILENAME = '/tmp/im_mad.log'
-if os.path.exists(LOG_FILENAME):
-	os.remove(LOG_FILENAME)		
-# Set up a specific logger with our desired output level
-logger = logging.getLogger('Logger')
-logger.setLevel(logging.DEBUG)
-# Add the log message handler to the logger
-handler = logging.handlers.RotatingFileHandler(LOG_FILENAME)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler) 
+logger=None
+handler=None
 
 class GwImMad:
 	""" Information manager MAD 
@@ -47,10 +38,10 @@ class GwImMad:
 		
 	Where:
 	-OPERATION: Can be one of the following:
-		-INIT: Initializes the MAD (i.e. INIT - - -).
-		-DISCOVER: Discovers hosts (i.e. DISCOVER - - - ).
-		-MONITOR: Monitors a host (i.e. MONITOR HID HOST -).
-		-FINALIZE: Finalizes the MAD (i.e. FINALIZE - - -).
+	-INIT: Initializes the MAD (i.e. INIT - - -).
+	-DISCOVER: Discovers hosts (i.e. DISCOVER - - - ).
+	-MONITOR: Monitors a host (i.e. MONITOR HID HOST -).
+	-FINALIZE: Finalizes the MAD (i.e. FINALIZE - - -).
 	-HID: if the operation is MONITOR, it is a host identifier, chosen by GridWay. Otherwise it is ignored.
 	-HOST: If the operation is MONITOR it specifies the host to monitor. Otherwise it is ignored.
 			
@@ -68,6 +59,8 @@ class GwImMad:
 
 
 	def __init__(self,hostlist):
+		logger_init(logger_name = 'Logger',LOG_FILENAME = '/tmp/im_mad.log',
+						format = '%(asctime)s - %(levelname)s - %(message)s')
 		self.hostlist = hostlist
 		self.host = {} #hostname:hostfile
 		
@@ -139,6 +132,19 @@ class GwImMad:
 		"""Finalizes the MAD (i.e. FINALIZE - - -)"""
 		answer(args,'SUCCESS','-')
 		sys.exit(0)
+		
+def logger_init(logger_name = '',LOG_FILENAME = '',format = ''):
+	global logger, handler
+	if os.path.exists(LOG_FILENAME):
+		os.remove(LOG_FILENAME)
+	# Set up a specific logger with our desired output level
+	logger = logging.getLogger(logger_name)
+	logger.setLevel(logging.DEBUG)
+	# Add the log message handler to the logger
+	handler = logging.handlers.RotatingFileHandler(LOG_FILENAME)
+	formatter = logging.Formatter(format)
+	handler.setFormatter(formatter)
+	logger.addHandler(handler)
 
 def answer(args,RESULT,INFO):
 	OPERATION,HID,HOST,ARGS = args
