@@ -21,7 +21,6 @@
 #       MA 02110-1301, USA.
 
 import paramiko
-import cmd
 import sys
 import os
 import re
@@ -31,20 +30,8 @@ from optparse import OptionParser
 from threading import Thread
 from Queue import Queue
 
-################################################################
-#Logger
-################################################################
-LOG_FILENAME = '/tmp/tm_mad.log'
-if os.path.exists(LOG_FILENAME):
-        os.remove(LOG_FILENAME)
-# Set up a specific logger with our desired output level
-logger = logging.getLogger('Logger')
-logger.setLevel(logging.DEBUG)
-# Add the log message handler to the logger
-handler = logging.handlers.RotatingFileHandler(LOG_FILENAME)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+logger=None
+handler=None
 
 class GwTmMad:
 	""" Information manager MAD
@@ -86,6 +73,8 @@ class GwTmMad:
     	-INFO: If RESULT is FAILURE, it contains the cause of failure."""
 
 	def __init__(self):
+		logger_init(logger_name = 'Logger',LOG_FILENAME = '/tmp/tm_mad.log',
+						format = '%(asctime)s - %(levelname)s - %(message)s')
 		self.queue_remote_command = Queue()
 		self.queue_cp = Queue()
 		num_threads_remote_command = 10
@@ -142,7 +131,7 @@ class GwTmMad:
 		answer(args,'SUCCESS','-')
 
 	def __FINALIZE(self, args):
-		"""Finalizes the MAD (i.e. FINALIZE - - -)"""
+		"""Finalizes the MAD (i.e. FINALIZE - - - - -)"""
 		answer(args,'SUCCESS','-')
 		sys.exit(0)
 	
@@ -210,9 +199,9 @@ def cp_command(queue):
 					answer(args,'FAILUE','Error using the command \'put\' between' + '(' + SRC_URL + ' --> ' + DST_URL +')')
 				if EXE_MODE == 'X':
 					try:
-						sftp.chmod(to_dir,755) #execution permissions
+						sftp.chmod(to_dir,0755) #execution permissions
 					except:
-						answer(args,'FAILUE','Error using the command \'chmod"')
+						answer(args,'FAILUE','Error using the command \'chmod\'')
 			else:
 				try:
 					sftp.get(from_dir,to_dir)
@@ -221,6 +210,20 @@ def cp_command(queue):
 			sftp.close()
 			transport.close()
 			answer(args,'SUCCESS','(' + SRC_URL + ' --> ' + DST_URL +')')
+
+
+def logger_init(logger_name = '',LOG_FILENAME = '',format = ''):
+	global logger, handler
+	if os.path.exists(LOG_FILENAME):
+		os.remove(LOG_FILENAME)
+	# Set up a specific logger with our desired output level
+	logger = logging.getLogger(logger_name)
+	logger.setLevel(logging.DEBUG)
+	# Add the log message handler to the logger
+	handler = logging.handlers.RotatingFileHandler(LOG_FILENAME)
+	formatter = logging.Formatter(format)
+	handler.setFormatter(formatter)
+	logger.addHandler(handler)
 
 def parse_url(url):
 	mo = re.match('^gsiftp\:\/\/([^\/]+)\/(.*)$',url)
