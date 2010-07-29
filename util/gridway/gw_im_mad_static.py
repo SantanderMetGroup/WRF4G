@@ -108,22 +108,22 @@ class GwImMad:
 		"""Finalizes the MAD (i.e. FINALIZE - - -)"""
 		answer(args,'SUCCESS','-')
 		sys.exit(0)
-	
-	methods = {
+		
+    methods = {
         'INIT':			__INIT,
         'DISCOVER':     __DISCOVER,
         'MONITOR':      __MONITOR,
         'FINALIZE':    	__FINALIZE
         }
-        
+    
 	def processLine(self):
 		"""Choose the OPERATION through the command line"""
 		while True:
 			input = sys.stdin.readline().split()
 			logger.debug(" ".join(input))
 			action=input[0].upper() #OPERATION
-			if len(input) == 4 and method.has_key(action):
-				self.method[action](input)
+			if len(input) == 4 and GwImMad.methods.has_key(action):
+				GwImMad.methods[action](self,input)
 			else:
 				out = 'Incorrect number of arguments'
 				print_stdout(out)

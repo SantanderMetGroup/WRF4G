@@ -147,8 +147,8 @@ class GwTmMad:
 			input = sys.stdin.readline().split()
 			logger.debug(" ".join(input))
 			action=input[0].upper() #OPERATION
-			if len(input) == 6 and method.has_key(action):
-				self.method[action](input)
+			if len(input) == 6 and GwTmMad.method.has_key(action):
+				GwTmMad.method[action](self,input)
 			else:
 				out = 'Incorrect number of arguments'
 				print_stdout(out)
