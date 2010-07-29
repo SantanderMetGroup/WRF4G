@@ -38,10 +38,10 @@ class GwImMad:
 		
 	Where:
 	-OPERATION: Can be one of the following:
-	-INIT: Initializes the MAD (i.e. INIT - - -).
-	-DISCOVER: Discovers hosts (i.e. DISCOVER - - - ).
-	-MONITOR: Monitors a host (i.e. MONITOR HID HOST -).
-	-FINALIZE: Finalizes the MAD (i.e. FINALIZE - - -).
+		-INIT: Initializes the MAD (i.e. INIT - - -).
+		-DISCOVER: Discovers hosts (i.e. DISCOVER - - - ).
+		-MONITOR: Monitors a host (i.e. MONITOR HID HOST -).
+		-FINALIZE: Finalizes the MAD (i.e. FINALIZE - - -).
 	-HID: if the operation is MONITOR, it is a host identifier, chosen by GridWay. Otherwise it is ignored.
 	-HOST: If the operation is MONITOR it specifies the host to monitor. Otherwise it is ignored.
 			
@@ -64,30 +64,6 @@ class GwImMad:
 		self.hostlist = hostlist
 		self.host = {} #hostname:hostfile
 		
-	def Menu(self):
-		"""Choose the OPERATION through the command line"""
-		while True:
-			input = sys.stdin.readline().split()
-			logger.debug(" ".join(input))
-			if len(input) == 4:
-				OPERATION,HID,HOST,ARGS = input
-				if OPERATION == 'INIT':
-					self.__INIT(input)
-				elif OPERATION == 'DISCOVER':
-					self.__DISCOVER(input)
-				elif OPERATION == 'MONITOR':
-					self.__MONITOR(input)
-				elif OPERATION == 'FINALIZE':
-					self.__FINALIZE(input)
-				else:
-					out = 'wrong command'
-					print_stdout(out)
-					logger.debug(out)
-			else:
-				out = 'incorrect number of arguments'
-				print_stdout(out)
-				logger.debug(out)
-
 	def __INIT(self, args):
 		"""Initializes the MAD (i.e. INIT - - -)"""
 		answer(args,'SUCCESS','-')
@@ -132,6 +108,26 @@ class GwImMad:
 		"""Finalizes the MAD (i.e. FINALIZE - - -)"""
 		answer(args,'SUCCESS','-')
 		sys.exit(0)
+	
+	methods = {
+        'INIT':			__INIT,
+        'DISCOVER':     __DISCOVER,
+        'MONITOR':      __MONITOR,
+        'FINALIZE':    	__FINALIZE
+        }
+        
+	def processLine(self):
+		"""Choose the OPERATION through the command line"""
+		while True:
+			input = sys.stdin.readline().split()
+			logger.debug(" ".join(input))
+			action=input[0].upper() #OPERATION
+			if len(input) == 4 and method.has_key(action):
+				self.method[action](input)
+			else:
+				out = 'Incorrect number of arguments'
+				print_stdout(out)
+				logger.debug(out)
 		
 def logger_init(logger_name = '',LOG_FILENAME = '',format = ''):
 	global logger, handler
@@ -181,7 +177,7 @@ def main():
 		sys.exit(-1)
 	
 	MAD_IM = GwImMad(options.HOSTLIST)
-	MAD_IM.Menu()
+	MAD_IM.processLine()
 	return 0
 
 if __name__ == '__main__':

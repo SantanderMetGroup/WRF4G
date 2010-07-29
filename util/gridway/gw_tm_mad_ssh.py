@@ -33,6 +33,17 @@ from Queue import Queue
 logger=None
 handler=None
 
+method = {
+	'INIT':			__INIT,
+	'START': 		__START,
+	'END':			__END,
+	'MKDIR':		__MKDIR,
+	'RMDIR':		__RMDIR,
+	'CP':			__CP,
+	'FINALIZE':		__FINALIZE
+}
+
+
 class GwTmMad:
 	""" Information manager MAD
 	
@@ -46,14 +57,14 @@ class GwTmMad:
 	Where:
 	
 	-OPERATION: Can be one of the following:
-	-INIT: Initializes the MAD, JID should be max number of jobs.
-	-START: Init transfer associated with job JID
-	-END: Finish transfer associated with job JID
-	-MKDIR: Creates directory SRC_URL
-	-RMDIR: Removes directory SRC_URL
-	-CP: start a copy of SRC_URL  to DST_URL, with identification TID, 
-		and associated with job JID.
-	-FINALIZE: Finalizes the MAD.
+		-INIT: Initializes the MAD, JID should be max number of jobs.
+		-START: Init transfer associated with job JID
+		-END: Finish transfer associated with job JID
+		-MKDIR: Creates directory SRC_URL
+		-RMDIR: Removes directory SRC_URL
+		-CP: start a copy of SRC_URL  to DST_URL, with identification TID, 
+			and associated with job JID.
+		-FINALIZE: Finalizes the MAD.
 	-JID: Is a job identifier, chosen by GridWay.
 	-TID: Transfer identifier, only relevant for command CP.
 	-EXE_MODE: If equal to 'X' file will be given execution permissions, 
@@ -64,13 +75,13 @@ class GwTmMad:
 		OPERATION JID TID RESULT INFO
 	
 	Where:
-
-    	-OPERATION: Is the operation specified in the request that originated 
-        	the response or CALLBACK, in the case of an asynchronous notification of a state change.
-    	-JID: It is the job identifier, as provided in the START request.
-    	-TID: It is the transfer identifier, as provided in the CP request.
-    	-RESULT: It is the result of the operation. Could be SUCCESS or FAILURE.
-    	-INFO: If RESULT is FAILURE, it contains the cause of failure."""
+	
+	-OPERATION: Is the operation specified in the request that originated 
+        the response or CALLBACK, in the case of an asynchronous notification of a state change.
+    -JID: It is the job identifier, as provided in the START request.
+    -TID: It is the transfer identifier, as provided in the CP request.
+    -RESULT: It is the result of the operation. Could be SUCCESS or FAILURE.
+    -INFO: If RESULT is FAILURE, it contains the cause of failure."""
 
 	def __init__(self):
 		logger_init(logger_name = 'Logger',LOG_FILENAME = '/tmp/tm_mad.log',
@@ -88,36 +99,6 @@ class GwTmMad:
 			worker.setDaemon(True)
 			worker.start()
 
-	def Menu(self):
-		"""Choose the OPERATION through the command line"""
-		while True:
-			input = sys.stdin.readline().split()
-			logger.debug(" ".join(input))
-			if len(input) == 6:
-				OPERATION,JID,TID,EXE_MODE,SRC_URL,DST_URL = input
-				if OPERATION == 'INIT':
-					self.__INIT(input)
-				elif OPERATION == 'START':
-					self.__START(input)
-				elif OPERATION == 'END':
-					self.__END(input)
-				elif OPERATION == 'MKDIR':
-					self.__MKDIR(input)
-				elif OPERATION == 'RMDIR':
-					self.__RMDIR(input)
-				elif OPERATION == 'CP':
-					self.__CP(input)
-				elif OPERATION == 'FINALIZE':
-					self.__FINALIZE(input)
-				else:
-					out = 'wrong command'
-					print_stdout(out)
-					logger.debug(out)
-			else:
-				out = 'incorrect number of arguments'
-				print_stdout(out)
-				logger.debug(out)
-
 	def __INIT(self, args):
 		"""INIT: Initializes the MAD, JID should be max number of jobs.(i.e. INIT JID - - - -)"""
 		answer(args,'SUCCESS','-')
@@ -133,6 +114,8 @@ class GwTmMad:
 	def __FINALIZE(self, args):
 		"""Finalizes the MAD (i.e. FINALIZE - - - - -)"""
 		answer(args,'SUCCESS','-')
+		logger.removeHandler(handler)
+		handler.close()
 		sys.exit(0)
 	
 	def __MKDIR(self, args):
@@ -147,15 +130,40 @@ class GwTmMad:
 		"""CP: start a copy of SRC_URL  to DST_URL, with identification TID, 
 			and associated with job JID.(i.e. CP JID TID - SRC_URL DST_URL) """
 		self.queue_cp.put(args)
+	
+	methods = {
+        'INIT':			__INIT,
+        'START':        __START,
+        'END':          __END,
+        'MKDIR':        __MKDIR,
+        'RMDIR':        __RMDIR,
+        'CP':           __CP,
+        'FINALIZE':    	__FINALIZE
+        }
+        
+	def processLine(self):
+		"""Choose the OPERATION through the command line"""
+		while True:
+			input = sys.stdin.readline().split()
+			logger.debug(" ".join(input))
+			action=input[0].upper() #OPERATION
+			if len(input) == 6 and method.has_key(action):
+				self.method[action](input)
+			else:
+				out = 'Incorrect number of arguments'
+				print_stdout(out)
+				logger.debug(out)
 
+action_command  = {
+        'MKDIR':        'mkdir',
+        'RMDIR':        'rm -rf'
+        }
+        
 def remote_command (queue):
 	while True:
 		args = queue.get()
 		OPERATION,JID,TID,EXE_MODE,SRC_URL,DST_URL = args
-		if OPERATION == 'MKDIR':
-			to_command = 'mkdir'
-		if OPERATION == 'RMDIR':
-			to_command = 'rm -rf'
+		to_command = action_command[OPERATION] 
 		(to_host, to_dir) = parse_url(SRC_URL)
 		client = paramiko.SSHClient()
 		client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -259,7 +267,7 @@ def main():
 
 	parser=OptionParser(description="Information manager MAD",version="1.0",usage="Usage: gw_im_mad_static.py")
 	MAD_TM = GwTmMad()
-	MAD_TM.Menu()
+	MAD_TM.processLine()
 	return 0
 
 if __name__ == '__main__':
