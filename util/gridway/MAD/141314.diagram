@@ -49,7 +49,7 @@ msg 128642 synchronous
 msg 129026 synchronous
   from durationcanvas_ref 128770
   to durationcanvas_ref 128898
-  yz 185 2015 msg operation_ref 155522 // "Menu()"
+  yz 185 2015 msg operation_ref 155522 // "processLine()"
   show_full_operations_definition default drawing_language default
   label_xy 288 173
 reflexivemsg 129282 synchronous

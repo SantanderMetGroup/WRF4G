@@ -1,9 +1,9 @@
 window_sizes 1280 974 206 1068 712 193
 diagrams
   sequencediagram_ref 141186 // IM MAD
-    1468 825 100 5 43 0
+    1468 825 100 5 0 0
   active  sequencediagram_ref 141314 // TM MAD
-    1068 712 100 5 0 0
+    1068 712 100 5 36 0
   sequencediagram_ref 141442 // EM MAD
     779 655 100 5 0 0
   classdiagram_ref 134658 // MADs class description

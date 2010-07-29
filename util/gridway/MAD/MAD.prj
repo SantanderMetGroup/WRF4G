@@ -1,6 +1,6 @@
 format 70
 "MAD"
-  revision 13
+  revision 14
   modified_by 2 "carlos"
 
 
@@ -181,7 +181,7 @@ ${docstring}${body}
 	comment "A host list file to be used by GridWay, only relevant for static discovery and monitoring."
       end
 
-      operation 148994 "Menu"
+      operation 148994 "processLine"
 	public explicit_return_type ""
 	nparams 0
 	
@@ -354,7 +354,7 @@ ${docstring}${body}
 	comment "Finalizes the MAD (i.e. FINALIZE - - - - -)"
       end
 
-      operation 155522 "Menu"
+      operation 155522 "processLine"
 	public explicit_return_type ""
 	nparams 0
 	

@@ -34,7 +34,7 @@ end
 msg 130690 synchronous
   from durationcanvas_ref 130434
   to durationcanvas_ref 130562
-  yz 161 2015 msg operation_ref 148994 // "Menu()"
+  yz 161 2015 msg operation_ref 148994 // "processLine()"
   show_full_operations_definition default drawing_language default
   label_xy 241 149
 reflexivemsg 130946 synchronous
