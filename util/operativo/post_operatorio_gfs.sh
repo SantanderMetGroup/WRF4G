@@ -108,7 +108,7 @@ for rea in /oceano/gmeteo/SCRATCH/MDM.UC/experiments/oper_gfs${sdate}/*; do
   #Accumulated precipitation.
 
   cdo shifttime,+1hour \
-    -seltimestep,$(seq -s, 3 3 108) \
+    -seltimestep,$(seq -s, 2 3 107) \
     -runsum,3 \
     -selvar,pr ${outdir}/$(basename ${rea})_d01.nc ${outdir}/oper_gfs_mgrama_${sdate}__${phys}_d01.nc.temp1
 
@@ -120,14 +120,16 @@ for rea in /oceano/gmeteo/SCRATCH/MDM.UC/experiments/oper_gfs${sdate}/*; do
   #Maximum temperature.
 
   cdo chname,tas,tasmax \
-    -shifttime,+1hour -seltimestep,$(seq -s, 2 3 108) \
+    -shifttime,+1hour \
+    -seltimestep,$(seq -s, 2 3 108) \
     -runmax,3 \
     -selvar,tas ${outdir}/$(basename ${rea})_d01.nc ${outdir}/oper_gfs_mgrama_${sdate}__${phys}_d01.nc.temp3
 
   #Minimum temperature.
 
   cdo chname,tas,tasmin \
-    -shifttime,+1hour -seltimestep,$(seq -s, 2 3 108) \
+    -shifttime,+1hour \
+    -seltimestep,$(seq -s, 2 3 108) \
     -runmin,3 \
     -selvar,tas ${outdir}/$(basename ${rea})_d01.nc ${outdir}/oper_gfs_mgrama_${sdate}__${phys}_d01.nc.temp4
 
@@ -177,8 +179,8 @@ cat << __EOF > oper_gfs_mgrama_${sdate}_d01.ncml
 		  <variableAgg name="uas"/>
 		  <variableAgg name="vas"/>
 		  <variableAgg name="tas"/>
-		  <netcdf location="oper_gfs_mgrama_2010071312__4_1_1_1_1_1_1_d01.nc" coordValue="4_1_1_1_1_1_1"/>
-		  <netcdf location="oper_gfs_mgrama_2010071312__5_1_1_1_2_2_2_d01.nc" coordValue="5_1_1_1_2_2_2"/>
+		  <netcdf location="oper_gfs_mgrama_${sdate}__4_1_1_1_1_1_1_d01.nc" coordValue="4_1_1_1_1_1_1"/>
+		  <netcdf location="oper_gfs_mgrama_${sdate}__5_1_1_1_2_2_2_d01.nc" coordValue="5_1_1_1_2_2_2"/>
       </aggregation>
   </netcdf>
 
