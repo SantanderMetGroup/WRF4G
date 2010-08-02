@@ -26,6 +26,17 @@ import logging
 import logging.handlers
 from optparse import OptionParser
 
+if os.environ['GW_LOCATION']:
+	try:
+		sys.path.append(os.environ['GW_LOCATION'] +'etc')
+		import variable
+	except Exception, e:
+		print e
+		sys.exit(-1)
+else:
+	print 'Please, set GW_LOCATION variable'
+	sys.exit(-1)
+
 logger=None
 handler=None
 
@@ -59,8 +70,7 @@ class GwImMad:
 
 
 	def __init__(self,hostlist):
-		logger_init(logger_name = 'Logger',LOG_FILENAME = '/tmp/im_mad.log',
-						format = '%(asctime)s - %(levelname)s - %(message)s')
+		logger_init(variable.logger_name_im,variable.LOG_FILENAME_im,variable.format_im)
 		self.hostlist = hostlist
 		self.host = {} #hostname:hostfile
 		
@@ -74,8 +84,8 @@ class GwImMad:
 		if os.path.exists(self.hostlist):
 			try:
 				f = open(self.hostlist,'r')
-			except IOError:
-				answer(args,'FAILURE','Can\'t  open ' + self.hostlist + ' file')
+			except IOError,e:
+				answer(args,'FAILURE','Can\'t  open ' + self.hostlist + ' file except:' + e)
 			else:
 				for line in f.readlines():
 					self.host[line.split()[0]] = line.split()[1]
@@ -93,8 +103,8 @@ class GwImMad:
 			if os.path.exists(path_host):
 				try:
 					f = open(path_host,'r')
-				except IOError:
-					answer(args,'FAILURE','Can\'t  open ' + path_host + ' file')
+				except IOError,e:
+					answer(args,'FAILURE','Can\'t  open ' + path_host + ' file except:' + e)
 				else:
 					data = " ".join(" ".join(f.readlines()).split())
 					f.close()
@@ -153,11 +163,6 @@ def print_stdout(text):
 	sys.stdout.flush()
 
 def main():
-		
-	if not os.environ['GW_LOCATION']:
-		print_stdout('Please, set GW_LOCATION variable')
-		sys.exit(-1)
-
 	parser=OptionParser(description="Information manager MAD",version="1.0",usage="Usage: gw_im_mad_static.py: [-s SERVER] [-b BASE] [-f HOSTFILTER] [-q QUEUEFILTER] [-l HOSTLIST] [-d DEBUGGER]")
 
 	parser.add_option('--SERVER','-s')

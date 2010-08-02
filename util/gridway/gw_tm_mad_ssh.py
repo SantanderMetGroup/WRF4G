@@ -30,19 +30,19 @@ from optparse import OptionParser
 from threading import Thread
 from Queue import Queue
 
+if os.environ['GW_LOCATION']:
+	try:
+		sys.path.append(os.environ['GW_LOCATION'] +'etc')
+		import variable
+	except Exception, e:
+		print e
+		sys.exit(-1)
+else:
+	print 'Please, set GW_LOCATION variable'
+	sys.exit(-1)
+
 logger=None
 handler=None
-
-method = {
-	'INIT':			__INIT,
-	'START': 		__START,
-	'END':			__END,
-	'MKDIR':		__MKDIR,
-	'RMDIR':		__RMDIR,
-	'CP':			__CP,
-	'FINALIZE':		__FINALIZE
-}
-
 
 class GwTmMad:
 	""" Information manager MAD
@@ -84,8 +84,7 @@ class GwTmMad:
     -INFO: If RESULT is FAILURE, it contains the cause of failure."""
 
 	def __init__(self):
-		logger_init(logger_name = 'Logger',LOG_FILENAME = '/tmp/tm_mad.log',
-						format = '%(asctime)s - %(levelname)s - %(message)s')
+		logger_init(variable.logger_name_tm,variable.LOG_FILENAME_tm,variable.format_tm)
 		self.queue_remote_command = Queue()
 		self.queue_cp = Queue()
 		num_threads_remote_command = 10
@@ -168,9 +167,11 @@ def remote_command (queue):
 		client = paramiko.SSHClient()
 		client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 		try:
-			client.connect(to_host,username=os.environ['USER'])
-		except:
-			answer(args,'FAILUE','-')
+			privatekeyfile = os.path.expanduser(variable.id_rsa_tm)
+			mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
+			client.connect(to_host,username = variable.username_tm,pkey = mykey)
+		except Exception, e:
+			answer(args,'FAILUE',e)
 		else:
 			command = to_command + ' ' + to_dir
 			stdin, stdout, stderr = client.exec_command(command)
@@ -193,28 +194,28 @@ def cp_command(queue):
 
 		try:
 			transport = paramiko.Transport(to_host)
-			privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
+			privatekeyfile = os.path.expanduser(variable.id_rsa_tm)
 			mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-			transport.connect(username = os.environ['USER'],pkey = mykey)
+			transport.connect(username = variable.username_tm,pkey = mykey)
 			sftp = paramiko.SFTPClient.from_transport(transport)
-		except:
-			answer(args,'FAILUE','(' + SRC_URL + ' --> ' + DST_URL +')')
+		except Exception, e:
+			answer(args,'FAILUE','(' + SRC_URL + ' --> ' + DST_URL +') except:' + e)
 		else:
 			if not from_host:
 				try:
 					sftp.put(from_dir,to_dir)
-				except:
-					answer(args,'FAILUE','Error using the command \'put\' between' + '(' + SRC_URL + ' --> ' + DST_URL +')')
+				except Exception, e:
+					answer(args,'FAILUE','Error using the command \'put\' between' + '(' + SRC_URL + ' --> ' + DST_URL +') except:' + e)
 				if EXE_MODE == 'X':
 					try:
 						sftp.chmod(to_dir,0755) #execution permissions
-					except:
-						answer(args,'FAILUE','Error using the command \'chmod\'')
+					except Exception, e:
+						answer(args,'FAILUE','Error using the command \'chmod\' except:' + e)
 			else:
 				try:
 					sftp.get(from_dir,to_dir)
-				except:
-					answer(args,'FAILUE','Error using the command \'get\' between' + '(' + SRC_URL + ' --> ' + DST_URL +')')
+				except Exception, e:
+					answer(args,'FAILUE','Error using the command \'get\' between' + '(' + SRC_URL + ' --> ' + DST_URL +') except:' + e)
 			sftp.close()
 			transport.close()
 			answer(args,'SUCCESS','(' + SRC_URL + ' --> ' + DST_URL +')')
@@ -260,10 +261,6 @@ def print_stdout(text):
 	sys.stdout.flush()
 
 def main():
-	
-	if not os.environ['GW_LOCATION']:
-		print_stdout('Please, set GW_LOCATION variable')
-		sys.exit(-1)
 
 	parser=OptionParser(description="Information manager MAD",version="1.0",usage="Usage: gw_im_mad_static.py")
 	MAD_TM = GwTmMad()
