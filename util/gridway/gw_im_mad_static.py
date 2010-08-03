@@ -117,6 +117,8 @@ class GwImMad:
 	def __FINALIZE(self, args):
 		"""Finalizes the MAD (i.e. FINALIZE - - -)"""
 		answer(args,'SUCCESS','-')
+		logger.removeHandler(handler)
+		handler.close()
 		sys.exit(0)
 		
     methods = {

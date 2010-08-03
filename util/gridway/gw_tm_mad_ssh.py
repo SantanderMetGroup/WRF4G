@@ -45,7 +45,7 @@ logger=None
 handler=None
 
 class GwTmMad:
-	""" Information manager MAD
+	""" Transfer manager MAD
 	
 	The File Transfer Driver interfaces with Grid Data Management Services and is responsible for file staging, 
 	remote working directory set-up and remote host clean up.
@@ -262,7 +262,7 @@ def print_stdout(text):
 
 def main():
 
-	parser=OptionParser(description="Information manager MAD",version="1.0",usage="Usage: gw_im_mad_static.py")
+	parser=OptionParser(description="Transfer manager MAD",version="1.0",usage="Usage: gw_im_mad_static.py")
 	MAD_TM = GwTmMad()
 	MAD_TM.processLine()
 	return 0
