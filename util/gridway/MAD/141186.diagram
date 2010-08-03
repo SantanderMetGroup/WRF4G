@@ -34,24 +34,24 @@ end
 msg 130690 synchronous
   from durationcanvas_ref 130434
   to durationcanvas_ref 130562
-  yz 161 2015 msg operation_ref 148994 // "processLine()"
+  yz 161 2015 msg operation_ref 148994 // "processLine(in self : )"
   show_full_operations_definition default drawing_language default
   label_xy 241 149
 reflexivemsg 130946 synchronous
   to durationcanvas_ref 130818
-  yz 188 2025 msg operation_ref 134530 // "INIT(in args : string)"
+  yz 188 2025 msg operation_ref 134530 // "INIT(in self : , in args : string)"
   show_full_operations_definition default drawing_language default
   args "- - -"
   label_xy 403 177
 reflexivemsg 133378 synchronous
   to durationcanvas_ref 133250
-  yz 266 2025 msg operation_ref 134658 // "DISCOVER(in args : string)"
+  yz 266 2025 msg operation_ref 134658 // "DISCOVER(in self : , in args : string)"
   show_full_operations_definition default drawing_language default
   args "- - -"
   label_xy 405 252
 reflexivemsg 133762 synchronous
   to durationcanvas_ref 133634
-  yz 367 2025 msg operation_ref 134786 // "MONITOR(in args : string)"
+  yz 367 2025 msg operation_ref 134786 // "MONITOR(in self : , in args : string)"
   show_full_operations_definition default drawing_language default
   args "- host -"
   label_xy 406 351
@@ -75,7 +75,7 @@ msg 134146 return
   label_xy 226 209
 reflexivemsg 134402 synchronous
   to durationcanvas_ref 134274
-  yz 445 2025 msg operation_ref 134914 // "FINALIZE(in args : string)"
+  yz 445 2025 msg operation_ref 134914 // "FINALIZE(in self : , in args : string)"
   show_full_operations_definition default drawing_language default
   args "- - -"
   label_xy 405 431

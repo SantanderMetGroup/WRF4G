@@ -49,24 +49,24 @@ msg 128642 synchronous
 msg 129026 synchronous
   from durationcanvas_ref 128770
   to durationcanvas_ref 128898
-  yz 185 2015 msg operation_ref 155522 // "processLine()"
+  yz 185 2015 msg operation_ref 155522 // "processLine(in self : )"
   show_full_operations_definition default drawing_language default
   label_xy 288 173
 reflexivemsg 129282 synchronous
   to durationcanvas_ref 129154
-  yz 222 2025 msg operation_ref 141698 // "INIT(in args : string)"
+  yz 222 2025 msg operation_ref 141698 // "INIT(in self : , in args : string)"
   show_full_operations_definition default drawing_language default
   args "- - - - -"
   label_xy 423 209
 reflexivemsg 129538 synchronous
   to durationcanvas_ref 129410
-  yz 295 2025 msg operation_ref 141826 // "START(in args : string)"
+  yz 295 2025 msg operation_ref 141826 // "START(in self : , in args : string)"
   show_full_operations_definition default drawing_language default
   args "JID - - - -"
   label_xy 421 279
 reflexivemsg 129794 synchronous
   to durationcanvas_ref 129666
-  yz 349 2025 msg operation_ref 142082 // "RMDIR(in args : string)"
+  yz 349 2025 msg operation_ref 142082 // "RMDIR(in self : , in args : string)"
   show_full_operations_definition default drawing_language default
   args "JID - - SRC_URL -"
   label_xy 415 337
@@ -90,7 +90,7 @@ msg 130178 return
   label_xy 250 357
 reflexivemsg 130434 synchronous
   to durationcanvas_ref 130306
-  yz 415 2025 msg operation_ref 142338 // "MKDIR(in args : string)"
+  yz 415 2025 msg operation_ref 142338 // "MKDIR(in self : , in args : string)"
   show_full_operations_definition default drawing_language default
   args "JID - - SRC_URL -"
   label_xy 421 402
@@ -102,7 +102,7 @@ msg 130562 return
   label_xy 241 423
 reflexivemsg 130818 synchronous
   to durationcanvas_ref 130690
-  yz 474 2025 msg operation_ref 142466 // "CP(in args : string)"
+  yz 474 2025 msg operation_ref 142466 // "CP(in self : , in args : string)"
   show_full_operations_definition default drawing_language default
   args "JID TID - SRC_URL DST_URL"
   label_xy 420 459
@@ -114,7 +114,7 @@ msg 130946 return
   label_xy 243 482
 reflexivemsg 131330 synchronous
   to durationcanvas_ref 131202
-  yz 531 2025 msg operation_ref 141954 // "END(in args : string)"
+  yz 531 2025 msg operation_ref 141954 // "END(in self : , in args : string)"
   show_full_operations_definition default drawing_language default
   args "JID - - - -"
   label_xy 423 515
@@ -126,7 +126,7 @@ msg 131458 return
   label_xy 255 536
 reflexivemsg 131714 synchronous
   to durationcanvas_ref 131586
-  yz 618 2025 msg operation_ref 162050 // "FINALIZE(in args : string)"
+  yz 618 2025 msg operation_ref 162050 // "FINALIZE(in self : , in args : string)"
   show_full_operations_definition default drawing_language default
   args "- - - - -"
   label_xy 423 604

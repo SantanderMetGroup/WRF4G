@@ -6,7 +6,7 @@ classcanvas 128002 class_ref 134530 // GwImMad
 end
 classcanvas 128130 class_ref 134658 // GwTmMad
   draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
-  xyz 247.1 154.3 2000
+  xyz 225.1 158.3 2000
 end
 classcanvas 128258 class_ref 134786 // GwEmMad
   draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
@@ -15,6 +15,10 @@ end
 classcanvas 128386 class_ref 141314 // GWD
   draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
   xyz 286.3 44.6 2000
+end
+classcanvas 129154 class_ref 147842 // RSLParser
+  draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
+  xyz 305 463 2000
 end
 relationcanvas 128514 relation_ref 134530 // <directional composition>
   from ref 128386 z 2001 to point 130 59
@@ -25,12 +29,17 @@ end
 relationcanvas 128642 relation_ref 134658 // <directional composition>
   from ref 128386 z 2001 to ref 128130
   no_role_a no_role_b
-  multiplicity_a_pos 294 137 3000 no_multiplicity_b
+  multiplicity_a_pos 293 141 3000 no_multiplicity_b
 end
 relationcanvas 128770 relation_ref 134786 // <directional composition>
   from ref 128386 z 2001 to point 492 59
   line 129026 z 2001 to ref 128258
   no_role_a no_role_b
   multiplicity_a_pos 479 137 3000 no_multiplicity_b
+end
+relationcanvas 129282 relation_ref 141314 // <directional composition>
+  from ref 128258 z 2001 to ref 129154
+  no_role_a no_role_b
+  no_multiplicity_a no_multiplicity_b
 end
 end

@@ -1,6 +1,6 @@
 format 70
 "MAD"
-  revision 14
+  revision 16
   modified_by 2 "carlos"
 
 
@@ -116,12 +116,13 @@ ${docstring}${body}
 
       operation 134530 "INIT"
 	private explicit_return_type ""
-	nparams 1
+	nparams 2
+	  param in name "self" explicit_type ""
 	  param in name "args" explicit_type "string"
 	
 	
 	
-	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}, ${p1}${v1}${)}:
 ${docstring}${body}
 "
 	
@@ -130,12 +131,13 @@ ${docstring}${body}
 
       operation 134658 "DISCOVER"
 	private explicit_return_type ""
-	nparams 1
+	nparams 2
+	  param in name "self" explicit_type ""
 	  param in name "args" explicit_type "string"
 	
 	
 	
-	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}, ${p1}${v1}${)}:
 ${docstring}${body}
 "
 	
@@ -144,12 +146,13 @@ ${docstring}${body}
 
       operation 134786 "MONITOR"
 	private explicit_return_type ""
-	nparams 1
+	nparams 2
+	  param in name "self" explicit_type ""
 	  param in name "args" explicit_type "string"
 	
 	
 	
-	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}, ${p1}${v1}${)}:
 ${docstring}${body}
 "
 	
@@ -158,19 +161,20 @@ ${docstring}${body}
 
       operation 134914 "FINALIZE"
 	private explicit_return_type ""
-	nparams 1
+	nparams 2
+	  param in name "self" explicit_type ""
 	  param in name "args" explicit_type "string"
 	
 	
 	
-	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}, ${p1}${v1}${)}:
 ${docstring}${body}
 "
 	
 	comment "Finalizes the MAD (i.e. FINALIZE - - -)"
       end
 
-      attribute 134530 "Path_HOSTLIST"
+      attribute 134530 "hostlist"
 	private explicit_type "string"
 	cpp_decl ""
 	java_decl ""
@@ -183,15 +187,26 @@ ${docstring}${body}
 
       operation 148994 "processLine"
 	public explicit_return_type ""
-	nparams 0
+	nparams 1
+	  param in name "self" explicit_type ""
 	
 	
 	
-	python_def "${@}${static}${abstract}def ${name}${(}${)}:
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
 ${docstring}${body}
 "
 	
 	comment "Choose the OPERATION through the command line"
+      end
+
+      attribute 141058 "host"
+	private explicit_type "dictionary"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl "${comment}${self}${name} = ${value}
+"
+	idl_decl ""
       end
     end
 
@@ -258,12 +273,13 @@ ${docstring}${body}
 
       operation 141698 "INIT"
 	private explicit_return_type ""
-	nparams 1
+	nparams 2
+	  param in name "self" explicit_type ""
 	  param in name "args" explicit_type "string"
 	
 	
 	
-	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}, ${p1}${v1}${)}:
 ${docstring}${body}
 "
 	
@@ -272,12 +288,13 @@ ${docstring}${body}
 
       operation 141826 "START"
 	private explicit_return_type ""
-	nparams 1
+	nparams 2
+	  param in name "self" explicit_type ""
 	  param in name "args" explicit_type "string"
 	
 	
 	
-	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}, ${p1}${v1}${)}:
 ${docstring}${body}
 "
 	
@@ -286,12 +303,13 @@ ${docstring}${body}
 
       operation 142082 "RMDIR"
 	private explicit_return_type ""
-	nparams 1
+	nparams 2
+	  param in name "self" explicit_type ""
 	  param in name "args" explicit_type "string"
 	
 	
 	
-	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}, ${p1}${v1}${)}:
 ${docstring}${body}
 "
 	
@@ -300,12 +318,13 @@ ${docstring}${body}
 
       operation 142338 "MKDIR"
 	private explicit_return_type ""
-	nparams 1
+	nparams 2
+	  param in name "self" explicit_type ""
 	  param in name "args" explicit_type "string"
 	
 	
 	
-	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}, ${p1}${v1}${)}:
 ${docstring}${body}
 "
 	
@@ -314,12 +333,13 @@ ${docstring}${body}
 
       operation 142466 "CP"
 	private explicit_return_type ""
-	nparams 1
+	nparams 2
+	  param in name "self" explicit_type ""
 	  param in name "args" explicit_type "string"
 	
 	
 	
-	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}, ${p1}${v1}${)}:
 ${docstring}${body}
 "
 	
@@ -328,12 +348,13 @@ ${docstring}${body}
 
       operation 141954 "END"
 	private explicit_return_type ""
-	nparams 1
+	nparams 2
+	  param in name "self" explicit_type ""
 	  param in name "args" explicit_type "string"
 	
 	
 	
-	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}, ${p1}${v1}${)}:
 ${docstring}${body}
 "
 	
@@ -342,12 +363,13 @@ ${docstring}${body}
 
       operation 162050 "FINALIZE"
 	private explicit_return_type ""
-	nparams 1
+	nparams 2
+	  param in name "self" explicit_type ""
 	  param in name "args" explicit_type "string"
 	
 	
 	
-	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}, ${p1}${v1}${)}:
 ${docstring}${body}
 "
 	
@@ -356,11 +378,12 @@ ${docstring}${body}
 
       operation 155522 "processLine"
 	public explicit_return_type ""
-	nparams 0
+	nparams 1
+	  param in name "self" explicit_type ""
 	
 	
 	
-	python_def "${@}${static}${abstract}def ${name}${(}${)}:
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
 ${docstring}${body}
 "
 	
@@ -379,6 +402,14 @@ ${docstring}${members}
       idl_decl ""
       explicit_switch_type ""
       
+      classrelation 141314 // <directional composition>
+	relation 141314 *-->
+	  a role_name "" private
+	    python "${comment}${self}${name} = ${type}()
+"
+	    classrelation_ref 141314 // <directional composition>
+	  b parent class_ref 147842 // RSLParser
+      end
     end
 
     class 141314 "GWD"
@@ -433,6 +464,127 @@ ${docstring}${members}
     sequencediagram 141442 "EM MAD"
       show_full_operations_definition default write_horizontally default class_drawing_mode default drawing_language default draw_all_relations default shadow default show_stereotype_properties default
       overlapping_bars size A5
+    end
+
+    class 147842 "RSLParser"
+      visibility protected 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl "class ${name}${inherit}:
+${docstring}${members}
+"
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "Parser of RSL2 files. It is used like this:
+	
+	rsl=RSLParser.new(string_containing_the_rsl)
+	rsl.parse
+	
+	rsl object will then have this information:
+	* executable
+	* stdout
+	* stderr
+	* directory
+	* count
+	* jobType
+	* environment(is a hash with env variable names as keys)
+	
+	This information can be accessed using methods with the same name:
+	
+	stdout=rsl.stdout"
+      operation 168578 "__init__"
+	public explicit_return_type ""
+	nparams 2
+	  param inout name "self" explicit_type ""
+	  param in name "str" explicit_type "string"
+	
+	
+	
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}, ${p1}${v1}${)}:
+${docstring}${body}
+"
+	
+      end
+
+      operation 168706 "parserValue"
+	public explicit_return_type ""
+	nparams 2
+	  param in name "self" explicit_type ""
+	  param in name "name" explicit_type "string"
+	
+	
+	
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}, ${p1}${v1}${)}:
+${docstring}${body}
+"
+	
+	comment "Gets data from <job><name></name></job> and adds it to self.values"
+      end
+
+      operation 175234 "parseEnvironment"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "self" explicit_type ""
+	
+	
+	
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+${docstring}${body}
+"
+	
+	comment "Gets all the data enclosed in <job><environment>...</environment></job> and adds it to self.values"
+      end
+
+      operation 175362 "parser"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "self" explicit_type ""
+	
+	
+	
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+${docstring}${body}
+"
+	
+	comment "Does the parsing. It is necessary to call this method after creating the object"
+      end
+
+      operation 175490 "stdout"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "self" explicit_type ""
+	
+	
+	
+	python_def "${@}${static}${abstract}def ${name}${(}${p0}${v0}${)}:
+${docstring}${body}
+"
+	
+	comment "Method to access the information parsed"
+      end
+
+      attribute 141186 "str"
+	private explicit_type "string"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl "${comment}${self}${name} = ${value}
+"
+	idl_decl ""
+	comment "str contains rsl to parse"
+      end
+
+      attribute 141314 "values"
+	private explicit_type "dictionary"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl "${comment}${self}${name} = ${value}
+"
+	idl_decl ""
+      end
     end
   end
 end
