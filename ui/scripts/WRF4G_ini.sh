@@ -94,9 +94,12 @@ if test "$(date2int ${current_date})" -ge "$(date2int ${chunk_end_date})"; then
     #
     echo "Pitifully repeating this finished chunk (restart file missing at the end)"
     echo "chunk_restart_date=\"$(date_iso2wrf ${restart_date})\"" >> wrf.chunk
-  else
+  elif test "${is_restart}" -eq 0; then
     test -n "${LOCALDIR}" && rmdir ${LOCALDIR}
     w4gini_exit ${EXIT_CHUNK_ALREADY_FINISHED}
+  else # Chapuza! esto no valdria para el primer chunk, hay que desenredar todos estos estados
+    echo "Restarting this chunk even though it was already simulated!!"
+    echo "chunk_restart_date=\"$(date_iso2wrf ${restart_date})\"" >> wrf.chunk
   fi
 elif test "${restart_date}" = "-1"; then
   if test "${chunk_is_restart}" = ".T."; then

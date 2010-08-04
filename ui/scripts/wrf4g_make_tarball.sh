@@ -1,9 +1,10 @@
 #! /bin/bash
 
-version="0.0.8"
+version="0.0.9"
 
 thisdir=$(pwd)
-basedir=$(dirname $(dirname $(dirname $0)))
+scriptdir=$( (cd `dirname $0` && echo $PWD) )
+basedir=$(dirname $(dirname ${scriptdir}))
 
 while test -n "$1"; do
   case $1 in
@@ -33,7 +34,7 @@ mkdir ${tardir}
 cd ${tardir}
   ln -s ${basedir}/wn/* .
   tar czhv --exclude=".svn" \
-    --exclude="WPS" --exclude="WRFV3" \
+    --exclude="WPS" --exclude="WRFV3" --exclude="openmpi" \
     -f ${destdir}/WRF4G-${version}${tag}.tar.gz *
 cd ..
 rm -rf ${tardir}

@@ -174,9 +174,9 @@ EOF
           #
           #   Submit the job
           #
-          chunkjid=$(${wrf4g_root}/ui/scripts/wrf4g_submit.${JOB_TYPE} WRF4G_ini.sh ${chunkjid})
+          chunkjid=$(${wrf4g_root}/ui/scripts/wrf4g_submit.${JOB_TYPE} WRF4G_ini.sh $(test ${is_restart} -eq 0 && echo ${chunkjid}))
         cd ${userdir}
-        echo "${chunkjid} ${chunkno} ${realization_name}" >> pids.${experiment_name}
+        printf '%6d %04d %s %s %s\n' "${chunkjid}" "${chunkno}" "${current_date}" "${final_date}" "${realization_name}" >> pids.${experiment_name}
       fi
     fi
     #

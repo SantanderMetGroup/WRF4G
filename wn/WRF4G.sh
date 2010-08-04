@@ -11,6 +11,9 @@ source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 export PATH="${ROOTDIR}/bin:${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
 export LD_LIBRARY_PATH="${ROOTDIR}/lib/shared_libs:${LD_LIBRARY_PATH}"
+# MPI
+export PATH="${ROOTDIR}/openmpi/bin:${ROOTDIR}/lib/bash:$PATH"
+export LD_LIBRARY_PATH="${ROOTDIR}/openmpi/lib:${LD_LIBRARY_PATH}"
 #
 #  Move all executables out of LOCALDIR
 #
@@ -18,6 +21,7 @@ mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
 mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
 mv ${LOCALDIR}/WRFV3/run/real.exe      ${ROOTDIR}/bin/
 mv ${LOCALDIR}/WRFV3/run/wrf.exe       ${ROOTDIR}/bin/
+test "${LOCALDIR}" != ${ROOTDIR} && mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
 chmod +x ${ROOTDIR}/bin/*
 chmod +x ${ROOTDIR}/WRFGEL/*
 umask 002
@@ -343,6 +347,7 @@ cd ${LOCALDIR}/WRFV3/run || exit
     ls -la ${LAUNCHER_WRF}
     ls -la ${ROOTDIR}/bin/wrf_wrapper.exe
     ls -la ${logdir}
+    export OPAL_PREFIX="${ROOTDIR}/openmpi"
     ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
     # This time is also useful to  to copy the wpsout data
