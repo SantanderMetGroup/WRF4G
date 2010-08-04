@@ -3266,82 +3266,105 @@ BENCH_END(bc_2d_tim)
       &                                                          )
 
 #ifdef CLWRF
-   CALL wrf_debug ( 200 , ' CLWRF: call diagnostic_calc' )
+   IF (config_flags%clwrf_variables == 1) THEN
+     CALL wrf_debug ( 200 , ' CLWRF: call diagnostic_calc' )
+     CALL clwrf_output_calc(                                               &
+        &            DPSDT=grid%dpsdt   ,DMUDT=grid%dmudt                  &
+        &           ,P8W=p8w   ,PK1M=grid%pk1m                             &
+        &           ,MU_2=grid%mu_2  ,MU_2M=grid%mu_2m                     &
+        &           ,U=grid%u_2    ,V=grid%v_2                             &
+        &           ,clwrfH=config_flags%auxhist6_interval                 &
+        &           ,T2=grid%t2, Q2=grid%q2, U10=grid%u10, V10=grid%v10    & 
+        &           ,SKINTEMP=grid%tsk                                     &
+        &           ,T2CLMIN=grid%t2min, T2CLMAX=grid%t2max                & 
+        &           ,TT2CLMIN=grid%tt2min, TT2CLMAX=grid%tt2max            & 
+        &           ,T2CLMEAN=grid%t2mean, T2CLSTD=grid%t2std              &
+        &           ,Q2CLMIN=grid%q2min, Q2CLMAX=grid%q2max                & 
+        &           ,TQ2CLMIN=grid%tq2min, TQ2CLMAX=grid%tq2max            &  
+        &           ,Q2CLMEAN=grid%q2mean, Q2CLSTD=grid%q2std              &
+        &           ,U10CLMAX=grid%u10max, V10CLMAX=grid%v10max            &
+        &           ,SPDUV10CLMAX=grid%spduv10max                          &
+        &           ,TSPDUV10CLMAX=grid%tspduv10max                        &
+        &           ,U10CLMEAN=grid%u10mean, V10CLMEAN=grid%v10mean        &
+        &           ,SPDUV10CLMEAN=grid%spduv10mean                        &
+        &           ,U10CLSTD=grid%u10std, V10CLSTD=grid%v10std            &
+        &           ,SPDUV10CLSTD=grid%spduv10std                          &
+        &           ,RAINCCLMAX=grid%raincvmax                             &
+        &           ,RAINNCCLMAX=grid%rainncvmax                           &
+        &           ,TRAINCCLMAX=grid%traincvmax                           & 
+        &           ,TRAINNCCLMAX=grid%trainncvmax                         &
+        &           ,RAINCCLMEAN=grid%raincvmean                           & 
+        &           ,RAINNCCLMEAN=grid%rainncvmean                         & 
+        &           ,RAINCCLSTD=grid%raincvstd                             &
+        &           ,RAINNCCLSTD=grid%rainncvstd                           &   
+!        &           ,SKINTEMPCLMIN=grid%skintempmin                        &
+!        &           ,SKINTEMPCLMAX=grid%skintempmax                        &
+!        &           ,TSKINTEMPCLMIN=grid%tskintempmin                      &
+!        &           ,TSKINTEMPCLMAX=grid%tskintempmax                      &
+!        &           ,SKINTEMPCLMEAN=grid%skintempmean                      &
+!        &           ,SKINTEMPCLSTD=grid%skintempstd                        &
+        &           ,RAINCV=grid%raincv    ,RAINNCV=grid%rainncv           &
+        &           ,RAINC=grid%rainc    ,RAINNC=grid%rainnc               &
+        &           ,I_RAINC=grid%i_rainc    ,I_RAINNC=grid%i_rainnc       &
+        &           ,HFX=grid%hfx   ,SFCEVP=grid%sfcevp    ,LH=grid%lh     &
+        &           ,DT=grid%dt      ,SBW=config_flags%spec_bdy_width      &
+        &           ,XTIME=grid%xtime                                      &
+                    ! Selection flag
+        &           ,DIAG_PRINT=config_flags%diag_print                    &
+        &           ,BUCKET_MM=config_flags%bucket_mm                      &
+        &           ,BUCKET_J =config_flags%bucket_J                       &
+                    ! Dimension arguments
+        &           ,IDS=ids,IDE=ide, JDS=jds,JDE=jde, KDS=kds,KDE=kde     &
+        &           ,IMS=ims,IME=ime, JMS=jms,JME=jme, KMS=kms,KME=kme     &
+        &           ,IPS=ips,IPE=ipe, JPS=jps,JPE=jpe, KPS=kps,KPE=kpe     &
+        &           ,I_START=grid%i_start,I_END=min(grid%i_end, ide-1)     &
+        &           ,J_START=grid%j_start,J_END=min(grid%j_end, jde-1)     &
+        &           ,KTS=k_start, KTE=min(k_end,kde-1)                     &
+        &           ,NUM_TILES=grid%num_tiles                              &
+        &                                                          )
 
-   CALL clwrf_output_calc(                                            &
-      &              DPSDT=grid%dpsdt   ,DMUDT=grid%dmudt                  &
-      &             ,P8W=p8w   ,PK1M=grid%pk1m                             &
-      &             ,MU_2=grid%mu_2  ,MU_2M=grid%mu_2m                     &
-      &             ,U=grid%u_2    ,V=grid%v_2                             &
-      &             ,clwrfH=config_flags%auxhist7_interval                 &
-      &             ,T2=grid%t2, Q2=grid%q2, U10=grid%u10, V10=grid%v10    & 
-      &             ,T2CLMIN=grid%t2min, T2CLMAX=grid%t2max                & 
-      &             ,TT2CLMIN=grid%tt2min, TT2CLMAX=grid%tt2max            & 
-      &             ,T2CLMEAN=grid%t2mean, T2CLSTD=grid%t2std              &
-      &             ,Q2CLMIN=grid%q2min, Q2CLMAX=grid%q2max                & 
-      &             ,TQ2CLMIN=grid%tq2min, TQ2CLMAX=grid%tq2max            &  
-      &             ,Q2CLMEAN=grid%q2mean, Q2CLSTD=grid%q2std              &
-      &             ,U10CLMAX=grid%u10max, V10CLMAX=grid%v10max            &
-      &             ,SPDUV10CLMAX=grid%spduv10max                          &
-      &             ,TSPDUV10CLMAX=grid%tspduv10max                         &
-      &             ,U10CLMEAN=grid%u10mean, V10CLMEAN=grid%v10mean        &
-      &             ,SPDUV10CLMEAN=grid%spduv10mean                        &
-      &             ,U10CLSTD=grid%u10std, V10CLSTD=grid%v10std            &
-      &             ,SPDUV10CLSTD=grid%spduv10std                          &
-      &             ,RAINCCLMAX=grid%raincvmax                             &
-      &             ,RAINNCCLMAX=grid%rainncvmax                           &
-      &             ,TRAINCCLMAX=grid%traincvmax                           & 
-      &             ,TRAINNCCLMAX=grid%trainncvmax                         &
-      &             ,RAINCCLMEAN=grid%raincvmean                           & 
-      &             ,RAINNCCLMEAN=grid%rainncvmean                         & 
-      &             ,RAINCCLSTD=grid%raincvstd                             &
-      &             ,RAINNCCLSTD=grid%rainncvstd                           &   
-      &             ,RAINCV=grid%raincv    ,RAINNCV=grid%rainncv           &
-      &             ,RAINC=grid%rainc    ,RAINNC=grid%rainnc               &
-      &             ,I_RAINC=grid%i_rainc    ,I_RAINNC=grid%i_rainnc       &
-      &             ,HFX=grid%hfx   ,SFCEVP=grid%sfcevp    ,LH=grid%lh     &
-      &             ,DT=grid%dt      ,SBW=config_flags%spec_bdy_width      &
-      &             ,XTIME=grid%xtime                                      &
-                  ! Selection flag
-      &             ,DIAG_PRINT=config_flags%diag_print                    &
-      &             ,BUCKET_MM=config_flags%bucket_mm                      &
-      &             ,BUCKET_J =config_flags%bucket_J                       &
-                  ! Dimension arguments
-      &             ,IDS=ids,IDE=ide, JDS=jds,JDE=jde, KDS=kds,KDE=kde     &
-      &             ,IMS=ims,IME=ime, JMS=jms,JME=jme, KMS=kms,KME=kme     &
-      &             ,IPS=ips,IPE=ipe, JPS=jps,JPE=jpe, KPS=kps,KPE=kpe     &
-      &             ,I_START=grid%i_start,I_END=min(grid%i_end, ide-1)     &
-      &             ,J_START=grid%j_start,J_END=min(grid%j_end, jde-1)     &
-      &             ,KTS=k_start, KTE=min(k_end,kde-1)                     &
-      &             ,NUM_TILES=grid%num_tiles                              &
-      &                                                          )
-
-   CALL wrf_debug ( 200 , ' CLWRF: call diagnostic_calc' )
-
-   CALL diagnostic_clwrf_clim(                                             &
-      &              DPSDT=grid%dpsdt   ,DMUDT=grid%dmudt                  &
-      &             ,P8W=p8w   ,PK1M=grid%pk1m                             &
-      &             ,MU_2=grid%mu_2  ,MU_2M=grid%mu_2m                     &
-      &             ,U=grid%u_2    ,V=grid%v_2                             &
-      &             ,HFX=grid%hfx   ,SFCEVP=grid%sfcevp    ,LH=grid%lh     &
-      &             ,HISTOUT=config_flags%auxhist9_interval                &
-      &             ,SWDOWN=grid%swdown                                    &
-      &             ,DSUNSHINE=grid%sunshine                               &
-      &             ,INITIME_SUNSHINE=grid%tsunshine                       &
-      &             ,DT=grid%dt      ,SBW=config_flags%spec_bdy_width      &
-      &             ,XTIME=grid%xtime                                      &
-                  ! Selection flag
-      &             ,DIAG_PRINT=config_flags%diag_print                    &
-                  ! Dimension arguments
-      &             ,IDS=ids,IDE=ide, JDS=jds,JDE=jde, KDS=kds,KDE=kde     &
-      &             ,IMS=ims,IME=ime, JMS=jms,JME=jme, KMS=kms,KME=kme     &
-      &             ,IPS=ips,IPE=ipe, JPS=jps,JPE=jpe, KPS=kps,KPE=kpe     &
-      &             ,I_START=grid%i_start,I_END=min(grid%i_end, ide-1)     &
-      &             ,J_START=grid%j_start,J_END=min(grid%j_end, jde-1)     &
-      &             ,KTS=k_start, KTE=min(k_end,kde-1)                     &
-      &             ,NUM_TILES=grid%num_tiles                              &
-      &                                                          )
-
+     CALL wrf_debug ( 200 , ' CLWRF: call diagnostic_calc' )
+     CALL diagnostic_clwrf_clim(                                           &
+        &            DPSDT=grid%dpsdt   ,DMUDT=grid%dmudt                  &
+        &           ,PK1M=grid%pk1m                                        &
+        &           ,MU_2=grid%mu_2  ,MU_2M=grid%mu_2m                     &
+        &           ,IMESTAG=ime+1, JMESTAG=jme+1                          &
+        &           ,U=grid%u_2   ,V=grid%v_2                              &
+        &           ,RAINCV=grid%raincv    ,RAINNCV=grid%rainncv           &
+        &           ,HISTOUT=config_flags%auxhist9_interval                &
+        &           ,SWDOWN=grid%swdown                                    &
+        &           ,GEOB=grid%phb ,GEOP=grid%ght_gc ,  POTEMP=grid%t_2    &
+        &           ,QRATIO=moist(:,:,:,P_qv) , LRATIO=moist(:,:,:,P_qc)   &
+        &           ,TOPOGRAPHY=grid%ht                                    &
+        &           ,SINUSA=grid%sina , COSENA=grid%cosa                   &
+        &           ,TKENERGY=grid%tke_myj , PBLHEIGHT=grid%pblh           &
+        &           ,DSUNSHINE=grid%sunshine                               &
+        &           ,INITIME_SUNSHINE=grid%tsunshine                       &
+        &           ,MAXRAIN1H=grid%rainmax1h , TMAXRAIN1H=grid%trainmax1h &
+        &           ,ACCUM1H=grid%accumrain1h                              &
+        &           ,GUSTWINDFLAG=config_flags%gust_wind                   &
+        &           ,UGUSTWIND=grid%uwindgust , VGUSTWIND=grid%vwindgust   &
+        &           ,UGUSTWINDLOW=grid%uwindgustlow                        &
+        &           ,VGUSTWINDLOW=grid%vwindgustlow                        &
+        &           ,UGUSTWINDUP=grid%uwindgustup                          &
+        &           ,VGUSTWINDUP=grid%vwindgustup                          &
+        &           ,UMAXGUST1H=grid%umaxgust1h                            &
+        &           ,VMAXGUST1H=grid%vmaxgust1h                            &
+        &           ,TMAXGUST1H=grid%tmaxgust1h                            &
+        &           ,DT=grid%dt      ,SBW=config_flags%spec_bdy_width      &
+        &           ,XTIME=grid%xtime                                      &
+                   ! Selection flag
+        &           ,DIAG_PRINT=config_flags%diag_print                    &
+                   ! Dimension arguments
+        &           ,IDS=ids,IDE=ide, JDS=jds,JDE=jde, KDS=kds,KDE=kde     &
+        &           ,IMS=ims,IME=ime, JMS=jms,JME=jme, KMS=kms,KME=kme     &
+        &           ,IPS=ips,IPE=ipe, JPS=jps,JPE=jpe, KPS=kps,KPE=kpe     &
+        &           ,I_START=grid%i_start,I_END=min(grid%i_end, ide-1)     &
+        &           ,J_START=grid%j_start,J_END=min(grid%j_end, jde-1)     &
+        &           ,KTS=k_start, KTE=min(k_end,kde-1)                     &
+        &           ,NUM_TILES=grid%num_tiles                              &
+        &                                                         )
+    ENDIF
 #endif
 
 #ifdef DM_PARALLEL
