@@ -1,7 +1,0 @@
-format 70
-
-classinstance 128002 class_ref 141314 // GWD
-  name ""   xyz 97 36 2000 life_line_z 2000
-classinstance 128130 class_ref 134786 // GwEmMad
-  name ""   xyz 315 37 2000 life_line_z 2000
-end
