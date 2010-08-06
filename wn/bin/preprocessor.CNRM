@@ -77,3 +77,6 @@ do
   # get a separate code for the SST (in CNRM SST: #34, TS: #235)
 ##  cdo setcode,177 -selcode,169 $ifile grbData/`basename ${infile/mm5/sst.grb}`
 done
+
+# Adding is_global of 'ungrib' section of 'nameslist.wps'
+fortnml -o -s is_global@ungrib 1 -f namelist.wps
