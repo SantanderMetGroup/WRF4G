@@ -71,6 +71,8 @@ program ungrib
   character (LEN=9) ::  field
   character (LEN=3) ::  out_format
   character (LEN=MAX_FILENAME_LEN) ::  prefix
+! L. Fita. UC 2010 August
+  INTEGER :: is_global
 
   logical :: readit
 
@@ -93,7 +95,7 @@ program ungrib
 ! Read the namelist, and return the information we want:
 
   call read_namelist(hstart, hend, interval, ntimes, &
-       ordered_by_date, debug_level, out_format, prefix)
+       ordered_by_date, debug_level, out_format, prefix, is_global)
 
   call mprintf(.true.,INFORM,"Interval value: %i seconds or  %f hours", &
                i1=interval, f1=float(interval)/3600.)
@@ -203,7 +205,7 @@ program ungrib
 		     "flnm = %s",s1=gribflnm)
                  ! Read one record at a time from GRIB1 (and older Editions) 
                  call rd_grib1(nunit1, gribflnm, level, field, &
-                      hdate, ierr, iuarr, debug_level)
+                      hdate, ierr, iuarr, debug_level, is_global)
               else 
 
                  ! Read one file of records from GRIB2.

@@ -60,7 +60,7 @@
 !                                                                             !
 !*****************************************************************************!
 SUBROUTINE rd_grib1(IUNIT, gribflnm, level, field, hdate,  &
-     ierr, iuarr, debug_level)
+     ierr, iuarr, debug_level, is_g)
   use table
   use gridinfo
   use datarray
@@ -74,6 +74,8 @@ SUBROUTINE rd_grib1(IUNIT, gribflnm, level, field, hdate,  &
   integer, dimension(10) :: KSEC2 
   integer, dimension(40) :: infogrid
   real, dimension(40) :: ginfo
+! L. Fita. UC. August 2010
+  INTEGER :: is_g
 !
 !-----------------------------------------------------------------------
   integer :: iparm, ktype
@@ -367,7 +369,17 @@ SUBROUTINE rd_grib1(IUNIT, gribflnm, level, field, hdate,  &
      map%igrid = 0
      map%nx = infogrid(1)
      map%ny = infogrid(2)
-     map%dx = ginfo(8)
+! L. Fita. UC. August 2010
+     IF (is_g == 1) THEN
+       PRINT *,"*********** L. Fita. UC . August 2010 ***********"
+       PRINT *,"***       Assuming global regular grid.       ***"
+       PRINT *,"*** Computing 'dx' from number of points 'Nx' ***"
+       PRINT *,"*************************************************"
+       map%dx = 360.0 / map%nx
+       PRINT *,'Nx = ',map%nx,' dx:',map%dx       
+     ELSE
+       map%dx = ginfo(8)
+     ENDIF
      map%dy = ginfo(9)
      map%lat1 = ginfo(3)
      map%lon1 = ginfo(4)
@@ -408,7 +420,17 @@ SUBROUTINE rd_grib1(IUNIT, gribflnm, level, field, hdate,  &
      map%igrid = 4
      map%nx = infogrid(1)
      map%ny = infogrid(2)
-     map%dx = ginfo(8)
+! L. Fita. UC. August 2010
+     IF (is_g == 1) THEN
+       PRINT *,"*********** L. Fita. UC . August 2010 ***********"
+       PRINT *,"***       Assuming global regular grid.       ***"
+       PRINT *,"*** Computing 'dx' from number of points 'Nx' ***"
+       PRINT *,"*************************************************"
+       map%dx = 360.0 / map%nx
+       PRINT *,'Nx = ',map%nx,' dx:',map%dx       
+     ELSE
+       map%dx = ginfo(8)
+     ENDIF
 !    map%dy = ginfo(19)
      map%dy = real (infogrid(9))
      map%lon1 = ginfo(4)

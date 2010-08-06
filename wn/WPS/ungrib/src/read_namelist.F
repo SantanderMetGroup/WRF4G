@@ -1,5 +1,16 @@
 subroutine read_namelist(hstart, hend, delta_time, ntimes,&
-     ordered_by_date, debug_level, out_format, prefix)
+     ordered_by_date, debug_level, out_format, prefix, is_global)
+! L. Fita. UC. August 2010
+!   Adding new 'namelsit.wps' value in '&ungrib' section: is_global (0, No; 1,
+!     Yes [default 0]).
+! NOTE: This modification is only useful for global GRIBs with a regular
+!   longitude distribution
+! 
+! EXPLANATION:
+!   In some global files, grid information, is not correctly extacted and/or 
+!   they could not be exactly fitted in an entire earth. By this modification, 
+!   gris spacing in x direction is computed from the number of grid points in
+!   this direction
 
   use misc_definitions_module
   use module_debug
@@ -44,6 +55,8 @@ subroutine read_namelist(hstart, hend, delta_time, ntimes,&
 
   character(len=3) :: out_format
   character(len=MAX_FILENAME_LEN) :: prefix
+! L. fita. UC. August 2010
+  INTEGER :: is_global
 
   namelist /share/ wrf_core, max_dom, &
        start_year, start_month, start_day, start_hour, &
@@ -56,7 +69,7 @@ subroutine read_namelist(hstart, hend, delta_time, ntimes,&
        subgrid_ratio_x, subgrid_ratio_y
 
   namelist /ungrib/ out_format, &
-       ordered_by_date, prefix
+       ordered_by_date, prefix, is_global
 
   start_year = 0
   start_month = 0
