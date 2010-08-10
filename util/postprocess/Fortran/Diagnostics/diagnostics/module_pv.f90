@@ -26,7 +26,7 @@ MODULE module_pv
     INTEGER, DIMENSION(4), INTENT(IN)                    :: dimsin, dimsout
     INTEGER, INTENT(IN)                                  :: Ndimsout
     REAL, INTENT(IN)                                     :: grid_x, grid_y
-    LOGICAL, INTENT(IN)                                  :: debg
+    INTEGER, INTENT(IN)                                  :: debg
 !!! Local variables 
     INTEGER, DIMENSION(Nfiles)                           :: ncids
     INTEGER                                              :: dx, dy, dz, dt
@@ -92,7 +92,7 @@ MODULE module_pv
     PRINT *,'varnames: ',varnames
     files_loop: DO ifile=1, Nfiles
       rcode = nf_open(TRIM(ncfiles(ifile)), 0, ncids(ifile)) 
-      IF (debg) PRINT *,"Reading in file: '"//TRIM(ncfiles(ifile))//"' ..."
+      IF (debg >= 75) PRINT *,"Reading in file: '"//TRIM(ncfiles(ifile))//"' ..."
       IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
 
       variables: DO ivar=1, Nvar
@@ -142,7 +142,7 @@ MODULE module_pv
     END DO
     IF (.not. ALL(varfound/=0)) STOP
    
-    IF (debg) THEN
+    IF (debg >= 75) THEN
       PRINT *,'Sample values of input variables'
       PRINT *,'inu: ',inu(dx/2, dy/2, dz/2, dt/2)
       PRINT *,'inv: ',inu(dx/2, dy/2, dz/2, dt/2)
@@ -155,15 +155,15 @@ MODULE module_pv
 ! Variable calculation (PV units 10E-6 SI)
 !!
       exnf=(100000./inplev)**rocp
-    IF (debg) PRINT *,'exnf: ',exnf(dz/2)
+    IF (debg >= 75) PRINT *,'exnf: ',exnf(dz/2)
 ! x derivate
 !!
     DO i=2,dx-1
       dvx(i,:,:,:)=(inv(i+1,:,:,:)-inv(i-1,:,:,:))/grid_x
       dtx(i,:,:,:)=(intemp(i+1,:,:,:)-intemp(i-1,:,:,:))/grid_x
     END DO
-    IF (debg) PRINT *,'dvx: ',dvx(dx/2, dy/2, dz/2, dt/2)
-    IF (debg) PRINT *,'dtx: ',dtx(dx/2, dy/2, dz/2, dt/2)
+    IF (debg >= 75) PRINT *,'dvx: ',dvx(dx/2, dy/2, dz/2, dt/2)
+    IF (debg >= 75) PRINT *,'dtx: ',dtx(dx/2, dy/2, dz/2, dt/2)
 
 ! y derivate
 !!
@@ -171,8 +171,8 @@ MODULE module_pv
       duy(:,j,:,:)=(inv(:,j+1,:,:)-inv(:,j-1,:,:))/grid_y
       dty(:,j,:,:)=(intemp(:,j+1,:,:)-intemp(:,j-1,:,:))/grid_y
     END DO
-    IF (debg) PRINT *,'duy: ',duy(dx/2, dy/2, dz/2, dt/2)
-    IF (debg) PRINT *,'dty: ',dty(dx/2, dy/2, dz/2, dt/2)
+    IF (debg >= 75) PRINT *,'duy: ',duy(dx/2, dy/2, dz/2, dt/2)
+    IF (debg >= 75) PRINT *,'dty: ',dty(dx/2, dy/2, dz/2, dt/2)
 
 ! Applying map correction
 !!
@@ -182,31 +182,31 @@ MODULE module_pv
         dtx(:,:,k,:)=dtx(:,:,k,:)*inmapfac
         dty(:,:,k,:)=dty(:,:,k,:)*inmapfac
     END DO
-    IF (debg) PRINT *,'inmapfac: ',inmapfac(dx/2, dy/2, dt/2)
+    IF (debg >= 75) PRINT *,'inmapfac: ',inmapfac(dx/2, dy/2, dt/2)
 
     CALL z_derivate(inu, dx, dy, dz, dt, inplev, dup)
     CALL z_derivate(inv, dx, dy, dz, dt, inplev, dvp)
     CALL z_derivate(intemp, dx, dy, dz, dt, inplev, dtemp)
 
-    IF (debg) PRINT *,'dup: ',dup(dx/2, dy/2, dz/2, dt/2)
-    IF (debg) PRINT *,'dvp: ',dvp(dx/2, dy/2, dz/2, dt/2)
-    IF (debg) PRINT *,'dtemp: ',dtemp(dx/2, dy/2, dz/2, dt/2)
+    IF (debg >= 75) PRINT *,'dup: ',dup(dx/2, dy/2, dz/2, dt/2)
+    IF (debg >= 75) PRINT *,'dvp: ',dvp(dx/2, dy/2, dz/2, dt/2)
+    IF (debg >= 75) PRINT *,'dtemp: ',dtemp(dx/2, dy/2, dz/2, dt/2)
 
 ! Variable computation
 !!
     DO k=1, dz
-      variableout(:,:,k,:)=-g*exnf(k)*((incor(:,:,:)+dvx(:,:,k,:)                     &
-        -duy(:,:,k,:))*(dtemp(:,:,k,:)- rocp*(intemp(:,:,k,:))                     &
-        /inplev(k))-                                                                       & 
-        -dtx(:,:,k,:)*dvp(:,:,k,:)+dty(:,:,k,:)*dup(:,:,k,:))*1.E6 
+      variableout(:,:,k,:)=-g**1.E6*exnf(k)*((incor(:,:,:)+dvx(:,:,k,:)                          &
+        -duy(:,:,k,:))*(dtemp(:,:,k,:)- rocp*(intemp(:,:,k,:))                                   &
+        /inplev(k))                                                                              & 
+        -dtx(:,:,k,:)*dvp(:,:,k,:)+dty(:,:,k,:)*dup(:,:,k,:)) 
     END DO
-    IF (debg) PRINT *,'variableout: ',variableout(dx/2, dy/2, dz/2, dt/2)
+    IF (debg >= 75) PRINT *,'variableout: ',variableout(dx/2, dy/2, dz/2, dt/2)
 
     CALL borders3d(variableout, dx, dy, dz, dt)
 
     WHERE(variableout >= extremeval) variableout=errorval
     WHERE(variableout <= -extremeval) variableout=errorval
-    IF (debg) PRINT *,'PV without extreme values: ',variableout(dx/2, dy/2, dz/2, dt/2)
+    IF (debg >= 75) PRINT *,'PV without extreme values: ',variableout(dx/2, dy/2, dz/2, dt/2)
  
     PRINT *,"'PV' diagnostics SUCCESSFULLY computed..."
     RETURN

@@ -6,16 +6,17 @@
   BTdimname                = 'num_metgrid_levels',
   Timedimname              = 'Time',
   path_to_output           = './',
-  diagnostics              = 'PV',
+  diagnostics              = 'TCFR',
   process                  = 'list',
-  debug                    = .TRUE.,
+  debug                    = 100,
   filt                     = .FALSE.,
   grid_filt                = 3,
   ntimes_filt              = 10,
-  path_to_geofile          = '/oceano/gmeteo/DATA/WRF/domains/Europe_15k',
   geofile                  = 'geo_em.d01.nc'
   outfile                  = '20011110000000_DIAGS_PLEV.nc'
 /
+
+  path_to_geofile          = '/oceano/gmeteo/DATA/WRF/domains/Europe_15k',
 
 &levels
   lev_process              = 'all',

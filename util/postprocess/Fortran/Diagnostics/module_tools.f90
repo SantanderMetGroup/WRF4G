@@ -16,6 +16,7 @@ MODULE module_tools
 ! attribute_REALvalue: Subroutine to obtain a real value from an attribute from a netCDF file
 ! nc_dimensions: Subroutine to obtain range of dimensions of a netCDF file
 ! nc_Ndim: Subroutine to obtain number of dimensions of a netCDF file
+! search_variables: Subroutine to search variables from a given netcCDF file
 ! string_real: Subroutine to transform a string to a real value
 ! string_Realvalues: Subroutine to obtain real values from a 'namelist' string separated by comas
 ! string_values: Subroutine to obtain values from a 'namelist' string separated by comas
@@ -293,7 +294,7 @@ SUBROUTINE attribute_REALvalue(file, dbg, attributename, value)
   CHARACTER(LEN=500), INTENT(IN)                         :: file
   CHARACTER(LEN=50), INTENT(IN)                          :: attributename
   REAL, INTENT(OUT)                                      :: value
-  LOGICAL, INTENT(IN)                                    :: dbg
+  INTEGER, INTENT(IN)                                    :: dbg
 !!! Local vars
   INTEGER                                                :: ncid, attid
   INTEGER                                                :: rcode
@@ -307,7 +308,7 @@ SUBROUTINE attribute_REALvalue(file, dbg, attributename, value)
   rcode =  nf_get_att_real(ncid, attid, TRIM(attributename), value)
   IF (rcode /= 0) PRINT *,"Error in '"//TRIM(section)//"' "//nf_strerror(rcode)
 
-  IF (dbg) THEN
+  IF (dbg >= 100) THEN
     PRINT *,"Attribute: #",attid," '"//TRIM(attributename)//'" :',value
   END IF
 
@@ -326,7 +327,7 @@ SUBROUTINE nc_dimensions(file, dbg, ndims, Xdimname, Ydimname, Zdimname, Tdimnam
 
   INTEGER                                                :: idim
   CHARACTER(LEN=500), INTENT(IN)                         :: file
-  LOGICAL, INTENT(IN)                                    :: dbg
+  INTEGER, INTENT(IN)                                    :: dbg
   INTEGER, INTENT(IN)                                    :: ndims
   CHARACTER(LEN=50), INTENT(IN)                          :: Xdimname, Ydimname, Zdimname, Tdimname
   INTEGER, DIMENSION(ndims), INTENT(OUT)                 :: dimsval
@@ -354,7 +355,7 @@ SUBROUTINE nc_dimensions(file, dbg, ndims, Xdimname, Ydimname, Zdimname, Tdimnam
     IF (TRIM(dimsname(idim)) == TRIM(Tdimname)) dt=dimsval(idim)
   END DO
 
-  IF (dbg) THEN
+  IF (dbg >= 20) THEN
     PRINT *,'Dimensions of file______________'
     DO idim=1,ndims
       PRINT *,dimsname(idim),':',dimsval(idim)
@@ -374,7 +375,7 @@ SUBROUTINE nc_Ndim(file, dbg, ndims, nvars, ngatts, nunlimdimid)
   INCLUDE 'netcdf.inc'
 
   CHARACTER(LEN=500), INTENT(IN)                         :: file 
-  LOGICAL, INTENT(IN)                                    :: dbg
+  INTEGER, INTENT(IN)                                    :: dbg
   INTEGER, INTENT(OUT)                                   :: ndims, nvars, ngatts, nunlimdimid
   INTEGER                                                :: rcode, ncid
 
@@ -387,7 +388,7 @@ SUBROUTINE nc_Ndim(file, dbg, ndims, nvars, ngatts, nunlimdimid)
 
   rcode = nf_open(file, 0, ncid)
   rcode = nf_inq(ncid, ndims, nvars, ngatts, nunlimdimid)
-  IF (dbg) THEN
+  IF (dbg >= 20) THEN
     PRINT *,' INPUT file has = ',ndims, ' dimensions, '
     PRINT *,'                  ',nvars, ' variables, and '
     PRINT *,'                  ',ngatts,' global attributes '
@@ -397,6 +398,66 @@ SUBROUTINE nc_Ndim(file, dbg, ndims, nvars, ngatts, nunlimdimid)
 
   RETURN
 END SUBROUTINE nc_Ndim
+
+SUBROUTINE search_variables(dbg, ncs, Nnc, svars, Nsvars, fvars)
+! Subroutine to search a list of 'Nsvars' variables from a given set of 'Nnc' netcCDF files 
+
+  USE module_constants
+  USE module_calc_tools
+
+  IMPLICIT NONE
+  
+  INCLUDE 'netcdf.inc'
+
+  INTEGER, INTENT(IN)                                     :: dbg, Nnc, Nsvars
+  CHARACTER(LEN=500), DIMENSION(Nnc), INTENT(IN)          :: ncs
+  CHARACTER(LEN=50), DIMENSION(Nsvars), INTENT(IN)        :: svars
+  INTEGER, DIMENSION(fvars, 2), INTENT(OUT)               :: fvars
+
+! Local
+  INTEGER                                                 :: ifile, ivar
+  INTEGER                                                 :: rcode, ncid, idvar
+  CHARACTER(LEN=50)                                       :: section, errmsg
+
+!!!!!!!!!! Variables
+! ncs: vector with the names of netCDF files
+! Nnc: number of netCDF files
+! svars: vector with name of wanted variables
+! Nsvars: number of variables to search
+! fvars: matrix of location of desired variables (line as variable number according to svars)
+!    col1: number of files (according to ncs)    col3: id variable in from file of 'col2'
+
+  section="'module_tools'"  
+
+  IF (dbg >= 75) PRINT *,"Searching variables in '"//section//"'..."
+  fvars=0
+  files_loop: DO ifile=1, ncs
+    rcode = nf_open(TRIM(ncs(ifile)), 0, ncid)
+    IF (dbg >= 20) PRINT *,"Reading in file: '"//TRIM(ncs(ifile))//"' ..."
+    IF (rcode /= 0) PRINT *, TRIM(errmsg)//" in '"//TRIM(section)//"' "//nf_strerror(rcode)
+
+    DO ivar=1, Nsvars
+      rcode = nf_inq_varid(ncid, TRIM(varnames(ivar)), idvar)
+      IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in '"//TRIM(section)//"' "//nf_strerror(rcode)
+      IF (fvars(ivar,1) == 0 ) THEN
+        fvars(ivar,1)=ifile
+	fvars(ivar,2)=idvar
+        IF (dbg >= 75) PRINT *,"Variable: '"//TRIM(svars(ivar))//"' found in '"//TRIM(ncs(ifle))&
+	  //' var id:',fvars(ivar,2)
+      END IF
+    END DO
+    rcode = nf_close(file)
+  END DO files_loop
+
+  DO ivar=1, Nsvars
+    IF (fvars(ivar,1)==0) PRINT *,TRIM(errmsg)//" variable: '"//TRIM(svars(ivar))//"' NOT found!"
+  END DO
+  
+  IF .NOT.(ALL(fvars(:,1) == 0) STOP('Some variable are not found')
+
+  RETURN
+
+END SUBROUTINE search_variables
 
 SUBROUTINE string_real( string, value)
 ! Subroutine to transform a string to a real value
@@ -484,7 +545,7 @@ SUBROUTINE string_values(string, dbg, Nvalues, values)
   INTEGER, INTENT(IN)                                    :: Nvalues
   CHARACTER(LEN=3000), INTENT(IN)                        :: string
   CHARACTER(LEN=250), DIMENSION(Nvalues), INTENT(OUT)    :: values
-  LOGICAL, INTENT(IN)                                    :: dbg
+  INTEGER, INTENT(IN)                                    :: dbg
 
   Lstring = LEN_TRIM(string)
 
@@ -502,7 +563,7 @@ SUBROUTINE string_values(string, dbg, Nvalues, values)
 
   values(jval)=ADJUSTL(string(ival:Lstring))
 
-  IF (dbg) THEN
+  IF (dbg >= 100) THEN
     PRINT *,'Found values_______________'
     DO jval=1,Nvalues
       PRINT *,'************'//TRIM(values(jval))//'********'

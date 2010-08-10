@@ -7,13 +7,15 @@ MODULE module_constants
 !! OCEANO: pgf90 module_constants.f90 -L/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/lib -lnetcdf -lm -I/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/include -Mfree -c
 
   IMPLICIT NONE
-
-!  456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
+  
+!   456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
   SAVE
 
   CHARACTER(LEN=50), PARAMETER                             :: blanks=' '
   REAL, PARAMETER                                          :: Pi=3.141596
   REAL, PARAMETER                                          :: Rt=6371227.
+  CHARACTER(LEN=50)                                        ::                                    &
+    errormsg='ERROR - error - ERROR - error - ERROR'
   REAL, PARAMETER                                          :: errorval=-99999.
   REAL, PARAMETER                                          :: extremeval=10000000000.
   REAL, PARAMETER                                          :: g=9.807

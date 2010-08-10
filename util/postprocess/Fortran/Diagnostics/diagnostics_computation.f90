@@ -12,19 +12,19 @@ PROGRAM diagnostics_computation
 
   IMPLICIT NONE
 
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
 !   567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
 
 ! Namelist variables
-  INTEGER                                                :: grid_filt, ntimes_filt
+  INTEGER                                                :: grid_filt, ntimes_filt, debug
   CHARACTER(LEN=4)                                       :: process, lev_process
   CHARACTER(LEN=3000)                                    :: diagnostics, input_names, p_levels
   CHARACTER(LEN=250)                                     :: path_to_input, path_to_output,      & 
     path_to_geofile, geofile, outfile
   CHARACTER(LEN=50)                                      :: WEdimname, SNdimname, BTdimname,    &
     Timedimname, X_grid_spacing, Y_grid_spacing
-  LOGICAL                                                :: debug, filt
+  LOGICAL                                                :: filt
 
 ! General variables
   INTEGER                                                :: i
@@ -60,8 +60,7 @@ PROGRAM diagnostics_computation
 ! innamefiles: vector with all input files
 ! infiles: vector with all input path-files
 ! levs: vector with vertical levels to compute diagnostics
-! Nvardiag: Number ofinput variables necessary for a diagnostic omputation
-! DIAGvariables: vector with names of variables needed for a diagnostic field
+! Nvardiag: Number of input variables necessary for a diagnostic computation
 ! dimx, dimy, dimz, dimt: 4D ranges of netCDF files
 ! TOTdims: vector with ranges of all dimensions of netCDF file
 ! nTOTdims: number of dimensions of netCDF file
@@ -140,7 +139,7 @@ PROGRAM diagnostics_computation
 ! Constructing all paths-files structures
   IF (ALLOCATED(infiles)) DEALLOCATE(infiles)
   IF (LEN_TRIM(geofile) > 2 ) THEN
-    IF (debug) PRINT *,"A 'geofile' is given by 'namelist' "//TRIM(ingeofile) 
+    IF (debug >= 20) PRINT *,"A 'geofile' is given by 'namelist' "//TRIM(ingeofile) 
     Ninputs=Ninputs+1
     ALLOCATE(infiles(Ninputs))
     DO i=1,Ninputs-1
@@ -154,7 +153,7 @@ PROGRAM diagnostics_computation
     END DO
   END IF
 
-  IF (debug) THEN
+  IF (debug >= 20) THEN
     PRINT *,'Input files________'
     DO i=1, Ninputs
       PRINT *,i,' :',TRIM(infiles(i))
