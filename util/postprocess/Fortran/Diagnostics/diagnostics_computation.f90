@@ -17,13 +17,15 @@ PROGRAM diagnostics_computation
 !   567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
 
 ! Namelist variables
-  INTEGER                                                :: grid_filt, ntimes_filt, debug
+  INTEGER                                                :: grid_filt, ntimes_filt, debug,      &
+    global_att_file
   CHARACTER(LEN=4)                                       :: process, lev_process
   CHARACTER(LEN=3000)                                    :: diagnostics, input_names, p_levels
   CHARACTER(LEN=250)                                     :: path_to_input, path_to_output,      & 
     path_to_geofile, geofile, outfile
   CHARACTER(LEN=50)                                      :: WEdimname, SNdimname, BTdimname,    &
-    Timedimname, X_grid_spacing, Y_grid_spacing
+    Timedimname, X_grid_spacing, Y_grid_spacing, WE_dimvarname, SN_dimvarname, BT_dimvarname,   &
+    Time_dimvarname
   LOGICAL                                                :: filt
 
 ! General variables
@@ -44,11 +46,13 @@ PROGRAM diagnostics_computation
   INTEGER, ALLOCATABLE, DIMENSION(:)                     :: TOTdims
   INTEGER                                                :: nTOTdims, nTOTvar, nTOTatt, IDunlimit
   CHARACTER(LEN=50), ALLOCATABLE, DIMENSION(:)           :: TOTdimsname
+  CHARACTER(LEN=50), DIMENSION(4)                        :: dimsvarname
   REAL                                                   :: X_grid, Y_grid
 
   NAMELIST /io/ path_to_input, input_names, WEdimname, SNdimname, BTdimname, Timedimname,       &
-    path_to_output, diagnostics, process, debug, filt, grid_filt, ntimes_filt, path_to_geofile, &
-    geofile, outfile 
+    path_to_output, WE_dimvarname, SN_dimvarname, BT_dimvarname, Time_dimvarname, diagnostics,  &
+    process, debug, filt, grid_filt, ntimes_filt, path_to_geofile, geofile, outfile,            &
+    global_att_file
   NAMELIST /levels/ lev_process, p_levels, X_grid_spacing, Y_grid_spacing
 
 !!!!!!!!! Variables
@@ -69,6 +73,7 @@ PROGRAM diagnostics_computation
 ! IDunlimit: id dimension with unlimit range
 ! TOTdimsname: vector with names of all dimensions of netCDF file
 ! [X/Y]_grid: grid spacing in X/Y grid direction [m]
+! dimsvarname: vector with variable names of dimensions
 
 !!!!!!!!!!! Subroutines
 ! com_diagnostics: Subroutine to compute all wanted diagnostics
@@ -94,17 +99,23 @@ PROGRAM diagnostics_computation
   ENDIF
 
 ! Geofile name file
-  lent = len_trim(path_to_geofile)
-  IF ( path_to_geofile(lent:lent) /= "/" ) THEN
-    path_to_geofile = TRIM(path_to_geofile)//"/"
+  lent = LEN_TRIM(geofile)
+  IF (lent > 1) THEN
+    lent = LEN_TRIM(path_to_geofile)
+    IF ( path_to_geofile(lent:lent) /= "/" ) path_to_geofile = TRIM(path_to_geofile)//"/"
+    ingeofile = TRIM(path_to_geofile)//TRIM(geofile)
+  ELSE
+    ingeofile = ''
   ENDIF
 
   ingeofile = TRIM(path_to_geofile)//TRIM(geofile)
+  
   outputfile = TRIM(path_to_output)//TRIM(outfile)
   PRINT *,'Output will be written in: '//TRIM(outputfile)
 
+  PRINT *,'Constructing files names'
 ! Constructing files names
-  CALL number_values(input_names, Ninputs)
+  CALL number_values(input_names, debug, Ninputs)
   ALLOCATE(innamefiles(Ninputs))
   CALL string_values(input_names, debug, Ninputs, innamefiles)
 
@@ -112,9 +123,15 @@ PROGRAM diagnostics_computation
   DO i=1,Ninputs
     PRINT *,i,TRIM(innamefiles(i))
   END DO
+  
+! Variables with dimensions names
+  dimsvarname(1)=WE_dimvarname
+  dimsvarname(2)=SN_dimvarname
+  dimsvarname(3)=BT_dimvarname
+  dimsvarname(4)=Time_dimvarname
 
 ! Constructing diagnostics names
-  CALL number_values(diagnostics, Ndiagnostics)
+  CALL number_values(diagnostics, debug, Ndiagnostics)
   PRINT *,'Are required',Ndiagnostics,' diagnostics'
   IF (ALLOCATED(diags)) DEALLOCATE(diags)
   ALLOCATE(diags(Ndiagnostics), STAT=ierr)
@@ -127,19 +144,21 @@ PROGRAM diagnostics_computation
   END DO
 
 ! Constructing vertical levels
-  CALL number_values(p_levels, Nlevels)
+  CALL number_values(p_levels, debug, Nlevels)
   ALLOCATE(levs(Nlevels))
-  CALL string_Realvalues(p_levels, Nlevels, levs)
+  CALL string_Realvalues(debug, p_levels, Nlevels, levs)
 
-  PRINT *,'There are',Nlevels,'input files'
+  PRINT *,'There are',Nlevels,'input levels'
   DO i=1,Nlevels
     PRINT *,i,levs(i)
   END DO
 
 ! Constructing all paths-files structures
   IF (ALLOCATED(infiles)) DEALLOCATE(infiles)
-  IF (LEN_TRIM(geofile) > 2 ) THEN
-    IF (debug >= 20) PRINT *,"A 'geofile' is given by 'namelist' "//TRIM(ingeofile) 
+!  PRINT *,'ingeofile: *******'//TRIM(geofile)//'*********'
+!  PRINT *,'Hola: ',LEN_TRIM(geofile)
+  IF (LEN_TRIM(geofile) > 3 ) THEN
+    IF (debug >= 20) PRINT *,"A 'geofile' is given by 'namelist' "//TRIM(ingeofile)//'***'
     Ninputs=Ninputs+1
     ALLOCATE(infiles(Ninputs))
     DO i=1,Ninputs-1
@@ -160,17 +179,19 @@ PROGRAM diagnostics_computation
     END DO
   END IF
 
-  CALL nc_Ndim(TRIM(infiles(1)), debug, nTOTdims, nTOTvar, nTOTatt, IDunlimit)
+  CALL nc_Ndim(infiles(1), debug, nTOTdims, nTOTvar, nTOTatt, IDunlimit)
   IF (ALLOCATED(TOTdims)) DEALLOCATE(TOTdims)
   ALLOCATE(TOTdims(nTOTdims), TOTdimsname(nTOTdims))
+  
+  IF (debug <= 100 ) CALL nc_atts(infiles(1), debug)
 
-  CALL nc_dimensions(TRIM(infiles(1)), debug, nTOTdims, WEdimname, SNdimname, BTdimname,        &
-    Timedimname, TOTdims, TOTdimsname, dimx, dimy, dimz, dimt)
+  CALL nc_dimensions(infiles(1), debug, nTOTdims, WEdimname, SNdimname, BTdimname, Timedimname, &
+    TOTdims, TOTdimsname, dimx, dimy, dimz, dimt)
 
-  CALL attribute_REALvalue(infiles(1), debug, X_grid_spacing, X_grid)
-  CALL attribute_REALvalue(infiles(1), debug, Y_grid_spacing, Y_grid)
+  CALL attribute_REALvalue(infiles(1), debug, X_grid_spacing, 1, X_grid)
+  CALL attribute_REALvalue(infiles(1), debug, Y_grid_spacing, 1, Y_grid)
 
   CALL com_diagnostics(debug, infiles, Ninputs, dimx, dimy, dimz, dimt, diags, Ndiagnostics,    &
-    X_grid, Y_grid, outputfile)
+    X_grid, Y_grid, dimsvarname, outputfile, global_att_file)
 
 END PROGRAM diagnostics_computation

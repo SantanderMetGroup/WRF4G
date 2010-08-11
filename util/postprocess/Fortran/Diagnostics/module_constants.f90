@@ -14,8 +14,8 @@ MODULE module_constants
   CHARACTER(LEN=50), PARAMETER                             :: blanks=' '
   REAL, PARAMETER                                          :: Pi=3.141596
   REAL, PARAMETER                                          :: Rt=6371227.
-  CHARACTER(LEN=50)                                        ::                                    &
-    errormsg='ERROR - error - ERROR - error - ERROR'
+  CHARACTER(LEN=50)                                        :: errmsg='ERROR - error - ERROR'// &
+    ' - error - ERROR'
   REAL, PARAMETER                                          :: errorval=-99999.
   REAL, PARAMETER                                          :: extremeval=10000000000.
   REAL, PARAMETER                                          :: g=9.807

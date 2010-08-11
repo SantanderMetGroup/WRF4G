@@ -50,7 +50,7 @@ for module in ${basemodules}
 do
   echo "${f90} ${module}.f90 ${options} -c "
   ${f90} ${module}.f90 ${options} -c 
-  basicmodules=${objmodules}' '${rootsh}/${module}.o
+  basicmodules=${basicmodules}' '${rootsh}/${module}.o
 ### end basic modules
 done
 
@@ -95,5 +95,5 @@ ${f90} ${modulel}.f90 ${options} -I${rootsh} -I${rootsh}/${diagnosticspath} -c
 echo "${f90} ${modulec}.f90 ${options} -I${rootsh} -I${rootsh}/${diagnosticspath} -c "
 ${f90} ${modulec}.f90 ${options} -I${rootsh} -I${rootsh}/${diagnosticspath} -c 
 
-echo "${f90} ${main}.f90 -o ${main} -I${rootsh} -I${rootsh}/${diagnosticspath} ${objmodules} ${diagmodules} ${modulel}.o ${modulec}.o ${options}"
-${f90} ${main}.f90 -o ${main} -I${rootsh} -I${rootsh}/${diagnosticspath} ${objmodules} ${diagmodules} ${modulel}.o ${modulec}.o ${options}
+echo "${f90} ${main}.f90 -o ${main} -I${rootsh} -I${rootsh}/${diagnosticspath} ${basicmodules} ${objmodules} ${diagmodules} ${modulel}.o ${modulec}.o ${options}"
+${f90} ${main}.f90 -o ${main} -I${rootsh} -I${rootsh}/${diagnosticspath} ${basicmodules} ${objmodules} ${diagmodules} ${modulel}.o ${modulec}.o ${options}

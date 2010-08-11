@@ -17,28 +17,27 @@ MODULE module_com_diagnostics
 !   567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
 
 SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags, deltaX, deltaY,&
-  ofile)
+  dimsVname, ofile, g_att_file)
 ! Subroutine to compute all desired diagnostics
 
   USE module_list_diagnostics
   USE module_gen_tools
   USE module_constants
-!  USE module_PV
-  USE module_tcfr
 
   IMPLICIT NONE
 
   INCLUDE 'netcdf.inc'
 
   INTEGER, INTENT(IN)                                    :: dbg
-  INTEGER, INTENT(IN)                                    :: Ninfiles
+  INTEGER, INTENT(IN)                                    :: Ninfiles, g_att_file
   CHARACTER(LEN=500), DIMENSION(Ninfiles), INTENT(IN)    :: ifiles
   INTEGER, INTENT(IN)                                    :: dx, dy, dz, dt
   INTEGER, INTENT(IN)                                    :: Ndiags
   CHARACTER(LEN=250), DIMENSION(Ndiags), INTENT(IN)      :: Diags
   CHARACTER(LEN=500), INTENT(IN)                         :: ofile
-  CHARACTER(LEN=50), ALLOCATABLE, DIMENSION(:)           :: DIAGvariables
   REAL, INTENT(IN)                                       :: deltaX, deltaY
+  CHARACTER(LEN=50), DIMENSION(4), INTENT(IN)            :: dimsVname
+
 ! Local vars
   INTEGER                                                :: i, idiag, iinput
   INTEGER                                                :: Nvardiag
@@ -51,13 +50,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
   INTEGER, ALLOCATABLE, DIMENSION(:,:)                   :: foundvariables
   INTEGER                                                :: ierr, oid, jvar, rcode
   INTEGER                                                :: Ndimsdiag
-  INTEGER, DIMENSION(4)                                  :: start_dims, dims_out, dims_in
+  INTEGER, DIMENSION(4)                                  :: start_dims, dims_out, dims_in, dimido
   INTEGER, DIMENSION(6)                                  :: jshape
-  CHARACTER(LEN=50)                                      :: varname, units, diagname
+  CHARACTER(LEN=50), ALLOCATABLE, DIMENSION(:)           :: DIAGvariables
+  CHARACTER(LEN=50)                                      :: varname, units, diagname, stdesc
   CHARACTER(LEN=20)                                      :: coordinates
   CHARACTER(LEN=250)                                     :: longdesc
 !  CHARACTER(LEN=80)                                      :: nf_strerror
-  CHARACTER(LEN=50)                                      :: section, errmsg
+  CHARACTER(LEN=50)                                      :: section, attname
+  CHARACTER(LEN=100)                                     :: attvalue
 
 !!!!!!!!!!!!!!!!! Variables
 ! ifiles: vector with input files
@@ -66,6 +67,8 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
 ! Diags: vector with diagnostic variables
 ! Ndiags: number of diagnostic variables
 ! ofile: outputfile
+! g_att_file: file from which all global attributes will putted in output file
+! dimido: assigned id of the 4-dimensions (dx, dy, dz, dt)
 ! diagnostic4D: 4D computed diagnostic
 ! diagnostic4D: 3D computed diagnostic
 ! diagnostic4D: 2D computed diagnostic
@@ -82,24 +85,51 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
 ! varname: name of diagnostic variable
 ! units: units of variable
 ! longdesc: long description attribute of variable
+! stdesc: standard CF convetion name of variable
 ! dv[1/2/3/4]: 4D diagnostic range of 4 dimensions
   
   section="'module_com_diagnostics'"
 
-  IF (dbg >= 100) PRINT *,'Computing diagnostics '//section//'...'
+  IF (dbg >= 100) PRINT *,'Diagnostics '//TRIM(section)//'... .. .'
 
-! output file creation
+! output file creation & dimensions
 !!
-  rcode = nf_create(ofile, 0, oid)
-  rcode = nf_def_dim(oid, 'lon', dx, 1)
-  rcode = nf_def_dim(oid, 'lat', dy, 2)
-  rcode = nf_def_dim(oid, 'plev', dz, 3)
-  rcode = nf_def_dim(oid, 'Time', dt, 4)
+  IF (dbg >= 100) THEN
+    PRINT *,"Creation of output file '"//TRIM(ofile)//"'..."
+    PRINT *,'  with dimensions: '
+    PRINT *,'  dx: ',dx,' dy:',dy,' dz:',dz,' dt:',dt
+    PRINT *,'  variables with dimension values: ',(TRIM(dimsVname(i)), char(44), i=1,3),        &
+      TRIM(dimsVname(4))
+  END IF
+  rcode = nf_create(TRIM(ofile), NF_CLOBBER, oid)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  rcode = nf_def_dim(oid, 'lon', dx, dimido(1))
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  rcode = nf_def_dim(oid, 'lat', dy, dimido(2))
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  rcode = nf_def_dim(oid, 'plev', dz, dimido(3))
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  rcode = nf_def_dim(oid, 'Time', dt, dimido(4))
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  IF (dbg >= 20) THEN
+    PRINT *,'Output file dimensions id:'
+    PRINT *,'dx:',dimido(1),' dy:',dimido(2),' dz:',dimido(3),' dt:',dimido(4)
+  END IF
+
+! Head section of new netCDF
+!!  
+  attname='Conventions'
+  attvalue='CF-1.4'
+  CALL def_nc_att_text(dbg, oid, attname, attvalue)
+  CALL copy_nc_att(dbg, oid, ifiles(g_att_file))
+!  CALL put_nc_coords(dbg, oid, dimido, ifiles(g_att_file), dimsVname)
+  
 !!!
 !!
 ! Computing diagnostics
 !!
 !!!
+  IF (dbg >= 100) PRINT *,"Computing diagnostics ..."
   start_dims=1
   jshape=1
   jvar=1
@@ -118,10 +148,10 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
        CALL diagnostic_inf_Ninvar(diagname, dbg, Nvardiag)
        IF (ALLOCATED(DIAGvariables)) DEALLOCATE(DIAGvariables)
        ALLOCATE(DIAGvariables(Nvardiag), STAT=ierr)
-       IF (ierr /= 0) PRINT *,"Error allocating 'DIAGvariables'"
+       IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
 
        CALL diagnostic_inf(dbg, diagname, Nvardiag, DIAGvariables, Ndimsdiag, jshape,           &
-         longdesc, units)
+         longdesc, stdesc, units)
 
        DO i=1,Ndimsdiag
          dims_out(i)=dims_in(jshape(i))
@@ -134,7 +164,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
          DimMatInputs)
 
        coordinates='long lat plev'
-       CALL def_nc_var(oid, jvar, diagname, 5, 4, jshape, "XYZ", longdesc, units, "-",          &
+       CALL def_nc_var(oid, jvar, diagname, 5, 4, jshape, "XYZ", longdesc, stdesc, units, "-",  &
          coordinates, dbg)
 
        IF (ALLOCATED(diagnostic4D)) DEALLOCATE(diagnostic4D)
@@ -159,22 +189,28 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
 
 ! TCFR. Total Cloud fraction
 !!
-    CASE ('TCFR')
+    CASE ('CLT')
+
+! Setting diagnstic id in outputfile
        jvar = jvar + 1
        IF (dbg >= 75) PRINT *,'Computing TCFR...'
 
+! Looking for diagnostic information in 'variables_diagnostics.inf'
        CALL diagnostic_inf_Ninvar(diagname, dbg, Nvardiag)
        IF (ALLOCATED(DIAGvariables)) DEALLOCATE(DIAGvariables)
        ALLOCATE(DIAGvariables(Nvardiag), STAT=ierr)
-       IF (ierr /= 0) PRINT *,"Error allocating 'DIAGvariables'"
+       IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
 
        CALL diagnostic_inf(dbg, diagname, Nvardiag, DIAGvariables, Ndimsdiag, jshape,           &
-         longdesc, units)
+         longdesc, stdesc, units)
 
+! Setting diagnostic dimensions
        DO i=1,Ndimsdiag
          dims_out(i)=dims_in(jshape(i))
        END DO 
 
+
+! Setting matrixs with diagnostic input variables file location, id and particular dimensions
        IF (ALLOCATED(foundvariables)) DEALLOCATE(foundvariables)
        ALLOCATE(foundvariables(Nvardiag, 2))
        
@@ -184,30 +220,42 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
        CALL search_variables(dbg, ifiles, Ninfiles, DIAGvariables, Nvardiag, foundvariables,    &
          DimMatInputs)
 
+! Creation of specific matrix for computation of diagnostic. Necessary input matrixs can be of 
+! different range of shape MATinputs[A/F] (if necessary)
+
        IF (ALLOCATED(MATinputsA)) DEALLOCATE(MATinputsA)
        ALLOCATE(MATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),             &
          DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),1), STAT=ierr)
        IF (ierr /= 0) PRINT *,errmsg//" allocating 'MATinputsA'"
        
        DO iinput=1,1
-         CALL fill_inputs(dbg, ifiles, Ninfiles, foundvariables(iinput,:), DimMatInputs(1,:),   &
-	   MATinputsA(:,:,:,:,:,:,iinput))
+         CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),                 &
+	   DimMatInputs(1,:), MATinputsA(:,:,:,:,:,:,iinput))
        END DO
 
+! Defining new diagnostic variable in output file
        coordinates='long lat'
-       CALL def_nc_var(oid, jvar, diagname, 5, 3, jshape, "XY ", longdesc, units, "-",          &
+       CALL def_nc_var(oid, jvar, diagname, 5, 3, jshape, "XY ", longdesc, stdesc, units, "-",  &
          coordinates, dbg)
 
-       CALL tcfr(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3), DimMatInputs(1,4),&
+! Preparation and compuatation of diagnostic
+       IF (ALLOCATED(diagnostic3D)) DEALLOCATE(diagnostic3D)
+       ALLOCATE(diagnostic3D(dx, dy, dt), STAT=ierr)
+       IF (ierr /= 0) PRINT *,errmsg//" allocating 'diagnostic3D'"
+
+       CALL clt(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3), DimMatInputs(1,4),&
          MATinputsA(:,:,:,:,1,1,1), diagnostic3D)
 
        IF (dbg >= 75) THEN
          PRINT *,'VAR: '//TRIM(diagname)//' idvar:',jvar
-         PRINT *,'1/2 example value:', diagnostic3D(dims_out(1)/2, dims_out(2)/2, dims_out(3)/2)
+         PRINT *,'1/2 example value:', diagnostic3D(halfdim(dims_out(1)), halfdim(dims_out(2))   &
+	   , halfdim(dims_out(3)))
        ENDIF
 
+
+! Writting diagnostic in output file
        rcode = nf_put_vara_real (oid, jvar, start_dims, dims_out, diagnostic3D)
-       IF (rcode /= 0) PRINT *,nf_strerror(rcode)
+       IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
 
        DEALLOCATE(DIAGvariables)
        DEALLOCATE(diagnostic3D)

@@ -4,6 +4,15 @@
  Input_variables          UU, VV, TT, F, MAPFAC_M, PLEV
  diagnostic_dim           4
  diagnostic_dim_shape     1, 2, 3, 4
- diagnostic_longdesc      'Potential Vorticity'
+ diagnostic_longdesc      'potential vorticity'
+ diagnostic_std_name      'potential_vorticity'
  diagnostic_units         'PVU (10-6 m2Ks-1kg-1)'
+*CLT*
+ Num_input_variables      1
+ Input_variables          CLDFRA
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_longdesc      'total cloud fraction'
+ diagnostic_std_name      'cloud_area_fraction'
+ diagnostic_units         '1'
  

@@ -1,26 +1,31 @@
 &io
   path_to_input            = '.',
-  input_names              = 'wrfout_d01_2001-11-10_00:00:00_PLEV',
+  input_names              = 'wrfout_d01_19760217T000000Z.nc',
   WEdimname                = 'west_east',
   SNdimname                = 'south_north',
-  BTdimname                = 'num_metgrid_levels',
+  BTdimname                = 'bottom_top',
   Timedimname              = 'Time',
   path_to_output           = './',
-  diagnostics              = 'TCFR',
+  WE_dimvarname            = 'XLONG',
+  SN_dimvarname            = 'XLAT',
+  BT_dimvarname            = 'lev',
+  Time_dimvarname          = 'Time',
+  diagnostics              = 'CLT',
   process                  = 'list',
   debug                    = 100,
   filt                     = .FALSE.,
   grid_filt                = 3,
   ntimes_filt              = 10,
-  geofile                  = 'geo_em.d01.nc'
-  outfile                  = '20011110000000_DIAGS_PLEV.nc'
+  outfile                  = '19760217000000_DIAGS.nc'
+  global_att_file          = 1
 /
 
+  geofile                  = 'geo_em.d01.nc'
   path_to_geofile          = '/oceano/gmeteo/DATA/WRF/domains/Europe_15k',
 
 &levels
   lev_process              = 'all',
-  p_levels                 = '1000.0, 850.0, 500.0, 200.10',
   X_grid_spacing           = 'DX',
   Y_grid_spacing           = 'DY',
 /
+  p_levels                 = '1000.0, 850.0, 500.0, 200.10',
