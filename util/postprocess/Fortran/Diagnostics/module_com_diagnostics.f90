@@ -17,11 +17,12 @@ MODULE module_com_diagnostics
 !   567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
 
 SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags, deltaX, deltaY,&
-  dimsVname, ofile, g_att_file)
+  dimsVname, ofile, g_att_file, car_x, car_y)
 ! Subroutine to compute all desired diagnostics
 
   USE module_list_diagnostics
   USE module_gen_tools
+  USE module_nc_tools
   USE module_constants
 
   IMPLICIT NONE
@@ -37,6 +38,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
   CHARACTER(LEN=500), INTENT(IN)                         :: ofile
   REAL, INTENT(IN)                                       :: deltaX, deltaY
   CHARACTER(LEN=50), DIMENSION(4), INTENT(IN)            :: dimsVname
+  LOGICAL, INTENT(IN)                                    :: car_x, car_y
 
 ! Local vars
   INTEGER                                                :: i, idiag, iinput
@@ -57,12 +59,12 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
   CHARACTER(LEN=20)                                      :: coordinates
   CHARACTER(LEN=250)                                     :: longdesc
 !  CHARACTER(LEN=80)                                      :: nf_strerror
-  CHARACTER(LEN=50)                                      :: section, attname
-  CHARACTER(LEN=100)                                     :: attvalue
+  CHARACTER(LEN=50)                                      :: section
 
 !!!!!!!!!!!!!!!!! Variables
 ! ifiles: vector with input files
 ! Ninfiles: number of infiles
+! car_[x/y]: Whether x and y coordinates are cartesian ones
 ! d[x/y/z/t]: 4D dimensions input range
 ! Diags: vector with diagnostic variables
 ! Ndiags: number of diagnostic variables
@@ -94,36 +96,12 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
 
 ! output file creation & dimensions
 !!
-  IF (dbg >= 100) THEN
-    PRINT *,"Creation of output file '"//TRIM(ofile)//"'..."
-    PRINT *,'  with dimensions: '
-    PRINT *,'  dx: ',dx,' dy:',dy,' dz:',dz,' dt:',dt
-    PRINT *,'  variables with dimension values: ',(TRIM(dimsVname(i)), char(44), i=1,3),        &
-      TRIM(dimsVname(4))
-  END IF
-  rcode = nf_create(TRIM(ofile), NF_CLOBBER, oid)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-  rcode = nf_def_dim(oid, 'lon', dx, dimido(1))
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-  rcode = nf_def_dim(oid, 'lat', dy, dimido(2))
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-  rcode = nf_def_dim(oid, 'plev', dz, dimido(3))
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-  rcode = nf_def_dim(oid, 'Time', dt, dimido(4))
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-  IF (dbg >= 20) THEN
-    PRINT *,'Output file dimensions id:'
-    PRINT *,'dx:',dimido(1),' dy:',dimido(2),' dz:',dimido(3),' dt:',dimido(4)
-  END IF
+  CALL create_output(dbg, ofile, dx, dy, dz, dt, dimsVname, ifiles(g_att_file), car_x, car_y)
+  STOP
 
-! Head section of new netCDF
-!!  
-  attname='Conventions'
-  attvalue='CF-1.4'
-  CALL def_nc_att_text(dbg, oid, attname, attvalue)
-  CALL copy_nc_att(dbg, oid, ifiles(g_att_file))
-!  CALL put_nc_coords(dbg, oid, dimido, ifiles(g_att_file), dimsVname)
-  
+!  rcode = nf_open(TRIM(ofile), OR(NF_WRITE), oid)
+  rcode = nf_create(TRIM(ofile), NF_CLOBBER, oid)
+
 !!!
 !!
 ! Computing diagnostics

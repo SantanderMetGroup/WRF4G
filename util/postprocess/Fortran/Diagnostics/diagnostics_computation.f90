@@ -1,5 +1,6 @@
 PROGRAM diagnostics_computation
   USE module_gen_tools
+  USE module_nc_tools
   USE module_com_diagnostics
 
 ! Program to compute diagnostics variables from netCDF fields in vertical p coordinates
@@ -26,7 +27,7 @@ PROGRAM diagnostics_computation
   CHARACTER(LEN=50)                                      :: WEdimname, SNdimname, BTdimname,    &
     Timedimname, X_grid_spacing, Y_grid_spacing, WE_dimvarname, SN_dimvarname, BT_dimvarname,   &
     Time_dimvarname
-  LOGICAL                                                :: filt
+  LOGICAL                                                :: filt, cartesian_x, cartesian_y
 
 ! General variables
   INTEGER                                                :: i
@@ -49,7 +50,8 @@ PROGRAM diagnostics_computation
   CHARACTER(LEN=50), DIMENSION(4)                        :: dimsvarname
   REAL                                                   :: X_grid, Y_grid
 
-  NAMELIST /io/ path_to_input, input_names, WEdimname, SNdimname, BTdimname, Timedimname,       &
+  NAMELIST /io/ path_to_input, input_names, cartesian_x, cartesian_y, WEdimname, SNdimname,     &
+    BTdimname, Timedimname,       &
     path_to_output, WE_dimvarname, SN_dimvarname, BT_dimvarname, Time_dimvarname, diagnostics,  &
     process, debug, filt, grid_filt, ntimes_filt, path_to_geofile, geofile, outfile,            &
     global_att_file
@@ -99,6 +101,7 @@ PROGRAM diagnostics_computation
   ENDIF
 
 ! Geofile name file
+  ingeofile=''
   lent = LEN_TRIM(geofile)
   IF (lent > 1) THEN
     lent = LEN_TRIM(path_to_geofile)
@@ -109,7 +112,6 @@ PROGRAM diagnostics_computation
   ENDIF
 
   ingeofile = TRIM(path_to_geofile)//TRIM(geofile)
-  
   outputfile = TRIM(path_to_output)//TRIM(outfile)
   PRINT *,'Output will be written in: '//TRIM(outputfile)
 
@@ -155,9 +157,7 @@ PROGRAM diagnostics_computation
 
 ! Constructing all paths-files structures
   IF (ALLOCATED(infiles)) DEALLOCATE(infiles)
-!  PRINT *,'ingeofile: *******'//TRIM(geofile)//'*********'
-!  PRINT *,'Hola: ',LEN_TRIM(geofile)
-  IF (LEN_TRIM(geofile) > 3 ) THEN
+  IF (LEN_TRIM(ingeofile) > 3 ) THEN
     IF (debug >= 20) PRINT *,"A 'geofile' is given by 'namelist' "//TRIM(ingeofile)//'***'
     Ninputs=Ninputs+1
     ALLOCATE(infiles(Ninputs))
@@ -183,15 +183,15 @@ PROGRAM diagnostics_computation
   IF (ALLOCATED(TOTdims)) DEALLOCATE(TOTdims)
   ALLOCATE(TOTdims(nTOTdims), TOTdimsname(nTOTdims))
   
-  IF (debug <= 100 ) CALL nc_atts(infiles(1), debug)
+  IF (debug <= 100 ) CALL nc_gatts(infiles(1), debug)
 
   CALL nc_dimensions(infiles(1), debug, nTOTdims, WEdimname, SNdimname, BTdimname, Timedimname, &
     TOTdims, TOTdimsname, dimx, dimy, dimz, dimt)
 
-  CALL attribute_REALvalue(infiles(1), debug, X_grid_spacing, 1, X_grid)
-  CALL attribute_REALvalue(infiles(1), debug, Y_grid_spacing, 1, Y_grid)
+  CALL gattribute_REALvalue(infiles(1), debug, X_grid_spacing, 1, X_grid)
+  CALL gattribute_REALvalue(infiles(1), debug, Y_grid_spacing, 1, Y_grid)
 
   CALL com_diagnostics(debug, infiles, Ninputs, dimx, dimy, dimz, dimt, diags, Ndiagnostics,    &
-    X_grid, Y_grid, dimsvarname, outputfile, global_att_file)
+    X_grid, Y_grid, dimsvarname, outputfile, global_att_file, cartesian_x, cartesian_y)
 
 END PROGRAM diagnostics_computation

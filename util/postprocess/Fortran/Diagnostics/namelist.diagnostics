@@ -1,6 +1,8 @@
 &io
-  path_to_input            = '.',
+  path_to_input            = '/oceano/gmeteo/WORK/ASNA/WRF/experiments/scne3b/scne3b/output',
   input_names              = 'wrfout_d01_19760217T000000Z.nc',
+  cartesian_x              = .FALSE.,
+  cartesian_y              = .FALSE.,
   WEdimname                = 'west_east',
   SNdimname                = 'south_north',
   BTdimname                = 'bottom_top',
@@ -8,8 +10,8 @@
   path_to_output           = './',
   WE_dimvarname            = 'XLONG',
   SN_dimvarname            = 'XLAT',
-  BT_dimvarname            = 'lev',
-  Time_dimvarname          = 'Time',
+  BT_dimvarname            = 'PB',
+  Time_dimvarname          = 'Times',
   diagnostics              = 'CLT',
   process                  = 'list',
   debug                    = 100,
@@ -18,6 +20,8 @@
   ntimes_filt              = 10,
   outfile                  = '19760217000000_DIAGS.nc'
   global_att_file          = 1
+  geofile                  = ''
+  path_to_geofile          = '',
 /
 
   geofile                  = 'geo_em.d01.nc'
