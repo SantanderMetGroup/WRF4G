@@ -1,5 +1,5 @@
 &io
-  path_to_input            = '/oceano/gmeteo/WORK/ASNA/WRF/experiments/scne3b/scne3b/output',
+  path_to_input            = '.',
   input_names              = 'wrfout_d01_19760217T000000Z.nc',
   cartesian_x              = .FALSE.,
   cartesian_y              = .FALSE.,
@@ -10,7 +10,7 @@
   path_to_output           = './',
   WE_dimvarname            = 'XLONG',
   SN_dimvarname            = 'XLAT',
-  BT_dimvarname            = 'PB',
+  BT_dimvarname            = 'ZNU',
   Time_dimvarname          = 'Times',
   diagnostics              = 'CLT',
   process                  = 'list',

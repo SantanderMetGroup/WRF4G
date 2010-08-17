@@ -55,8 +55,8 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
   INTEGER, DIMENSION(4)                                  :: start_dims, dims_out, dims_in, dimido
   INTEGER, DIMENSION(6)                                  :: jshape
   CHARACTER(LEN=50), ALLOCATABLE, DIMENSION(:)           :: DIAGvariables
-  CHARACTER(LEN=50)                                      :: varname, units, diagname, stdesc
-  CHARACTER(LEN=20)                                      :: coordinates
+  CHARACTER(LEN=50)                                      :: varname, units, diagname, stdesc,   &
+    coordinates
   CHARACTER(LEN=250)                                     :: longdesc
 !  CHARACTER(LEN=80)                                      :: nf_strerror
   CHARACTER(LEN=50)                                      :: section
@@ -141,7 +141,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
        CALL search_variables(dbg, ifiles, Ninfiles, DIAGvariables, Nvardiag, foundvariables,    &
          DimMatInputs)
 
-       coordinates='long lat plev'
+       coordinates='lon lat plev'
        CALL def_nc_var(oid, jvar, diagname, 5, 4, jshape, "XYZ", longdesc, stdesc, units, "-",  &
          coordinates, dbg)
 
@@ -212,7 +212,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
        END DO
 
 ! Defining new diagnostic variable in output file
-       coordinates='long lat'
+       coordinates='lon lat'
        CALL def_nc_var(oid, jvar, diagname, 5, 3, jshape, "XY ", longdesc, stdesc, units, "-",  &
          coordinates, dbg)
 
