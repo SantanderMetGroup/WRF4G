@@ -14,7 +14,7 @@
   Time_dimvarname          = 'Times',
   diagnostics              = 'CLT',
   process                  = 'list',
-  debug                    = 100,
+  debug                    = 150,
   filt                     = .FALSE.,
   grid_filt                = 3,
   ntimes_filt              = 10,

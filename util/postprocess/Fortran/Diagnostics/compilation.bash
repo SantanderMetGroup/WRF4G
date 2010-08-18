@@ -27,13 +27,18 @@ elif test $HOSTNAME = 'mar.macc.unican.es'
 then
   f90=gfortran
   options='-L/software/CentOS/5.2/netcdf/4.1.1/gcc-gfortran4.1.2/lib -lnetcdf -I/software/CentOS/5.2/netcdf/4.1.1/gcc-gfortran4.1.2/include'
+
+elif [ $HOSTNAME = 'solet' ]
+then
+  f90=gfortran
+  options='-L/usr/local/lib -lnetcdf -I/usr/local/include'
 fi
 echo "Compilation of netCDF diagnostic computation in '"$HOSTNAME"'...."
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 basemodules='module_constants'
-modules='module_gen_tools module_nc_tools module_calc_tools'
+modules='module_gen_tools module_calc_tools module_nc_tools'
 diagnosticspath='diagnostics'
 modulel='module_list_diagnostics' 
 modulec='module_com_diagnostics'

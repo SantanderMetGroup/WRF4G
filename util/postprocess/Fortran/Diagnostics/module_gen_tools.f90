@@ -13,6 +13,7 @@ MODULE module_gen_tools
 ! diagnostic_inf_Ninvar: Subroutine to give number of input variables to copute varDIAG diagnostic
 ! halfdim: Function to give the half value of a dimension
 ! search_variables: Subroutine to search variables from a given netcCDF file
+! string_int: Function to transform a string to a real value
 ! string_real: Subroutine to transform a string to a real value
 ! string_Realvalues: Subroutine to obtain real values from a 'namelist' string separated by comas
 ! string_values: Subroutine to obtain values from a 'namelist' string separated by comas
@@ -77,7 +78,7 @@ SUBROUTINE diagnostic_inf(debg, varDIAG, Ninvar, varinnames, NdimDIAG, shapeDIAG
 !  posvarDIAG: position of diagnostic variable inside information file
 
   section="'diagnostic_inf'"
-  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
 
 !  Read parameters from diagnostic variables information file 'variables_diagnostics.inf' 
    DO iunit=10,100
@@ -162,7 +163,7 @@ SUBROUTINE diagnostic_inf_Ninvar(varDIAG, debg, Ninvar)
   LOGICAL                                                :: is_used
 
   section="'diagnostic_inf_Ninvar'"
-  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
 
 !  Read parameters from diagnostic variables information file 'variables_diagnostics.inf'
    DO iunit=10,100
@@ -218,6 +219,40 @@ INTEGER FUNCTION halfdim(dim)
   
 END FUNCTION halfdim
 
+INTEGER FUNCTION string_int(debg, string)
+! Function to transform a string to an integer value
+
+  IMPLICIT NONE
+
+  INTEGER, INTENT(IN)                                    :: debg
+  CHARACTER(LEN=20), INTENT(IN)                          :: string
+
+! Local
+  INTEGER                                                :: i,j
+  INTEGER                                                :: Lstring, point, Lpre, Laft
+  CHARACTER(LEN=50)                                      :: section
+
+!!!!!!!!!!!!!!!! Variables
+! string: string with integer number
+! Lstring: length of string
+
+  section="'string_int'"  
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+  IF (debg >= 150) PRINT *,"String: '"//TRIM(string)//"'"
+
+  Lstring=LEN_TRIM(string)
+
+  string_int=0
+  DO i=1,Lstring
+    string_int=string_int+(IACHAR(string(i:i))-48)*10.**(Lstring-i)
+  END DO 
+
+
+  IF (debg >= 150) PRINT *,'Integer:',string_int
+  
+  RETURN
+END FUNCTION string_int
+
 SUBROUTINE string_real(debg, string, value)
 ! Subroutine to transform a string to a real value
 
@@ -240,8 +275,8 @@ SUBROUTINE string_real(debg, string, value)
 ! Laft: length of string after the point
 
   section="'string_real'"  
-  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
-  IF (debg >= 100) PRINT *,"String: '"//TRIM(string)//"'"
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+  IF (debg >= 150) PRINT *,"String: '"//TRIM(string)//"'"
 
   Lstring=LEN_TRIM(string)
   point=INDEX(string, '.')
@@ -277,8 +312,8 @@ SUBROUTINE string_Realvalues(debg, string, Nvalues, values)
   CHARACTER(LEN=20)                                      :: Svalues
 
   section="'string_Realvalues'"
-  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
-  IF (debg >= 100) PRINT *,"sting: '"//TRIM(string)//"'"
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+  IF (debg >= 150) PRINT *,"sting: '"//TRIM(string)//"'"
 
   Lstring = len_trim(string)
 
@@ -298,7 +333,7 @@ SUBROUTINE string_Realvalues(debg, string, Nvalues, values)
   Svalues=ADJUSTL(string(ival:Lstring))
   CALL string_real(debg, Svalues, values(jval))
 
-  IF (debg >= 100) THEN
+  IF (debg >= 150) THEN
     PRINT *,'Found values_______________'
     DO jval=1,Nvalues
       PRINT *,values(jval)
@@ -330,8 +365,8 @@ SUBROUTINE string_Realvalues(debg, string, Nvalues, values)
 !   Laft: length of string after the point
 
    section="'string_real'"
-   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
-   IF (debg >= 100) PRINT *,"String: '"//TRIM(string)//"'"
+   IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+   IF (debg >= 150) PRINT *,"String: '"//TRIM(string)//"'"
 
     Lstring=LEN_TRIM(string)
     point=INDEX(string, '.')
@@ -369,7 +404,7 @@ SUBROUTINE string_values(string, debg, Nvalues, values)
   CHARACTER(LEN=50)                                      :: section
 
   section="'string_values'"
-  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
 
   Lstring = LEN_TRIM(string)
 
@@ -387,7 +422,7 @@ SUBROUTINE string_values(string, debg, Nvalues, values)
 
   values(jval)=ADJUSTL(string(ival:Lstring))
 
-  IF (debg >= 100) THEN
+  IF (debg >= 150) THEN
     PRINT *,'Found values_______________'
     DO jval=1,Nvalues
       PRINT *,'************'//TRIM(values(jval))//'********'
@@ -410,7 +445,7 @@ SUBROUTINE number_values(string, debg, Nvalues)
   CHARACTER(LEN=50)                                      :: section
   
   section="'number_values'"
-  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
 
   Lstring = len_trim(string)
 

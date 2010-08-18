@@ -34,10 +34,8 @@ MODULE module_clt
 
   section="'module_clt'"
   
-  IF (debg >= 75) THEN
-    PRINT *,'Section '//TRIM(section)//'... .. .'
-    PRINT *,'Dimensions: ',dx,CHAR(44), dy,CHAR(44), dz,CHAR(44), dt
-  END IF
+  IF (debg >= 75) PRINT *,'Section '//TRIM(section)//'... .. .'
+  IF (debg >= 100) PRINT *,'Dimensions: ',dx,CHAR(44), dy,CHAR(44), dz,CHAR(44), dt
 
   totcfr = 1.
   

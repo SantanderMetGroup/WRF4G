@@ -21,6 +21,7 @@ MODULE module_constants
   REAL, PARAMETER                                          :: g=9.807
   REAL, PARAMETER                                          :: rocp=2./7.
   REAL, PARAMETER                                          :: tkelvin=273.15
+  INTEGER, PARAMETER                                       :: yearref = 1900
 
 !!!!!!!!!!!!!!!!!! Variables
 !      blanks: 50 character string of blanks
@@ -31,5 +32,6 @@ MODULE module_constants
 !      g: gravity acceleration [ms-2]
 !      rocp: 
 !      tkelvin: conversion from celsius degrees to kelvin [K]
+!      yearref: year as reference
 
 END MODULE module_constants

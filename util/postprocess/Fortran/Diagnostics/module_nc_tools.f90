@@ -141,9 +141,10 @@ END SUBROUTINE copy_nc_gatt
 
 SUBROUTINE create_output(debg, outfile, dimx, dimy, dimz, dimt, dimsvarname, file_gatt, xcar,   &
   ycar)
-! create_output: Subroutine to create netCDF output
+! create_output: Subroutine to create netCDF output with 4 basic coordinates: lon, lat, lev, time
 
   USE module_constants
+  USE module_calc_tools, ONLY: diff_dates
 
   IMPLICIT NONE
 
@@ -338,7 +339,8 @@ SUBROUTINE create_output(debg, outfile, dimx, dimy, dimz, dimt, dimsvarname, fil
 
     CALL fill_inputs_50char(debg, (/file_gatt/), 1, foundCnames(4,:), dimcoords(4,:), charcoor)
     DO icord=1, dimt
-      coordinate(icord,1,1,1,1,1)=icord*1.
+       CALL diff_dates(debg, '1950-01-01_00:00:00', charcoor(icord,1,1,1,1), 's',                &
+         coordinate(icord,1,1,1,1,1))
     END DO
     IF (debg >= 100) PRINT *,"values 'tc':", coordinate(:,1,1,1,1,1)
     CALL def_dim_time(debg, oid, jv, coordname, coordlong, coordunits, dimt, dimsid(4),          &
@@ -886,10 +888,10 @@ SUBROUTINE fill_inputs_50char(debg, ncs, Nncs, fvars, dimMin, matou)
   CHARACTER(LEN=500), DIMENSION(Nncs), INTENT(IN)         :: ncs
 
 ! Local
-  INTEGER                                                 :: i, rcode, ncid
+  INTEGER                                                 :: i,j,k,l,m,n
+  INTEGER                                                 :: rcode, ncid
+  CHARACTER(LEN=1)                                        :: char1
   CHARACTER(LEN=50)                                       :: section
-  CHARACTER(LEN=50), DIMENSION(dimMin(1), dimMin(2),                                             &
-    dimMin(3), dimMin(4), dimMin(5), dimMin(6))           :: matin
 
 !!!!!!!!!! Variables
 ! Nncs: number of input files
@@ -901,31 +903,48 @@ SUBROUTINE fill_inputs_50char(debg, ncs, Nncs, fvars, dimMin, matou)
 !!!!!!!!!! Function
 ! halfdim: Function to give the half value of a dimension
 
-  section="'fill_inputs'"
+  section="'fill_inputs_50char'"
   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
   IF (debg >= 75) THEN
-    PRINT *,'Filling matrices of dimension: ',UBOUND(matin)
+    PRINT *,'Filling matrices of dimension: ',UBOUND(matou)
     PRINT *,"Variable in file: '"//TRIM(ncs(fvars(1)))//"' with id:",fvars(2)
   END IF
   rcode = nf_open(TRIM(ncs(fvars(1))), 0, ncid)
   call error_nc(section, rcode)
 
-  rcode = nf_get_var_text ( ncid, fvars(2), matin )
-  call error_nc(section, rcode)
+  matou=''
+! netCDF specifications have encoded 1 character as a type of variable. Thus, larger variables are 
+! constructed with matrices where first dimension of them are length of text variable. In wrfout,
+! 'Times' variable is 19 character long in [AAAA]-[MM]-[DD]_[HH]:[MI]:[SS] format
+
+  DO i=1,dimMin(1)
+    DO j=1,dimMin(2)
+      DO k=1,dimMin(3)
+        DO l=1,dimMin(4)
+          DO m=1,dimMin(5)
+            DO n=1,dimMin(6)
+              rcode = nf_get_var1_text ( ncid, fvars(2), (/ i, j, k, l, m, n /), char1)
+              call error_nc(section, rcode)
+              matou(j,k,l,m,n)(i:i)=char1
+	      IF ((j == halfdim(dimMin(2))) .AND. (k == halfdim(dimMin(3))) .AND.                &
+                (l == halfdim(dimMin(4))) .AND. (m == halfdim(dimMin(5))) .AND.                  &
+                (n == halfdim(dimMin(6)))) PRINT *,i,": '",char1,"' value: '"//                  &
+		TRIM(matou(j,k,l,m,n))//"'"
+            END DO
+          END DO
+        END DO
+      END DO
+    END DO
+  END DO
 
   rcode = nf_close(ncid)
   call error_nc(section, rcode)
 
-  matou=''
-  DO i=1,dimMin(1)
-    matou(:,:,:,:,:)=matou(:,:,:,:,:)//matin(i,:,:,:,:,:)
-  END DO
-
   IF (debg >= 100) PRINT *,'Memory loaded input variable. Value (dimN/2)=',                     &
     TRIM(matou(halfdim(dimMin(2)), halfdim(dimMin(3)), halfdim(dimMin(4)), halfdim(dimMin(5)),  &
       halfdim(dimMin(6))))
+
   RETURN
-  
 END SUBROUTINE fill_inputs_50char
 
 SUBROUTINE fill_inputs_real(debg, ncs, Nncs, fvars, dimMin, matin)
