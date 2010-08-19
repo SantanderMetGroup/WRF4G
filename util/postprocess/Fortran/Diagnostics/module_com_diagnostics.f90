@@ -43,8 +43,8 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
 ! Local vars
   INTEGER                                                :: i, idiag, iinput
   INTEGER                                                :: Nvardiag
-  REAL, ALLOCATABLE, DIMENSION(:,:,:,:,:,:,:)            :: MATinputsA, MATinputsB, MATinputsC, &
-    MATinputsD, MATinputsE, MATinputsF 
+  REAL, ALLOCATABLE, DIMENSION(:,:,:,:,:,:,:)            :: rMATinputsA, rMATinputsB,           &
+    rMATinputsC, rMATinputsD, rMATinputsE, rMATinputsF 
   INTEGER, ALLOCATABLE, DIMENSION(:,:)                   :: DimMatInputs
   REAL, ALLOCATABLE, DIMENSION(:,:,:,:)                  :: diagnostic4D
   REAL, ALLOCATABLE, DIMENSION(:,:,:)                    :: diagnostic3D
@@ -79,8 +79,8 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
 !   DIAGvariables) 
 !   col1: number of files (according to Ninfiles)    col2: id variable in from file of 'col1'
 ! Nvardiag: number of variables to compute the specific diagnostic
-! MATinputs[A:F]: matrix with DIAGvariables values (7D; 6D netCDF dimensions, #order of Nvardiag)
-!   of A to F differend shapes and number of dimensions
+! rMATinputs[A:F]: real matrix with DIAGvariables values (7D; 6D netCDF dimensions, #order of 
+!   Nvardiag) of A to F differend shapes and number of dimensions
 ! DimMatInputs: matrix with dimensions of DIAGvariables values (7D; 6D netCDF dimensions, #order 
 !   of Nvardiag)
 ! jvar: mnumber of variable in output file
@@ -97,10 +97,9 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
 ! output file creation & dimensions
 !!
   CALL create_output(dbg, ofile, dx, dy, dz, dt, dimsVname, ifiles(g_att_file), car_x, car_y)
-  STOP
 
-!  rcode = nf_open(TRIM(ofile), OR(NF_WRITE), oid)
-  rcode = nf_create(TRIM(ofile), NF_CLOBBER, oid)
+  rcode = nf_open(TRIM(ofile), NF_WRITE, oid)
+!  rcode = nf_create(TRIM(ofile), NF_CLOBBER, oid)
 
 !!!
 !!
@@ -171,13 +170,13 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
 
 ! Setting diagnstic id in outputfile
        jvar = jvar + 1
-       IF (dbg >= 75) PRINT *,'Computing TCFR...'
+       IF (dbg >= 75) PRINT *,'Computing CLT...'
 
 ! Looking for diagnostic information in 'variables_diagnostics.inf'
        CALL diagnostic_inf_Ninvar(diagname, dbg, Nvardiag)
        IF (ALLOCATED(DIAGvariables)) DEALLOCATE(DIAGvariables)
        ALLOCATE(DIAGvariables(Nvardiag), STAT=ierr)
-       IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+       IF (ierr /= 0) PRINT *,TRIM(errmsg)//' in '//TRIM(section)//" allocating 'DIAGvariables'"
 
        CALL diagnostic_inf(dbg, diagname, Nvardiag, DIAGvariables, Ndimsdiag, jshape,           &
          longdesc, stdesc, units)
@@ -201,14 +200,14 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
 ! Creation of specific matrix for computation of diagnostic. Necessary input matrixs can be of 
 ! different range of shape MATinputs[A/F] (if necessary)
 
-       IF (ALLOCATED(MATinputsA)) DEALLOCATE(MATinputsA)
-       ALLOCATE(MATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),             &
+       IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
+       ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),            &
          DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),1), STAT=ierr)
-       IF (ierr /= 0) PRINT *,errmsg//" allocating 'MATinputsA'"
+       IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'rMATinputsA'"
        
        DO iinput=1,1
          CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),                 &
-	   DimMatInputs(1,:), MATinputsA(:,:,:,:,:,:,iinput))
+	   DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
        END DO
 
 ! Defining new diagnostic variable in output file
@@ -219,10 +218,10 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
 ! Preparation and compuatation of diagnostic
        IF (ALLOCATED(diagnostic3D)) DEALLOCATE(diagnostic3D)
        ALLOCATE(diagnostic3D(dx, dy, dt), STAT=ierr)
-       IF (ierr /= 0) PRINT *,errmsg//" allocating 'diagnostic3D'"
+       IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'diagnostic3D'"
 
        CALL clt(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3), DimMatInputs(1,4),&
-         MATinputsA(:,:,:,:,1,1,1), diagnostic3D)
+         rMATinputsA(:,:,:,:,1,1,1), diagnostic3D)
 
        IF (dbg >= 75) THEN
          PRINT *,'VAR: '//TRIM(diagname)//' idvar:',jvar
@@ -230,15 +229,14 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
 	   , halfdim(dims_out(3)))
        ENDIF
 
-
 ! Writting diagnostic in output file
        rcode = nf_put_vara_real (oid, jvar, start_dims, dims_out, diagnostic3D)
-       IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+       CALL error_nc(section, rcode)
 
        DEALLOCATE(DIAGvariables)
        DEALLOCATE(diagnostic3D)
        DEALLOCATE(foundvariables, DimMatInputs)
-       DEALLOCATE(MATinputsA)
+       DEALLOCATE(rMATinputsA)
       
     END SELECT diag_var
 

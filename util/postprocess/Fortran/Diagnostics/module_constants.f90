@@ -21,7 +21,8 @@ MODULE module_constants
   REAL, PARAMETER                                          :: g=9.807
   REAL, PARAMETER                                          :: rocp=2./7.
   REAL, PARAMETER                                          :: tkelvin=273.15
-  INTEGER, PARAMETER                                       :: yearref = 1900
+  INTEGER, PARAMETER                                       :: yearref = 1970
+  INTEGER, PARAMETER                                       :: yearleap = 1900
 
 !!!!!!!!!!!!!!!!!! Variables
 !      blanks: 50 character string of blanks
@@ -33,5 +34,6 @@ MODULE module_constants
 !      rocp: 
 !      tkelvin: conversion from celsius degrees to kelvin [K]
 !      yearref: year as reference
+!      yearleap: year as reference of leap years
 
 END MODULE module_constants

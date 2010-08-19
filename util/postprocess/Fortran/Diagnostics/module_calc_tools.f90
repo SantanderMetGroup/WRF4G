@@ -127,14 +127,15 @@ SUBROUTINE diff_dates(debg, dateA, dateB, units, difference)
   diffdaysA=diff_days(debg, yearref, yearA)
   diffdaysB=diff_days(debg, yearref, yearB)
 
-  diffsecA=(diffdaysA+juliandayA)*24.*3600.+hourA*3600.+minA*60.+secA
-  diffsecB=(diffdaysB+juliandayB)*24.*3600.+hourB*3600.+minB*60.+secB
+! A complete day is retrieved, since jan-01 will be count twice
+  diffsecA=(diffdaysA+juliandayA-1)*24.*3600.+hourA*3600.+minA*60.+secA
+  diffsecB=(diffdaysB+juliandayB-1)*24.*3600.+hourB*3600.+minB*60.+secB
 
   difference=diffsecB - diffsecA
   IF (debg >= 150) THEN
     PRINT *,'days and Seconds since ',yearref,'-01-01_00:00:00 of__________'
-    PRINT *,'yearA: ',diffdaysA, diffsecA
-    PRINT *,'yearB: ',diffdaysB, diffsecB
+    PRINT *,'yearA: ',diffdaysA+juliandayA-1, diffsecA
+    PRINT *,'yearB: ',diffdaysB+juliandayB-1, diffsecB
   END IF
 
 
@@ -178,6 +179,7 @@ INTEGER FUNCTION diff_days(debg, yearC, yearD)
 ! nearestleap: leap year most close to yearA
 
   section="'diff_days'"
+
   IF (debg >= 100 ) PRINT *,'Section: '//TRIM(section)//'... .. .'
   
   IF (yearD < yearC) THEN
@@ -189,11 +191,12 @@ INTEGER FUNCTION diff_days(debg, yearC, yearD)
   END IF
 
   sign=1
-  IF (yearA < yearref ) sign=-1
+  IF (yearA < yearleap ) sign=-1
   
-! 1900 was a leap year
-  DO iyear=0, ABS(yearA - yearref), 4
-    IF (ABS(yearref + sign*iyear*4 - yearA) < 4) nearestleap  = yearref + sign*iyear*4
+! yearleap was a leap year
+  nearestleap=0
+  DO iyear=0, ABS(yearA - yearleap), 4
+    IF (ABS(yearleap + sign*iyear - yearA) < 4) nearestleap  = yearleap + sign*iyear
   END DO
 
 ! nearest leap before yearA should be given after
@@ -213,15 +216,13 @@ INTEGER FUNCTION diff_days(debg, yearC, yearD)
 ! Looking to leap of years A and B
   CALL year_leap(yearA, year_is_leap)
   IF (year_is_leap) diff_days = diff_days + 1
-  CALL year_leap(yearB, year_is_leap)
-  IF (year_is_leap) diff_days = diff_days + 1
 
   IF (yearD < yearC) diff_days=-diff_days
 
   IF (debg >= 150 ) THEN
     PRINT *,'yearC: ',yearC,' yearD: ',yearD
     PRINT *,'leap year closest to lowest year: ',nearestleap,' (within years interval)'
-    PRINT *,'Number of leap years between first one and late year: ',numleap
+    PRINT *,'Number of leap years within the year interval: ',numleap
     PRINT *,'Number of days between years: ',diff_days
   END IF
     
@@ -259,6 +260,8 @@ END FUNCTION julian_day
   SUBROUTINE year_leap(yr, is_leap)
 ! Subroutine to give if a year is leap year or not
 
+  USE module_constants
+
   IMPLICIT NONE
   
   INTEGER, INTENT(IN)                                     :: yr
@@ -271,7 +274,8 @@ END FUNCTION julian_day
   section="'year_leap'"
 
   is_leap=.FALSE.
-! 1976 was a leap year so if difference in years for 'yr' must be multiple of 4 to be a leap year
+! yearleap was a leap year so if difference in years for 'yr' must be multiple of 4 to be a leap 
+!   year
   
   diffyears=ABS(1976-yr)
   IF (MOD(diffyears,4) == 0) is_leap=.TRUE.

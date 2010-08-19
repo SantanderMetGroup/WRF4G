@@ -53,7 +53,7 @@ MODULE module_clt
 	    IF (cldfra(i,j,k,it) /= 0.) nozero=1
           END DO vertical_levels
           IF ((debg >= 75) .AND. (ijk ==0) .AND. (nozero /= 0.)) THEN
-            PRINT *,'coud fraction values at ',i, char(44), j, char(44), it,' :',               &
+            PRINT *,'cloud fraction values at ',i, char(44), j, char(44), it,' :',               &
               cldfra(i,j,1:k,it)
             PRINT *,'computed value: ',1.-totcfr(i,j,it)
             ijk = 1
