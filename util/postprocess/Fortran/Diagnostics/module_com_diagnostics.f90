@@ -116,55 +116,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
    diagname=(diags(idiag))
    diag_var: SELECT CASE(diagname)
 
-! PV. Potential Vorticity
-!!
-     CASE('PV')
-       jvar = jvar + 1
-       IF (dbg >= 75) PRINT *,'Computing PV...'
-
-       CALL diagnostic_inf_Ninvar(diagname, dbg, Nvardiag)
-       IF (ALLOCATED(DIAGvariables)) DEALLOCATE(DIAGvariables)
-       ALLOCATE(DIAGvariables(Nvardiag), STAT=ierr)
-       IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-
-       CALL diagnostic_inf(dbg, diagname, Nvardiag, DIAGvariables, Ndimsdiag, jshape,           &
-         longdesc, stdesc, units)
-
-       DO i=1,Ndimsdiag
-         dims_out(i)=dims_in(jshape(i))
-       END DO 
-
-       IF (ALLOCATED(foundvariables)) DEALLOCATE(foundvariables)
-       ALLOCATE(foundvariables(Nvardiag, 2))
-       
-       CALL search_variables(dbg, ifiles, Ninfiles, DIAGvariables, Nvardiag, foundvariables,    &
-         DimMatInputs)
-
-       coordinates='lon lat plev'
-       CALL def_nc_var(oid, jvar, diagname, 5, 4, jshape, "XYZ", longdesc, stdesc, units, "-",  &
-         coordinates, dbg)
-
-       IF (ALLOCATED(diagnostic4D)) DEALLOCATE(diagnostic4D)
-       ALLOCATE(diagnostic4D(dx, dy, dz, dt), STAT=ierr)
-       IF (ierr /= 0) PRINT *,errmsg//" allocating 'diagnostic4D'"
-       
-!       CALL PV(dbg, ifiles, Ninfiles, DIAGvariables, Nvardiag, dims_in, Ndimsdiag, dims_out,  &
-!         deltaX, deltaY, diagnostic4D)
-
-!       IF (dbg >= 75) THEN
-!         PRINT *,'VAR: '//TRIM(diagname)//' idvar:',jvar
-!         PRINT *,'1/2 example value:', diagnostic4D(dims_out(1)/2, dims_out(2)/2, dims_out(3)/2,&
-!           dims_out(4)/2)
-
-!       ENDIF
-
-!       rcode = nf_put_vara_real (oid, jvar, start_dims, dims_out, diagnostic4D)
-!       IF (rcode /= 0) PRINT *,nf_strerror(rcode)
-
-!       DEALLOCATE(DIAGvariables)
-!       DEALLOCATE(diagnostic4D)
-
-! TCFR. Total Cloud fraction
+! CLT. Total Cloud fraction
 !!
     CASE ('CLT')
 
@@ -237,6 +189,127 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, dx, dy, dz, dt, Diags, Ndiags,
        DEALLOCATE(diagnostic3D)
        DEALLOCATE(foundvariables, DimMatInputs)
        DEALLOCATE(rMATinputsA)
+
+! MRSO. Total soil moisture
+!!
+    CASE ('MRSO')
+
+! Setting diagnstic id in outputfile
+       jvar = jvar + 1
+       IF (dbg >= 75) PRINT *,'Computing MRSO...'
+
+! Looking for diagnostic information in 'variables_diagnostics.inf'
+       CALL diagnostic_inf_Ninvar(diagname, dbg, Nvardiag)
+       IF (ALLOCATED(DIAGvariables)) DEALLOCATE(DIAGvariables)
+       ALLOCATE(DIAGvariables(Nvardiag), STAT=ierr)
+       IF (ierr /= 0) PRINT *,TRIM(errmsg)//' in '//TRIM(section)//" allocating 'DIAGvariables'"
+
+       CALL diagnostic_inf(dbg, diagname, Nvardiag, DIAGvariables, Ndimsdiag, jshape,           &
+         longdesc, stdesc, units)
+
+! Setting diagnostic dimensions
+       DO i=1,Ndimsdiag
+         dims_out(i)=dims_in(jshape(i))
+       END DO 
+
+! Setting matrixs with diagnostic input variables file location, id and particular dimensions
+       IF (ALLOCATED(foundvariables)) DEALLOCATE(foundvariables)
+       ALLOCATE(foundvariables(Nvardiag, 2))
+       
+       IF (ALLOCATED(DimMatInputs)) DEALLOCATE(DimMatInputs)
+       ALLOCATE(DimMatInputs(Nvardiag,6))
+       
+       CALL search_variables(dbg, ifiles, Ninfiles, DIAGvariables, Nvardiag, foundvariables,    &
+         DimMatInputs)
+
+! Creation of specific matrix for computation of diagnostic. Necessary input matrixs can be of 
+! different range of shape MATinputs[A/F] (if necessary)
+
+       IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
+       ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),            &
+         DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),1), STAT=ierr)
+       IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'rMATinputsA'"
+       
+       DO iinput=1,1
+         CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),                 &
+	   DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
+       END DO
+
+! Defining new diagnostic variable in output file
+       coordinates='lon lat'
+       CALL def_nc_var(oid, jvar, diagname, 5, 3, jshape, "XY ", longdesc, stdesc, units, "-",  &
+         coordinates, dbg)
+
+! Preparation and compuatation of diagnostic
+       IF (ALLOCATED(diagnostic3D)) DEALLOCATE(diagnostic3D)
+       ALLOCATE(diagnostic3D(dx, dy, dt), STAT=ierr)
+       IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'diagnostic3D'"
+
+       CALL mrso(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),DimMatInputs(1,4),&
+         rMATinputsA(:,:,:,:,1,1,1), diagnostic3D)
+
+       IF (dbg >= 75) THEN
+         PRINT *,'VAR: '//TRIM(diagname)//' idvar:',jvar
+         PRINT *,'1/2 example value:', diagnostic3D(halfdim(dims_out(1)), halfdim(dims_out(2))   &
+	   , halfdim(dims_out(3)))
+       ENDIF
+
+! Writting diagnostic in output file
+       rcode = nf_put_vara_real (oid, jvar, start_dims, dims_out, diagnostic3D)
+       CALL error_nc(section, rcode)
+
+       DEALLOCATE(DIAGvariables)
+       DEALLOCATE(diagnostic3D)
+       DEALLOCATE(foundvariables, DimMatInputs)
+       DEALLOCATE(rMATinputsA)
+
+! PV. Potential Vorticity
+!!
+     CASE('PV')
+       jvar = jvar + 1
+       IF (dbg >= 75) PRINT *,'Computing PV...'
+
+       CALL diagnostic_inf_Ninvar(diagname, dbg, Nvardiag)
+       IF (ALLOCATED(DIAGvariables)) DEALLOCATE(DIAGvariables)
+       ALLOCATE(DIAGvariables(Nvardiag), STAT=ierr)
+       IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+
+       CALL diagnostic_inf(dbg, diagname, Nvardiag, DIAGvariables, Ndimsdiag, jshape,           &
+         longdesc, stdesc, units)
+
+       DO i=1,Ndimsdiag
+         dims_out(i)=dims_in(jshape(i))
+       END DO 
+
+       IF (ALLOCATED(foundvariables)) DEALLOCATE(foundvariables)
+       ALLOCATE(foundvariables(Nvardiag, 2))
+       
+       CALL search_variables(dbg, ifiles, Ninfiles, DIAGvariables, Nvardiag, foundvariables,    &
+         DimMatInputs)
+
+       coordinates='lon lat plev'
+       CALL def_nc_var(oid, jvar, diagname, 5, 4, jshape, "XYZ", longdesc, stdesc, units, "-",  &
+         coordinates, dbg)
+
+       IF (ALLOCATED(diagnostic4D)) DEALLOCATE(diagnostic4D)
+       ALLOCATE(diagnostic4D(dx, dy, dz, dt), STAT=ierr)
+       IF (ierr /= 0) PRINT *,errmsg//" allocating 'diagnostic4D'"
+       
+!       CALL PV(dbg, ifiles, Ninfiles, DIAGvariables, Nvardiag, dims_in, Ndimsdiag, dims_out,  &
+!         deltaX, deltaY, diagnostic4D)
+
+!       IF (dbg >= 75) THEN
+!         PRINT *,'VAR: '//TRIM(diagname)//' idvar:',jvar
+!         PRINT *,'1/2 example value:', diagnostic4D(dims_out(1)/2, dims_out(2)/2, dims_out(3)/2,&
+!           dims_out(4)/2)
+
+!       ENDIF
+
+!       rcode = nf_put_vara_real (oid, jvar, start_dims, dims_out, diagnostic4D)
+!       IF (rcode /= 0) PRINT *,nf_strerror(rcode)
+
+!       DEALLOCATE(DIAGvariables)
+!       DEALLOCATE(diagnostic4D)
       
     END SELECT diag_var
 

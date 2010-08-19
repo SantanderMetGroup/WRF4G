@@ -131,7 +131,8 @@ SUBROUTINE diff_dates(debg, dateA, dateB, units, difference)
   diffsecA=(diffdaysA+juliandayA-1)*24.*3600.+hourA*3600.+minA*60.+secA
   diffsecB=(diffdaysB+juliandayB-1)*24.*3600.+hourB*3600.+minB*60.+secB
 
-  difference=diffsecB - diffsecA
+! Adding a day to prevent lose of a complete day
+  difference=diffsecB - diffsecA + 3600*24
   IF (debg >= 150) THEN
     PRINT *,'days and Seconds since ',yearref,'-01-01_00:00:00 of__________'
     PRINT *,'yearA: ',diffdaysA+juliandayA-1, diffsecA

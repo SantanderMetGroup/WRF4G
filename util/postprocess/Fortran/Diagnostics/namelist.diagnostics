@@ -12,7 +12,7 @@
   SN_dimvarname            = 'XLAT',
   BT_dimvarname            = 'ZNU',
   Time_dimvarname          = 'Times',
-  diagnostics              = 'CLT',
+  diagnostics              = 'CLT, MRSO',
   process                  = 'list',
   debug                    = 150,
   filt                     = .FALSE.,
