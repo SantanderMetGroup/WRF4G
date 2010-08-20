@@ -22,6 +22,7 @@ MODULE module_nc_tools
 ! fill_inputs_real: Subroutine to fill a kind-shape of input real fields
 ! nc_gatts: Subroutine to print all global attributes of a netCDF file 
 ! nc_dimensions: Subroutine to obtain range of dimensions of a netCDF file
+! nc_last_idvar: Function to give higest idvar of a netCDF file
 ! nc_Ndim: Subroutine to obtain number of dimensions of a netCDF file
 ! search_variables: Subroutine to search variables from a given netcCDF file
 
@@ -839,8 +840,9 @@ LOGICAL FUNCTION exists_dim(ncid, dimname)
   section="'exists_dim'"
   exists_dim = .FALSE.
 
+  exists_dim = .TRUE.
   rcode = nf_inq_dimid (ncid, dimname, dimid)
-  IF (dimid > 0) exists_dim = .TRUE.
+  IF (rcode /= 0) exists_dim = .FALSE.
 
 END FUNCTION exists_dim
 
@@ -863,10 +865,11 @@ LOGICAL FUNCTION exists_var(ncid, varname)
 ! varname: name of variable
 
   section="'exists_var'"
-  exists_var = .FALSE.
+!  PRINT *,'Section '//TRIM(section)//'... .. .'
 
-  rcode = nf_inq_varid (ncid, varname, varid)
-  IF (varid > 0) exists_var = .TRUE.
+  exists_var = .TRUE.
+  rcode = nf_inq_varid (ncid, TRIM(varname), varid)
+  IF (rcode /= 0) exists_var = .FALSE.
 
 END FUNCTION exists_var
 
@@ -1146,6 +1149,44 @@ SUBROUTINE nc_dimensions(file, dbg, ndims, Xdimname, Ydimname, Zdimname, Tdimnam
 
 END SUBROUTINE nc_dimensions
 
+INTEGER FUNCTION nc_last_idvar(debg, ncid)
+! Function to give higest idvar of a netCDF file
+
+  IMPLICIT NONE
+  
+  INCLUDE 'netcdf.inc'
+  
+  INTEGER, INTENT(IN)                                     :: debg, ncid
+
+! Local
+  INTEGER                                                 :: rcode, ivar
+  INTEGER                                                 :: ndims, nvars, ngatts, nunlimdimid
+  CHARACTER(LEN=50)                                       :: section, varname
+  
+  section="'nc_last_idvar'"
+  
+!!!!!!! Variables
+! ncid: netCDF id
+  
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+  rcode = nf_inq(ncid, ndims, nvars, ngatts, nunlimdimid)
+  CALL error_nc(section, rcode)
+  
+  IF (debg >= 150) THEN
+    PRINT *,' netCDF file has ',nvars, ' variables'
+  ENDIF
+
+  DO ivar=1,nvars
+    rcode = nf_inq_varname (ncid, ivar, varname)
+    CALL error_nc(section, rcode)  
+    IF (debg >= 150 ) PRINT *,'var #',ivar,' name: ',varname
+  END DO  
+
+  nc_last_idvar = nvars
+
+END FUNCTION nc_last_idvar
+
 SUBROUTINE nc_Ndim(fileinf, debg, ndims, nvars, ngatts, nunlimdimid) 
 ! Subroutine to obtain number of dimensions of a netCDF file 
 
@@ -1185,120 +1226,6 @@ SUBROUTINE nc_Ndim(fileinf, debg, ndims, nvars, ngatts, nunlimdimid)
 
   RETURN
 END SUBROUTINE nc_Ndim
-
-!SUBROUTINE put_nc_coords (debg, mcid, coordid, file, coornames)
-! Subroutine to put coordinates matrixs in netCDF file taking values from another one
-
-!  USE module_constants
-
-!  IMPLICIT NONE
-
-!  INCLUDE 'netcdf.inc'
-
-!  INTEGER, INTENT(IN)                                    :: debg, mcid
-!  INTEGER, DIMENSION(4), INTENT(IN)                      :: coorid
-!  CHARACTER(LEN=500), INTENT(IN)                         :: file
- ! CHARACTER(LEN=50), DIMENSION (4), INTENT(IN)           :: coornames
-
-! Local
-!  INTEGER                                                :: ncid, rcode
-!  INTEGER, DIMENSION(6)                                  :: jshape
-!  CHARACTER(LEN=3)                                       :: order
-!  CHARACTER(LEN=250)                                     :: desc
-!  CHARACTER(LEN=50)                                      :: units, stddesc
-!  CHARACTER(LEN=1)                                       :: stag
-!  CHARACTER(LEN=20)                                      :: coord
-!  INTEGER                                                :: rcode, ilen
-!  CHARACTER (LEN=60)                                     :: att_text
-!  CHARACTER (LEN=50)                                     :: section
-!  INTEGER, INTENT(IN)                                    :: debg
-
-!!!!!!!!!! Variables
-! mcid: netCDF file id to put coordinates
-! ivar: variable id
-! cval: variable name
-! itype: type of variable (1: ; 2: text ; 3: ; 4: integer ; 5: real)
-! idm: number of dimensions of variable
-! jshape: shape of variable (which coordinates)
-! order: memory order of coordinates attribute
-! desc: description attribute of varible
-! stddesc: standard (CF convection, http://cf-pcmdi.llnl.gov/) name of variable
-! units: units attribute of variable
-! stag: staggered attribute of variable
-! coord: coordinates labels attribute of variable
-! section: name of subroutine
- 
-!  section="'put_nc_coords'"
-!  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
-
-!  IF ( itype == 5 ) THEN
-!    IF (debg >= 100) PRINT *,'Fixing netCDF id...'
-!    rcode = nf_redef(mcid)
-!    IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-!    IF (debg >= 100) PRINT *,'Defining real variable'
-!    rcode = nf_def_var(mcid, trim(cval), NF_REAL, idm, jshape, ivar)
-!    IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-!    IF (debg >= 100) PRINT *,'Adding real attribute in field'
-!    rcode = nf_put_att_int(mcid, ivar, "FieldType", NF_INT, 1, 104)
-!    IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-!  ENDIF
-
-!  IF (debg >= 100) PRINT *,"Adding MemoryOrder attribute of '"//TRIM(cval)//"' in netCDF file"
-!  att_text = order
-!  ilen = len_trim(att_text)
-!  rcode = nf_put_att_text(mcid, ivar, "MemoryOrder", ilen, att_text(1:ilen) )
-!  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-!  att_text = ' '
-
-!  IF (debg >= 100) PRINT *,"Adding long_name attribute of '"//TRIM(cval)//"' in netCDF file"
-!  att_text = desc
-!  ilen = len_trim(att_text)
-!  rcode = nf_put_att_text(mcid, ivar, "long_name", ilen, att_text(1:ilen) )
-!  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-!  att_text = ' '
-
-!  IF (debg >= 100) PRINT *,"Adding standard_name attribute of '"//TRIM(cval)//"' in netCDF file"
-!  att_text = stddesc
-!  ilen = len_trim(att_text)
-!  rcode = nf_put_att_text(mcid, ivar, "standard_name", ilen, att_text(1:ilen) )
-!  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-!  att_text = ' '
-
-!  IF (debg >= 100) PRINT *,"Adding units attribute of '"//TRIM(cval)//"' in netCDF file"
-!  att_text = units
-!  ilen = len_trim(att_text)
-!  rcode = nf_put_att_text(mcid, ivar, "units", ilen, att_text(1:ilen) )
-!  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-!  att_text = ''
-
-!  IF (debg >= 100) PRINT *,"Adding stagger attribute of '"//TRIM(cval)//"' in netCDF file"
-!  att_text = stag
-!  ilen = len_trim(att_text)
-!  rcode = nf_put_att_text(mcid, ivar, "stagger", ilen, att_text(1:ilen) )
-!  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-!  att_text = ''
-
-!  IF (debg >= 100) PRINT *,"Adding coordinates attribute of '"//TRIM(cval)//"' in netCDF file"
-!  att_text = coord
-!  ilen = len_trim(att_text)
- ! rcode = nf_put_att_text(mcid, ivar, "coordinates", ilen, att_text(1:ilen) )
-!  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-!  att_text = ''
-
-!  IF (debg >= 100) PRINT *,"Adding missing attribute of '"//TRIM(cval)//"' in netCDF file"
-!  att_text = '-99999.' 
-!  ilen = len_trim(att_text)
-!  rcode = nf_put_att_text(mcid, ivar, "missing_value", ilen, att_text(1:ilen) )
-!  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-!  att_text = '-99999.'
-!  rcode = nf_put_att_text(mcid, ivar, "_Fillvalue", ilen, att_text(1:ilen) )
-!  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-!  att_text = ''
-
-!  rcode = nf_enddef(mcid)
-!  IF (rcode /= 0) PRINT *,TRIM(errmsg)//' in '//TRIM(section)//nf_strerror(rcode)
-
-!END SUBROUTINE put_nc_coords
 
 SUBROUTINE search_variables(debg, ncs, Nnc, svars, Nsvars, fvars, dimfvars)
 ! Subroutine to search a list of 'Nsvars' variables from a given set of 'Nnc' netcCDF files 

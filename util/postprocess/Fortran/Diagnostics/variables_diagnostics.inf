@@ -7,6 +7,30 @@
  diagnostic_longdesc      'total cloud fraction'
  diagnostic_std_name      'cloud_area_fraction'
  diagnostic_units         '1'
+*CLT_CAM*
+ Num_input_variables      1
+ Input_variables          CLDFRA
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_longdesc      'total cloud fraction'
+ diagnostic_std_name      'cloud_area_fraction'
+ diagnostic_units         '1'
+*HURS*
+ Num_input_variables      3
+ Input_variables          T2, Q2, PSFC
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_longdesc      'relative humidty at 2 m'
+ diagnostic_std_name      'relative_humidty'
+ diagnostic_units         '1'
+*MRSO*
+ Num_input_variables      2
+ Input_variables          SMOIS, DZS
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_longdesc      'total soil moisture content'
+ diagnostic_std_name      'soil_moisture_content'
+ diagnostic_units         'kgm-2'
 *PV*
  Num_input_variables      6
  Input_variables          UU, VV, TT, F, MAPFAC_M, PLEV
@@ -15,12 +39,11 @@
  diagnostic_longdesc      'potential vorticity'
  diagnostic_std_name      'potential_vorticity'
  diagnostic_units         'PVU (10-6 m2Ks-1kg-1)'
-*MRSO*
- Num_input_variables      1
- Input_variables          SMOIS
+*TDPS*
+ Num_input_variables      2
+ Input_variables          Q2, PSFC
  diagnostic_dim           3
  diagnostic_dim_shape     1, 2, 4
- diagnostic_longdesc      'total soil moisture content'
- diagnostic_std_name      'soil_moisture_content'
- diagnostic_units         'kgm-2'
-
+ diagnostic_longdesc      'dew point temperature at 2M'
+ diagnostic_std_name      'dew_point_temperature'
+ diagnostic_units         'K'

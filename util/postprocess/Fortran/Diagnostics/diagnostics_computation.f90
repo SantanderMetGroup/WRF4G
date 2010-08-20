@@ -146,14 +146,21 @@ PROGRAM diagnostics_computation
   END DO
 
 ! Constructing vertical levels
-  CALL number_values(p_levels, debug, Nlevels)
-  ALLOCATE(levs(Nlevels))
-  CALL string_Realvalues(debug, p_levels, Nlevels, levs)
+  Nlevels=1
+  IF (LEN_TRIM(p_levels) > 1) THEN
+    CALL number_values(p_levels, debug, Nlevels)
+    IF (ALLOCATED(levs)) DEALLOCATE(levs)
+    ALLOCATE(levs(Nlevels))
+    CALL string_Realvalues(debug, p_levels, Nlevels, levs)
 
-  PRINT *,'There are',Nlevels,'input levels'
-  DO i=1,Nlevels
-    PRINT *,i,levs(i)
-  END DO
+    PRINT *,'There are',Nlevels,'input levels'
+    DO i=1,Nlevels
+      PRINT *,i,levs(i)
+    END DO
+   ELSE
+    IF (ALLOCATED(levs)) DEALLOCATE(levs)
+    ALLOCATE(levs(Nlevels))   
+   ENDIF
 
 ! Constructing all paths-files structures
   IF (ALLOCATED(infiles)) DEALLOCATE(infiles)

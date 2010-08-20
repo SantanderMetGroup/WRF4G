@@ -313,7 +313,7 @@ SUBROUTINE string_Realvalues(debg, string, Nvalues, values)
 
   section="'string_Realvalues'"
   IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
-  IF (debg >= 150) PRINT *,"sting: '"//TRIM(string)//"'"
+  IF (debg >= 150) PRINT *,"string: '"//TRIM(string)//"'"
 
   Lstring = len_trim(string)
 

@@ -204,8 +204,8 @@ MODULE module_pv
 
     CALL borders3d(variableout, dx, dy, dz, dt)
 
-    WHERE(variableout >= extremeval) variableout=errorval
-    WHERE(variableout <= -extremeval) variableout=errorval
+    WHERE(variableout >= missingval) variableout=missingval
+    WHERE(variableout <= -missingval) variableout=missingval
     IF (debg >= 75) PRINT *,'PV without extreme values: ',variableout(dx/2, dy/2, dz/2, dt/2)
  
     PRINT *,"'PV' diagnostics SUCCESSFULLY computed..."

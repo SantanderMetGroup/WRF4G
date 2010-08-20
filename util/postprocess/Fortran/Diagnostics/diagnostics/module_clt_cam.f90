@@ -1,12 +1,11 @@
-MODULE module_clt
+MODULE module_clt_cam
   
   CONTAINS
-! Diagnostic module of compuation of total cloud cover fraction following Sundqvist, 1989, Mont.
-!   Weather Rev. 
+! Diagnostic module of compuation of total cloud cover fraction following as it is done in CAM model
 ! GMS. UC: August 2010. v0.0
 !
 
-  SUBROUTINE clt(debg, dx, dy, dz, dt, cldfra, totcfr)
+  SUBROUTINE clt_cam(debg, dx, dy, dz, dt, cldfra, totcfr)
 !  Subroutine to compute total cloud cover in base 1.
 
   USE module_constants
@@ -22,7 +21,7 @@ MODULE module_clt
   INTEGER, INTENT(IN)                                     :: debg
 
 ! Local
-  INTEGER                                                 :: i,j,k,it, ijk, nozero
+  INTEGER                                                 :: i,j,k,it
   CHARACTER(LEN=50)                                       :: section
   CHARACTER(LEN=250)                                      :: message
   INTEGER                                                 :: halfdim
@@ -37,39 +36,27 @@ MODULE module_clt
   IF (debg >= 75) PRINT *,'Section '//TRIM(section)//'... .. .'
   IF (debg >= 100) PRINT *,'Dimensions: ',dx,CHAR(44), dy,CHAR(44), dz,CHAR(44), dt
 
-  totcfr = 1.
+  totcfr=0.
   
-  ijk=0
-
   IF (debg >= 75)  PRINT *,'Computing total cloud fraction....'
   DO i=1,dx
     DO j=1,dy
       DO it=1,dt
-        IF (ALL(cldfra(i,j,:,it) /= 1.)) THEN
-          vertical_levels: DO k=1, dz-1
-            totcfr(i,j,it)=totcfr(i,j,it)*((1-MAX(cldfra(i,j,k,it),cldfra(i,j,k+1,it)))/        &
-              (1.-cldfra(i,j,k,it)))
-          END DO vertical_levels
-	ELSE
-	  totcfr(i,j,it)=0.
-	END IF
+        totcfr(i,j,it)=MAXVAL(cldfra(i,j,:,it))
       END DO
     END DO
   END DO
 
-  totcfr=1.-totcfr
-  WHERE (totcfr > 1.) totcfr=1.
-
   IF (debg >= 150) THEN
-    DO k=1,dz
-      PRINT *,'dim/2 cloud fraction values at ',k, 'level: ', cldfra(halfdim(dx), halfdim(dy),  &
-        k, halfdim(dt))
+    DO k=1, dz
+      PRINT *,'At level :',k,' cloud fraction at center: ', cldfra(halfdim(dx), halfdim(dy), k, &
+        halfdim(dt))
     END DO
   END IF
 
   IF (debg >= 75) PRINT *,'Total cloud fraction at the center dimx/2:', halfdim(dx),' dimy/2:', &
     halfdim(dy),' dt/2:', halfdim(dt), ' =', totcfr(halfdim(dx),halfdim(dy),halfdim(dt))
 
-  END SUBROUTINE clt
+  END SUBROUTINE clt_cam
 
-END MODULE module_clt
+END MODULE module_clt_cam

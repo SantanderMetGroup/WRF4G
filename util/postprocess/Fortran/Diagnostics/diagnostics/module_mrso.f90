@@ -5,7 +5,7 @@ MODULE module_mrso
 ! GMS. UC: August 2010. v0.0
 !
 
-  SUBROUTINE mrso(debg, dx, dy, dz, dt, levmois, totsoilmois)
+  SUBROUTINE mrso(debg, dx, dy, dz, dt, levmois, dzlev, totsoilmois)
 !  Subroutine to compute total soil moisture content in kgm-2
 
   USE module_constants
@@ -17,6 +17,7 @@ MODULE module_mrso
 !    567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
   INTEGER, INTENT(IN)                                     :: dx, dy, dz, dt
   REAL, DIMENSION(dx,dy,dz,dt), INTENT(IN)                :: levmois
+  REAL, DIMENSION(dz,dt), INTENT(IN)                      :: dzlev
   REAL, DIMENSION(dx,dy,dt), INTENT(OUT)                  :: totsoilmois
   INTEGER, INTENT(IN)                                     :: debg
 
@@ -28,8 +29,9 @@ MODULE module_mrso
   
 !!!!!!!!!!!!!! Variables
 ! dx, dy, dz, dt: dimensions of fields
-! levmois: Description of input variables
-! totsoilmois: description of output variable
+! dzlev: thickness of level [m]
+! levmois: moisture at each level [m3 m-3]
+! totsoilmois: total moisture content [kg m-3]
 
   section="'module_mrso'"
   
@@ -41,18 +43,26 @@ MODULE module_mrso
   DO i=1,dx
     DO j=1,dy
       DO l=1,dt
-        totsoilmois(i,j,l)=SUM(levmois(i,j,1:dz,l))
+        IF (ALL (levmois(i,j,1:dz,l) == 1)) THEN
+	  totsoilmois(i,j,l)=1.
+	ELSE
+! Converting 1 m3 H2O --> 1000 kg H2O ; we want kg m-3
+          totsoilmois(i,j,l)=SUM(levmois(i,j,1:dz,l)*dzlev(1:dz,l))*1000.
+	END IF
       END DO
     END DO
   END DO
 
-  IF (debg >= 75) THEN
+  IF (debg >= 150) THEN
     DO k=1,dz
-      PRINT *,'soil moisture at level ',k,' : ',levmois(halfdim(dx), halfdim(dy), k,            &
-        halfdim(dt))
+      PRINT *,'level ',k,' thickness: ',dzlev(k, halfdim(dt)),' dim/2 soil moisture: ',          &
+        levmois(halfdim(dx), halfdim(dy), k, halfdim(dt))
     END DO
-    PRINT *,'mrso at the center dimx/2:', halfdim(dx),' dimy/2:', &
-    halfdim(dy),' dt/2:', halfdim(dt), ' =', totsoilmois(halfdim(dx),halfdim(dy),halfdim(dt))
+  END IF
+
+  IF (debg >= 75) THEN
+    PRINT *,'mrso at the center dimx/2:', halfdim(dx),' dimy/2:', halfdim(dy),' dt/2:',          &
+      halfdim(dt), ' =', totsoilmois(halfdim(dx),halfdim(dy),halfdim(dt))
   END IF
 
   END SUBROUTINE mrso
