@@ -5,9 +5,16 @@
 !
 !=================================Make Executable============================
 !  Make executable:
-!  GMS.UC:
-!  pgf90 p_interp.F90 -L/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/lib -lnetcdf -lm -I/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/include -Mfree -o p_interp
-!    DEC Alpha
+!
+!  GMS.UC.new:
+!      gfortran p_interp.F90 -L/software/CentOS/5.2/openmpi/1.4.2/gcc-gfortran4.1.2/lib -lnetcdf \
+!      -I/software/CentOS/5.2/openmpi/1.4.2/gcc-gfortran4.1.2/include -o p_interp
+!
+!  GMS.UC.old:
+!      pgf90 p_interp.F90 -L/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/lib -lnetcdf -lm \
+!      -I/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/include -Mfree -o p_interp
+!
+!  DEC Alpha
 !      f90 p_interp.F90 -L/usr/local/netcdf/lib -lnetcdf -lm  \
 !      -I/usr/local/netcdf/include  -free  -o p_interp
 !
@@ -1202,6 +1209,39 @@ rcode = nf_enddef(mcid)
           DEALLOCATE(data3)
         ENDIF
 
+        IF ( INDEX(process,'all') /= 0 .OR. INDEX(process_these_fields,'CLT') /= 0 ) THEN
+          !
+          !   total cloud fraction
+          !
+          rcode = nf_inq_varndims(ncid, i, ndims)
+          rcode = nf_inq_vardimid(ncid, i, ishape)
+          DO idim=1, ndims
+            rcode = nf_inq_dimlen(ncid, ishape(idim), dims_in(idim))
+          END DO
+          jshape2d=RESHAPE((/jshape(1),jshape(2),jshape(4)/),(/3/))
+          dims2d_out=RESHAPE((/dims_in(1),dims_in(2),dims_in(4),1/),(/4/))
+          IF (ALLOCATED(data4)) DEALLOCATE(data4)
+          ALLOCATE (data4(dims_in(1), dims_in(2), dims_in(4), 1, 1))
+          varnameIN='CLDFRA'
+          CALL clt(debug, ncid, dims_in(1), dims_in(2), dims_in(3), dims_in(4), varnameIN, data4) 
+          IF (debug) THEN
+            PRINT *,'total cloud fraction'
+            PRINT *,'     VAR: CLT, idvar:',jvar+1
+            PRINT *,'     DIMS OUT: ',dims2d_out
+          ENDIF
+
+          jvar = jvar + 1
+          varnameIN='CLT'
+          longdescIN='total cloud fraction'
+          unitsIN='1'
+          CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
+            , "XLONG XLAT")
+          rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data4(:,:,:,1,1))
+          IF (debug) PRINT *, '  CLT. SAMPLE VALUE OUT = ',data4(dims_out(1)/2,dims_out(2)/2,1,1,1)
+          DEALLOCATE(data4)
+        ENDIF
+
+
 !!! Close files on exit
         rcode = nf_close(ncid)
         rcode = nf_close(mcid)
@@ -1251,6 +1291,75 @@ rcode = nf_close ( ncgid )
 END SUBROUTINE extract_from_geogrid
 
 !---------------------------------------------------------------------
+
+  SUBROUTINE clt(debg, ncid, cldfraname, dx, dy, dz, dt, totcfr)
+!  Subroutine to compute total cloud cover in base 1.
+
+  IMPLICIT NONE
+  
+  INCLUDE 'netcdf.inc'
+!    567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
+  INTEGER, INTENT(IN)                                     :: dx, dy, dz, dt, ncid
+  LOGICAL, INTENT(IN)                                     :: debg
+  CHARACTER(LEN=11), INTENT(IN)                           :: cldfraname
+  REAL, DIMENSION(dx,dy,dt), INTENT(OUT)                  :: totcfr
+
+! Local
+  INTEGER                                                 :: i,j,k,it, ijk, nozero
+  INTEGER                                                 :: rcode, idcldfra
+  CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=250)                                      :: message
+  REAL, DIMENSION(dx,dy,dz,dt), INTENT(IN)                :: cldfra
+  INTEGER                                                 :: halfdim
+  
+!!!!!!!!!!!!!! Variables
+! dx, dy, dz, dt: dimensions of fields
+! cldfra: cloud fraction at each level
+! totcfr: total cloud fraction
+
+  section="'subroutine_clt'"
+  
+  IF (debg) PRINT *,'Section '//TRIM(section)//'... .. .'
+  IF (debg) PRINT *,'Dimensions: ',dx,CHAR(44), dy,CHAR(44), dz,CHAR(44), dt
+
+  rcode = nf_inq_varid(ncid, cldfraname, icldfra)
+  rcode = nf_get_var_real(ncid, icldfra, cldfra)
+
+  totcfr = 1.
+  
+  ijk=0
+
+  IF (debg)  PRINT *,'Computing total cloud fraction....'
+  DO i=1,dx
+    DO j=1,dy
+      DO it=1,dt
+        IF (ALL(cldfra(i,j,:,it) /= 1.)) THEN
+          vertical_levels: DO k=1, dz-1
+            totcfr(i,j,it)=totcfr(i,j,it)*((1-MAX(cldfra(i,j,k,it),cldfra(i,j,k+1,it)))/        &
+              (1.-cldfra(i,j,k,it)))
+          END DO vertical_levels
+	ELSE
+	  totcfr(i,j,it)=0.
+	END IF
+      END DO
+    END DO
+  END DO
+
+  totcfr=1.-totcfr
+  WHERE (totcfr > 1.) totcfr=1.
+
+  IF (debg) THEN
+    DO k=1,dz
+      PRINT *,'dim/2 cloud fraction values at ',k, 'level: ', cldfra(halfdim(dx), halfdim(dy),  &
+        k, halfdim(dt))
+    END DO
+  END IF
+
+  IF (debg) PRINT *,'Total cloud fraction at the center dimx/2:', halfdim(dx),' dimy/2:',       &
+    halfdim(dy),' dt/2:', halfdim(dt), ' =', totcfr(halfdim(dx),halfdim(dy),halfdim(dt))
+
+  END SUBROUTINE clt
+
 
 SUBROUTINE variablessum(ncid, variables, Nvar, dx, dy, dz, dt, datasum)
 ! Subroutine to add 'Nvar' variables
@@ -2075,5 +2184,18 @@ END SUBROUTINE spatialfiltering
       rcode = nf_enddef(mcid)
 
  END SUBROUTINE def_var
+
+INTEGER FUNCTION halfdim(dim)
+! Function to give the half value of a dimension
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: dim
+  
+  halfdim = dim/2
+  IF (dim < 2) halfdim = 1     ! Assuming non-zero dimension range
+  
+END FUNCTION halfdim
+
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
