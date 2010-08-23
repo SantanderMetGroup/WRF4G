@@ -7,8 +7,8 @@
 !  Make executable:
 !
 !  GMS.UC.new:
-!      gfortran p_interp.F90 -L/software/CentOS/5.2/openmpi/1.4.2/gcc-gfortran4.1.2/lib -lnetcdf \
-!      -I/software/CentOS/5.2/openmpi/1.4.2/gcc-gfortran4.1.2/include -o p_interp
+!      gfortran p_interp.F90 -L/software/CentOS/5.2/netcdf/4.1.1/gcc-gfortran4.1.2/lib -lnetcdf \
+!      -I/software/CentOS/5.2/netcdf/4.1.1/gcc-gfortran4.1.2/include -o p_interp
 !
 !  GMS.UC.old:
 !      pgf90 p_interp.F90 -L/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/lib -lnetcdf -lm \
@@ -121,6 +121,7 @@
       INTEGER                                            :: ncgid
       INTEGER                                            :: ivar1, ivar2, k 
       CHARACTER(LEN=11)                                  :: unitsIN, varnameIN
+      CHARACTER(LEN=50)                                  :: section
       CHARACTER(LEN=60)                                  :: longdescIN
       CHARACTER(LEN=250)                                 :: path_to_geofile, geofile, geofilename
       CHARACTER(LEN=300)                                 :: inputlong_name
@@ -953,6 +954,7 @@ rcode = nf_enddef(mcid)
              write(6,*) 'VAR: TT idvar:',jvar
              write(6,*) '     DIMS OUT: ',dims_out
            ENDIF
+           IF (ALLOCATED(data2)) DEALLOCATE(data2)
            allocate (data2(dims_out(1),dims_out(2),dims_out(3),dims_out(4)))
 ! GMS.UC:Lluis Dec.09
            CALL interpdiag (data2, tk, pres_field, interp_levels, psfc, ter, tk, qv,            &
@@ -1024,6 +1026,8 @@ rcode = nf_enddef(mcid)
           !
           !   vertically integrated moisture
           ! 
+          section = "'VIM'"
+          IF (debug) PRINT *,'Section '//TRIM(section)//'... .. .'
           rcode = nf_inq_varndims(ncid, i, ndims)
           rcode = nf_inq_vardimid(ncid, i, ishape)
           DO idim=1, ndims
@@ -1048,6 +1052,7 @@ rcode = nf_enddef(mcid)
             PRINT *,'     DIMS OUT: ',dims2d_out
           ENDIF
           rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3)
+          call error_nc(section, rcode)
           IF (debug) PRINT *,'     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
           DEALLOCATE(data3)
         ENDIF
@@ -1056,6 +1061,8 @@ rcode = nf_enddef(mcid)
           !
           !   vertically integrated cloud water 
           !
+          section="'VIQC'"
+          IF (debug) PRINT *,'Section '//TRIM(section)//'... .. .'
           rcode = nf_inq_varndims(ncid, i, ndims)
           rcode = nf_inq_vardimid(ncid, i, ishape)
           DO idim=1, ndims
@@ -1078,6 +1085,7 @@ rcode = nf_enddef(mcid)
             PRINT *,'     DIMS OUT: ',dims2d_out
           ENDIF
           rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3)
+          call error_nc(section, rcode)
           IF (debug) PRINT *, '     SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
           DEALLOCATE(data3)
         ENDIF
@@ -1086,6 +1094,8 @@ rcode = nf_enddef(mcid)
           !
           !   vertically integrated wind 
           !
+          section="'VIWIND'"
+          IF (debug) PRINT *,'Section '//TRIM(section)//'... .. .'
           rcode = nf_inq_varndims(ncid, i, ndims)
           rcode = nf_inq_vardimid(ncid, i, ishape)
           DO idim=1, ndims
@@ -1095,7 +1105,7 @@ rcode = nf_enddef(mcid)
           dims2d_out=RESHAPE((/dims_in(1),dims_in(2),dims_in(4),1/),(/4/))
           IF (ALLOCATED(data3)) DEALLOCATE(data3)
           ALLOCATE (data3(dims_in(1), dims_in(2), dims_in(4), 3))
-          CALL multi_massvertint(ncid, (/'U          ','V          ','W           '/), 3, debug,& 
+          CALL multi_massvertint(ncid, (/'U          ','V          ','W          '/), 3, debug,& 
             dims_in(1), dims_in(2), dims_in(3), dims_in(4), data3)
           IF (debug) THEN
             PRINT *, 'Vertical transport integration'
@@ -1110,6 +1120,7 @@ rcode = nf_enddef(mcid)
           CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
             , "XLONG XLAT")
           rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3(:,:,:,1))
+          CALL error_nc(section, rcode)
           IF (debug) PRINT *, '  VIU. SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,1)
           jvar = jvar + 1
           varnameIN='VIV'
@@ -1118,6 +1129,7 @@ rcode = nf_enddef(mcid)
           CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
             , "XLONG XLAT")
           rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3(:,:,:,2))
+          call error_nc(section, rcode)
           IF (debug) PRINT *, '  VIV. SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,2)
           jvar = jvar + 1
           varnameIN='VIW'
@@ -1126,6 +1138,7 @@ rcode = nf_enddef(mcid)
           CALL def_var (mcid, jvar, varnameIN, 5, 3, jshape2d, "XY", longdescIN, unitsIN, "-"   &
             , "XLONG XLAT")
           rcode = nf_put_vara_real (mcid, jvar, start_dims, dims2d_out, data3(:,:,:,3))
+          call error_nc(section, rcode)
           IF (debug) PRINT *, '  VIW. SAMPLE VALUE OUT = ',data3(dims_out(1)/2,dims_out(2)/2,1,3)
 
           DEALLOCATE(data3)
@@ -1135,6 +1148,8 @@ rcode = nf_enddef(mcid)
           !
           !   vertically integrated transport of moist
           !
+          section="'VIMWIND'"
+          IF (debug) PRINT *,'Section '//TRIM(section)//'... .. .'
           rcode = nf_inq_varndims(ncid, i, ndims)
           rcode = nf_inq_vardimid(ncid, i, ishape)
           DO idim=1, ndims
@@ -1183,6 +1198,8 @@ rcode = nf_enddef(mcid)
           !
           !   vertically integrated cloud ice 
           !
+          section="'VIQI'"
+          IF (debug) PRINT *,'Section '//TRIM(section)//'... .. .'
           rcode = nf_inq_varndims(ncid, i, ndims)
           rcode = nf_inq_vardimid(ncid, i, ishape)
           DO idim=1, ndims
@@ -1213,6 +1230,8 @@ rcode = nf_enddef(mcid)
           !
           !   total cloud fraction
           !
+          section="'CLT'"
+          IF (debug) PRINT *,'Section '//TRIM(section)//'... .. .'
           rcode = nf_inq_varndims(ncid, i, ndims)
           rcode = nf_inq_vardimid(ncid, i, ishape)
           DO idim=1, ndims
@@ -1220,10 +1239,15 @@ rcode = nf_enddef(mcid)
           END DO
           jshape2d=RESHAPE((/jshape(1),jshape(2),jshape(4)/),(/3/))
           dims2d_out=RESHAPE((/dims_in(1),dims_in(2),dims_in(4),1/),(/4/))
+          PRINT *,'Que passa neng?'
           IF (ALLOCATED(data4)) DEALLOCATE(data4)
-          ALLOCATE (data4(dims_in(1), dims_in(2), dims_in(4), 1, 1))
+          ALLOCATE (data4(dims_in(1), dims_in(2), dims_in(4), 1, 1), STAT=ierr)
+          IF (ierr /= 0) PRINT *,"Error in allocating 'data4'"
           varnameIN='CLDFRA'
-          CALL clt(debug, ncid, dims_in(1), dims_in(2), dims_in(3), dims_in(4), varnameIN, data4) 
+          PRINT *,'Que passa neng? 2',  dims_in(1), dims_in(2), dims_in(3), dims_in(4)
+          PRINT *,'ubound: ',UBOUND(data4)
+          CALL clt(debug, ncid, dims_in(1), dims_in(2), dims_in(3), dims_in(4), varnameIN,     &
+            data4) 
           IF (debug) THEN
             PRINT *,'total cloud fraction'
             PRINT *,'     VAR: CLT, idvar:',jvar+1
@@ -1292,7 +1316,7 @@ END SUBROUTINE extract_from_geogrid
 
 !---------------------------------------------------------------------
 
-  SUBROUTINE clt(debg, ncid, cldfraname, dx, dy, dz, dt, totcfr)
+  SUBROUTINE clt(debg, ncid, dx, dy, dz, dt, cldfraname, totcloudfr)
 !  Subroutine to compute total cloud cover in base 1.
 
   IMPLICIT NONE
@@ -1302,14 +1326,15 @@ END SUBROUTINE extract_from_geogrid
   INTEGER, INTENT(IN)                                     :: dx, dy, dz, dt, ncid
   LOGICAL, INTENT(IN)                                     :: debg
   CHARACTER(LEN=11), INTENT(IN)                           :: cldfraname
-  REAL, DIMENSION(dx,dy,dt), INTENT(OUT)                  :: totcfr
+  REAL, DIMENSION(dx,dy,dt,1,1), INTENT(OUT)              :: totcloudfr
 
 ! Local
   INTEGER                                                 :: i,j,k,it, ijk, nozero
   INTEGER                                                 :: rcode, idcldfra
   CHARACTER(LEN=50)                                       :: section
   CHARACTER(LEN=250)                                      :: message
-  REAL, DIMENSION(dx,dy,dz,dt), INTENT(IN)                :: cldfra
+  REAL, DIMENSION(dx,dy,dz,dt)                            :: cldfra
+  REAL, DIMENSION(dx,dy,dt)                               :: totcfr
   INTEGER                                                 :: halfdim
   
 !!!!!!!!!!!!!! Variables
@@ -1318,12 +1343,12 @@ END SUBROUTINE extract_from_geogrid
 ! totcfr: total cloud fraction
 
   section="'subroutine_clt'"
-  
   IF (debg) PRINT *,'Section '//TRIM(section)//'... .. .'
+  
   IF (debg) PRINT *,'Dimensions: ',dx,CHAR(44), dy,CHAR(44), dz,CHAR(44), dt
 
-  rcode = nf_inq_varid(ncid, cldfraname, icldfra)
-  rcode = nf_get_var_real(ncid, icldfra, cldfra)
+  rcode = nf_inq_varid(ncid, cldfraname, idcldfra)
+  rcode = nf_get_var_real(ncid, idcldfra, cldfra)
 
   totcfr = 1.
   
@@ -1357,6 +1382,7 @@ END SUBROUTINE extract_from_geogrid
 
   IF (debg) PRINT *,'Total cloud fraction at the center dimx/2:', halfdim(dx),' dimy/2:',       &
     halfdim(dy),' dt/2:', halfdim(dt), ' =', totcfr(halfdim(dx),halfdim(dy),halfdim(dt))
+  totcloudfr(:,:,:,1,1)=totcfr
 
   END SUBROUTINE clt
 
@@ -1395,6 +1421,8 @@ SUBROUTINE multi_transportvertint(ncid, variables, Nvar, winds, dbg, nx, ny, nz,
   INTEGER, INTENT(IN)                            :: nx, ny, nz, nt
   LOGICAL, INTENT(IN)                            :: dbg
   REAL, DIMENSION(nx,ny,nt,Nvar,3), INTENT(OUT)  :: integrals
+
+! Local
   REAL, DIMENSION(nx,ny,nz,nt)                   :: dataval, windu, windv,   & 
     windw
   REAL, DIMENSION(nx,ny,nz,nt,3)                 :: integrand
@@ -1406,8 +1434,12 @@ SUBROUTINE multi_transportvertint(ncid, variables, Nvar, winds, dbg, nx, ny, nz,
   INTEGER                                        :: iu, iv, iw, idz, imu, imub
   REAL, PARAMETER                                :: grav=9.81
   REAL                                           :: dxm, dym
+  CHARACTER(LEN=50)                              :: section
 
+  section="'multi_transportvertint'"
   IF (dbg) PRINT *,'Vertical sigma integration of transport of ',Nvar,' variables...'
+  IF (dbg) PRINT *,'Section '//TRIM(section)//'... .. .'
+
   integrals=0.
   rcode = nf_inq_varid(ncid, 'DNW', idz)
   rcode = nf_inq_varid(ncid, 'MU', imu)
@@ -1427,18 +1459,22 @@ SUBROUTINE multi_transportvertint(ncid, variables, Nvar, winds, dbg, nx, ny, nz,
   IF (ALLOCATED(stagdata)) DEALLOCATE(stagdata)
   ALLOCATE (stagdata(nx+1,ny,nz,nt))
   rcode = nf_get_var_real(ncid, iu, stagdata)
+  CALL error_nc(section, rcode)
   windu = 0.5 * ( stagdata(1:nx,:,:,:)+stagdata(2:nx+1,:,:,:) )
 
   rcode = nf_inq_varid(ncid, TRIM(winds(2)), iv)
   IF (ALLOCATED(stagdata)) DEALLOCATE(stagdata)
   ALLOCATE (stagdata(nx,ny+1,nz,nt))
   rcode = nf_get_var_real(ncid, iv, stagdata)
+  CALL error_nc(section, rcode)
   windv = 0.5 * ( stagdata(:,1:ny,:,:)+stagdata(:,2:ny+1,:,:) )
 
   rcode = nf_inq_varid(ncid, TRIM(winds(3)), iw)
+  CALL error_nc(section, rcode)
   IF (ALLOCATED(stagdata)) DEALLOCATE(stagdata)
   ALLOCATE (stagdata(nx,ny,nz+1,nt))
   rcode = nf_get_var_real(ncid, iw, stagdata)
+  CALL error_nc(section, rcode)
   windw = 0.5 * ( stagdata(:,:,1:nz,:)+stagdata(:,:,2:nz+1,:) )
 
   DO ivar=1,Nvar
@@ -1452,6 +1488,7 @@ SUBROUTINE multi_transportvertint(ncid, variables, Nvar, winds, dbg, nx, ny, nz,
       rcode = nf_inq_dimlen(ncid, vardims(idim), lengthvardims(idim))
     END DO
     rcode = nf_get_var_real(ncid, i, dataval)
+    CALL error_nc(section, rcode)
     integrand(:,:,:,:,1) = integrand(:,:,:,:,1) * dataval * windu
     integrand(:,:,:,:,2) = integrand(:,:,:,:,2) * dataval * windv
     integrand(:,:,:,:,3) = integrand(:,:,:,:,3) * dataval * windw
@@ -1488,48 +1525,68 @@ SUBROUTINE multi_massvertint(ncid, variables, Nvar, dbg, nx, ny, nz, nt, integra
   INTEGER                                        :: idz, imu, imub
   REAL, PARAMETER                                :: grav=9.81
   REAL                                           :: dxm, dym
+  CHARACTER(LEN=50)                              :: section
+
+  section="'multi_transportvertint'"
+  IF (dbg) PRINT *,'Section '//TRIM(section)//'... .. .'
 
   IF (dbg) PRINT *,'Vertical sigma integration of ',Nvar,' variables...'
   integrals=0.
   rcode = nf_inq_varid(ncid, 'DNW', idz)
+  CALL error_nc(section, rcode)
   rcode = nf_inq_varid(ncid, 'MU', imu)
+  CALL error_nc(section, rcode)
   rcode = nf_inq_varid(ncid, 'MUB', imub)
+  CALL error_nc(section, rcode)
 
   rcode = nf_get_var_real(ncid, idz, dz)
+  CALL error_nc(section, rcode)
   rcode = nf_get_var_real(ncid, imu, mu)
+  CALL error_nc(section, rcode)
   rcode = nf_get_var_real(ncid, imub, mub)
+  CALL error_nc(section, rcode)
   rcode = nf_get_att_real(ncid, nf_global, 'DX', dxm)
+  CALL error_nc(section, rcode)
   rcode = nf_get_att_real(ncid, nf_global, 'DY', dym)
+  CALL error_nc(section, rcode)
 
   dz=ABS(dz)
       
   DO ivar=1,Nvar
     integrand=1.
-    IF (dbg) PRINT *,'  '//TRIM(variables(ivar))
     rcode = nf_inq_varid(ncid, TRIM(variables(ivar)), i)
+    IF (dbg) PRINT *,"  '"//TRIM(variables(ivar))//"' id:", i
+    CALL error_nc(section, rcode)
     if (rcode .ne. nf_noerr) call handle_err(rcode)
     IF (TRIM(variables(ivar))=='U') THEN
       IF (ALLOCATED(stagdata)) DEALLOCATE(stagdata)
       allocate (stagdata(nx+1,ny,nz,nt))
       rcode = nf_get_var_real(ncid, i, stagdata)
+      CALL error_nc(section, rcode)
       dataval = 0.5 * ( stagdata(1:nx,:,:,:)+stagdata(2:nx+1,:,:,:) )
     ELSEIF (TRIM(variables(ivar))=='V') THEN
       IF (ALLOCATED(stagdata)) DEALLOCATE(stagdata)
       allocate (stagdata(nx,ny+1,nz,nt))
       rcode = nf_get_var_real(ncid, i, stagdata)
+      CALL error_nc(section, rcode)
       dataval = 0.5 * ( stagdata(:,1:ny,:,:)+stagdata(:,2:ny+1,:,:) )
     ELSEIF (TRIM(variables(ivar))=='W') THEN
       IF (ALLOCATED(stagdata)) DEALLOCATE(stagdata)
       allocate (stagdata(nx,ny,nz+1,nt))
       rcode = nf_get_var_real(ncid, i, stagdata)
+      CALL error_nc(section, rcode)
       dataval = 0.5 * ( stagdata(:,:,1:nz,:)+stagdata(:,:,2:nz+1,:) )
     ELSE
       rcode = nf_inq_varndims(ncid, i, nvardims)
+      CALL error_nc(section, rcode)
       rcode = nf_inq_vardimid(ncid, i, vardims)
+      CALL error_nc(section, rcode)
       DO idim=1, nvardims
         rcode = nf_inq_dimlen(ncid, vardims(idim), lengthvardims(idim))
+        CALL error_nc(section, rcode)
       END DO
       rcode = nf_get_var_real(ncid, i, dataval)
+      CALL error_nc(section, rcode)
     ENDIF
     integrand = integrand * dataval
     DO iz=1,nz
@@ -2196,6 +2253,26 @@ INTEGER FUNCTION halfdim(dim)
   IF (dim < 2) halfdim = 1     ! Assuming non-zero dimension range
   
 END FUNCTION halfdim
+
+SUBROUTINE error_nc(sec, rc)
+! Subroutine to print error nc messages
+
+  IMPLICIT NONE
+  
+  INCLUDE 'netcdf.inc'
+  
+  INTEGER, INTENT(IN)                                     :: rc
+  CHARACTER(LEN=50), INTENT(IN)                           :: sec
+
+! Local
+  CHARACTER(LEN=50)                                       :: errmsg='ERROR - error - ERROR'//   &
+    ' - error - ERROR'
+
+  
+  IF (rc /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(sec)//" "//nf_strerror(rc)
+
+END SUBROUTINE error_nc
+
 
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------

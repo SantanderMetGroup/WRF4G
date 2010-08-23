@@ -1,8 +1,8 @@
 &io
-  path_to_input            = '/vols/tetis/meteo4g/WRF/experiments/scn7a/scn7a/output',
-  input_name               = 'wrfout_d01_19910513T000000Z.nc',
-  path_to_output           = '/vols/tetis/meteo4g/WRF/experiments/scn7a/scn7a/output',
-  fields                   = 'GHT,TT,RH,MSLP,U,V,VIM,VIWIND,VIMWIND,VIQC,VIQI,Times',
+  path_to_input            = 'Diagnostics',
+  input_name               = 'wrfout_d01_19760217T000000Z.nc',
+  path_to_output           = '.',
+  fields                   = 'GHT,TT,RH,MSLP,U,V,VIM,VIWIND,VIMWIND,VIQC,VIQI,Times,CLT',
   process                  = 'list',
   debug                    = .TRUE.,
   grid_filt                = 3,
