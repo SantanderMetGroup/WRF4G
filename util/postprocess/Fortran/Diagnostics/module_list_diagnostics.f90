@@ -5,6 +5,7 @@ MODULE module_list_diagnostics
   USE module_clt_cam
   USE module_hurs
   USE module_mrso
+  USE module_prw
   USE module_pv
   USE module_tdps
 

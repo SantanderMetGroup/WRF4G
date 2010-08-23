@@ -26,7 +26,7 @@ MODULE module_constants
   REAL, PARAMETER                                          :: es_Atetens_ice=9.5
   REAL, PARAMETER                                          :: es_Btetens_ice=265.5
   REAL, PARAMETER                                          :: extremeval=10000000000.
-  REAL, PARAMETER                                          :: g=9.807
+  REAL, PARAMETER                                          :: grav=9.807
   REAL, PARAMETER                                          :: missingval=-99999.
   REAL, PARAMETER                                          :: rocp=2./7.
   REAL, PARAMETER                                          :: tkelvin=273.15
@@ -49,7 +49,7 @@ MODULE module_constants
 !      es_Atetens_ice: constant A for ice [C]
 !      es_Btetens_vapor: constant B for ice [C]
 !      extremeval: allowed maximum(minimum) value for diagnostic variables
-!      g: gravity acceleration [ms-2]
+!      grav: gravity acceleration [ms-2]
 !      missingval: value for missings
 !      rocp: 
 !      tkelvin: conversion from celsius degrees to kelvin [K]

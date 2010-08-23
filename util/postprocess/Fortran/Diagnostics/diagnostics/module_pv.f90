@@ -195,7 +195,7 @@ MODULE module_pv
 ! Variable computation
 !!
     DO k=1, dz
-      variableout(:,:,k,:)=-g**1.E6*exnf(k)*((incor(:,:,:)+dvx(:,:,k,:)                          &
+      variableout(:,:,k,:)=-grav**1.E6*exnf(k)*((incor(:,:,:)+dvx(:,:,k,:)                          &
         -duy(:,:,k,:))*(dtemp(:,:,k,:)- rocp*(intemp(:,:,k,:))                                   &
         /inplev(k))                                                                              & 
         -dtx(:,:,k,:)*dvp(:,:,k,:)+dty(:,:,k,:)*dup(:,:,k,:)) 

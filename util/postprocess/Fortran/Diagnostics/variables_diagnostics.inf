@@ -31,6 +31,14 @@
  diagnostic_longdesc      'total soil moisture content'
  diagnostic_std_name      'soil_moisture_content'
  diagnostic_units         'kgm-2'
+*PRW*
+ Num_input_variables      4
+ Input_variables          QVAPOR, MU, MUB, DNW
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_longdesc      'total column water vapor content'
+ diagnostic_std_name      'atmosphere_water_vapor_content'
+ diagnostic_units         'kgm-2'
 *PV*
  Num_input_variables      6
  Input_variables          UU, VV, TT, F, MAPFAC_M, PLEV
