@@ -3273,7 +3273,7 @@ BENCH_END(bc_2d_tim)
         &           ,P8W=p8w   ,PK1M=grid%pk1m                             &
         &           ,MU_2=grid%mu_2  ,MU_2M=grid%mu_2m                     &
         &           ,U=grid%u_2    ,V=grid%v_2                             &
-        &           ,clwrfH=config_flags%auxhist6_interval                 &
+        &           ,clwrfH=config_flags%auxhist3_interval                 &
         &           ,T2=grid%t2, Q2=grid%q2, U10=grid%u10, V10=grid%v10    & 
         &           ,SKINTEMP=grid%tsk                                     &
         &           ,T2CLMIN=grid%t2min, T2CLMAX=grid%t2max                & 
@@ -3297,12 +3297,12 @@ BENCH_END(bc_2d_tim)
         &           ,RAINNCCLMEAN=grid%rainncvmean                         & 
         &           ,RAINCCLSTD=grid%raincvstd                             &
         &           ,RAINNCCLSTD=grid%rainncvstd                           &   
-!        &           ,SKINTEMPCLMIN=grid%skintempmin                        &
-!        &           ,SKINTEMPCLMAX=grid%skintempmax                        &
-!        &           ,TSKINTEMPCLMIN=grid%tskintempmin                      &
-!        &           ,TSKINTEMPCLMAX=grid%tskintempmax                      &
-!        &           ,SKINTEMPCLMEAN=grid%skintempmean                      &
-!        &           ,SKINTEMPCLSTD=grid%skintempstd                        &
+        &           ,SKINTEMPCLMIN=grid%skintempmin                        &
+        &           ,SKINTEMPCLMAX=grid%skintempmax                        &
+        &           ,TSKINTEMPCLMIN=grid%tskintempmin                      &
+        &           ,TSKINTEMPCLMAX=grid%tskintempmax                      &
+        &           ,SKINTEMPCLMEAN=grid%skintempmean                      &
+        &           ,SKINTEMPCLSTD=grid%skintempstd                        &
         &           ,RAINCV=grid%raincv    ,RAINNCV=grid%rainncv           &
         &           ,RAINC=grid%rainc    ,RAINNC=grid%rainnc               &
         &           ,I_RAINC=grid%i_rainc    ,I_RAINNC=grid%i_rainnc       &
@@ -3331,7 +3331,7 @@ BENCH_END(bc_2d_tim)
         &           ,IMESTAG=ime+1, JMESTAG=jme+1                          &
         &           ,U=grid%u_2   ,V=grid%v_2                              &
         &           ,RAINCV=grid%raincv    ,RAINNCV=grid%rainncv           &
-        &           ,HISTOUT=config_flags%auxhist9_interval                &
+        &           ,HISTOUT=config_flags%auxhist5_interval                &
         &           ,SWDOWN=grid%swdown                                    &
         &           ,GEOB=grid%phb ,GEOP=grid%ght_gc ,  POTEMP=grid%t_2    &
         &           ,QRATIO=moist(:,:,:,P_qv) , LRATIO=moist(:,:,:,P_qc)   &

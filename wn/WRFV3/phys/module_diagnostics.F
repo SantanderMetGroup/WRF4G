@@ -488,9 +488,9 @@ CONTAINS
                      ,u10clstd,v10clstd,spduv10clstd                  & ! CLWRF
                      ,raincclmax,rainncclmax,traincclmax,trainncclmax & ! CLWRF
                      ,raincclmean,rainncclmean,raincclstd,rainncclstd & ! CLWRF
-!                     ,skintempclmin,skintempclmax                     & ! CLWRF
-!                     ,tskintempclmin,tskintempclmax                   & ! CLWRF
-!                     ,skintempclmean,skintempclstd                    & ! CLWRF
+                     ,skintempclmin,skintempclmax                     & ! CLWRF
+                     ,tskintempclmin,tskintempclmax                   & ! CLWRF
+                     ,skintempclmean,skintempclstd                    & ! CLWRF
                      ,raincv,rainncv,rainc,rainnc                     &
                      ,i_rainc,i_rainnc                                &
                      ,hfx,sfcevp,lh                                   &
@@ -621,9 +621,9 @@ CONTAINS
                           q2clmin, q2clmax, tq2clmin, tq2clmax, q2clmean, q2clstd,&
                           u10clmax, v10clmax, spduv10clmax, tspduv10clmax,        &
                           u10clmean, v10clmean, spduv10clmean,                    &
-                          u10clstd, v10clstd, spduv10clstd!, skintempclmin,        &
-!                          skintempclmax, tskintempclmin, tskintempclmax,          &
-!                          skintempclmean, skintempclstd
+                          u10clstd, v10clstd, spduv10clstd, skintempclmin,        &
+                          skintempclmax, tskintempclmin, tskintempclmax,          &
+                          skintempclmean, skintempclstd
    REAL, DIMENSION( ims:ime , jms:jme ),                                          &
                           INTENT(OUT)        :: raincclmax, rainncclmax,          &
                           traincclmax, trainncclmax, raincclmean, rainncclmean,   & 
@@ -714,20 +714,20 @@ CONTAINS
           rainncclstd(i_start(ij)+(i_end(ij)-i_start(ij))/2,                &
           j_start(ij)+(j_end(ij)-j_start(ij))/2)
         CALL wrf_debug(75, message)
-!        WRITE(message,*)'CLWRFdiag - SKINTEMP; tile: ',ij,' SKINTEMPclmin:',&
-!          skintempclmin(i_start(ij)+(i_end(ij)-i_start(ij))/2,              &
-!          j_start(ij)+(j_end(ij)-j_start(ij))/2),' SKINTEMPclmax:',         &
-!          skintempclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,              &
-!          j_start(ij)+(j_end(ij)-j_start(ij))/2),' TSKINTEMPclmin:',        &
-!          tskintempclmin(i_start(ij)+(i_end(ij)-i_start(ij))/2,             &
-!          j_start(ij)+(j_end(ij)-j_start(ij))/2),' TSKINTEMPclmax:',        &
-!          tskintempclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,             &
-!          j_start(ij)+(j_end(ij)-j_start(ij))/2),' SKINTEMPclmean:',        &
-!          skintempclmean(i_start(ij)+(i_end(ij)-i_start(ij))/2,             &
-!          j_start(ij)+(j_end(ij)-j_start(ij))/2),' SKINTEMPclstd:',         &
-!          skintempclstd(i_start(ij)+(i_end(ij)-i_start(ij))/2,              &
-!          j_start(ij)+(j_end(ij)-j_start(ij))/2)
-!        CALL wrf_debug(75, message)
+        WRITE(message,*)'CLWRFdiag - SKINTEMP; tile: ',ij,' SKINTEMPclmin:',&
+          skintempclmin(i_start(ij)+(i_end(ij)-i_start(ij))/2,              &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' SKINTEMPclmax:',         &
+          skintempclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,              &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' TSKINTEMPclmin:',        &
+          tskintempclmin(i_start(ij)+(i_end(ij)-i_start(ij))/2,             &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' TSKINTEMPclmax:',        &
+          tskintempclmax(i_start(ij)+(i_end(ij)-i_start(ij))/2,             &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' SKINTEMPclmean:',        &
+          skintempclmean(i_start(ij)+(i_end(ij)-i_start(ij))/2,             &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2),' SKINTEMPclstd:',         &
+          skintempclstd(i_start(ij)+(i_end(ij)-i_start(ij))/2,              &
+          j_start(ij)+(j_end(ij)-j_start(ij))/2)
+        CALL wrf_debug(75, message)
      ENDIF
     DO j = j_start(ij), j_end(ij)
       DO i = i_start(ij), i_end(ij)
@@ -752,10 +752,10 @@ CONTAINS
         rainncclmean(i,j)=0.0
         raincclstd(i,j)=0.0
         rainncclstd(i,j)=0.0
-!        skintempclmin(i,j)=minimum0
-!        skintempclmax(i,j)=maximum0
-!        skintempclmean(i,j)=0.0
-!        skintempclstd(i,j)=0.0
+        skintempclmin(i,j)=minimum0
+        skintempclmax(i,j)=maximum0
+        skintempclmean(i,j)=0.0
+        skintempclstd(i,j)=0.0
         nsteps=0.
       ENDDO
     ENDDO
@@ -782,9 +782,9 @@ CONTAINS
           CALL varstatisticsMAX(rainncv/dt,xtime,ime-ims+1,jme-jms+1,        &
             rainncclmax,trainncclmax,rainncclmean,rainncclstd)
 ! Skin Temperature 
-!          CALL varstatistics(skintemp,xtime,ime-ims+1,jme-jms+1,skintempclmin,&
-!            skintempclmax, tskintempclmin,tskintempclmax,skintempclmean,      &
-!            skintempclstd)
+          CALL varstatistics(skintemp,xtime,ime-ims+1,jme-jms+1,skintempclmin,&
+            skintempclmax, tskintempclmin,tskintempclmax,skintempclmean,      &
+            skintempclstd)
 
 !          IF (MOD(NINT(XTIME),clwrfH) == 0) THEN
           IF (MOD(NINT(XTIME+dt/60.),clwrfH) == 0) THEN
@@ -804,8 +804,8 @@ CONTAINS
             rainncclmean=rainncclmean/nsteps
             raincclstd=SQRT(raincclstd/nsteps-raincclmean**2.)
             rainncclstd=SQRT(rainncclstd/nsteps-rainncclmean**2.)
-!            skintempclmean=skintempclmean/nsteps
-!            skintempclstd=SQRT(skintempclstd/nsteps-skintempclmean**2.)
+            skintempclmean=skintempclmean/nsteps
+            skintempclstd=SQRT(skintempclstd/nsteps-skintempclmean**2.)
           END IF
 !        ENDDO
 !      ENDDO
