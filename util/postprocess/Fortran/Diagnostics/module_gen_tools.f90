@@ -10,7 +10,9 @@ MODULE module_gen_tools
 ! diag_fatal: Subroutine to give fatal error with a message
 ! diagnostic_inf: Subroutine to read diagnostic variable information from 
 !     'variables_diagnostics.inf' external ASCII file
-! diagnostic_inf_Ninvar: Subroutine to give number of input variables to copute varDIAG diagnostic
+! diagnostic_dim_inf: Subroutine to read diagnostic variable information from 
+!     'dimensions_diagnostics.inf' external ASCII file
+! diagnostic_inf_Ninvar: Subroutine to give number of input variables to compute varDIAG diagnostic
 ! halfdim: Function to give the half value of a dimension
 ! search_variables: Subroutine to search variables from a given netcCDF file
 ! string_int: Function to transform a string to a real value
@@ -135,6 +137,125 @@ SUBROUTINE diagnostic_inf(debg, varDIAG, Ninvar, varinnames, NdimDIAG, shapeDIAG
    END IF
   
 END SUBROUTINE diagnostic_inf
+
+SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimtype, dimINname, NdimINvars, dimINvarnames,     &
+  dimstdname, dimlonname, dimunits, dimNvalues, dimvalues, dimcoords, dimpositive, dimform)
+! Subroutine to read dimension information from 'dimensions_diagnostics.inf' external 
+! ASCII file. File format:
+!*dimDIAG*
+! dimtype               H/V/T (horizontal/vertical/time)
+! dim_in_name           (dimension name in in put file; '-' no value)
+! num_dimInVarnames     (number of input variables to compute dimension; '0' no variables)
+! dim_in_varnames       (variables names, coma separated, to compute dimension) 
+! standard_name         (CF-1.4 standard name of dimension)
+! long_name             (long name of dimension)
+! units                 (units of dimension)
+! Ndim_values           (number of fixed dimension values; '0' no values)
+! dim_values            (fixed dimension values, coma separated; '-' no values)
+!!!! Specific for dimtype=H
+! dim_coords            (dimensions base of the dimension)
+!!!! Specific for dimtype=V
+! dim_positive          (sign of increase of vertical dimension)
+! dim_formula           (text to appear as reference of formula of vertical dimension)
+!!!! Specific for dimtype=T
+! NOTE: Keep in mind to adjust "yearref" in 'module_constants.f90' as might appears in 'units'
+!    (blank line)
+!*dimDIAG*
+! (...)
+
+  IMPLICIT NONE
+
+  INTEGER, INTENT(IN)                                    :: debg
+  CHARACTER(LEN=1), INTENT(OUT)                          :: dimtype
+  CHARACTER(LEN=50), INTENT(OUT)                         :: dimINname, dimDIAG, dimpositive
+  INTEGER, INTENT(OUT)                                   :: NdimINvars, dimNvalues
+  CHARACTER(LEN=1000), INTENT(OUT)                       :: dimINvarnames
+  CHARACTER(LEN=250), INTENT(OUT)                        :: dimstdname, dimlonname, dimunits,   &
+    dimcoords, dimform
+  CHARACTER(LEN=3000), INTENT(OUT)                       :: dimvalues
+
+! Local variables
+  INTEGER                                                :: i, ilin
+  INTEGER                                                :: iunit, ios
+  INTEGER                                                :: Llabel, posvarDIM
+  CHARACTER(LEN=1)                                       :: car
+  CHARACTER(LEN=50)                                      :: label, section
+  LOGICAL                                                :: is_used
+
+!!!!!!!!!!!!!! Variables
+! dimDIAG: dimension diagnostic name
+! dimtype: type of dimension: 
+!    H: horizontal dimension    V: vertical dimension     T: temporal dimension
+! dimINname: dimension name as it appears in input file
+! NdimINvars: number of variables from input files to compute dimension
+! dimINvarnames: names of variables from input fields to compute dimension
+! dimstdname: standard CF convection name of dimension
+! dimlonname: long name of dimension
+! dimunits: units of dimension
+! dimNvalues: number of fixed values for the dimension
+! dimvalues: fixed values of the dimension
+! dimcoords: coordinates in which is based dimension (specific of dimtype=H)
+! dimpositive: sign of increment of dimension (specific of dimtype=V)
+! dimform: formula of dimension (specific of dimtype=V)
+
+  section="'diagnostic_dim_inf'"
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+!  Read parameters from diagnostic dimensions information file 'dimensions_diagnostics.inf' 
+   DO iunit=10,100
+     INQUIRE(unit=iunit, opened=is_used)
+     IF (.not. is_used) EXIT
+   END DO
+   OPEN(iunit, file='dimensions_diagnostics.inf', status='old', form='formatted', iostat=ios)
+   IF ( ios /= 0 ) STOP "ERROR opening 'dimensions_diagnostics.inf'"
+   ilin=1
+   posvarDIAG=0
+   DO 
+     READ(iunit,*,END=100)label
+     Llabel=LEN_TRIM(label)
+     IF (label(2:Llabel-1)==TRIM(varDIAG)) THEN
+       posvarDIAG=ilin
+       EXIT
+     END IF
+     ilin=ilin+1
+   END DO
+
+ 100 CONTINUE
+
+   IF (dimDIAG == 0) THEN
+     PRINT *,"Diagnostic dimension '"//TRIM(dimDIAG)//"' not found in 'dimensions_diagnostics.inf'"
+     STOP
+   END IF
+
+   REWIND (iunit)
+
+   DO ilin=1,posvarDIAG
+     READ(iunit,*)car
+   END DO
+   shapeDIAG=1
+
+   READ(iunit,*)car, car
+   READ(iunit,*)car, (varinnames(i),i=1,Ninvar)
+   READ(iunit,*)car, NdimDIAG
+   READ(iunit,*)car, (shapeDIAG(i), i=1,NdimDIAG)
+   READ(iunit,*)car, longdescDIAG
+   READ(iunit,*)car, stddescDIAG   
+   READ(iunit,*)car, unitsDIAG 
+
+   CLOSE(iunit)
+
+   IF (debg >= 75) THEN
+     PRINT *,"Read information for '"//TRIM(varDIAG)//"' variable________"
+     PRINT *,'  Number of necessary input variables:', Ninvar
+     PRINT *,'  Name of input variables:', ('  '//TRIM(varinnames(i)//'  '),i=1,Ninvar)
+     PRINT *,'  Number of dimensions:', NdimDIAG
+     PRINT *,'  Shape of dimensions:', (shapeDIAG(i), i=1,NdimDIAG)
+     PRINT *,'  Long description:', TRIM(longdescDIAG)
+     PRINT *,'  CF-standard name:', TRIM(stddescDIAG)
+     PRINT *,'  Units:', TRIM(unitsDIAG)
+   END IF
+  
+END SUBROUTINE diagnostic_dim_inf
 
 SUBROUTINE diagnostic_inf_Ninvar(varDIAG, debg, Ninvar)
 ! Subroutine to give number of input variables to copute varDIAG diagnostic from

@@ -1,0 +1,45 @@
+==Information file for each diagnose dimension==
+*lon*
+  dimtype                  H
+  dim_in_name              west_east
+  num_dimInVarnames        1
+  dim_in_varnames          XLONG
+  standard_name            longitude
+  long_name                longitude
+  units                    degrees
+  dim_coords               'lon lat'
+  Ndim_values              0
+  dim_values               -
+*lat*
+  dimtype                  H
+  dim_in_name              south_north
+  num_dimInVarnames        1
+  dim_in_varnames          XLAT
+  standard_name            latitude
+  long_name                latitude
+  units                    degrees
+  dim_coords               'lon lat'
+  Ndim_values              0
+  dim_values               -
+*lev*
+  dimtype                  V
+  dim_in_name              bottom_top
+  num_dimInVarnames        1
+  dim_in_varnames          ZNU
+  standard_name            atmosphere_sigma_coordinate
+  long_name                'atmosphere level in sigma coordinate'
+  units                    NO
+  dim_positive             down
+  dim_formula              'sigma: lev ps: PSFC ptop: P_TOP'
+  Ndim_values              0
+  dim_values               -
+*time*
+  dimtype                  T
+  dim_in_name              Time
+  num_dimInVarnames        1
+  dim_in_varnames          Times
+  standard_name            time
+  long_name                time
+  units                    'seconds since 1950-1-1 0:0:0'
+  Ndim_values              0
+  dim_values               -
