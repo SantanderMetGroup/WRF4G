@@ -7,9 +7,10 @@
   standard_name            longitude
   long_name                longitude
   units                    degrees
-  dim_coords               'lon lat'
   Ndim_values              0
   dim_values               -
+  dim_coords               'lon lat'
+
 *lat*
   dimtype                  H
   dim_in_name              south_north
@@ -18,9 +19,10 @@
   standard_name            latitude
   long_name                latitude
   units                    degrees
-  dim_coords               'lon lat'
   Ndim_values              0
   dim_values               -
+  dim_coords               'lon lat'
+
 *lev*
   dimtype                  V
   dim_in_name              bottom_top
@@ -29,10 +31,11 @@
   standard_name            atmosphere_sigma_coordinate
   long_name                'atmosphere level in sigma coordinate'
   units                    NO
-  dim_positive             down
-  dim_formula              'sigma: lev ps: PSFC ptop: P_TOP'
   Ndim_values              0
   dim_values               -
+  dim_positive             down
+  dim_formula              'sigma: lev ps: PSFC ptop: P_TOP'
+
 *time*
   dimtype                  T
   dim_in_name              Time

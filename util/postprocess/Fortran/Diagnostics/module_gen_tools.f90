@@ -167,15 +167,16 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimtype, dimINname, NdimINvars, dim
 
   INTEGER, INTENT(IN)                                    :: debg
   CHARACTER(LEN=1), INTENT(OUT)                          :: dimtype
-  CHARACTER(LEN=50), INTENT(OUT)                         :: dimINname, dimDIAG, dimpositive
+  CHARACTER(LEN=50), INTENT(OUT)                         :: dimINname, dimDIAG
   INTEGER, INTENT(OUT)                                   :: NdimINvars, dimNvalues
-  CHARACTER(LEN=1000), INTENT(OUT)                       :: dimINvarnames
-  CHARACTER(LEN=250), INTENT(OUT)                        :: dimstdname, dimlonname, dimunits,   &
-    dimcoords, dimform
-  CHARACTER(LEN=3000), INTENT(OUT)                       :: dimvalues
+  CHARACTER(LEN=50), POINTER, DIMENSION(:), INTENT(OUT)  :: dimINvarnames
+  CHARACTER(LEN=250), INTENT(OUT)                        :: dimstdname, dimlonname, dimunits
+  CHARACTER(LEN=10), POINTER, DIMENSION(:), INTENT(OUT)  :: dimvalues
+  CHARACTER(LEN=50), INTENT(OUT), OPTIONAL               :: dimpositive
+  CHARACTER(LEN=250), INTENT(OUT), OPTIONAL              :: dimcoords, dimform
 
 ! Local variables
-  INTEGER                                                :: i, ilin
+  INTEGER                                                :: i, ilin, idim
   INTEGER                                                :: iunit, ios
   INTEGER                                                :: Llabel, posvarDIM
   CHARACTER(LEN=1)                                       :: car
@@ -235,26 +236,61 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimtype, dimINname, NdimINvars, dim
    shapeDIAG=1
 
    READ(iunit,*)car, car
-   READ(iunit,*)car, (varinnames(i),i=1,Ninvar)
-   READ(iunit,*)car, NdimDIAG
-   READ(iunit,*)car, (shapeDIAG(i), i=1,NdimDIAG)
-   READ(iunit,*)car, longdescDIAG
-   READ(iunit,*)car, stddescDIAG   
-   READ(iunit,*)car, unitsDIAG 
+   READ(iunit,*)car, dimtype
+   READ(iunit,*)car, dimINname
+   READ(iunit,*)car, NdimINvars
+   ALLOCATE(dimINvarnames(NdimINvars))
+   READ(iunit,*)car, (dimINvarnames(idim), i=1, NdimINvars)
+   READ(iunit,*)car, dimstdname
+   READ(iunit,*)car, dimlonname
+   READ(iunit,*)car, dimunits
+   READ(iunit,*)car, dimNvalues
+   ALLOCATE(dimvalues(dimNvalues))
+   READ(iunit,*)car, dimvalues
+   
+! Specific horizontal dim
+   IF (dimtype == 'H') READ(iunit,*)car, dimcoords
+   
+! Specific vertical dim
+   IF (dimtype == 'V') THEN
+     READ(iunit,*)car, dimpositive
+     READ(iunit,*)car, dimform
+   END IF
 
    CLOSE(iunit)
 
    IF (debg >= 75) THEN
-     PRINT *,"Read information for '"//TRIM(varDIAG)//"' variable________"
-     PRINT *,'  Number of necessary input variables:', Ninvar
-     PRINT *,'  Name of input variables:', ('  '//TRIM(varinnames(i)//'  '),i=1,Ninvar)
-     PRINT *,'  Number of dimensions:', NdimDIAG
-     PRINT *,'  Shape of dimensions:', (shapeDIAG(i), i=1,NdimDIAG)
-     PRINT *,'  Long description:', TRIM(longdescDIAG)
-     PRINT *,'  CF-standard name:', TRIM(stddescDIAG)
-     PRINT *,'  Units:', TRIM(unitsDIAG)
+     PRINT *,"Read information for '"//TRIM(dimDIAG)//"' dimension________"
+     PRINT *,'  Dimension type:', TRIM(dimtype)
+     IF (TRIM(dimINname) /= '-') THEN
+       PRINT *,'  Dimension name in input files: ',TRIM(dimINname)
+     ELSE
+       PRINT *,'  New dimension. It does not exists in input files!'
+     END IF
+     IF (NdimINvars > 0) THEN
+       PRINT *,'  Number of input variables to compute dimension: ',NdimINvars
+       PRINT *,'  Name of input variables:', ('  '//TRIM(dimINvarnames(i)//'  '),i=1,NdimINvars)
+     ELSE
+       PRINT *,'  No input variables are needed to compute dimension!'
+     END IF
+     PRINT *,'  Dimension standard name: ',TRM(dimstdname)
+     PRINT *,'  Dimension long name: ',TRM(dimlonname)
+     PRINT *,'  Dimension units: ',TRM(dimunits)
+     IF (dimNvalues > 0) THEN
+       PRINT *,'  Number of fixed values of dimension: ',dimNvalues
+       PRINT *,'  Fixed values of dimension: ',(dimvalues(idim), idim=1, dimNvalues)
+     END IF
+! Specific horizontal dim
+     IF (dimtype == 'H') PRINT *,'  Base coordinates of dimension: ',TRIM(dimcoords)
+   
+! Specific vertical dim
+     IF (dimtype == 'V') THEN
+       READ(iunit,*)PRINT *,'  Sign of increase of dimension: ', TRIM(dimpositive)
+       READ(iunit,*)PRINT *,'  Formula of dimension: ',TRIM(dimform)
+     END IF
    END IF
-  
+
+   RETURN
 END SUBROUTINE diagnostic_dim_inf
 
 SUBROUTINE diagnostic_inf_Ninvar(varDIAG, debg, Ninvar)

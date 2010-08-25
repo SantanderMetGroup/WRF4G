@@ -1,14 +1,32 @@
 MODULE module_constants
-! Diagnostic modules with constants of computation of atmospheric doagnostic variables from netcdf files
+! Diagnostic modules with constants of computation of atmospheric doagnostic variables from netCDF
+!   files 
 ! GMS. UC: December 2009. version v0.0
 !
-!!!!!!!!!! COMPILATION
-!
-!! OCEANO: pgf90 module_constants.f90 -L/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/lib -lnetcdf -lm -I/software/ScientificLinux/4.6/netcdf/3.6.3/pgf716_gcc/include -Mfree -c
 
   IMPLICIT NONE
   
 !   456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
+
+! Dimension type definition
+!!
+  TYPE dimension
+    CHARACTER(LEN=50)                                     :: name
+    INTEGER                                               :: id
+    CHARACTER(LEN=1)                                      :: type
+    CHARACTER(LEN=50)                                     :: INname
+    INTEGER                                               :: NinVarnames
+    CHARACTER(LEN=50), POINTER, DIMENSION(:)              :: INvarnames
+    CHARACTER(LEN=250)                                    :: stdname
+    CHARACTER(LEN=250)                                    :: lonname
+    CHARACTER(LEN=250)                                    :: units
+    INTEGER                                               :: Nvalues
+    REAL, POINTER, DIMENSION(:)                           :: values
+    CHARACTER(LEN=250)                                    :: coords
+    CHARACTER(LEN=50)                                     :: positive
+    CHARACTER(LEN=250)                                    :: form
+  END TYPE dimension
+
   SAVE
 
   CHARACTER(LEN=50), PARAMETER                             :: blanks=' '
