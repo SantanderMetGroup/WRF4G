@@ -10,6 +10,8 @@
   Ndim_values              0
   dim_values               -
   dim_coords               'lon lat'
+  dim_positive             -
+  dim_formula              -
 
 *lat*
   dimtype                  H
@@ -22,6 +24,8 @@
   Ndim_values              0
   dim_values               -
   dim_coords               'lon lat'
+  dim_positive             -
+  dim_formula              -
 
 *lev*
   dimtype                  V
@@ -33,6 +37,7 @@
   units                    NO
   Ndim_values              0
   dim_values               -
+  dim_coords               '-'
   dim_positive             down
   dim_formula              'sigma: lev ps: PSFC ptop: P_TOP'
 
@@ -46,3 +51,6 @@
   units                    'seconds since 1950-1-1 0:0:0'
   Ndim_values              0
   dim_values               -
+  dim_coords               '-'
+  dim_positive             -
+  dim_formula              -

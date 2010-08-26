@@ -8,25 +8,6 @@ MODULE module_constants
   
 !   456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
 
-! Dimension type definition
-!!
-  TYPE dimension
-    CHARACTER(LEN=50)                                     :: name
-    INTEGER                                               :: id
-    CHARACTER(LEN=1)                                      :: type
-    CHARACTER(LEN=50)                                     :: INname
-    INTEGER                                               :: NinVarnames
-    CHARACTER(LEN=50), POINTER, DIMENSION(:)              :: INvarnames
-    CHARACTER(LEN=250)                                    :: stdname
-    CHARACTER(LEN=250)                                    :: lonname
-    CHARACTER(LEN=250)                                    :: units
-    INTEGER                                               :: Nvalues
-    REAL, POINTER, DIMENSION(:)                           :: values
-    CHARACTER(LEN=250)                                    :: coords
-    CHARACTER(LEN=50)                                     :: positive
-    CHARACTER(LEN=250)                                    :: form
-  END TYPE dimension
-
   SAVE
 
   CHARACTER(LEN=50), PARAMETER                             :: blanks=' '
@@ -73,5 +54,60 @@ MODULE module_constants
 !      tkelvin: conversion from celsius degrees to kelvin [K]
 !      yearref: year as reference
 !      yearleap: year as reference of leap years
+
+  CONTAINS
+
+  SUBROUTINE dimension_type
+
+! Dimension type definition
+!!
+    TYPE dimension
+      CHARACTER(LEN=50)                                   :: name
+      INTEGER                                             :: id
+      CHARACTER(LEN=1)                                    :: type
+      CHARACTER(LEN=1)                                    :: axis
+      CHARACTER(LEN=50)                                   :: INname
+      INTEGER                                             :: range
+      INTEGER                                             :: NinVarnames
+      CHARACTER(LEN=250), POINTER, DIMENSION(:)           :: INvarnames
+      CHARACTER(LEN=50)                                   :: method
+      REAL                                                :: constant
+      CHARACTER(LEN=250)                                  :: stdname
+      CHARACTER(LEN=250)                                  :: lonname
+      CHARACTER(LEN=50)                                   :: units
+      INTEGER                                             :: Nvalues
+      REAL, POINTER, DIMENSION(:)                         :: values
+      CHARACTER(LEN=250)                                  :: coords
+      CHARACTER(LEN=50)                                   :: positive
+      CHARACTER(LEN=250)                                  :: form
+    END TYPE dimension
+
+!!!!!!!!!!!!!! Variables
+! name: dimension diagnostic name
+! id: dimension id
+! type: type of dimension: 
+!    H: horizontal dimension    V: vertical dimension     T: temporal dimension
+! axis: space axis to which it references
+! INname: dimension name as it appears in input file
+! range: 1D range of dimension
+! NinVarnames: number of variables from input files to compute dimension
+! INvarnames: names of variables from input fields to compute dimension
+! method: method to compute dimension
+!    direct: values are the same from dim_in_varnames [for num_dimInVarnames=1]
+!    constant: values are the same from dim_in_varnames plus a constant [for num_dimInVarnames=1]
+!    sum: values are the result of the sum of all [dim_in_varnames]
+!    xxxxxx: specific for this dimension (xxxxx must have some sense in 'copute_dimensions' (in
+!      'module_nc_tools')
+! constant: constant value for method='constant'
+! stdname: standard CF convection name of dimension
+! lonname: long name of dimension
+! units: units of dimension
+! Nvalues: number of values for the dimension
+! values: values of the dimension
+! coords: coordinates in which is based dimension (specific of dimtype=H)
+! positive: sign of increment of dimension (specific of dimtype=V)
+! form: formula of dimension (specific of dimtype=V)
+
+  END SUBROUTINE dimension_type
 
 END MODULE module_constants

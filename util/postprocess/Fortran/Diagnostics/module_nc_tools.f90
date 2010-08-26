@@ -7,9 +7,10 @@ MODULE module_nc_tools
 ! Following previous work of many authors for vis5D as 'userfuncs'
 !
 !!!!!!!!! Subroutines/Functions
-! gattribute_REALvalue: Subroutine to obtain a real value from a global attribute from a netCDF
+! compute_dimensions: Subroutine to compute dimensions of output file
 ! copy_nc_att: Subroutine to copy all global attributes from a netCDF file to other open one
 ! create_output: Subroutine to create netCDF output
+! def_dimension: Subroutine to define a dimension from a dimension type variable
 ! def_dim: Subroutine to define a 1D dimension 
 ! def_dim_ver: Subroutine to define a vertical coordinate
 ! def_dim_time: Subroutine to define a time coordinate
@@ -20,78 +21,347 @@ MODULE module_nc_tools
 ! exists_var: Function to determine if a variable exists
 ! fill_inputs_50char: Subroutine to fill a kind-shape of input 50-character fields
 ! fill_inputs_real: Subroutine to fill a kind-shape of input real fields
+! gattribute_REALvalue: Subroutine to obtain a real value from a global attribute from a netCDF
 ! nc_gatts: Subroutine to print all global attributes of a netCDF file 
 ! nc_dimensions: Subroutine to obtain range of dimensions of a netCDF file
+! nc_last_iddim: Function to give higest iddim of a netCDF file
 ! nc_last_idvar: Function to give higest idvar of a netCDF file
 ! nc_Ndim: Subroutine to obtain number of dimensions of a netCDF file
-! search_variables: Subroutine to search variables from a given netcCDF file
+! search_dimensions: Subroutine to search a dimension from a given set of 'Nnc' netcCDF files  
+! search_variables: Subroutine to search a list of 'Nsvars' variables from a given set of 'Nnc'
+!   netcCDF files  
 
-SUBROUTINE gattribute_REALvalue(file, debg, attributename, attelement, value)
-! Subroutine to obtain a real value from an attribute from a netCDF file
+SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, Nfiles, files)
+! Subroutine to compute dimensions of output file
 
-  USE module_gen_tools, ONLY: diag_fatal
-
+  USE module_constants, ONLY:dimension_type
+  USE module_gen_tools, ONLY:diag_fatal, diagnostic_dim_inf, fill_dimension_type
+  
   IMPLICIT NONE
-
+  
   INCLUDE 'netcdf.inc'
 
-  CHARACTER(LEN=500), INTENT(IN)                         :: file
-  CHARACTER(LEN=50), INTENT(IN)                          :: attributename
-  REAL, INTENT(OUT)                                      :: value
-  INTEGER, INTENT(IN)                                    :: debg, attelement
-!!! Local vars
-  INTEGER                                                :: ncid, attid, attlen, atttype
-  INTEGER                                                :: rcode
-  CHARACTER(LEN=50)                                      :: section, attname
-  INTEGER                                                :: ndims, nvars, ngatts, nunlimdimid
-  REAL, DIMENSION(:), ALLOCATABLE                        :: attrealvalues
-  CHARACTER(LEN=250)                                     :: message
-
-!!!!!!!!!!!!!!! Variables
-! file: netCDF file
-! attributename: name of attribute
-! attelement: element of values to given back
-! value: values recoded in attribute (only attelement component)
-! 
-
-  section="'attribute_REALvalue'"
-  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
-
-  rcode = nf_open(file, 0, ncid)
-  rcode = nf_inq(ncid, ndims, nvars, ngatts, nunlimdimid)
-
-  IF (debg >= 100) PRINT *,"Reading in fle '"//TRIM(file)//"'"
+  INTEGER, INTENT(IN)                                     :: debg, ncid, Ndims, Nfiles
+  CHARACTER(LEN=50), DIMENSION(Ndims), INTENT(IN)         :: dimvec
+  CHARACTER(LEN=50), DIMENSION(Nfiles), INTENT(IN)        :: files
+  TYPE(dimension)                                         :: dimensioncom, dimensionnew
+  LOGICAL, INTENT(IN)                                     :: xcar, ycar
   
-  PRINT *,"Attribute name: '"//TRIM(attributename)//"' "
-  rcode = nf_inq_atttype(ncid, NF_GLOBAL, attributename, atttype)
-  CALL error_nc(section, rcode)
+! Local
+  INTEGER                                                 :: idim
+  INTEGER                                                 :: rcode, dimidin
+  INTEGER                                                 :: jvar, lastdim
+  CHARACTER(LEN=50)                                       :: section, messg
+  INTEGER, DIMENSION(3)                                   :: dimfound
+  INTEGER, DIMENSION(:,:), ALLOCATABLE                    :: dimvarfound, dimvardimfound,       &
+    invarvalues
+  INTEGER, DIMENSION(Ndims)                               :: dimsid
+  CHARACTER(LEN=250)                                      :: give_Lstring
+  REAL, DIMENSION(:), ALLOCATABLE                         :: dimensionvalues
+  
+!!!!!!! Variables
+! ncid: netCDF if where to write dimensions
+! Ndims: number of dimensions to write (if they do not already exist)
+! dimvec: vector with dimensions name to compute (they must be in 'dimensions_diagnostics.inf')
+! dimensioncom: specific dimension to compute
+! dimidin: dimension id in input file
+! [x/y]car: are x and y coordinates cartesian?
+! Nfiles: number of input netCDF files in which range of dimensions should be found
+! files: vector with input netCDF files
+! jvar: id of last variable in netCDF file
+! lastdim: if of last dimension in netCDF file
+! dimfound: found characteristics of dimension in input files
+! dimvarfound: found characteristics of variables related to dimension
+! dimvardimfound: dimensions of dimvarfound
+! invarvalues: values of variables used to compute dimension values (when they are 1D)
+! dimsid: id of dimension as they are defined in 'ncid'. Id of dimensions will preserve order from
+!   'dimensions_diagnostics.inf' file
 
-! If attribute is not real (TYPE =5) stops
+  section="'compute_dimensions'"
+  IF (debg >= 100) PRINT *,'Section '//section//'... .. .'
+
+  jvar=nc_last_idvar(debg, ncid)
+  lastdim=nc_last_idvar(debg, ncid)
+
+  com_dimensions: DO idim=1, Ndims
+  
+    IF (debg >= 150) PRINT *,"Computing '"//TRIM(dimvec(idim))//"' dimension"
+  
+    indiv_dim: SELECT CASE (dimvec(idim))
+    
+      CALL diagnostic_dim_inf(debg, dimvec(idim), 1, dimensioncom)
+
+! Looking for dimension range
+!
+!! Dimension takes values from an existing dimension
+
+      IF (dimensioncom%INname /= '-') THEN
+        CALL search_dimensions(debg, files, Nfiles, dimvec(idim), dimfound)
+        IF (ALLOCATED(dimvalues)) DEALLOCATE(dimvalues)
+        ALLOCATE (dimvalues(dimfound(3)))
+        DO i=1, dimfound(3)
+	  dimvalues(i)=i*1.
+	END DO
+      END IF
+!
+!! Dimension takes values from an existing variable
+      IF (dimensioncom%NinVarnames /= '-') THEN
+	IF (ALLOCATED(dimvarfound)) DEALLOCATE(dimvarfound)
+	ALLOCATE(dimvarfound(dimensioncom%NinVarnames),2)
+	IF (ALLOCATED(dimvardimfound)) DEALLOCATE(dimvardimfound)
+	ALLOCATE(dimvardimfound(dimensioncom%NinVarnames),2)
+	  
+	CALL search_variables(debg, files, Nfiles, (/dimensioncom%NinVarnames/),                &
+	  (/dimensioncom%INvarnames(1:dimensioncom%NinVarnames)/), dimvarfound, dimvardimfound)
+
+! In general only methods 'direct', 'constant', 'sum' can be done here, for variables with the same
+! 1-dimensional shape [netCDF_shape=(dim, 1, 1, 1, 1, 1)]
 !!
-  message = 'In '//TRIM(section)//" real attribute (type = 5) '"//TRIM(attributename)//              &
-    "' is desired but it is of type: "//CHAR(48+atttype)
-  IF (atttype /= 5) CALL diag_fatal(message)
+        IF ( (TRIM(dimensioncom%method) == 'direct') .OR. (TRIM(dimensioncom%method) == 'sum')  &
+	  .OR. (TRIM(dimensioncom%method) == 'constant') ) THEN
+! 
+          IF (ALLOCATED(dimvalues)) DEALLOCATE(dimvalues)
+          ALLOCATE (dimvalues(dimvardimfound(1,1)))
+	  
+	  IF (ALLOCATED(invarvalues)) DEALLOCATE(invarvalues)
+	  ALLOCATE (invarvalues(dimvardimfound(1,1), dimensioncom%NinVarnames))
 
-! Looking for attribute length
+!!!!
+!  AQUI -- aqui -- AQUI -- aqui -- AQUI -- aqui
+!    Get 1D values
+!    Make subroutine calc_1D_values(NinVarnames, inVarnames, ncs, method) output->dimvalues
+!    Assign new dimension%dimensions to keep record of which dimension to use for computation
+!!!!
+
+          methodcom: SELECT CASE (dimensioncom%method)
+            ('direct')
+	      rcode = nf_get_var_real (ncid, dimvardimfound(1,1), dimvalues)	
+	  END SELECT methodcom
+        END IF
+      END IF
+
+        
+      CASE('lon')
+        jvar=jvar+1
+    
+        IF (xcar) THEN
+! lon coordinate is cartesian, thus it can be defined directly from input values
+
+          IF (.NOT.exists_dim(ncid, dimvec(idim))) THEN
+            rcode = nf_def_dim(ncid, dimvec(idim), dimfound(3), dimsid(idim))
+            CALL def_dimension(debg, ncid, dimensionnew, jvar)
+            CALL error_nc(section, rcode)
+          ELSE
+            CALL def_dimension(debg, ncid, dimensionnew, jvar)
+
+!            rcode = nf_inq_dimid(ncid, TRIM(dimvec(idim)), dimsid(idim))
+          ENDIF
+    
+        ELSE
+! x coordinate is not cartesian, longitudes will be given by a 2D matrix driven by a base 
+!   coordinate labelled 'xc', as it is stated by CF-1.4 conventions 
+!      see http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.4/ch05s02.html
+          IF (debg >= 100) PRINT *,'X dimension is not cartesian...'
+   
+          IF (.NOT.exists_dim(ncid, dimvec(idim))) THEN
+            IF (ALLOCATED(dimvalues)) DEALLOCATE(dimvalues)
+   	    ALLOCATE(dimvalues(dimfound(3))
+
+            DO i=1,dimfound(3)
+	      dimvalues(i)=i*1.
+	    END DO
+
+            CALL fill_dimension_type(give_Lstring(debg, 'xc')(1:50), lastdim+1, 'H', 'X',       &
+              give_Lstring(debg, '-')(1:50), dimfound(3), 0, (/give_Lstring(debg, '-')/),       &
+              give_Lstring(debg, 'direct')(1:50), 0., give_Lstring(debg, '-'),                  &
+	      give_Lstring(debg, 'X-coordinate in Cartesian system'),                           &
+	      give_Lstring(debg, '-')(1:50), dimfound(3), dimvalues, give_Lstring(debg, '-'),   &
+	      give_Lstring(debg, '-')(1:50), give_Lstring(debg, '-'), dimensionnew)
+
+            IF (debg >= 150) PRINT *,"values 'xc':", dimvalues
+
+            CALL def_dimension(debg, ncid, dimensionnew)
+    
+          ELSE
+            rcode = nf_inq_dimid(oid, coordname, dimsid(idim))
+          END IF
+        END IF
+
+! Y dimension
 !!
-  rcode = nf_inq_attlen(ncid, NF_GLOBAL, attributename, attlen)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  IF (debg >= 100) PRINT *,'Creation of y dimension...'
+  IF (ycar) THEN
+! y coordinate is cartesian, thus it can be defined directly
+    coordname = dimsvarname(2)
+    IF (.NOT.exists_dim(oid, coordname)) THEN
+      rcode = nf_def_dim(oid, coordname, dimy, dimsid(2))
+      CALL error_nc(section, rcode)
+    ELSE
+      rcode = nf_inq_dimid(oid, coordname, dimsid(2))
+    END IF
 
-! Allocating and getting value
+  ELSE
+! y coordinate is not cartesian, latitudes will be given by a 2D matrix driven by a base 
+!   coordinate labelled 'yc', as it is stated by CF-1.4 conventions 
+!      see http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.4/ch05s02.html
+  coordname = 'yc'
+    IF (.NOT.exists_dim(oid, coordname)) THEN
+      IF (debg >= 100) PRINT *,'Y dimension is not cartesian...'
+      jv = jv + 1
+
+      coordaxis='Y'
+      coordlong='Y-coordinate in Cartesian system'
+      coordunits='m'
+
+      IF (ALLOCATED(values_cord)) DEALLOCATE(values_cord)
+      ALLOCATE(values_cord(dimy))
+      DO icord=1, dimy
+        values_cord(icord)=icord*1.
+      END DO
+
+      IF (debg >= 100) PRINT *,"values 'yc':", values_cord
+      CALL def_dim(debg, oid, jv, coordname, coordaxis, coordlong, coordunits, dimy, dimsid(2),  &
+        values_cord)
+
+    ELSE
+      rcode = nf_inq_dimid(oid, coordname, dimsid(2))
+    END IF
+  END IF
+  
+! Z-dimension
 !!
-  IF (ALLOCATED(attrealvalues)) DEALLOCATE(attrealvalues)
-  ALLOCATE (attrealvalues(attlen))
-  rcode = nf_get_att_real(ncid, NF_GLOBAL, attributename, attrealvalues)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-  IF (debg >= 75) PRINT *,"attribute: '"//TRIM(attributename)//' values: ',attrealvalues(1:attlen)
+  coordname = 'lev'
+  IF (.NOT.exists_dim(oid,coordname)) THEN
+    IF (debg >= 100) PRINT *,'Creation of z dimension...'
 
-  rcode = nf_close(ncid)
-  value=attrealvalues(attelement)
-  IF (debg >= 75) PRINT *,'giving back value: ',value
+    jv = jv + 1
 
-  DEALLOCATE(attrealvalues)
-  RETURN
-END SUBROUTINE gattribute_REALvalue
+    coordstd='atmosphere_sigma_coordinate'
+    coordlong='atmosphere level in sigma coordinate'
+    coordunits='NO'
+    coordpositive='down'
+    coordformula='sigma: lev ps: PSFC ptop: P_TOP'
+
+    IF (ALLOCATED(coordinate)) DEALLOCATE(coordinate)
+    ALLOCATE(coordinate(dimcoords(3,1), dimcoords(3,2), dimcoords(3,3), dimcoords(3,4),          &
+      dimcoords(3,5), dimcoords(3,6))) 
+    CALL fill_inputs_real(debg, (/file_gatt/), 1, foundCnames(3,:), dimcoords(3,:), coordinate)
+
+    IF (debg >= 100) PRINT *,"values 'zc':", coordinate(:,1,1,1,1,1)
+    CALL def_dim_ver(debg, oid, jv, coordname, coordlong, coordunits, coordpositive, coordstd,   &
+      coordformula, dimz, dimsid(3), coordinate(:,1,1,1,1,1))
+
+  ELSE
+    rcode = nf_inq_dimid(oid, coordname, dimsid(3))
+  END IF
+
+! T-dimension
+!!
+  coordname = 'time'
+  IF (.NOT.exists_dim(oid,coordname)) THEN
+    IF (debg >= 100) PRINT *,'Creation of t dimension...'
+
+    jv = jv + 1
+
+!    coordstd='atmosphere_sigma_coordinate'
+    coordlong='time'
+    coordunits='seconds since 1950-1-1 0:0:0'
+
+    IF (ALLOCATED(coordinate)) DEALLOCATE(coordinate)
+    ALLOCATE(coordinate(dimcoords(4,1), dimcoords(4,2), dimcoords(4,3), dimcoords(4,4),          &
+      dimcoords(4,5), dimcoords(4,6))) 
+    IF (ALLOCATED(charcoor)) DEALLOCATE(charcoor)
+    ALLOCATE(charcoor(dimcoords(4,2), dimcoords(4,3), dimcoords(4,4), dimcoords(4,5),            &
+      dimcoords(4,6)))
+
+    CALL fill_inputs_50char(debg, (/file_gatt/), 1, foundCnames(4,:), dimcoords(4,:), charcoor)
+    DO icord=1, dimt
+       CALL diff_dates(debg, '1950-01-01_00:00:00', charcoor(icord,1,1,1,1), 's',                &
+         coordinate(icord,1,1,1,1,1))
+    END DO
+    IF (debg >= 100) PRINT *,"values 'tc':", coordinate(:,1,1,1,1,1)
+    CALL def_dim_time(debg, oid, jv, coordname, coordlong, coordunits, dimt, dimsid(4),          &
+      coordinate(:,1,1,1,1,1))
+
+  ELSE
+    rcode = nf_inq_dimid(oid, coordname, dimsid(4))
+  END IF
+
+!  rcode = nf_redef(oid)
+!  CALL error_nc(section, rcode)
+
+1  coordname = TRIM(dimsvarname(4))
+!  IF (.NOT.exists_dim(oid,dimsvarname(4))) THEN
+!    IF (debg >= 100) PRINT *,'Creation of t dimension...'
+!    rcode = nf_def_dim(oid, coordname, dimt, dimsid(4))
+!    CALL error_nc(section, rcode)
+!  ELSE
+!    rcode = nf_inq_dimid(oid, coordname, dimsid(4))
+!  END IF
+
+  IF (ALLOCATED(values_cord)) DEALLOCATE(values_cord)
+!  rcode = nf_enddef(oid)
+!  CALL error_nc(section, rcode)
+
+  IF (debg >= 100) THEN
+    PRINT *,'Output file dimensions id:'
+    PRINT *,'dx:',dimsid(1),' dy:',dimsid(2),' dz:',dimsid(3),' dt:',dimsid(4)
+  END IF
+
+! Defining and writting real values of 2D longitudes & latitudes
+  coordname='lon'
+  IF ((.NOT.xcar) .AND. (.NOT.exists_var(oid, coordname))) THEN
+    IF (debg >= 100) PRINT *,'Including real values of 2D longitudes...'
+    jv = jv +1
+
+    IF (ALLOCATED(coordinate)) DEALLOCATE(coordinate)
+    ALLOCATE(coordinate(dimx,dimy,dimz,dimt,1,1))
+    CALL fill_inputs_real(debg, (/file_gatt/), 1, foundCnames(1,:), dimcoords(1,:), coordinate)
+
+    coordlong='longitude'
+    coordstd='longitude'
+    coordunits='degrees'
+    coordscoord='lon lat'
+
+    CALL def_nc_var(oid, jv, coordname, 5, 2, (/dimsid(1), dimsid(2), 1, 1, 1, 1/), "XY ",       &
+      coordlong, coordstd, coordunits, "-", coordscoord, debg)
+    rcode = nf_put_vara_real(oid, jv, (/1, 1/), (/dimx, dimy/), coordinate(:,:,1,1,1,1))
+    CALL error_nc(section, rcode)
+
+  END IF
+
+  coordname='lat'
+  PRINT *,' exists lat:',exists_var(oid, coordname)
+  IF ((.NOT.ycar) .AND. (.NOT.exists_var(oid, coordname))) THEN 
+    IF (debg >= 100) PRINT *,'Including real values of 2D latitudes...'
+    jv = jv + 1
+    IF (ALLOCATED(coordinate)) DEALLOCATE(coordinate)
+    ALLOCATE(coordinate(dimx,dimy,dimz,dimt,1,1))
+
+    CALL fill_inputs_real(debg, (/file_gatt/), 1, foundCnames(2,:), dimcoords(2,:), coordinate)
+    coordlong='latitude'
+    coordstd='latitude'
+    coordunits='degrees'
+    coordscoord='lon lat'
+
+    CALL def_nc_var(oid, jv, coordname, 5, 2, (/dimsid(1), dimsid(2), 1, 1, 1, 1/), "XY ",       &
+      coordlong, coordstd, coordunits, "-", coordscoord, debg)
+
+    rcode = nf_put_vara_real(oid, jv, (/1, 1/), (/dimx, dimy/), coordinate(:,:,1,1,1,1))
+    CALL error_nc(section, rcode)
+
+  END IF
+  IF (ALLOCATED(coordinate)) DEALLOCATE(coordinate)
+
+      CASE DEFAULT
+        messg="Nothing to do with dimension: '"//TRIM(dimvec(idim))//"'"
+	CALL diag_fatal(messg)
+    
+    END SELECT indiv_dim
+
+  END DO com_dimensions
+
+END SUBROUTINE compute_dimensions
 
 SUBROUTINE copy_nc_gatt(debg, mcid, file)
 ! Subroutine to copy all global attributes from a netCDF file to other open one
@@ -193,7 +463,7 @@ SUBROUTINE create_output(debg, outfile, dimx, dimy, dimz, dimt, dimsvarname, fil
 
   IF (debg >= 100) THEN
     PRINT *,"Creation of output file '"//TRIM(outfile)//"'..."
-    PRINT *,'  with dimensNetCDF: Operation not allowed in define modeions: '
+    PRINT *,'  with dimensions: '
     PRINT *,'  dimx: ',dimx,' dimy:',dimy,' dimz:',dimz,' dimt:',dimt
     PRINT *,'  variables with dimension values: ',(TRIM(dimsvarname(i)), char(44), i=1,3),      &
       TRIM(dimsvarname(4))
@@ -428,6 +698,100 @@ SUBROUTINE create_output(debg, outfile, dimx, dimy, dimz, dimt, dimsvarname, fil
   rcode = nf_close(oid)
 
 END SUBROUTINE create_output
+
+SUROUTINE def_dimension(debg, ncid, dimval, ivar)
+! Subroutine to define a dimension from a dimension type variable
+
+  USE module_constants, ONLY: dimension_type
+
+  IMPLICIT NONE
+
+  INCLUDE 'netcdf.inc'
+
+  INTEGER, INTENT(IN)                                    :: debg, ncid, ivar
+  TYPE(dimension)                                        :: dimval
+  
+! Local
+  INTEGER                                                :: rcode, attlen
+  CHARACTER(LEN=50)                                      :: section, atttext
+
+!!!!!!!!!!!!! Variables
+! ncid: netCDF id
+! ivar: variable id assignated to values of dimension
+! Text values of dimension (according to CF-1.4 conventions)
+
+  section="'def_dimension'"
+  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+  rcode = nf_redef(ncid)
+  CALL error_nc(section, rcode)
+
+  rcode = nf_def_dim(ncid, TRIM(dimval%name), dimval%range, dimval%id)
+  CALL error_nc(section, rcode)
+
+  rcode = nf_def_var(ncid, TRIM(dimval%name), NF_REAL, 1, dimval%id, ivar)
+  CALL error_nc(section, rcode)
+
+  IF (TRIM(dimval%axis /= '-') THEN
+    atttext = TRIM(dimval%axis) 
+    attlen = LEN_TRIM(atttext)
+    rcode = nf_put_att_text(ncid, ivar, "axis", attlen, atttext(1:attlen) )
+    CALL error_nc(section, rcode)
+    atttext = ' '
+  END IF
+
+  IF (TRIM(dimval%stdname /= '-') THEN
+    atttext = TRIM(dimval%stdname)
+    attlen = len_trim(atttext)
+    rcode = nf_put_att_text(ncid, ivar, "standard_name", attlen, atttext(1:attlen) )
+    CALL error_nc(section, rcode)
+    atttext = ' '
+  END IF
+
+  IF (TRIM(dimval%lonname /= '-') THEN
+    atttext = TRIM(dimval%lonname)
+    attlen = len_trim(atttext)
+    rcode = nf_put_att_text(ncid, ivar, "long_name", attlen, atttext(1:attlen) )
+    CALL error_nc(section, rcode)
+    atttext = ' '
+  END IF
+
+  IF (TRIM(dimval%units /= '-') THEN 
+    atttext = TRIM(dimval%units)
+    attlen = len_trim(atttext)
+    rcode = nf_put_att_text(ncid, ivar, "units", attlen, atttext(1:attlen) )
+    CALL error_nc(section, rcode)
+  END IF
+
+  IF (TRIM(dimval%coords /= '-') THEN 
+    atttext = TRIM(dimval%coords)
+    attlen = len_trim(atttext)
+    rcode = nf_put_att_text(ncid, ivar, "coords", attlen, atttext(1:attlen) )
+    CALL error_nc(section, rcode)
+  END IF
+
+  IF (TRIM(dimval%positive /= '-') THEN 
+    atttext = TRIM(dimval%positive)
+    attlen = len_trim(atttext)
+    rcode = nf_put_att_text(ncid, ivar, "positive", attlen, atttext(1:attlen) )
+    CALL error_nc(section, rcode)
+  END IF
+
+  IF (TRIM(dimval%form /= '-') THEN 
+    atttext = TRIM(dimval%form)
+    attlen = len_trim(atttext)
+    rcode = nf_put_att_text(ncid, ivar, "formula_terms", attlen, atttext(1:attlen) )
+    CALL error_nc(section, rcode)
+  END IF
+
+  rcode = nf_enddef(ncid)
+  CALL error_nc(section, rcode)
+
+  rcode = nf_put_vara_real (ncid, ivar, (/1/), (/dimval%Nvalues/), dimval%values)
+  CALL error_nc(section, rcode)
+
+  RETURN
+END SUBROUTINE def_dim
 
 SUBROUTINE def_dim(debg, ncid, ivar, dimname, dimax, dimlong, dimunit, dimrg, dimid, dimvalues)
 ! Subroutine to define a 1D dimension
@@ -1002,6 +1366,73 @@ SUBROUTINE fill_inputs_real(debg, ncs, Nncs, fvars, dimMin, matin)
   
 END SUBROUTINE fill_inputs_real
 
+SUBROUTINE gattribute_REALvalue(file, debg, attributename, attelement, value)
+! Subroutine to obtain a real value from an attribute from a netCDF file
+
+  USE module_gen_tools, ONLY: diag_fatal
+
+  IMPLICIT NONE
+
+  INCLUDE 'netcdf.inc'
+
+  CHARACTER(LEN=500), INTENT(IN)                         :: file
+  CHARACTER(LEN=50), INTENT(IN)                          :: attributename
+  REAL, INTENT(OUT)                                      :: value
+  INTEGER, INTENT(IN)                                    :: debg, attelement
+!!! Local vars
+  INTEGER                                                :: ncid, attid, attlen, atttype
+  INTEGER                                                :: rcode
+  CHARACTER(LEN=50)                                      :: section, attname
+  INTEGER                                                :: ndims, nvars, ngatts, nunlimdimid
+  REAL, DIMENSION(:), ALLOCATABLE                        :: attrealvalues
+  CHARACTER(LEN=250)                                     :: message
+
+!!!!!!!!!!!!!!! Variables
+! file: netCDF file
+! attributename: name of attribute
+! attelement: element of values to given back
+! value: values recoded in attribute (only attelement component)
+! 
+
+  section="'attribute_REALvalue'"
+  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+  rcode = nf_open(file, 0, ncid)
+  rcode = nf_inq(ncid, ndims, nvars, ngatts, nunlimdimid)
+
+  IF (debg >= 100) PRINT *,"Reading in fle '"//TRIM(file)//"'"
+  
+  PRINT *,"Attribute name: '"//TRIM(attributename)//"' "
+  rcode = nf_inq_atttype(ncid, NF_GLOBAL, attributename, atttype)
+  CALL error_nc(section, rcode)
+
+! If attribute is not real (TYPE =5) stops
+!!
+  message = 'In '//TRIM(section)//" real attribute (type = 5) '"//TRIM(attributename)//              &
+    "' is desired but it is of type: "//CHAR(48+atttype)
+  IF (atttype /= 5) CALL diag_fatal(message)
+
+! Looking for attribute length
+!!
+  rcode = nf_inq_attlen(ncid, NF_GLOBAL, attributename, attlen)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+
+! Allocating and getting value
+!!
+  IF (ALLOCATED(attrealvalues)) DEALLOCATE(attrealvalues)
+  ALLOCATE (attrealvalues(attlen))
+  rcode = nf_get_att_real(ncid, NF_GLOBAL, attributename, attrealvalues)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  IF (debg >= 75) PRINT *,"attribute: '"//TRIM(attributename)//' values: ',attrealvalues(1:attlen)
+
+  rcode = nf_close(ncid)
+  value=attrealvalues(attelement)
+  IF (debg >= 75) PRINT *,'giving back value: ',value
+
+  DEALLOCATE(attrealvalues)
+  RETURN
+END SUBROUTINE gattribute_REALvalue
+
 SUBROUTINE nc_gatts(fileinf, debg) 
 ! Subroutine to print all global attributes of a netCDF file 
 
@@ -1149,6 +1580,44 @@ SUBROUTINE nc_dimensions(file, dbg, ndims, Xdimname, Ydimname, Zdimname, Tdimnam
 
 END SUBROUTINE nc_dimensions
 
+INTEGER FUNCTION nc_last_iddim(debg, ncid)
+! Function to give higest iddim of a netCDF file
+
+  IMPLICIT NONE
+  
+  INCLUDE 'netcdf.inc'
+  
+  INTEGER, INTENT(IN)                                     :: debg, ncid
+
+! Local
+  INTEGER                                                 :: rcode, idim
+  INTEGER                                                 :: ndims, nvars, ngatts, nunlimdimid
+  CHARACTER(LEN=50)                                       :: section, dimname
+  
+  section="'nc_last_iddim'"
+  
+!!!!!!! Variables
+! ncid: netCDF id
+  
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+  rcode = nf_inq(ncid, ndims, nvars, ngatts, nunlimdimid)
+  CALL error_nc(section, rcode)
+  
+  IF (debg >= 150) THEN
+    PRINT *,' netCDF file has ',ndims, ' dimensions'
+  ENDIF
+
+  DO idim=1,ndims
+    rcode = nf_inq_idname (ncid, idim, dimname)
+    CALL error_nc(section, rcode)  
+    IF (debg >= 150 ) PRINT *,'var #',idim,' name: ',dimname
+  END DO  
+
+  nc_last_iddim = ndims
+
+END FUNCTION nc_last_iddim
+
 INTEGER FUNCTION nc_last_idvar(debg, ncid)
 ! Function to give higest idvar of a netCDF file
 
@@ -1227,8 +1696,97 @@ SUBROUTINE nc_Ndim(fileinf, debg, ndims, nvars, ngatts, nunlimdimid)
   RETURN
 END SUBROUTINE nc_Ndim
 
+SUBROUTINE search_dimensions(debg, ncs, Nnc, sdims, fdims)
+! Subroutine to search a dimension from a given set of 'Nnc' netcCDF files 
+!
+! NOTE: Variable values are got from first file where it is found
+
+  USE module_constants
+  USE module_gen_tools, ONLY: diag_fatal
+
+  IMPLICIT NONE
+
+  INCLUDE 'netcdf.inc'
+
+  INTEGER, INTENT(IN)                                     :: debg, Nnc
+  CHARACTER(LEN=500), DIMENSION(Nnc), INTENT(IN)          :: ncs
+  CHARACTER(LEN=50), INTENT(IN)                           :: sdims
+  INTEGER, DIMENSION(3), INTENT(OUT)                      :: fdims
+
+! Local
+  INTEGER                                                 :: ifile, idim
+  INTEGER                                                 :: rcode, ncid, iddim
+  INTEGER                                                 :: Ndimfdim, ncNdims
+  CHARACTER(LEN=50)                                       :: section
+  INTEGER, DIMENSION(6)                                   :: ndimsfdim
+  INTEGER, DIMENSION(:), ALLOCATABLE                      :: ncdims
+  CHARACTER(LEN=250)                                      :: messg
+
+!!!!!!!!!! Variables
+! ncs: vector with the names of netCDF files
+! Nnc: number of netCDF files
+! sdims: name of wanted dimensions
+! fdims: matrix of location of desired dimension
+!    col1: number of files (according to ncs)    col2: id dim in from file of 'col1'
+!    col3: range of dimension
+! ncNdims: number of dimensions of nerCDF file
+! ncdims: range of dimensions of netCDF file
+
+  section="'search_dimensions'"  
+  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+  IF (debg >= 75) PRINT *,"Searching dimensions in "//TRIM(section)//"..."
+  fdims=0
+  dimfdims=1
+  files_loop: DO ifile=1, Nnc
+    rcode = nf_open(TRIM(ncs(ifile)), 0, ncid)
+    IF (debg >= 20) PRINT *,"Reading in file: '"//TRIM(ncs(ifile))//"' ..."
+    CALL error_nc(section, rcode)
+    rcode = nf_inq_ndims(ncid, ncNdims)
+    
+    IF (ALLOCATED(ncdims)) DEALLOCATE(ncdims)
+    ALLOCATE(ncdims(ncNdims))
+    
+    DO idim=1,ncNdims
+      rcode = nf_inq_dimlen(ncid, idim, ncdims(idim))
+    END DO
+
+! Searching dimension
+!!
+    rcode = nf_inq_dimid(ncid, TRIM(sdims), iddim)
+    CALL error_nc(section, rcode)
+    IF (fdims(1) == 0 ) THEN
+      fdims(1)=ifile
+      fdims(2)=iddim
+      rcode = nf_inq_dimlen (ncid, iddim, fdims(3))
+
+      IF (debg >= 75) PRINT *,"Dimension: '"//TRIM(sdims(idim))//"' found in '"//                &
+        TRIM(ncs(ifile))//' dim id:',fdims(2),' range: ', fdims(3)
+    END IF
+    
+    rcode = nf_close(ncid)
+    DEALLOCATE (ncdims)
+  END DO files_loop
+
+  DO ivar=1, Nsvars
+    IF (fdims(1)==0) PRINT *,TRIM(errmsg)//" dimension: '"//TRIM(sdims)//"' NOT found!"
+  END DO
+  
+  messg='The dimension has not been not found !!'
+  IF (.NOT.(ALL(fvars(:,1) /= 0))) CALL diag_fatal(messg)
+  IF (debg >= 75) THEN
+    PRINT *,'Characterstics of found dimension_______________'
+    PRINT *,"dimension: '"//TRIM(sdims)//' file #',fdims(1),' position in file', fdims(2),       &
+      ' range:',fdims(3)
+  END IF
+
+  RETURN
+END SUBROUTINE search_dimensions
+
 SUBROUTINE search_variables(debg, ncs, Nnc, svars, Nsvars, fvars, dimfvars)
 ! Subroutine to search a list of 'Nsvars' variables from a given set of 'Nnc' netcCDF files 
+!
+! NOTE: Variable values are got from first file where it is found
 
   USE module_constants
   USE module_gen_tools, ONLY: diag_fatal
@@ -1312,7 +1870,7 @@ SUBROUTINE search_variables(debg, ncs, Nnc, svars, Nsvars, fvars, dimfvars)
   messg='Some variables have not been not found !!'
   IF (.NOT.(ALL(fvars(:,1) /= 0))) CALL diag_fatal(messg)
   IF (debg >= 75) THEN
-    PRINT *,'Charactersitics of located fields_______________'
+    PRINT *,'Characteristics of found fields_______________'
     DO ivar=1, Nsvars
       PRINT *,"variable: '"//TRIM(svars(ivar))//' file #',fvars(ivar,1),' position in file',    &
         fvars(ivar,2)

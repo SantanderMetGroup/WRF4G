@@ -13,6 +13,9 @@ MODULE module_gen_tools
 ! diagnostic_dim_inf: Subroutine to read diagnostic variable information from 
 !     'dimensions_diagnostics.inf' external ASCII file
 ! diagnostic_inf_Ninvar: Subroutine to give number of input variables to compute varDIAG diagnostic
+! fill_dimension_type: Function to fill a dimension type variable
+! give_Lstring: Function that gives a string of length 'Lstring' filling blanks after 'string' (up
+!     to 250) 
 ! halfdim: Function to give the half value of a dimension
 ! search_variables: Subroutine to search variables from a given netcCDF file
 ! string_int: Function to transform a string to a real value
@@ -138,15 +141,22 @@ SUBROUTINE diagnostic_inf(debg, varDIAG, Ninvar, varinnames, NdimDIAG, shapeDIAG
   
 END SUBROUTINE diagnostic_inf
 
-SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimtype, dimINname, NdimINvars, dimINvarnames,     &
-  dimstdname, dimlonname, dimunits, dimNvalues, dimvalues, dimcoords, dimpositive, dimform)
+SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
 ! Subroutine to read dimension information from 'dimensions_diagnostics.inf' external 
-! ASCII file. File format:
+! ASCII file. '-' values mean NOVALUE. File format:
 !*dimDIAG*
 ! dimtype               H/V/T (horizontal/vertical/time)
+! dimaxis               (space axis to which it makes reference)
 ! dim_in_name           (dimension name in in put file; '-' no value)
 ! num_dimInVarnames     (number of input variables to compute dimension; '0' no variables)
 ! dim_in_varnames       (variables names, coma separated, to compute dimension) 
+! method                (method to compute dimension)
+!    direct: values are the same from dim_in_varnames [for num_dimInVarnames=1]
+!    constant: values are the same from dim_in_varnames plus a constant [for num_dimInVarnames=1]
+!    sum: values are the result of the sum of all [dim_in_varnames]
+!    xxxxxx: specific for this dimension (xxxxx must have some sense in 'copute_dimensions' (in
+!      'module_nc_tools')
+! constant              (constant value for method='constant')
 ! standard_name         (CF-1.4 standard name of dimension)
 ! long_name             (long name of dimension)
 ! units                 (units of dimension)
@@ -163,59 +173,58 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimtype, dimINname, NdimINvars, dim
 !*dimDIAG*
 ! (...)
 
+  USE module_constants, ONLY: dimension_type
+
   IMPLICIT NONE
 
-  INTEGER, INTENT(IN)                                    :: debg
-  CHARACTER(LEN=1), INTENT(OUT)                          :: dimtype
-  CHARACTER(LEN=50), INTENT(OUT)                         :: dimINname, dimDIAG
-  INTEGER, INTENT(OUT)                                   :: NdimINvars, dimNvalues
-  CHARACTER(LEN=50), POINTER, DIMENSION(:), INTENT(OUT)  :: dimINvarnames
-  CHARACTER(LEN=250), INTENT(OUT)                        :: dimstdname, dimlonname, dimunits
-  CHARACTER(LEN=10), POINTER, DIMENSION(:), INTENT(OUT)  :: dimvalues
-  CHARACTER(LEN=50), INTENT(OUT), OPTIONAL               :: dimpositive
-  CHARACTER(LEN=250), INTENT(OUT), OPTIONAL              :: dimcoords, dimform
+  INTEGER, INTENT(IN)                                    :: debg, dimid
+  TYPE(dimension)                                        :: diminf
+  CHARACTER(LEN=50), INTENT(IN)                          :: dimDIAG
 
 ! Local variables
   INTEGER                                                :: i, ilin, idim
   INTEGER                                                :: iunit, ios
-  INTEGER                                                :: Llabel, posvarDIM
+  INTEGER                                                :: Llabel, posDIM
   CHARACTER(LEN=1)                                       :: car
   CHARACTER(LEN=50)                                      :: label, section
   LOGICAL                                                :: is_used
-
+  CHARACTER(LEN=250), DIMENSION(:), ALLOCATABLE, TARGET  :: dimInvarnames
+  REAL, DIMENSION(:), ALLOCATABLE, TARGET                :: dimfixvalues
+  CHARACTER(LEN=3000)                                    :: readINvarnames, readFIXvalues
+  
 !!!!!!!!!!!!!! Variables
-! dimDIAG: dimension diagnostic name
-! dimtype: type of dimension: 
-!    H: horizontal dimension    V: vertical dimension     T: temporal dimension
-! dimINname: dimension name as it appears in input file
-! NdimINvars: number of variables from input files to compute dimension
-! dimINvarnames: names of variables from input fields to compute dimension
-! dimstdname: standard CF convection name of dimension
-! dimlonname: long name of dimension
-! dimunits: units of dimension
-! dimNvalues: number of fixed values for the dimension
-! dimvalues: fixed values of the dimension
-! dimcoords: coordinates in which is based dimension (specific of dimtype=H)
-! dimpositive: sign of increment of dimension (specific of dimtype=V)
-! dimform: formula of dimension (specific of dimtype=V)
+! dimDIAG: dimension name to be search
+! dimid: id of dimension to be read
+! diminf: information of dimension (see definition in 'module_constants.f90')
+! dimInvarnames: vector with variable names of input files to compute dimension
+! dimfixvalues: vector with fixed values of dimension
+! posDIM: position of beginning of decription of dimension in file
+! readINvarnames: all read (as character string) input variables' name from file
+! readFIXvalues: all read (as character string) input fixed values from file
+
 
   section="'diagnostic_dim_inf'"
   IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
 
 !  Read parameters from diagnostic dimensions information file 'dimensions_diagnostics.inf' 
+!!
    DO iunit=10,100
      INQUIRE(unit=iunit, opened=is_used)
      IF (.not. is_used) EXIT
    END DO
    OPEN(iunit, file='dimensions_diagnostics.inf', status='old', form='formatted', iostat=ios)
    IF ( ios /= 0 ) STOP "ERROR opening 'dimensions_diagnostics.inf'"
+
+! Looking for beginning of dimension description in file
+!!
+   IF (debg >= 150) PRINT *,"  searching dimension '"//TRIM(dimDIAG)//"'"
    ilin=1
-   posvarDIAG=0
+   posDIM=0
    DO 
      READ(iunit,*,END=100)label
      Llabel=LEN_TRIM(label)
-     IF (label(2:Llabel-1)==TRIM(varDIAG)) THEN
-       posvarDIAG=ilin
+     IF (label(2:Llabel-1)==TRIM(dimDIAG)) THEN
+       posDIM=ilin
        EXIT
      END IF
      ilin=ilin+1
@@ -223,71 +232,108 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimtype, dimINname, NdimINvars, dim
 
  100 CONTINUE
 
-   IF (dimDIAG == 0) THEN
+   IF (posDIM == 0) THEN
      PRINT *,"Diagnostic dimension '"//TRIM(dimDIAG)//"' not found in 'dimensions_diagnostics.inf'"
      STOP
    END IF
 
    REWIND (iunit)
 
-   DO ilin=1,posvarDIAG
+   DO ilin=1,posDIM
      READ(iunit,*)car
    END DO
-   shapeDIAG=1
 
-   READ(iunit,*)car, car
-   READ(iunit,*)car, dimtype
-   READ(iunit,*)car, dimINname
-   READ(iunit,*)car, NdimINvars
-   ALLOCATE(dimINvarnames(NdimINvars))
-   READ(iunit,*)car, (dimINvarnames(idim), i=1, NdimINvars)
-   READ(iunit,*)car, dimstdname
-   READ(iunit,*)car, dimlonname
-   READ(iunit,*)car, dimunits
-   READ(iunit,*)car, dimNvalues
-   ALLOCATE(dimvalues(dimNvalues))
-   READ(iunit,*)car, dimvalues
-   
-! Specific horizontal dim
-   IF (dimtype == 'H') READ(iunit,*)car, dimcoords
-   
-! Specific vertical dim
-   IF (dimtype == 'V') THEN
-     READ(iunit,*)car, dimpositive
-     READ(iunit,*)car, dimform
+   diminf%name=dimDIAG
+   diminf%id=dimid
+
+   READ(iunit,*)car, diminf%type
+   PRINT *,'Que pasa neng?', TRIM(diminf%type)
+   READ(iunit,*)car, diminf%axis
+   PRINT *,'Que pasa neng? 0', TRIM(diminf%axis)
+   READ(iunit,*)car, diminf%INname
+   PRINT *,'Que pasa neng? 1 ', TRIM(diminf%INname)
+   READ(iunit,*)car, diminf%NinVarnames
+   PRINT *,'Que pasa neng? 2 ', diminf%NinVarnames
+   IF (ALLOCATED(dimInvarnames)) DEALLOCATE(dimInvarnames)
+   ALLOCATE(dimInvarnames(diminf%NinVarnames))
+   READ(iunit,*)car, readINvarnames
+   PRINT *,'Que pasa neng? 3 ', "'"//TRIM(readINvarnames)//"'"
+   CALL string_values(readINvarnames, debg, diminf%NinVarnames, dimInvarnames)
+   PRINT *,'Que pasa neng? 3b ', (TRIM(dimInvarnames(idim)), char(44), idim=1, diminf%NinVarnames)
+   ALLOCATE(diminf%INvarnames(diminf%NinVarnames))
+   diminf%INvarnames=>dimInvarnames
+   PRINT *,'Que pasa neng? 4 ', (TRIM(diminf%INvarnames(idim)), char(44), idim=1, diminf%NinVarnames)
+   PRINT *,'Ale hoop!'
+   READ(iunit,*)car, diminf%method
+   PRINT *,'Que pasa neng? 5 ', TRIM(diminf%method)
+   READ(iunit,*)car, diminf%constant
+   PRINT *,'Que pasa neng? 5 ', diminf%constant
+   READ(iunit,*)car, diminf%stdname
+   PRINT *,'Que pasa neng? 5 c', TRIM(diminf%stdname)
+   READ(iunit,*)car, diminf%lonname
+   PRINT *,'Que pasa neng? 6 ', TRIM(diminf%lonname)
+   READ(iunit,*)car, diminf%units
+   PRINT *,'Que pasa neng? 7 ', TRIM(diminf%units)
+   READ(iunit,*)car, diminf%Nvalues
+   PRINT *,'Que pasa neng? 8 ', diminf%Nvalues
+   IF (ALLOCATED(dimfixvalues)) DEALLOCATE(dimfixvalues)
+   ALLOCATE(dimfixvalues(diminf%Nvalues))
+   READ(iunit,*)car, readFIXvalues
+   PRINT *,'Que pasa neng? 9 ', TRIM(readFIXvalues)
+   IF (TRIM(readFIXvalues) /= '-') THEN
+     CALL string_values(readFIXvalues, debg, diminf%Nvalues, dimfixvalues)
+   ELSE
+     dimfixvalues=0.
    END IF
-
+   diminf%values=>dimfixvalues
+   PRINT *,'Que pasa neng? 10 ', diminf%values
+   
+! Specific horizontal dim, however is read for all dimensions. If it has a value it will be written
+! as a dimension attribute (it might be helpful)
+   READ(iunit,*)car, diminf%coords
+   
+! Specific vertical dim, however is read for all dimensions. If it has a value it will be written
+! as a dimension attribute (it might be helpful)
+   READ(iunit,*)car, diminf%positive
+   READ(iunit,*)car, diminf%form
+   
    CLOSE(iunit)
 
    IF (debg >= 75) THEN
-     PRINT *,"Read information for '"//TRIM(dimDIAG)//"' dimension________"
-     PRINT *,'  Dimension type:', TRIM(dimtype)
-     IF (TRIM(dimINname) /= '-') THEN
-       PRINT *,'  Dimension name in input files: ',TRIM(dimINname)
+     PRINT *,"Read information for '"//TRIM(diminf%name)//"' dimension________"
+     PRINT *,'Dimension id: ',diminf%id
+     PRINT *,'  Dimension type:', TRIM(diminf%type)
+     PRINT *,'  Dimension axis:', TRIM(diminf%axis)
+     IF (TRIM(diminf%INname) /= '-') THEN
+       PRINT *,'  Dimension name in input files: ',TRIM(diminf%INname)
      ELSE
        PRINT *,'  New dimension. It does not exists in input files!'
      END IF
-     IF (NdimINvars > 0) THEN
-       PRINT *,'  Number of input variables to compute dimension: ',NdimINvars
-       PRINT *,'  Name of input variables:', ('  '//TRIM(dimINvarnames(i)//'  '),i=1,NdimINvars)
+     IF (diminf%NinVarnames > 0) THEN
+       PRINT *,'  Number of input variables to compute dimension: ',diminf%NinVarnames
+       PRINT *,'  Name of input variables:', ('  '//TRIM(diminf%INvarnames(idim)//'  '),        &
+         idim=1,diminf%NinVarnames)
      ELSE
        PRINT *,'  No input variables are needed to compute dimension!'
      END IF
-     PRINT *,'  Dimension standard name: ',TRM(dimstdname)
-     PRINT *,'  Dimension long name: ',TRM(dimlonname)
-     PRINT *,'  Dimension units: ',TRM(dimunits)
-     IF (dimNvalues > 0) THEN
-       PRINT *,'  Number of fixed values of dimension: ',dimNvalues
-       PRINT *,'  Fixed values of dimension: ',(dimvalues(idim), idim=1, dimNvalues)
+     PRINT *,'  Dimension computation method: ',TRIM(diminf%method)
+     PRINT *,'  Constant: ',diminf%constant
+     PRINT *,'  Dimension standard name: ',TRIM(diminf%stdname)
+     PRINT *,'  Dimension long name: ',TRIM(diminf%lonname)
+     PRINT *,'  Dimension units: ',TRIM(diminf%units)
+     IF (diminf%Nvalues > 0) THEN
+       PRINT *,'  Number of fixed values of dimension: ',diminf%Nvalues
+       PRINT *,'  Fixed values of dimension: ',(diminf%values(idim), idim=1, diminf%Nvalues)
      END IF
 ! Specific horizontal dim
-     IF (dimtype == 'H') PRINT *,'  Base coordinates of dimension: ',TRIM(dimcoords)
+     IF (TRIM(diminf%coords) /= '-') PRINT *,'  Base coordinates of dimension: ',               &
+       TRIM(diminf%coords)
    
 ! Specific vertical dim
-     IF (dimtype == 'V') THEN
-       READ(iunit,*)PRINT *,'  Sign of increase of dimension: ', TRIM(dimpositive)
-       READ(iunit,*)PRINT *,'  Formula of dimension: ',TRIM(dimform)
-     END IF
+     IF (TRIM(diminf%positive) /= '-') PRINT *,'  Sign of increase of dimension: ',             &
+       TRIM(diminf%positive)
+     IF (TRIM(diminf%form) /= '-') PRINT *,'  Formula of dimension: ',TRIM(diminf%form)
+
    END IF
 
    RETURN
@@ -363,6 +409,129 @@ SUBROUTINE diagnostic_inf_Ninvar(varDIAG, debg, Ninvar)
    close(iunit)
 
 END SUBROUTINE diagnostic_inf_Ninvar
+
+SUBROUTINE fill_dimension_type(dimname, dimid, dimtype, dimaxs, diminname, dimrange, dimNinvars,&
+  diminvars, dimmethod, dimct, dimstd, dimlong, dimu, dimNval, dimval, dimcoord, dimpos,        &
+  dimform, dimfilled)
+! Function to fill a dimension type variable
+
+  USE module_constans, ONLY: dimension_type
+
+  IMPLICIT NONE
+
+  CHARACTER(LEN=50), INTENT(IN)                           :: dimname
+  INTEGER, INTENT(IN)                                     :: dimid
+  CHARACTER(LEN=1), INTENT(IN)                            :: dimtype, dimaxs
+  CHARACTER(LEN=50), INTENT(IN)                           :: diminname
+  INTEGER, INTENT(IN)                                     :: dimrange
+  INTEGER, INTENT(IN)                                     :: dimNinvars
+  CHARACTER(LEN=250), DIMENSION(dimNinvars), INTENT(IN)   :: diminvars
+  INTEGER, INTENT(IN)                                     :: dimmethod
+  REAL, INTENT(IN)                                        :: dimct
+  CHARACTER(LEN=250), INTENT(IN)                          :: dimstd
+  CHARACTER(LEN=250), INTENT(IN)                          :: dimlong
+  CHARACTER(LEN=50), INTENT(IN)                           :: dimu
+  INTEGER, INTENT(IN)                                     :: dimNval
+  REAL, DIMENSION(dimNval), INTENT(IN)                    :: dimval
+  CHARACTER(LEN=250), INTENT(IN)                          :: dimcoord
+  CHARACTER(LEN=50), INTENT(IN)                           :: dimpos
+  CHARACTER(LEN=250), INTENT(IN)                          :: dimform
+  TYPE(dimension)                                         :: dimfilled  
+
+! Local
+  CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=250), DIMENSION(dimNinvars), TARGET       :: diminvars_targ
+  REAL, DIMENSION(dimNval), TARGET                        :: dimval_targ
+
+!!!!!!! Variables
+! dimfilled: dimension variable type filled with given values
+
+  section="'fill_dimension_type'"
+  IF (debg >= 100) PRINT *,'Section '//section//'... .. .'
+
+  diminvars_targ=diminvars
+  dimval_targ=dimval
+
+  dimfilled%name=dimname
+  dimfilled%id=dimid
+  dimfilled%type=dimtype
+  dimfilled%axis=dimaxs  
+  dimfilled%INname=diminname
+  dimfilled%range=dimrange
+  dimfilled%NinVarnames=dimNinvars
+  dimfilled%INvarnames=>diminvars_targ
+  dimfilled%method=dimmethod
+  dimfilled%constant=dimct  
+  dimfilled%stdname=dimstd
+  dimfilled%lonname=dimlong
+  dimfilled%units=dimu
+  dimfilled%Nvalues=dimNval
+  dimfilled%values=>dimval_targ
+  dimfilled%coords=dimcoord
+  dimfilled%positive=dimpos
+  dimfilled%form=dimform
+   
+   IF (debg >= 150) THEN
+     PRINT *,"Filled '"//TRIM(dimfilled%name)//"' dimension________"
+     PRINT *,'Dimension id: ',dimfilled%id
+     PRINT *,'  Dimension type:', TRIM(dimfilled%type)
+     PRINT *,'  Dimension axis:', TRIM(dimfilled%axis)
+     IF (TRIM(dimfilled%INname) /= '-') THEN
+       PRINT *,'  Dimension name in input files: ',TRIM(dimfilled%INname)
+     ELSE
+       PRINT *,'  New dimension. It does not exists in input files!'
+     END IF
+     IF (dimfilled%NinVarnames > 0) THEN
+       PRINT *,'  Number of input variables to compute dimension: ',dimfilled%NinVarnames
+       PRINT *,'  Name of input variables:', ('  '//TRIM(dimfilled%INvarnames(idim)//'  '),     &
+         idim=1,dimfilled%NinVarnames)
+     ELSE
+       PRINT *,'  No input variables are needed to compute dimension!'
+     END IF
+     PRINT *,'  Dimension computation method: ',TRIM(dimfilled%method)
+     PRINT *,'  Constant for the method: ',dimfilled%constant
+     PRINT *,'  Dimension standard name: ',TRIM(dimfilled%stdname)
+     PRINT *,'  Dimension long name: ',TRIM(dimfilled%lonname)
+     PRINT *,'  Dimension units: ',TRIM(dimfilled%units)
+     PRINT *,'  Number of values of dimension: ',dimfilled%Nvalues
+     PRINT *,'  Values of dimension: ',(dimfilled%values(idim), idim=1, dimfilled%Nvalues)
+     END IF
+! Specific horizontal dim
+     IF (TRIM(dimfilled%coords) /= '-') PRINT *,'  Base coordinates of dimension: ',            &
+       TRIM(dimfilled%coords)
+   
+! Specific vertical dim
+     IF (TRIM(dimfilled%positive) /= '-') PRINT *,'  Sign of increase of dimension: ',          &
+       TRIM(dimfilled%positive)
+     IF (TRIM(dimfilled%form) /= '-') PRINT *,'  Formula of dimension: ',TRIM(dimfilled%form)
+
+   END IF
+  RETURN
+END SUBROUTINE fill_dimension_type
+
+CHARACTER(LEN=250) FUNCTION give_Lstring(debg, string)
+! Function that gives a string of length filling blanks after 'string' (up to 250)
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: debg, Lstring
+  CHARACTER(LEN=*), INTENT(IN)                            :: string
+
+! Local
+  INTEGER                                                 :: Lstring, icar
+  CHARACTER(LEN=50)                                       :: section
+  
+  section="'give_Lstring'"
+  give_Lstring=' '
+
+  IF (debg >= 150 ) PRINT *,'Section '//section//'... .. .'
+
+  Lstring=LEN_TRIM(string)
+  give_Lstring=TRIM(string)
+
+  IF (debg >= 150 ) PRINT *,"**** '"//give_Lstring//"' ****"
+
+END FUNCTION give_Lstring
 
 INTEGER FUNCTION halfdim(dim)
 ! Function to give the half value of a dimension
