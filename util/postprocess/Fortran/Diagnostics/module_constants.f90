@@ -72,6 +72,7 @@ MODULE module_constants
       CHARACTER(LEN=250), POINTER, DIMENSION(:)           :: INvarnames
       CHARACTER(LEN=50)                                   :: method
       REAL                                                :: constant
+      INTEGER, POINTER, DIMENSION(:)                      :: indimensions
       CHARACTER(LEN=250)                                  :: stdname
       CHARACTER(LEN=250)                                  :: lonname
       CHARACTER(LEN=50)                                   :: units
@@ -93,12 +94,17 @@ MODULE module_constants
 ! NinVarnames: number of variables from input files to compute dimension
 ! INvarnames: names of variables from input fields to compute dimension
 ! method: method to compute dimension
-!    direct: values are the same from dim_in_varnames [for num_dimInVarnames=1]
-!    constant: values are the same from dim_in_varnames plus a constant [for num_dimInVarnames=1]
-!    sum: values are the result of the sum of all [dim_in_varnames]
-!    xxxxxx: specific for this dimension (xxxxx must have some sense in 'copute_dimensions' (in
-!      'module_nc_tools')
+!    direct: values are the same from INname/dim_in_varnames [for num_dimInVarnames=1]
+!    sumct: values are the same from INname/dim_in_varnames plus a constant [for
+!       num_dimInVarnames=1] 
+!    prodct: values are the same from INname/dim_in_varnames multiplyed by a constant [for
+!       num_dimInVarnames=1] 
+!    sumall: values are the result of the sum of all [INname/dim_in_varnames]
+!    xxxxxx: specific for this dimension (xxxxx must have some sense in 'calc_method1D' (in
+!       'module_gen_tools') or in 'compute_dimensions' for 'name' (in 'module_nc_tools')
 ! constant: constant value for method='constant'
+! indimensions: which dimension of each 'dim_in_varnames' have to be used to compute dimension [for
+!   num_dimInVarnames=1]
 ! stdname: standard CF convection name of dimension
 ! lonname: long name of dimension
 ! units: units of dimension

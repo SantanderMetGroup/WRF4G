@@ -8,6 +8,8 @@ MODULE module_nc_tools
 !
 !!!!!!!!! Subroutines/Functions
 ! compute_dimensions: Subroutine to compute dimensions of output file
+! compute_1Dmethod_values: Subroutine to compute 'method' values of dimensions 1D methods
+! compute_6Dmethod_gen: Subroutine to compute values of dimensions by 6D generic methods 
 ! copy_nc_att: Subroutine to copy all global attributes from a netCDF file to other open one
 ! create_output: Subroutine to create netCDF output
 ! def_dimension: Subroutine to define a dimension from a dimension type variable
@@ -31,7 +33,190 @@ MODULE module_nc_tools
 ! search_variables: Subroutine to search a list of 'Nsvars' variables from a given set of 'Nnc'
 !   netcCDF files  
 
-SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, Nfiles, files)
+SUBROUTINE compute_1Dmethod_values(debg, Ninc, incs, dimensioncalc)
+! Subroutine to compute 'method' values of dimensions 1D methods
+
+  USE module_constans, ONLY: dimension_type
+  USE module_gen_tools
+
+  IMPLICIT NONE
+  
+  INCLUDE 'netcdf.inc'
+  
+  INTEGER, INTENT(IN)                                     :: debg, Ninc
+  CHARACTER(LEN=50), DIMENSION(Ninc), INTENT(IN)          :: incs
+  TYPE(dimension), INTENT(INOUT)                          :: dimensioncalc
+  
+! Local
+  INTEGER                                                 :: ival, ivar
+  INTEGER                                                 :: rcode
+  CHARACTER(LEN=50)                                       :: section
+  INTEGER, DIMENSION(3)                                   :: dimfound
+  REAL, DIMENSION(:), ALLOCATABLE, TARGET                 :: dimvalues
+  REAL, DIMENSION(:,:), ALLOCATABLE                       :: diminvalues
+  INTEGER, DIMENSION(:,:), ALLOCATABLE                    :: dimvarfound, dimvardimfound
+  REAL, DIMENSION(:,:,:,:,:,:), ALLOCATABLE               :: valuesMATin
+
+    
+!!!!!!! Variables
+! Ninc: number of input netCDF
+! incs: names of input netCDF files
+! dimensioncalc: dimension to compute its values by method wether it is possible
+! dimfound: characteristics of existing dimension in input files
+! diminvalues: input values to compute 'dimvalues'
+! dimvarfound: where is located each variable in input files
+! dimvardimfound: dimensions of 'dimvarfound'
+! valuesMATin: 6D matrix with values of a variable from a netCDF
+! dimvalues: values of dimension
+
+  section="'compute_1Dmethod_values'"
+
+  IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
+
+!
+!! Dimension takes values from an existing dimension. Resultant dimension will be an incremental 
+!     list of values from 1 to range of input dimension
+
+  IF (dimensioncom%INname /= '-') THEN
+    CALL search_dimensions(debg, incs, Ninc, dimensioncalc%name, dimfound)
+    
+    IF (ALLOCATED(diminvalues)) DEALLOCATE(diminvalues)
+    ALLOCATE (diminvalues(dimfound(3),1))
+    
+    DO ival=1, dimfound(3)
+      diminvalues(i,1)=i*1.
+    END DO
+
+! Dimension range values
+    dimensioncom%Nvalues=dimfound(3)
+    IF (ALLOCATED(dimvalues)) DEALLOCATE(dimvalues)
+    ALLOCATE(dimvalues(dimfound(3)))
+
+  END IF
+!
+!! Dimension takes values from input variables
+  IF (dimensioncom%NinVarnames /= '-') THEN
+    IF (ALLOCATED(dimvarfound)) DEALLOCATE(dimvarfound)
+    ALLOCATE(dimvarfound(dimensioncom%NinVarnames),2)
+    IF (ALLOCATED(dimvardimfound)) DEALLOCATE(dimvardimfound)
+    ALLOCATE(dimvardimfound(dimensioncom%NinVarnames),6)
+	  
+! Looking for variables characteristics
+!! 
+    CALL search_variables(debg, files, Nfiles, (/dimensioncom%NinVarnames/),                    &
+      (/dimensioncom%INvarnames(1:dimensioncom%NinVarnames)/), dimvarfound, dimvardimfound)
+
+! Getting variables values and keeping only values from desired dimension
+!!
+    IF (ALLOCATED(diminvalues)) DEALLOCATE(diminvalues)
+    ALLOCATE(diminvalues(dimvardimfound(1, dimensioncom%indimensions(1)),                       &
+      dimensioncom%NinVarnames))
+    
+    DO ivar=1, dimensioncom%NinVarnames
+      IF (ALLOCATAED(valuesMATin)) DEALLOCATE(valuesMATin)
+      ALLOCATE(valuesMATin(dimvardimfound(ivar,1),dimvardimfound(ivar,2),dimvardimfound(ivar,3),&
+        dimvardimfound(ivar,4),dimvardimfound(ivar,5),dimvardimfound(ivar,6)))
+      
+      CALL fill_inputs_real(debg, files, Nfiles, (/dimensioncom%INvarnames(ivar)/), 1,          &
+        dimvardimfound(ivar, :), valuesMATin)
+      CALL give1D_from6D(debg, valuesMATin, dimvardimfound(ivar, :),                            &
+        dimvardimfound(ivar,dimensioncom%indimensions(ivar)),                                   &
+	diminvalues(:,dimensioncom%NinVarnames))
+    END DO
+
+! Dimension range values
+    dimensioncom%Nvalues=dimvardimfound(1, dimensioncom%indimensions(1))
+    IF (ALLOCATED(dimvalues)) DEALLOCATE(dimvalues)
+    ALLOCATE(dimvalues(dimvardimfound(1, dimensioncom%indimensions(1))))
+
+  END IF
+  
+  CALL calc_method1D(debg, dimensioncom%method, dimvardimfound(1, dimensioncom%indimensions(1)),&
+    dimensioncom%NinVarnames, diminvalues, dimensioncom%constant, dimvalues)
+  dimensioncom%values=>dimvalues
+
+END SUBROUTINE compute_1Dmethod_values
+
+!!!!
+!! AQUI ! compute_6Dmethod_gen. NO te sentit
+! Ha de ser per a cada variable. No es coneix el dimvarfound, ni el dimvardimfound !!
+! A no ser que es tornin nomes 2D matrius.... (per no!! quines dimensions?)
+!!!!
+
+SUBROUTINE compute_6Dmethod_gen(debg, Ninc, incs, dimensioncalc, valuesMATdim)
+! Subroutine to compute values of dimensions by 6D generic methods 
+
+  USE module_constans, ONLY: dimension_type
+  USE module_gen_tools
+
+  IMPLICIT NONE
+  
+  INCLUDE 'netcdf.inc'
+  
+  INTEGER, INTENT(IN)                                     :: debg, Ninc
+  CHARACTER(LEN=50), DIMENSION(Ninc), INTENT(IN)          :: incs
+  TYPE(dimension), INTENT(IN)                             :: dimensioncalc
+  REAL, DIMENSION(:,:,:,:,:,:), ALLOCATABLE               :: valuesMATdim
+  
+! Local
+  INTEGER                                                 :: ival, ivar
+  INTEGER                                                 :: rcode
+  CHARACTER(LEN=50)                                       :: section
+  INTEGER, DIMENSION(3)                                   :: dimfound
+  REAL, DIMENSION(:), ALLOCATABLE, TARGET                 :: dimvalues
+  REAL, DIMENSION(:,:), ALLOCATABLE                       :: diminvalues
+  INTEGER, DIMENSION(:,:), ALLOCATABLE                    :: dimvarfound, dimvardimfound
+  REAL, DIMENSION(:,:,:,:,:,:,:), ALLOCATABLE             :: valuesMATinA
+    
+!!!!!!! Variables
+! Ninc: number of input netCDF
+! incs: names of input netCDF files
+! dimensioncalc: dimension to compute its values by method wether it is possible
+! dimfound: characteristics of existing dimension in input files
+! diminvalues: input values to compute 'dimvalues'
+! dimvarfound: where is located each variable in input files
+! dimvardimfound: dimensions of 'dimvarfound'
+! valuesMATin[A/F]: 6D real matrix with values to compute dimensions
+! valuesMATdim: 6D matrix with values of dimension
+! dimvalues: values of dimension
+
+  section="'compute_6Dmethod_gen'"
+
+  IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
+
+
+! Characteristics of variables
+!! 
+  IF (ALLOCATED(dimvarfound)) DEALLOCATE(dimvarfound)
+  ALLOCATE(dimvarfound(dimensioncalc%NinVarnames),2)
+  IF (ALLOCATED(dimvardimfound)) DEALLOCATE(dimvardimfound)
+  ALLOCATE(dimvardimfound(dimensioncalc%NinVarnames),6)
+	  
+! Looking for variables characteristics
+!! 
+  CALL search_variables(debg, incs, Nnc, (/dimensioncalc%NinVarnames/),                         &
+    (/dimensioncalc%INvarnames(1:dimensioncalc%NinVarnames)/), dimvarfound, dimvardimfound)
+
+! Getting variables values
+!!
+  IF (ALLOCATED(valuesMATinA)) DEALLOCATE(valuesMATinA)
+  ALLOCATE(valuesMATinA(dimvardimfound(1,1), dimvardimfound(1,2), dimvardimfound(1,3),          &
+    dimvardimfound(1,4), dimvardimfound(1,5), dimvardimfound(1,6), dimensioncom%NinVarnames))
+    
+  IF (ALLOCATAED(valuesMATdim)) DEALLOCATE(valuesMATdim)
+  ALLOCATE(valuesMATdim(dimvardimfound(1,1),dimvardimfound(1,2),dimvardimfound(1,3),            &
+    dimvardimfound(1,4),dimvardimfound(1,5),dimvardimfound(1,6)))
+      
+  CALL fill_inputs_real(debg, incs, Nnc, dimensioncom%INvarnames, dimvardimfound(1, :),         &
+    valuesMATinA)
+
+  CALL calc_method_gen6D(debg, dimensioncalc%method, dimvardimfound(1,:),                       &
+    dimensioncom%NinVarnames, valuesMATinA, dimensioncom%constant, valuesMATdim)
+
+END SUBROUTINE compute_6Dmethod_gen
+
+SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4basedims, Nfiles,    &
+  files)
 ! Subroutine to compute dimensions of output file
 
   USE module_constants, ONLY:dimension_type
@@ -44,8 +229,9 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, Nfiles, fil
   INTEGER, INTENT(IN)                                     :: debg, ncid, Ndims, Nfiles
   CHARACTER(LEN=50), DIMENSION(Ndims), INTENT(IN)         :: dimvec
   CHARACTER(LEN=50), DIMENSION(Nfiles), INTENT(IN)        :: files
-  TYPE(dimension)                                         :: dimensioncom, dimensionnew
+  TYPE(dimension)                                         :: dimensioncompute, dimensionnew
   LOGICAL, INTENT(IN)                                     :: xcar, ycar
+  CHARACTER(LEN=50), DIMENSION(4), INTENT(IN)             :: names4basedims
   
 ! Local
   INTEGER                                                 :: idim
@@ -58,7 +244,12 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, Nfiles, fil
   INTEGER, DIMENSION(Ndims)                               :: dimsid
   CHARACTER(LEN=250)                                      :: give_Lstring
   REAL, DIMENSION(:), ALLOCATABLE                         :: dimensionvalues
-  
+  REAL, DIMENSION(:,:,:,:,:,:,:), ALLOCATABLE             :: valuesMATinA, valuesMATinB,        &
+    valuesMATinC,valuesMATinD,valuesMATinE,valuesMATinF
+  REAL, DIMENSION(:,:,:,:,:,:), ALLOCATABLE               :: valuesMATdim
+  CHARACTER(LEN=50)                                       :: coordname, coordstd, coordunits,   &
+    coordscoord, coordaxis, coordpositive
+
 !!!!!!! Variables
 ! ncid: netCDF if where to write dimensions
 ! Ndims: number of dimensions to write (if they do not already exist)
@@ -66,6 +257,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, Nfiles, fil
 ! dimensioncom: specific dimension to compute
 ! dimidin: dimension id in input file
 ! [x/y]car: are x and y coordinates cartesian?
+! names4basedims: names of 4 basic dimensions (X, Y, Z, T) in input files
 ! Nfiles: number of input netCDF files in which range of dimensions should be found
 ! files: vector with input netCDF files
 ! jvar: id of last variable in netCDF file
@@ -76,6 +268,10 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, Nfiles, fil
 ! invarvalues: values of variables used to compute dimension values (when they are 1D)
 ! dimsid: id of dimension as they are defined in 'ncid'. Id of dimensions will preserve order from
 !   'dimensions_diagnostics.inf' file
+! valuesMATin[A/F]: 6D real matrix with values to compute dimensions
+! valuesMATdim: 6D real matrix with 'dimension'-related matrix values
+! coordname, coordstd, coordunits, coordscoord, coordaxis, coordpositive: strings for direct
+!   definition of coordinates as 2D variables
 
   section="'compute_dimensions'"
   IF (debg >= 100) PRINT *,'Section '//section//'... .. .'
@@ -89,81 +285,48 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, Nfiles, fil
   
     indiv_dim: SELECT CASE (dimvec(idim))
     
-      CALL diagnostic_dim_inf(debg, dimvec(idim), 1, dimensioncom)
-
-! Looking for dimension range
-!
-!! Dimension takes values from an existing dimension
-
-      IF (dimensioncom%INname /= '-') THEN
-        CALL search_dimensions(debg, files, Nfiles, dimvec(idim), dimfound)
-        IF (ALLOCATED(dimvalues)) DEALLOCATE(dimvalues)
-        ALLOCATE (dimvalues(dimfound(3)))
-        DO i=1, dimfound(3)
-	  dimvalues(i)=i*1.
-	END DO
-      END IF
-!
-!! Dimension takes values from an existing variable
-      IF (dimensioncom%NinVarnames /= '-') THEN
-	IF (ALLOCATED(dimvarfound)) DEALLOCATE(dimvarfound)
-	ALLOCATE(dimvarfound(dimensioncom%NinVarnames),2)
-	IF (ALLOCATED(dimvardimfound)) DEALLOCATE(dimvardimfound)
-	ALLOCATE(dimvardimfound(dimensioncom%NinVarnames),2)
-	  
-	CALL search_variables(debg, files, Nfiles, (/dimensioncom%NinVarnames/),                &
-	  (/dimensioncom%INvarnames(1:dimensioncom%NinVarnames)/), dimvarfound, dimvardimfound)
-
-! In general only methods 'direct', 'constant', 'sum' can be done here, for variables with the same
-! 1-dimensional shape [netCDF_shape=(dim, 1, 1, 1, 1, 1)]
+      CALL diagnostic_dim_inf(debg, dimvec(idim), 1, dimensioncompute)
+      
+! Checking if dimension can be computed by 1D methods
+      IF ( (dimensioncompute&method == 'direc') .OR. (dimensioncompute&method == 'sumct') .OR.  &
+        (dimensioncompute&method == 'prodct') .OR. (dimensioncompute&method == 'sumall')) CALL  &
+      compute_1Dmethod_values(debg, dimensioncompute)
+      
+! Computing generic 6D dimension values
 !!
-        IF ( (TRIM(dimensioncom%method) == 'direct') .OR. (TRIM(dimensioncom%method) == 'sum')  &
-	  .OR. (TRIM(dimensioncom%method) == 'constant') ) THEN
-! 
-          IF (ALLOCATED(dimvalues)) DEALLOCATE(dimvalues)
-          ALLOCATE (dimvalues(dimvardimfound(1,1)))
-	  
-	  IF (ALLOCATED(invarvalues)) DEALLOCATE(invarvalues)
-	  ALLOCATE (invarvalues(dimvardimfound(1,1), dimensioncom%NinVarnames))
-
-!!!!
-!  AQUI -- aqui -- AQUI -- aqui -- AQUI -- aqui
-!    Get 1D values
-!    Make subroutine calc_1D_values(NinVarnames, inVarnames, ncs, method) output->dimvalues
-!    Assign new dimension%dimensions to keep record of which dimension to use for computation
-!!!!
-
-          methodcom: SELECT CASE (dimensioncom%method)
-            ('direct')
-	      rcode = nf_get_var_real (ncid, dimvardimfound(1,1), dimvalues)	
-	  END SELECT methodcom
-        END IF
-      END IF
-
+       IF ((dimensioncompute%method == 'direc6D') .OR. (dimensioncompute%method == 'sumct6D')   &
+         .OR. (dimensioncompute%method ==  'prodct6D') .OR. (dimensioncompute%method ==         &
+	 'sumall6D')) THEN
+       CALL compute_1Dmethod_values(debg, dimensioncompute, valuesMATdim)
+       
+       END IF
         
       CASE('lon')
-        jvar=jvar+1
+! Longitude. Standard x-axis dimension
+!!
     
         IF (xcar) THEN
 ! lon coordinate is cartesian, thus it can be defined directly from input values
 
           IF (.NOT.exists_dim(ncid, dimvec(idim))) THEN
-            rcode = nf_def_dim(ncid, dimvec(idim), dimfound(3), dimsid(idim))
-            CALL def_dimension(debg, ncid, dimensionnew, jvar)
-            CALL error_nc(section, rcode)
+            jvar = jvar + 1
+            CALL def_dimension(debg, ncid, dimensioncompute, jvar)
           ELSE
             CALL def_dimension(debg, ncid, dimensionnew, jvar)
-
-!            rcode = nf_inq_dimid(ncid, TRIM(dimvec(idim)), dimsid(idim))
+            rcode = nf_inq_dimid(ncid, TRIM(dimvec(idim)), dimsid(1))
+            CALL error_nc(section, rcode)
           ENDIF
     
         ELSE
-! x coordinate is not cartesian, longitudes will be given by a 2D matrix driven by a base 
-!   coordinate labelled 'xc', as it is stated by CF-1.4 conventions 
+! x coordinate is not cartesian, longitudes will be given by a 2D matrix driven by a base 2D 
+!   coordinates labelled 'xc', 'yc', as it is stated by CF-1.4 conventions 
 !      see http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.4/ch05s02.html
           IF (debg >= 100) PRINT *,'X dimension is not cartesian...'
    
-          IF (.NOT.exists_dim(ncid, dimvec(idim))) THEN
+          IF (.NOT.exists_dim(ncid, 'xc')) THEN
+	  
+	    CALL search_dimensions(debg, files, Nfiles, names4basedims(1), dimfound)
+	    
             IF (ALLOCATED(dimvalues)) DEALLOCATE(dimvalues)
    	    ALLOCATE(dimvalues(dimfound(3))
 
@@ -173,7 +336,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, Nfiles, fil
 
             CALL fill_dimension_type(give_Lstring(debg, 'xc')(1:50), lastdim+1, 'H', 'X',       &
               give_Lstring(debg, '-')(1:50), dimfound(3), 0, (/give_Lstring(debg, '-')/),       &
-              give_Lstring(debg, 'direct')(1:50), 0., give_Lstring(debg, '-'),                  &
+              give_Lstring(debg, 'direct')(1:50), 0., (/0/), give_Lstring(debg, '-'),           &
 	      give_Lstring(debg, 'X-coordinate in Cartesian system'),                           &
 	      give_Lstring(debg, '-')(1:50), dimfound(3), dimvalues, give_Lstring(debg, '-'),   &
 	      give_Lstring(debg, '-')(1:50), give_Lstring(debg, '-'), dimensionnew)
@@ -181,10 +344,96 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, Nfiles, fil
             IF (debg >= 150) PRINT *,"values 'xc':", dimvalues
 
             CALL def_dimension(debg, ncid, dimensionnew)
+	    jvar=jvar+1
     
           ELSE
-            rcode = nf_inq_dimid(oid, coordname, dimsid(idim))
+            rcode = nf_inq_dimid(oid, 'xc', dimsid(1))
           END IF
+
+          IF (.NOT.exists_dim(ncid, 'yc')) THEN
+	  
+	    CALL search_dimensions(debg, files, Nfiles, names4basedims(2), dimfound)
+	    
+            IF (ALLOCATED(dimvalues)) DEALLOCATE(dimvalues)
+   	    ALLOCATE(dimvalues(dimfound(3))
+
+            DO i=1,dimfound(3)
+	      dimvalues(i)=i*1.
+	    END DO
+
+            CALL fill_dimension_type(give_Lstring(debg, 'yc')(1:50), lastdim+1, 'H', 'Y',       &
+              give_Lstring(debg, '-')(1:50), dimfound(3), 0, (/give_Lstring(debg, '-')/),       &
+              give_Lstring(debg, 'direct')(1:50), 0., (/0/), give_Lstring(debg, '-'),           &
+	      give_Lstring(debg, 'Y-coordinate in Cartesian system'),                           &
+	      give_Lstring(debg, '-')(1:50), dimfound(3), dimvalues, give_Lstring(debg, '-'),   &
+	      give_Lstring(debg, '-')(1:50), give_Lstring(debg, '-'), dimensionnew)
+
+            IF (debg >= 150) PRINT *,"values 'yc':", dimvalues
+
+            CALL def_dimension(debg, ncid, dimensionnew)
+	    jvar=jvar+1
+    
+          ELSE
+            rcode = nf_inq_dimid(oid, 'yc', dimsid(2))
+          END IF
+
+! Defining and writting real values of 2D longitudes
+            coordname='lon'
+            IF (.NOT.exists_var(ncid, coordname)) THEN
+	      jvar=jvar+1
+              IF (debg >= 100) PRINT *,'Including real values of 2D longitudes...'
+
+! Loooking for 2D longitude variable values
+!!
+              IF (ALLOCATED(dimvarfound)) DEALLOCATE(dimvarfound)
+	      ALLOCATE(dimvarfound(Nfiles,dimensioncompute%NinVarnames))
+	      
+              IF (ALLOCATED(dimvardimfound)) DEALLOCATE(dimvardimfound)
+	      ALLOCATE(dimvardimfound(Nfiles, 6))
+	      
+              CALL search_variables(debg, files, Nfiles, dimensioncompute%NinVarnames,          &
+	        dimensioncompute%INvarnames, dimvarfound, dimvardimfound)
+
+! Computing generic 6D dimension values
+!!
+              IF ((dimensioncompute%method == 'direc6D') .OR.                                   &
+	        (dimensioncompute%method == 'sumct6D') .OR. (dimensioncompute%method ==         &
+		'prodct6D') .OR. (dimensioncompute%method == 'sumall6D')) THEN
+
+                IF (ALLOCATED(valuesMATinA)) DEALLOCATE(valuesMATinA)
+		ALLOCATE(valuesMATinA(dimvardimfound(1,1), dimvardimfound(2,1),                 &
+		  dimvardimfound(3,1), dimvardimfound(4,1), dimvardimfound(5,1),                &
+		  dimvardimfound(6,1), dimensioncompute%INvarnames))
+		
+		IF ALLOCATED(valuesMATdim)) DEALLOCATE(valuesMATdim)
+		ALLOCATE(valuesMATdim(dimvardimfound(1,1), dimvardimfound(2,1),                 &
+		  dimvardimfound(3,1), dimvardimfound(4,1), dimvardimfound(5,1),                &
+		  dimvardimfound(6,1))
+  
+! Filling real values of input variables
+!! 
+                CALL fill_inputs_real(debg, fills, Nfils, dimvarfound, dimvardimfound(1,:),     &
+		  valuesMATinA)
+
+		CALL calc_method_gen6D(debg,dimensioncompute%method, dimvardimfound(1,:),       &
+		  dimensioncompute%INvarnames, valuesMATinA, dimensioncompute%constant,         &
+		  valuesMATdim )
+               END IF
+
+              coordlong='longitude'
+              coordstd='longitude'
+              coordunits='degrees'
+              coordscoord='lon lat'
+
+              CALL def_nc_var(ncid, jvar, coordname, 5, 2, (/dimsid(1), dimsid(2), 1, 1, 1, 1/),&
+	        "XY ", coordlong, coordstd, coordunits, "-", coordscoord, debg)
+
+              rcode = nf_put_vara_real(oid, jvar, (/1, 1/), (/dimx, dimy/),                     &
+	        coordinate(:,:,1,1,1,1))
+              CALL error_nc(section, rcode)
+
+            END IF
+
         END IF
 
 ! Y dimension
@@ -699,7 +948,7 @@ SUBROUTINE create_output(debg, outfile, dimx, dimy, dimz, dimt, dimsvarname, fil
 
 END SUBROUTINE create_output
 
-SUROUTINE def_dimension(debg, ncid, dimval, ivar)
+SUROUTINE def_dimension(debg, ncid, dimval)
 ! Subroutine to define a dimension from a dimension type variable
 
   USE module_constants, ONLY: dimension_type
@@ -722,6 +971,8 @@ SUROUTINE def_dimension(debg, ncid, dimval, ivar)
 
   section="'def_dimension'"
   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+  ivar=nc_last_idvar(debg, ncid)
 
   rcode = nf_redef(ncid)
   CALL error_nc(section, rcode)
@@ -787,11 +1038,11 @@ SUROUTINE def_dimension(debg, ncid, dimval, ivar)
   rcode = nf_enddef(ncid)
   CALL error_nc(section, rcode)
 
-  rcode = nf_put_vara_real (ncid, ivar, (/1/), (/dimval%Nvalues/), dimval%values)
+  rcode = nf_put_vara_real (ncid, ivar+1, (/1/), (/dimval%Nvalues/), dimval%values)
   CALL error_nc(section, rcode)
 
   RETURN
-END SUBROUTINE def_dim
+END SUBROUTINE def_dimension
 
 SUBROUTINE def_dim(debg, ncid, ivar, dimname, dimax, dimlong, dimunit, dimrg, dimid, dimvalues)
 ! Subroutine to define a 1D dimension

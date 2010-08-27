@@ -7,6 +7,8 @@ MODULE module_gen_tools
 ! Following previous work of many authors for vis5D as 'userfuncs'
 !
 !!!!!!!!! Subroutines/Functions
+! calc_method1D: Subroutine to compute specific 1D method
+! calc_method_gen6D: Subroutine to compute generic methods for 6D matrices of the same shape
 ! diag_fatal: Subroutine to give fatal error with a message
 ! diagnostic_inf: Subroutine to read diagnostic variable information from 
 !     'variables_diagnostics.inf' external ASCII file
@@ -16,7 +18,9 @@ MODULE module_gen_tools
 ! fill_dimension_type: Function to fill a dimension type variable
 ! give_Lstring: Function that gives a string of length 'Lstring' filling blanks after 'string' (up
 !     to 250) 
+! give1D_from6D: Subroutine to give a 1D vector from any dimension of a 6D matrix
 ! halfdim: Function to give the half value of a dimension
+! print_6Dhalfdim: Subroutine to print central value of a real 6D matrix
 ! search_variables: Subroutine to search variables from a given netcCDF file
 ! string_int: Function to transform a string to a real value
 ! string_real: Subroutine to transform a string to a real value
@@ -24,6 +28,113 @@ MODULE module_gen_tools
 ! string_values: Subroutine to obtain values from a 'namelist' string separated by comas
 ! number_values: Subroutine to obtain number of variables from a 'namelist' variable with coma    
 !    separation
+
+SUBROUTINE calc_method1D(debg, meth, rg, Ninvalues, invalues, ct, vals)
+! Subroutine to compute specific 1D method
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: debg, rg, Ninvalues
+  CHARACTER(LEN=50)                                       :: meth
+  REAL, INTENT(IN)                                        :: ct
+  REAL, DIMENSION(rg, Ninvalues), INTENT(IN)              :: invalues
+  REAL, DIMENSION(rg), INTENT(OUT)                        :: vals
+  
+! Local
+  INTEGER                                                 :: ival, j
+  CHARACTER(LEN=50)                                       :: section, messg
+  
+!!!!!!! Variables
+! meth: method to compute
+! rg: range of input values
+! Ninvalues: number of input values
+! invalues: input values
+! ct: constant for 'sumct' and 'prodct' methods
+! vals: result of application of the method
+
+  section="'calc_method1D'"
+  
+  IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
+  
+  SELECT CASE (meth)
+    CASE ('direct')
+      vals=invalues(:,1)
+    CASE ('sumct')
+      vals=invalues(:,1)+ct
+    CASE ('prodct')
+      vals=invalues(:,1)*ct    
+    CASE ('sumall')
+      vals=SUM(invalues, DIM=2)
+    CASE DEFAULT
+      messg="  Giving method: '"//TRIM(meth)//"' is not defined!"
+      CALL diag_fatal(messg)
+  END SELECT
+  
+  IF (debg >= 150) THEN
+    PRINT *,"  Values given by "//TRIM(meth)//"' method: "
+    DO ival=1, rg
+      PRINT *,'    ',ival,(invalues(ival, j), char(44), j=1, Ninvalues), '-->', vals(ival)
+    END DO
+  END IF
+  
+END SUBROUTINE calc_method1D
+
+SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, vals)
+! Subroutine to compute generic methods for 6D matrices of the same shape
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: debg, Ninvalues
+  INTEGER, DIMENSION(6), INTENT(IN)                       :: rgs
+  CHARACTER(LEN=50)                                       :: meth
+  REAL, INTENT(IN)                                        :: ct
+  REAL, DIMENSION(rgs(1), rgs(2), rgs(3), rgs(4), rgs(5),                                       &
+    rgs(6), Ninvalues), INTENT(IN)                        :: invalues
+  REAL, DIMENSION(rgs(1), rgs(2), rgs(3), rgs(4), rgs(5),                                       &
+    rgs(6)), INTENT(OUT)                                  :: vals
+  
+! Local
+  INTEGER                                                 :: ival, j
+  INTEGER                                                 :: halfdim
+  CHARACTER(LEN=50)                                       :: section, messg
+  REAL                                                    :: print_6Dhalfdim
+  
+!!!!!!! Variables
+! meth: method to compute
+! rgs: ranges of input values
+! Ninvalues: number of input values
+! invalues: input values
+! ct: constant for 'sumct' and 'prodct' methods
+! vals: result of application of the method
+
+  section="'calc_method_gen6D'"
+  
+  IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
+  vals=0.
+  
+  SELECT CASE (meth)
+    CASE ('direct6D')
+      vals=invalues(:,:,:,:,:,:,1)
+    CASE ('sumct6D')
+      vals=invalues(:,:,:,:,:,:,1)+ct
+    CASE ('prodct6D')
+      vals=invalues(:,:,:,:,:,:,1)*ct    
+    CASE ('sumall6D')
+      PRINT *,meth
+      vals=SUM(invalues, DIM=7)
+    CASE DEFAULT
+      messg="  Giving 6D general method: '"//TRIM(meth)//"' is not defined!"
+      CALL diag_fatal(messg)
+  END SELECT
+  
+  IF (debg >= 150) THEN
+    PRINT *,"  dim/2 values given by "//TRIM(meth)//"' method: "
+    PRINT *,'    ',(invalues(halfdim(rgs(1)), halfdim(rgs(2)), halfdim(rgs(3)), halfdim(rgs(4)),&
+      halfdim(rgs(5)), halfdim(rgs(6)),j), char(44), j=1, Ninvalues), '-->',                    &
+      print_6Dhalfdim(vals, rgs)
+  END IF
+  
+END SUBROUTINE calc_method_gen6D
 
 SUBROUTINE diag_fatal(msg)
 ! Subroutine to give fatal error with a message
@@ -152,10 +263,11 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
 ! dim_in_varnames       (variables names, coma separated, to compute dimension) 
 ! method                (method to compute dimension)
 !    direct: values are the same from dim_in_varnames [for num_dimInVarnames=1]
-!    constant: values are the same from dim_in_varnames plus a constant [for num_dimInVarnames=1]
-!    sum: values are the result of the sum of all [dim_in_varnames]
-!    xxxxxx: specific for this dimension (xxxxx must have some sense in 'copute_dimensions' (in
-!      'module_nc_tools')
+!    sumct: values are the same from dim_in_varnames plus a constant [for num_dimInVarnames=1]
+!    prodct: values are the same from dim_in_varnames times a constant [for num_dimInVarnames=1]
+!    sumall: values are the result of the sum of all [dim_in_varnames]
+!    xxxxxx: specific for this dimension (xxxxx must have some sense in 'calc_method1D' (in
+!       'module_gen_tools') or in 'compute_dimensions' for 'name' (in 'module_nc_tools') 
 ! constant              (constant value for method='constant')
 ! standard_name         (CF-1.4 standard name of dimension)
 ! long_name             (long name of dimension)
@@ -189,6 +301,7 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
   CHARACTER(LEN=50)                                      :: label, section
   LOGICAL                                                :: is_used
   CHARACTER(LEN=250), DIMENSION(:), ALLOCATABLE, TARGET  :: dimInvarnames
+  INTEGER, DIMENSION(:), ALLOCATABLE, TARGET             :: dimindimensions
   REAL, DIMENSION(:), ALLOCATABLE, TARGET                :: dimfixvalues
   CHARACTER(LEN=3000)                                    :: readINvarnames, readFIXvalues
   
@@ -267,7 +380,14 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
    READ(iunit,*)car, diminf%method
    PRINT *,'Que pasa neng? 5 ', TRIM(diminf%method)
    READ(iunit,*)car, diminf%constant
-   PRINT *,'Que pasa neng? 5 ', diminf%constant
+   PRINT *,'Que pasa neng? 5 a', diminf%constant
+   IF (ALLOCATED(dimindimensions)) DEALLOCATE(dimindimensions)
+   ALLOCATE(dimindimensions(diminf%NinVarnames))
+   READ(iunit,*)car, readINdimensions
+   PRINT *,'Que pasa neng? 5 b ', TRIM(readINdimensions)
+   CALL string_int(readINdimensions, debg, diminf%NinVarnames, dimindimensions)
+   diminf%indimensions=>dimindimensions
+   PRINT *,'Que pasa neng? 5 bb ',diminf%indimensions
    READ(iunit,*)car, diminf%stdname
    PRINT *,'Que pasa neng? 5 c', TRIM(diminf%stdname)
    READ(iunit,*)car, diminf%lonname
@@ -318,6 +438,7 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
      END IF
      PRINT *,'  Dimension computation method: ',TRIM(diminf%method)
      PRINT *,'  Constant: ',diminf%constant
+     PRINT *,'  Dimensions of input variables: ',diminf%indimensions
      PRINT *,'  Dimension standard name: ',TRIM(diminf%stdname)
      PRINT *,'  Dimension long name: ',TRIM(diminf%lonname)
      PRINT *,'  Dimension units: ',TRIM(diminf%units)
@@ -411,7 +532,7 @@ SUBROUTINE diagnostic_inf_Ninvar(varDIAG, debg, Ninvar)
 END SUBROUTINE diagnostic_inf_Ninvar
 
 SUBROUTINE fill_dimension_type(dimname, dimid, dimtype, dimaxs, diminname, dimrange, dimNinvars,&
-  diminvars, dimmethod, dimct, dimstd, dimlong, dimu, dimNval, dimval, dimcoord, dimpos,        &
+  diminvars, dimmethod, dimct, indim, dimstd, dimlong, dimu, dimNval, dimval, dimcoord, dimpos, &
   dimform, dimfilled)
 ! Function to fill a dimension type variable
 
@@ -428,6 +549,7 @@ SUBROUTINE fill_dimension_type(dimname, dimid, dimtype, dimaxs, diminname, dimra
   CHARACTER(LEN=250), DIMENSION(dimNinvars), INTENT(IN)   :: diminvars
   INTEGER, INTENT(IN)                                     :: dimmethod
   REAL, INTENT(IN)                                        :: dimct
+  INTEGER, DIMENSION(dimNinvars), INTENT(IN)              :: indim
   CHARACTER(LEN=250), INTENT(IN)                          :: dimstd
   CHARACTER(LEN=250), INTENT(IN)                          :: dimlong
   CHARACTER(LEN=50), INTENT(IN)                           :: dimu
@@ -441,6 +563,7 @@ SUBROUTINE fill_dimension_type(dimname, dimid, dimtype, dimaxs, diminname, dimra
 ! Local
   CHARACTER(LEN=50)                                       :: section
   CHARACTER(LEN=250), DIMENSION(dimNinvars), TARGET       :: diminvars_targ
+  INTEGER, DIMENSION(dimNinvars), TARGET                  :: indimvars_targ
   REAL, DIMENSION(dimNval), TARGET                        :: dimval_targ
 
 !!!!!!! Variables
@@ -450,6 +573,7 @@ SUBROUTINE fill_dimension_type(dimname, dimid, dimtype, dimaxs, diminname, dimra
   IF (debg >= 100) PRINT *,'Section '//section//'... .. .'
 
   diminvars_targ=diminvars
+  indimvars_targ=indim
   dimval_targ=dimval
 
   dimfilled%name=dimname
@@ -462,6 +586,7 @@ SUBROUTINE fill_dimension_type(dimname, dimid, dimtype, dimaxs, diminname, dimra
   dimfilled%INvarnames=>diminvars_targ
   dimfilled%method=dimmethod
   dimfilled%constant=dimct  
+  dimfilled%indimensions=>dimval_targ
   dimfilled%stdname=dimstd
   dimfilled%lonname=dimlong
   dimfilled%units=dimu
@@ -490,6 +615,7 @@ SUBROUTINE fill_dimension_type(dimname, dimid, dimtype, dimaxs, diminname, dimra
      END IF
      PRINT *,'  Dimension computation method: ',TRIM(dimfilled%method)
      PRINT *,'  Constant for the method: ',dimfilled%constant
+     PRINT *,'  Dimensions to use of input variables: ',dimfilled%indimensions
      PRINT *,'  Dimension standard name: ',TRIM(dimfilled%stdname)
      PRINT *,'  Dimension long name: ',TRIM(dimfilled%lonname)
      PRINT *,'  Dimension units: ',TRIM(dimfilled%units)
@@ -533,6 +659,49 @@ CHARACTER(LEN=250) FUNCTION give_Lstring(debg, string)
 
 END FUNCTION give_Lstring
 
+SUBROUTINE give1D_from6D(debg, matrix, matrg, wtddim, vec)
+! Subroutine to give a 1D vector from any dimension of a 6D matrix
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: debg, wtddim
+  INTEGER, DIMENSION(6), INTENT(IN)                       :: matrg
+  REAL, DIMENSION(matrg(1), matrg(2), matrg(3), matrg(4),                                       &
+    matrg(5), matrg(6) )                                  :: matrix
+  REAL, DIMENSION(matrg(wtddim)), INTENT(OUT)             :: vec
+  
+! Local
+  CHARACTER(LEN=50)                                       :: section
+  
+!!!!!!! Variables
+! matrix: 6D matrix
+! matrg: ranges of 6D 
+! wtddim: wanted dimension
+! vec: vector with all the values of 'matrix' taking all range of dimension 'wtddim' and all the
+!    rest at the first position
+  
+  section="'give1D_from6D'"
+  IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
+  
+  SELECT CASE (wtddim)
+    CASE (1)
+      vec=matrix(:,1,1,1,1,1)
+    CASE (2)
+      vec=matrix(1,:,1,1,1,1)
+    CASE (3)
+      vec=matrix(1,1,:,1,1,1)
+    CASE (4)
+      vec=matrix(1,1,1,:,1,1)
+    CASE (5)
+      vec=matrix(1,1,1,1,:,1)
+    CASE (6)
+      vec=matrix(1,1,1,1,1,:)
+  END SELECT
+  
+  IF (debg >= 150) PRINT *,'  Given values of dim ',wtddim,' : ',vec
+  
+END SUBROUTINE give1D_from6D
+
 INTEGER FUNCTION halfdim(dim)
 ! Function to give the half value of a dimension
 
@@ -544,6 +713,23 @@ INTEGER FUNCTION halfdim(dim)
   IF (dim < 2) halfdim = 1     ! Assuming non-zero dimension range
   
 END FUNCTION halfdim
+
+REAL FUNCTION print_6Dhalfdim(mat, rgs)
+! Subroutine to print central value of a real 6D matrix
+
+  IMPLICIT NONE
+  
+  INTEGER, DIMENSION(6), INTENT(IN)                       :: rgs
+  REAL, DIMENSION(rgs(1), rgs(2), rgs(3), rgs(4), rgs(5),                                       &
+    rgs(6)), INTENT(IN)                                   :: mat
+    
+! Local
+  INTEGER                                                 :: halfdim
+
+  print_6Dhalfdim=mat(halfdim(rgs(1)), halfdim(rgs(2)), halfdim(rgs(3)), halfdim(rgs(4)),       &
+      halfdim(rgs(5)), halfdim(rgs(6)))
+
+END FUNCTION print_6Dhalfdim
 
 INTEGER FUNCTION string_int(debg, string)
 ! Function to transform a string to an integer value
