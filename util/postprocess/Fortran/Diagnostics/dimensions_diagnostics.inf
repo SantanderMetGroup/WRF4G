@@ -4,6 +4,9 @@
   dim_in_name              west_east
   num_dimInVarnames        1
   dim_in_varnames          XLONG
+  dim_method               direct
+  dim_constant             0.
+  dim_indimensions         0
   standard_name            longitude
   long_name                longitude
   units                    degrees
@@ -18,6 +21,9 @@
   dim_in_name              south_north
   num_dimInVarnames        1
   dim_in_varnames          XLAT
+  dim_method               direct
+  dim_constant             0.
+  dim_indimensions         0
   standard_name            latitude
   long_name                latitude
   units                    degrees
@@ -32,6 +38,9 @@
   dim_in_name              bottom_top
   num_dimInVarnames        1
   dim_in_varnames          ZNU
+  dim_method               direct
+  dim_constant             0.
+  dim_indimensions         0
   standard_name            atmosphere_sigma_coordinate
   long_name                'atmosphere level in sigma coordinate'
   units                    NO
@@ -46,6 +55,9 @@
   dim_in_name              Time
   num_dimInVarnames        1
   dim_in_varnames          Times
+  dim_method               Y-m-d_h:m:s 
+  dim_constant             0.
+  dim_indimensions         0
   standard_name            time
   long_name                time
   units                    'seconds since 1950-1-1 0:0:0'

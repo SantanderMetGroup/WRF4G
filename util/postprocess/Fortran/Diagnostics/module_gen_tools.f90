@@ -24,6 +24,7 @@ MODULE module_gen_tools
 ! search_variables: Subroutine to search variables from a given netcCDF file
 ! string_int: Function to transform a string to a real value
 ! string_real: Subroutine to transform a string to a real value
+! string_Intvalues: Subroutine to obtain integer values from a 'namelist' string separated by comas
 ! string_Realvalues: Subroutine to obtain real values from a 'namelist' string separated by comas
 ! string_values: Subroutine to obtain values from a 'namelist' string separated by comas
 ! number_values: Subroutine to obtain number of variables from a 'namelist' variable with coma    
@@ -285,9 +286,11 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
 !*dimDIAG*
 ! (...)
 
-  USE module_constants, ONLY: dimension_type
+  USE module_constants
 
   IMPLICIT NONE
+
+  INCLUDE 'types.inc'
 
   INTEGER, INTENT(IN)                                    :: debg, dimid
   TYPE(dimension)                                        :: diminf
@@ -303,7 +306,8 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
   CHARACTER(LEN=250), DIMENSION(:), ALLOCATABLE, TARGET  :: dimInvarnames
   INTEGER, DIMENSION(:), ALLOCATABLE, TARGET             :: dimindimensions
   REAL, DIMENSION(:), ALLOCATABLE, TARGET                :: dimfixvalues
-  CHARACTER(LEN=3000)                                    :: readINvarnames, readFIXvalues
+  CHARACTER(LEN=3000)                                    :: readINvarnames, readINdimensions,  &
+    readFIXvalues
   
 !!!!!!!!!!!!!! Variables
 ! dimDIAG: dimension name to be search
@@ -313,6 +317,7 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
 ! dimfixvalues: vector with fixed values of dimension
 ! posDIM: position of beginning of decription of dimension in file
 ! readINvarnames: all read (as character string) input variables' name from file
+! readINdimensions: all read (as character string) which dimension is wanted for 1D computations
 ! readFIXvalues: all read (as character string) input fixed values from file
 
 
@@ -385,7 +390,7 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
    ALLOCATE(dimindimensions(diminf%NinVarnames))
    READ(iunit,*)car, readINdimensions
    PRINT *,'Que pasa neng? 5 b ', TRIM(readINdimensions)
-   CALL string_int(readINdimensions, debg, diminf%NinVarnames, dimindimensions)
+   CALL string_Intvalues(debg, readINdimensions, diminf%NinVarnames, dimindimensions)
    diminf%indimensions=>dimindimensions
    PRINT *,'Que pasa neng? 5 bb ',diminf%indimensions
    READ(iunit,*)car, diminf%stdname
@@ -401,7 +406,7 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
    READ(iunit,*)car, readFIXvalues
    PRINT *,'Que pasa neng? 9 ', TRIM(readFIXvalues)
    IF (TRIM(readFIXvalues) /= '-') THEN
-     CALL string_values(readFIXvalues, debg, diminf%Nvalues, dimfixvalues)
+     CALL string_Realvalues(debg, readFIXvalues, diminf%Nvalues, dimfixvalues)
    ELSE
      dimfixvalues=0.
    END IF
@@ -531,15 +536,18 @@ SUBROUTINE diagnostic_inf_Ninvar(varDIAG, debg, Ninvar)
 
 END SUBROUTINE diagnostic_inf_Ninvar
 
-SUBROUTINE fill_dimension_type(dimname, dimid, dimtype, dimaxs, diminname, dimrange, dimNinvars,&
-  diminvars, dimmethod, dimct, indim, dimstd, dimlong, dimu, dimNval, dimval, dimcoord, dimpos, &
-  dimform, dimfilled)
+SUBROUTINE fill_dimension_type(debg, dimname, dimid, dimtype, dimaxs, diminname, dimrange,     &
+  dimNinvars, diminvars, dimmethod, dimct, indim, dimstd, dimlong, dimu, dimNval, dimval,      &
+  dimcoord, dimpos, dimform, dimfilled) 
 ! Function to fill a dimension type variable
 
-  USE module_constans, ONLY: dimension_type
+!  USE module_constans, ONLY: dimension_type
 
   IMPLICIT NONE
 
+  INCLUDE 'types.inc'
+
+  INTEGER, INTENT(IN)                                     :: debg
   CHARACTER(LEN=50), INTENT(IN)                           :: dimname
   INTEGER, INTENT(IN)                                     :: dimid
   CHARACTER(LEN=1), INTENT(IN)                            :: dimtype, dimaxs
@@ -547,7 +555,7 @@ SUBROUTINE fill_dimension_type(dimname, dimid, dimtype, dimaxs, diminname, dimra
   INTEGER, INTENT(IN)                                     :: dimrange
   INTEGER, INTENT(IN)                                     :: dimNinvars
   CHARACTER(LEN=250), DIMENSION(dimNinvars), INTENT(IN)   :: diminvars
-  INTEGER, INTENT(IN)                                     :: dimmethod
+  CHARACTER(LEN=50), INTENT(IN)                           :: dimmethod
   REAL, INTENT(IN)                                        :: dimct
   INTEGER, DIMENSION(dimNinvars), INTENT(IN)              :: indim
   CHARACTER(LEN=250), INTENT(IN)                          :: dimstd
@@ -561,6 +569,7 @@ SUBROUTINE fill_dimension_type(dimname, dimid, dimtype, dimaxs, diminname, dimra
   TYPE(dimension)                                         :: dimfilled  
 
 ! Local
+  INTEGER                                                 :: idim
   CHARACTER(LEN=50)                                       :: section
   CHARACTER(LEN=250), DIMENSION(dimNinvars), TARGET       :: diminvars_targ
   INTEGER, DIMENSION(dimNinvars), TARGET                  :: indimvars_targ
@@ -586,7 +595,7 @@ SUBROUTINE fill_dimension_type(dimname, dimid, dimtype, dimaxs, diminname, dimra
   dimfilled%INvarnames=>diminvars_targ
   dimfilled%method=dimmethod
   dimfilled%constant=dimct  
-  dimfilled%indimensions=>dimval_targ
+  dimfilled%indimensions=>indimvars_targ
   dimfilled%stdname=dimstd
   dimfilled%lonname=dimlong
   dimfilled%units=dimu
@@ -621,7 +630,6 @@ SUBROUTINE fill_dimension_type(dimname, dimid, dimtype, dimaxs, diminname, dimra
      PRINT *,'  Dimension units: ',TRIM(dimfilled%units)
      PRINT *,'  Number of values of dimension: ',dimfilled%Nvalues
      PRINT *,'  Values of dimension: ',(dimfilled%values(idim), idim=1, dimfilled%Nvalues)
-     END IF
 ! Specific horizontal dim
      IF (TRIM(dimfilled%coords) /= '-') PRINT *,'  Base coordinates of dimension: ',            &
        TRIM(dimfilled%coords)
@@ -640,7 +648,7 @@ CHARACTER(LEN=250) FUNCTION give_Lstring(debg, string)
 
   IMPLICIT NONE
   
-  INTEGER, INTENT(IN)                                     :: debg, Lstring
+  INTEGER, INTENT(IN)                                     :: debg
   CHARACTER(LEN=*), INTENT(IN)                            :: string
 
 ! Local
@@ -808,6 +816,52 @@ SUBROUTINE string_real(debg, string, value)
   RETURN
 END SUBROUTINE string_real 
 
+SUBROUTINE string_Intvalues(debg, string, Nvalues, values)
+! Subroutine to obtain real values from a 'namelist' string separated by comas
+
+  IMPLICIT NONE
+
+  INTEGER, INTENT(IN)                                    :: Nvalues, debg
+  CHARACTER(LEN=3000), INTENT(IN)                        :: string
+  INTEGER, DIMENSION(Nvalues), INTENT(OUT)               :: values
+! Local
+  INTEGER                                                :: i, jval
+  INTEGER                                                :: Lstring
+  INTEGER                                                :: ival, eval, point
+  CHARACTER(LEN=50)                                      :: section
+  CHARACTER(LEN=20)                                      :: Svalues
+
+  section="'string_Intvalues'"
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+  IF (debg >= 150) PRINT *,"string: '"//TRIM(string)//"'"
+
+  Lstring = len_trim(string)
+
+  ival=1
+  jval=1
+  DO i=1,Lstring
+    IF (string(i:i) == ',') THEN
+      eval=i-1
+      Svalues=ADJUSTL(string(ival:eval))
+      values(jval)=string_int(debg, Svalues)
+      ival=i+1
+      jval=jval+1
+    END IF
+
+  END DO
+
+  Svalues=ADJUSTL(string(ival:Lstring))
+  values(jval)=string_int(debg, Svalues)
+
+  IF (debg >= 150) THEN
+    PRINT *,'Found values_______________'
+    DO jval=1,Nvalues
+      PRINT *,values(jval)
+    END DO
+  END IF
+  RETURN
+END SUBROUTINE string_Intvalues
+
 SUBROUTINE string_Realvalues(debg, string, Nvalues, values)
 ! Subroutine to obtain real values from a 'namelist' string separated by comas
 
@@ -852,51 +906,6 @@ SUBROUTINE string_Realvalues(debg, string, Nvalues, values)
     END DO
   END IF
   RETURN
-
-  CONTAINS
-
-  SUBROUTINE string_real(debg, string, value)
-!   Subroutine to transform a string to a real value
-
-    IMPLICIT NONE
-
-    INTEGER, INTENT(IN)                                  :: debg
-    CHARACTER(LEN=20), INTENT(IN)                        :: string
-    REAL, INTENT(OUT)                                    :: value
-!   Local
-    INTEGER                                              :: i,j
-    INTEGER                                              :: Lstring, point, Lpre, Laft
-    CHARACTER(LEN=50)                                    :: section
-
-!!!!!!!!!!!!!!!! Variables
-!   string: string with real number
-!   value: real value 
-!   Lstring: length of string
-!   point: position of point
-!   Lpre: length of string previous to the point
-!   Laft: length of string after the point
-
-   section="'string_real'"
-   IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
-   IF (debg >= 150) PRINT *,"String: '"//TRIM(string)//"'"
-
-    Lstring=LEN_TRIM(string)
-    point=INDEX(string, '.')
-    Lpre=point-1
-    Laft=Lstring-(point+1)
-
-    value=0.
-    DO i=1,Lpre
-      value=value+(IACHAR(string(i:i))-48)*10.**(Lpre-i)
-    END DO
-
-    DO i=1,Laft
-      value=value+(IACHAR(string(point+i:point+i))-48)*10.**(-i)
-    END DO
-
-!    PRINT *,'String:',string,'Lpre:',Lpre,'Laft:',Laft,'Real:',value
-    RETURN
-  END SUBROUTINE string_real
 
 END SUBROUTINE string_Realvalues
 

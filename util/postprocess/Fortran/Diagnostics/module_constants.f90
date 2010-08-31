@@ -57,31 +57,31 @@ MODULE module_constants
 
   CONTAINS
 
-  SUBROUTINE dimension_type
+!  SUBROUTINE dimension_type
 
 ! Dimension type definition
 !!
-    TYPE dimension
-      CHARACTER(LEN=50)                                   :: name
-      INTEGER                                             :: id
-      CHARACTER(LEN=1)                                    :: type
-      CHARACTER(LEN=1)                                    :: axis
-      CHARACTER(LEN=50)                                   :: INname
-      INTEGER                                             :: range
-      INTEGER                                             :: NinVarnames
-      CHARACTER(LEN=250), POINTER, DIMENSION(:)           :: INvarnames
-      CHARACTER(LEN=50)                                   :: method
-      REAL                                                :: constant
-      INTEGER, POINTER, DIMENSION(:)                      :: indimensions
-      CHARACTER(LEN=250)                                  :: stdname
-      CHARACTER(LEN=250)                                  :: lonname
-      CHARACTER(LEN=50)                                   :: units
-      INTEGER                                             :: Nvalues
-      REAL, POINTER, DIMENSION(:)                         :: values
-      CHARACTER(LEN=250)                                  :: coords
-      CHARACTER(LEN=50)                                   :: positive
-      CHARACTER(LEN=250)                                  :: form
-    END TYPE dimension
+!    TYPE dimension
+!      CHARACTER(LEN=50)                                   :: name
+!      INTEGER                                             :: id
+!      CHARACTER(LEN=1)                                    :: type
+!      CHARACTER(LEN=1)                                    :: axis
+!      CHARACTER(LEN=50)                                   :: INname
+!      INTEGER                                             :: range
+!      INTEGER                                             :: NinVarnames
+!      CHARACTER(LEN=250), POINTER, DIMENSION(:)           :: INvarnames
+!      CHARACTER(LEN=50)                                   :: method
+!      REAL                                                :: constant
+!      INTEGER, POINTER, DIMENSION(:)                      :: indimensions
+!      CHARACTER(LEN=250)                                  :: stdname
+!      CHARACTER(LEN=250)                                  :: lonname
+!      CHARACTER(LEN=50)                                   :: units
+!      INTEGER                                             :: Nvalues
+!      REAL, POINTER, DIMENSION(:)                         :: values
+!      CHARACTER(LEN=250)                                  :: coords
+!      CHARACTER(LEN=50)                                   :: positive
+!      CHARACTER(LEN=250)                                  :: form
+!    END TYPE dimension
 
 !!!!!!!!!!!!!! Variables
 ! name: dimension diagnostic name
@@ -114,6 +114,24 @@ MODULE module_constants
 ! positive: sign of increment of dimension (specific of dimtype=V)
 ! form: formula of dimension (specific of dimtype=V)
 
-  END SUBROUTINE dimension_type
+!  END SUBROUTINE dimension_type
+
+  SUBROUTINE generic_calcs
+! Definition of vectors with generic calcs
+
+  IMPLICIT NONE
+
+  INTEGER, PARAMETER                                     :: Ngen1D=4, Ngen6D=4
+  CHARACTER(LEN=50), DIMENSION(Ngen1D)                   :: generic_calcs1D
+  CHARACTER(LEN=50), DIMENSION(Ngen6D)                   :: generic_calcs6D
+
+!!!!!! Variables
+! generic_calcs1D: generic calcs with 1D vectors with the same sahpe
+! generic_calcs6D: generic calcs with 6D matrixs wiht the same shape
+
+  generic_calcs1D=(/ 'direct', 'sumct', 'prodct', 'sumall'/)
+  generic_calcs6D=(/ 'direct6D', 'sumct6D', 'prodct6D', 'sumall6D'/)
+
+  END SUBROUTINE generic_calcs
 
 END MODULE module_constants
