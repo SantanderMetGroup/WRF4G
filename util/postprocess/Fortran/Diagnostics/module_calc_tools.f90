@@ -54,8 +54,8 @@ SUBROUTINE diff_dates(debg, dateA, dateB, units, difference)
 ! Subroutine to copute difference between 2 dates in [AAAA]-[MM]-[DD]_[HH]:[MI]:[SS] 
 !    format in 's': seconds, 'm': minutes, 'h': hours, 'd': days. NOTE: Assuming dateA < dateB
 
-  USE module_gen_tools, ONLY: diag_fatal, string_int
   USE module_constants
+  USE module_gen_tools, ONLY: diag_fatal, string_int
 
   IMPLICIT NONE
 
@@ -118,10 +118,10 @@ SUBROUTINE diff_dates(debg, dateA, dateB, units, difference)
   juliandayB=julian_day(debg, yearB, monthB, dayB)
 
   IF (debg >= 150) THEN
-    PRINT *,'Read date A: ',yearA,'-',monthA,'-',dayA,'_',hourA,':',minA,':',secA
-    PRINT *,'Read date B: ',yearB,'-',monthB,'-',dayB,'_',hourB,':',minB,':',secB
-    PRINT *,'Julian day A:', juliandayA
-    PRINT *,'Julian day B:', juliandayB
+    PRINT *,'  Read date A: ',yearA,'-',monthA,'-',dayA,'_',hourA,':',minA,':',secA
+    PRINT *,'  Read date B: ',yearB,'-',monthB,'-',dayB,'_',hourB,':',minB,':',secB
+    PRINT *,'  Julian day A:', juliandayA
+    PRINT *,'  Julian day B:', juliandayB
   END IF
 
   diffdaysA=diff_days(debg, yearref, yearA)
@@ -134,9 +134,9 @@ SUBROUTINE diff_dates(debg, dateA, dateB, units, difference)
 ! Adding a day to prevent lose of a complete day
   difference=diffsecB - diffsecA + 3600*24
   IF (debg >= 150) THEN
-    PRINT *,'days and Seconds since ',yearref,'-01-01_00:00:00 of__________'
-    PRINT *,'yearA: ',diffdaysA+juliandayA-1, diffsecA
-    PRINT *,'yearB: ',diffdaysB+juliandayB-1, diffsecB
+    PRINT *,'  days and Seconds since ',yearref,'-01-01_00:00:00 of__________'
+    PRINT *,'  yearA: ',diffdaysA+juliandayA-1, diffsecA
+    PRINT *,'  yearB: ',diffdaysB+juliandayB-1, diffsecB
   END IF
 
 
@@ -152,7 +152,7 @@ SUBROUTINE diff_dates(debg, dateA, dateB, units, difference)
     unitsname='day'
   END IF
   
-  IF (debg >= 150 ) PRINT *,'Differnce between dates: ',difference,unitsname
+  IF (debg >= 150 ) PRINT *,'  Differnce between dates: ',difference,unitsname
   
   RETURN
 END SUBROUTINE diff_dates

@@ -37,7 +37,7 @@ echo "Compilation of netCDF diagnostic computation in '"$HOSTNAME"'...."
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-basemodules='module_constants'
+basemodules='module_constants module_types'
 modules='module_gen_tools module_calc_tools module_nc_tools'
 diagnosticspath='diagnostics'
 modulel='module_list_diagnostics' 

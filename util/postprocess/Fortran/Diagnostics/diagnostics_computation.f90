@@ -21,12 +21,11 @@ PROGRAM diagnostics_computation
   INTEGER                                                :: grid_filt, ntimes_filt, debug,      &
     global_att_file
   CHARACTER(LEN=4)                                       :: process, lev_process
-  CHARACTER(LEN=3000)                                    :: diagnostics, input_names, p_levels
+  CHARACTER(LEN=50)                                      :: X_grid_spacing, Y_grid_spacing
+  CHARACTER(LEN=3000)                                    :: diagnostics, input_names, p_levels, &
+    dimension_in4names, dimension_outnames
   CHARACTER(LEN=250)                                     :: path_to_input, path_to_output,      & 
     path_to_geofile, geofile, outfile
-  CHARACTER(LEN=50)                                      :: WEdimname, SNdimname, BTdimname,    &
-    Timedimname, X_grid_spacing, Y_grid_spacing, WE_dimvarname, SN_dimvarname, BT_dimvarname,   &
-    Time_dimvarname
   LOGICAL                                                :: filt, cartesian_x, cartesian_y
 
 ! General variables
@@ -46,16 +45,16 @@ PROGRAM diagnostics_computation
   LOGICAL                                                :: is_used
   INTEGER, ALLOCATABLE, DIMENSION(:)                     :: TOTdims
   INTEGER                                                :: nTOTdims, nTOTvar, nTOTatt, IDunlimit
-  CHARACTER(LEN=50), ALLOCATABLE, DIMENSION(:)           :: TOTdimsname
-  CHARACTER(LEN=50), DIMENSION(4)                        :: dimsvarname
+  INTEGER                                                :: Ndimin4, Ndimsout
+  CHARACTER(LEN=50), ALLOCATABLE, DIMENSION(:)           :: TOTdimsname,dimsoutname,dims4inname
+  CHARACTER(LEN=250), ALLOCATABLE, DIMENSION(:)          :: dimsoutname0
+  CHARACTER(LEN=250), DIMENSION(4)                       :: dims4inname0
   REAL                                                   :: X_grid, Y_grid
 
-  NAMELIST /io/ path_to_input, input_names, cartesian_x, cartesian_y, WEdimname, SNdimname,     &
-    BTdimname, Timedimname,       &
-    path_to_output, WE_dimvarname, SN_dimvarname, BT_dimvarname, Time_dimvarname, diagnostics,  &
-    process, debug, filt, grid_filt, ntimes_filt, path_to_geofile, geofile, outfile,            &
-    global_att_file
-  NAMELIST /levels/ lev_process, p_levels, X_grid_spacing, Y_grid_spacing
+  NAMELIST /io/ path_to_input, input_names, global_att_file, geofile, path_to_geofile,          &
+    diagnostics, process, debug, filt, grid_filt, ntimes_filt, path_to_output, outfile
+  NAMELIST /dimensions/ lev_process, p_levels, X_grid_spacing, Y_grid_spacing, cartesian_x,     &
+    cartesian_y, dimension_in4names, dimension_outnames
 
 !!!!!!!!! Variables
 ! Ninputs: number of input files
@@ -75,7 +74,9 @@ PROGRAM diagnostics_computation
 ! IDunlimit: id dimension with unlimit range
 ! TOTdimsname: vector with names of all dimensions of netCDF file
 ! [X/Y]_grid: grid spacing in X/Y grid direction [m]
-! dimsvarname: vector with variable names of dimensions
+! dims4inname: vector with names of 4-basic dimension names from input files
+! dimsoutname: vector with names of dimensions to be written in output file
+! Ndimsout: number of dimensions to be write in output file
 
 !!!!!!!!!!! Subroutines
 ! com_diagnostics: Subroutine to compute all wanted diagnostics
@@ -88,7 +89,7 @@ PROGRAM diagnostics_computation
   OPEN(funit, file='namelist.diagnostics', status='old', form='formatted', iostat=ios)
   IF ( ios /= 0 ) STOP "ERROR opening 'namelist.diagnostics'"
   READ(funit,io)
-  READ(funit,levels)
+  READ(funit,dimensions)
   CLOSE(funit)
 
   lent = len_trim(path_to_input)
@@ -113,9 +114,9 @@ PROGRAM diagnostics_computation
 
   ingeofile = TRIM(path_to_geofile)//TRIM(geofile)
   outputfile = TRIM(path_to_output)//TRIM(outfile)
-  PRINT *,'Output will be written in: '//TRIM(outputfile)
+  IF (debug >= 1) PRINT *,'Output will be written in: '//TRIM(outputfile)
 
-  PRINT *,'Constructing files names'
+  IF (debug >= 1) PRINT *,'Constructing files names'
 ! Constructing files names
   CALL number_values(input_names, debug, Ninputs)
   ALLOCATE(innamefiles(Ninputs))
@@ -126,11 +127,41 @@ PROGRAM diagnostics_computation
     PRINT *,i,TRIM(innamefiles(i))
   END DO
   
-! Variables with dimensions names
-  dimsvarname(1)=WE_dimvarname
-  dimsvarname(2)=SN_dimvarname
-  dimsvarname(3)=BT_dimvarname
-  dimsvarname(4)=Time_dimvarname
+! Dimensions in input files
+!!
+  IF (debug >= 1) PRINT *,'4-basic dimensions in input file...'
+  IF (ALLOCATED(dims4inname)) DEALLOCATE(dims4inname)
+  ALLOCATE(dims4inname(4))
+
+  CALL number_values(dimension_in4names, debug, Ndimin4)
+  CALL string_values(dimension_in4names, debug, Ndimin4, dims4inname0)
+  dims4inname=dims4inname0
+  
+  IF (debug >= 20) THEN
+    PRINT *,'  Dimensions in input file: '
+    DO i=1, 4
+      PRINT *,'  #: ',i,"'"//TRIM(dims4inname(i))//"'"
+    END DO
+  END IF
+
+! Dimensions in output file
+!!
+  IF (debug >= 1) PRINT *,'Dimensions in output file...'
+  CALL number_values(dimension_outnames, debug, Ndimsout)
+  IF (ALLOCATED(dimsoutname)) DEALLOCATE(dimsoutname)
+  ALLOCATE(dimsoutname(Ndimsout))
+   IF (ALLOCATED(dimsoutname0)) DEALLOCATE(dimsoutname0)
+  ALLOCATE(dimsoutname0(Ndimsout))
+ 
+  CALL string_values(dimension_outnames, debug, Ndimsout, dimsoutname0)
+  dimsoutname=dimsoutname0
+  
+  IF (debug >= 20) THEN
+    PRINT *,'  Dimensions in output file: '
+    DO i=1, Ndimsout
+      PRINT *,'  #: ',i,"'"//TRIM(dimsoutname(i))//"'"
+    END DO
+  END IF
 
 ! Constructing diagnostics names
   CALL number_values(diagnostics, debug, Ndiagnostics)
@@ -153,10 +184,12 @@ PROGRAM diagnostics_computation
     ALLOCATE(levs(Nlevels))
     CALL string_Realvalues(debug, p_levels, Nlevels, levs)
 
-    PRINT *,'There are',Nlevels,'input levels'
-    DO i=1,Nlevels
-      PRINT *,i,levs(i)
-    END DO
+    IF (debug >= 1) THEN
+      PRINT *,'There are',Nlevels,'input levels'
+      DO i=1,Nlevels
+        PRINT *,i,levs(i)
+      END DO
+    END IF
    ELSE
     IF (ALLOCATED(levs)) DEALLOCATE(levs)
     ALLOCATE(levs(Nlevels))   
@@ -192,13 +225,13 @@ PROGRAM diagnostics_computation
   
   IF (debug <= 100 ) CALL nc_gatts(infiles(1), debug)
 
-  CALL nc_dimensions(infiles(1), debug, nTOTdims, WEdimname, SNdimname, BTdimname, Timedimname, &
-    TOTdims, TOTdimsname, dimx, dimy, dimz, dimt)
+!  CALL nc_dimensions(infiles(1), debug, nTOTdims, WEdimname, SNdimname, BTdimname, Timedimname,&
+!    TOTdims, TOTdimsname, dimx, dimy, dimz, dimt)
 
   CALL gattribute_REALvalue(infiles(1), debug, X_grid_spacing, 1, X_grid)
   CALL gattribute_REALvalue(infiles(1), debug, Y_grid_spacing, 1, Y_grid)
 
-  CALL com_diagnostics(debug, infiles, Ninputs, dimx, dimy, dimz, dimt, diags, Ndiagnostics,    &
-    X_grid, Y_grid, dimsvarname, outputfile, global_att_file, cartesian_x, cartesian_y)
+  CALL com_diagnostics(debug,infiles, Ninputs, diags, Ndiagnostics, X_grid, Y_grid, dims4inname,&
+    dimsoutname, Ndimsout, outputfile, global_att_file, cartesian_x, cartesian_y)
 
 END PROGRAM diagnostics_computation

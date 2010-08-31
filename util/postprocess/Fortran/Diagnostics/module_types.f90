@@ -1,3 +1,4 @@
+MODULE module_types
 ! Diagnostic types of variables used for computation of atmospheric doagnostic variables from netCDF
 !   files 
 ! GMS. UC: September 2010. version v0.0
@@ -7,7 +8,7 @@
 
 ! Dimension type definition
 !!
-    TYPE dimension
+    TYPE dimensiondef
       CHARACTER(LEN=50)                                   :: name
       INTEGER                                             :: id
       CHARACTER(LEN=1)                                    :: type
@@ -27,7 +28,7 @@
       CHARACTER(LEN=250)                                  :: coords
       CHARACTER(LEN=50)                                   :: positive
       CHARACTER(LEN=250)                                  :: form
-    END TYPE dimension
+    END TYPE dimensiondef
 
 !!!!!!!!!!!!!! Variables
 ! name: dimension diagnostic name
@@ -60,3 +61,4 @@
 ! positive: sign of increment of dimension (specific of dimtype=V)
 ! form: formula of dimension (specific of dimtype=V)
 
+END MODULE module_types

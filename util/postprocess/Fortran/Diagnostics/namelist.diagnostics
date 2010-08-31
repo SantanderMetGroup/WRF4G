@@ -1,35 +1,30 @@
 &io
   path_to_input            = '.',
   input_names              = 'wrfout_d01_19760217T000000Z.nc',
-  cartesian_x              = .FALSE.,
-  cartesian_y              = .FALSE.,
-  WEdimname                = 'west_east',
-  SNdimname                = 'south_north',
-  BTdimname                = 'bottom_top',
-  Timedimname              = 'Time',
-  path_to_output           = './',
-  WE_dimvarname            = 'XLONG',
-  SN_dimvarname            = 'XLAT',
-  BT_dimvarname            = 'ZNU',
-  Time_dimvarname          = 'Times',
-  diagnostics              = 'CLT, CLT_CAM, HURS, MRSO, ,PRW, TDPS',
+  global_att_file          = 1
+  geofile                  = ''
+  path_to_geofile          = '',
+  diagnostics              = 'CLT',
   process                  = 'list',
   debug                    = 150,
   filt                     = .FALSE.,
   grid_filt                = 3,
   ntimes_filt              = 10,
+  path_to_output           = './',
   outfile                  = '19760217000000_DIAGS.nc'
-  global_att_file          = 1
-  geofile                  = ''
-  path_to_geofile          = '',
 /
 
   geofile                  = 'geo_em.d01.nc'
   path_to_geofile          = '/oceano/gmeteo/DATA/WRF/domains/Europe_15k',
+  diagnostics              = 'CLT,CLT_CAM,HURS,MRSO,PRW,TDPS',
 
-&levels
+&dimensions
   lev_process              = 'all',
   X_grid_spacing           = 'DX',
   Y_grid_spacing           = 'DY',
+  cartesian_x              = .FALSE.,
+  cartesian_y              = .FALSE.,
+  dimension_in4names       = 'west_east,south_north,bottom_top,Time',
+  dimension_outnames       = 'lon,lat,lev,time',
 /
   p_levels                 = '1000.0, 850.0, 500.0, 200.10',

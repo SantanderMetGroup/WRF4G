@@ -1,10 +1,11 @@
 ==Information file for each diagnose dimension==
 *lon*
   dimtype                  H
+  dimaxis                  X
   dim_in_name              west_east
   num_dimInVarnames        1
   dim_in_varnames          XLONG
-  dim_method               direct
+  dim_method               direct6D
   dim_constant             0.
   dim_indimensions         0
   standard_name            longitude
@@ -18,10 +19,11 @@
 
 *lat*
   dimtype                  H
+  dimaxis                  Y
   dim_in_name              south_north
   num_dimInVarnames        1
   dim_in_varnames          XLAT
-  dim_method               direct
+  dim_method               direct6D
   dim_constant             0.
   dim_indimensions         0
   standard_name            latitude
@@ -35,12 +37,13 @@
 
 *lev*
   dimtype                  V
+  dimaxis                  Z
   dim_in_name              bottom_top
   num_dimInVarnames        1
   dim_in_varnames          ZNU
   dim_method               direct
   dim_constant             0.
-  dim_indimensions         0
+  dim_indimensions         2
   standard_name            atmosphere_sigma_coordinate
   long_name                'atmosphere level in sigma coordinate'
   units                    NO
@@ -52,6 +55,7 @@
 
 *time*
   dimtype                  T
+  dimaxis                  T
   dim_in_name              Time
   num_dimInVarnames        1
   dim_in_varnames          Times

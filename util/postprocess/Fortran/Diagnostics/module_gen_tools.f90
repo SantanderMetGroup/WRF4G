@@ -43,7 +43,8 @@ SUBROUTINE calc_method1D(debg, meth, rg, Ninvalues, invalues, ct, vals)
   
 ! Local
   INTEGER                                                 :: ival, j
-  CHARACTER(LEN=50)                                       :: section, messg
+  CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=250)                                      :: messg
   
 !!!!!!! Variables
 ! meth: method to compute
@@ -96,9 +97,8 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, vals)
   
 ! Local
   INTEGER                                                 :: ival, j
-  INTEGER                                                 :: halfdim
-  CHARACTER(LEN=50)                                       :: section, messg
-  REAL                                                    :: print_6Dhalfdim
+  CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=250)                                      :: messg
   
 !!!!!!! Variables
 ! meth: method to compute
@@ -253,7 +253,7 @@ SUBROUTINE diagnostic_inf(debg, varDIAG, Ninvar, varinnames, NdimDIAG, shapeDIAG
   
 END SUBROUTINE diagnostic_inf
 
-SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
+SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
 ! Subroutine to read dimension information from 'dimensions_diagnostics.inf' external 
 ! ASCII file. '-' values mean NOVALUE. File format:
 !*dimDIAG*
@@ -263,13 +263,15 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
 ! num_dimInVarnames     (number of input variables to compute dimension; '0' no variables)
 ! dim_in_varnames       (variables names, coma separated, to compute dimension) 
 ! method                (method to compute dimension)
-!    direct: values are the same from dim_in_varnames [for num_dimInVarnames=1]
-!    sumct: values are the same from dim_in_varnames plus a constant [for num_dimInVarnames=1]
-!    prodct: values are the same from dim_in_varnames times a constant [for num_dimInVarnames=1]
-!    sumall: values are the result of the sum of all [dim_in_varnames]
+!    direct: values are the same from dim_in_varnames [for 1D computations with dimension ids of
+!      inputs from 'indimensions']
+!    sumct: values are the same from dim_in_varnames plus a constant [same in 'direct']
+!    prodct: values are the same from dim_in_varnames times a constant [same in 'direct']
+!    sumall: values are the result of the sum of all [same in 'direct']
 !    xxxxxx: specific for this dimension (xxxxx must have some sense in 'calc_method1D' (in
 !       'module_gen_tools') or in 'compute_dimensions' for 'name' (in 'module_nc_tools') 
 ! constant              (constant value for method='constant')
+! indimensions          (rank of input variables to 1D compute dimension values)
 ! standard_name         (CF-1.4 standard name of dimension)
 ! long_name             (long name of dimension)
 ! units                 (units of dimension)
@@ -287,25 +289,25 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
 ! (...)
 
   USE module_constants
+  USE module_types
 
   IMPLICIT NONE
 
-  INCLUDE 'types.inc'
-
   INTEGER, INTENT(IN)                                    :: debg, dimid
-  TYPE(dimension)                                        :: diminf
-  CHARACTER(LEN=50), INTENT(IN)                          :: dimDIAG
+  TYPE(dimensiondef)                                     :: diminf
+  CHARACTER(LEN=*), INTENT(IN)                           :: dimDIAG0
 
 ! Local variables
   INTEGER                                                :: i, ilin, idim
   INTEGER                                                :: iunit, ios
   INTEGER                                                :: Llabel, posDIM
   CHARACTER(LEN=1)                                       :: car
-  CHARACTER(LEN=50)                                      :: label, section
+  CHARACTER(LEN=50)                                      :: label, section, dimDIAG
   LOGICAL                                                :: is_used
-  CHARACTER(LEN=250), DIMENSION(:), ALLOCATABLE, TARGET  :: dimInvarnames
-  INTEGER, DIMENSION(:), ALLOCATABLE, TARGET             :: dimindimensions
-  REAL, DIMENSION(:), ALLOCATABLE, TARGET                :: dimfixvalues
+  CHARACTER(LEN=250), DIMENSION(:), ALLOCATABLE, TARGET,                                       &
+    SAVE  :: dimInvarnames
+  INTEGER, DIMENSION(:), ALLOCATABLE, TARGET, SAVE       :: dimindimensions
+  REAL, DIMENSION(:), ALLOCATABLE, TARGET, SAVE          :: dimfixvalues
   CHARACTER(LEN=3000)                                    :: readINvarnames, readINdimensions,  &
     readFIXvalues
   
@@ -320,9 +322,14 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
 ! readINdimensions: all read (as character string) which dimension is wanted for 1D computations
 ! readFIXvalues: all read (as character string) input fixed values from file
 
-
   section="'diagnostic_dim_inf'"
   IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+  IF (ASSOCIATED(diminf%INvarnames)) NULLIFY(diminf%INvarnames)
+  IF (ASSOCIATED(diminf%indimensions)) NULLIFY(diminf%indimensions)
+  IF (ASSOCIATED(diminf%values)) NULLIFY(diminf%values)
+
+  dimDIAG=dimDIAG0
 
 !  Read parameters from diagnostic dimensions information file 'dimensions_diagnostics.inf' 
 !!
@@ -365,53 +372,36 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG, dimid, diminf)
    diminf%id=dimid
 
    READ(iunit,*)car, diminf%type
-   PRINT *,'Que pasa neng?', TRIM(diminf%type)
    READ(iunit,*)car, diminf%axis
-   PRINT *,'Que pasa neng? 0', TRIM(diminf%axis)
    READ(iunit,*)car, diminf%INname
-   PRINT *,'Que pasa neng? 1 ', TRIM(diminf%INname)
    READ(iunit,*)car, diminf%NinVarnames
-   PRINT *,'Que pasa neng? 2 ', diminf%NinVarnames
    IF (ALLOCATED(dimInvarnames)) DEALLOCATE(dimInvarnames)
    ALLOCATE(dimInvarnames(diminf%NinVarnames))
    READ(iunit,*)car, readINvarnames
-   PRINT *,'Que pasa neng? 3 ', "'"//TRIM(readINvarnames)//"'"
    CALL string_values(readINvarnames, debg, diminf%NinVarnames, dimInvarnames)
-   PRINT *,'Que pasa neng? 3b ', (TRIM(dimInvarnames(idim)), char(44), idim=1, diminf%NinVarnames)
    ALLOCATE(diminf%INvarnames(diminf%NinVarnames))
+   IF (.NOT.(ASSOCIATED(diminf%INvarnames))) ALLOCATE(diminf%INvarnames(diminf%NinVarnames))
    diminf%INvarnames=>dimInvarnames
-   PRINT *,'Que pasa neng? 4 ', (TRIM(diminf%INvarnames(idim)), char(44), idim=1, diminf%NinVarnames)
-   PRINT *,'Ale hoop!'
    READ(iunit,*)car, diminf%method
-   PRINT *,'Que pasa neng? 5 ', TRIM(diminf%method)
    READ(iunit,*)car, diminf%constant
-   PRINT *,'Que pasa neng? 5 a', diminf%constant
    IF (ALLOCATED(dimindimensions)) DEALLOCATE(dimindimensions)
    ALLOCATE(dimindimensions(diminf%NinVarnames))
    READ(iunit,*)car, readINdimensions
-   PRINT *,'Que pasa neng? 5 b ', TRIM(readINdimensions)
    CALL string_Intvalues(debg, readINdimensions, diminf%NinVarnames, dimindimensions)
    diminf%indimensions=>dimindimensions
-   PRINT *,'Que pasa neng? 5 bb ',diminf%indimensions
    READ(iunit,*)car, diminf%stdname
-   PRINT *,'Que pasa neng? 5 c', TRIM(diminf%stdname)
    READ(iunit,*)car, diminf%lonname
-   PRINT *,'Que pasa neng? 6 ', TRIM(diminf%lonname)
    READ(iunit,*)car, diminf%units
-   PRINT *,'Que pasa neng? 7 ', TRIM(diminf%units)
    READ(iunit,*)car, diminf%Nvalues
-   PRINT *,'Que pasa neng? 8 ', diminf%Nvalues
    IF (ALLOCATED(dimfixvalues)) DEALLOCATE(dimfixvalues)
    ALLOCATE(dimfixvalues(diminf%Nvalues))
    READ(iunit,*)car, readFIXvalues
-   PRINT *,'Que pasa neng? 9 ', TRIM(readFIXvalues)
    IF (TRIM(readFIXvalues) /= '-') THEN
      CALL string_Realvalues(debg, readFIXvalues, diminf%Nvalues, dimfixvalues)
    ELSE
      dimfixvalues=0.
    END IF
    diminf%values=>dimfixvalues
-   PRINT *,'Que pasa neng? 10 ', diminf%values
    
 ! Specific horizontal dim, however is read for all dimensions. If it has a value it will be written
 ! as a dimension attribute (it might be helpful)
@@ -536,37 +526,38 @@ SUBROUTINE diagnostic_inf_Ninvar(varDIAG, debg, Ninvar)
 
 END SUBROUTINE diagnostic_inf_Ninvar
 
-SUBROUTINE fill_dimension_type(debg, dimname, dimid, dimtype, dimaxs, diminname, dimrange,     &
-  dimNinvars, diminvars, dimmethod, dimct, indim, dimstd, dimlong, dimu, dimNval, dimval,      &
-  dimcoord, dimpos, dimform, dimfilled) 
+SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname0, dimrange,   &
+  dimNinvars, diminvars0, dimmethod0, dimct, indim, dimstd0, dimlong0, dimu0, dimNval, dimval, &
+  dimcoord0, dimpos0, dimform0, dimfilled) 
 ! Function to fill a dimension type variable
 
 !  USE module_constans, ONLY: dimension_type
+  USE module_types
 
   IMPLICIT NONE
 
-  INCLUDE 'types.inc'
+!  INCLUDE 'include/types.inc'
 
   INTEGER, INTENT(IN)                                     :: debg
-  CHARACTER(LEN=50), INTENT(IN)                           :: dimname
+  CHARACTER(LEN=*), INTENT(IN)                            :: dimname0
   INTEGER, INTENT(IN)                                     :: dimid
   CHARACTER(LEN=1), INTENT(IN)                            :: dimtype, dimaxs
-  CHARACTER(LEN=50), INTENT(IN)                           :: diminname
+  CHARACTER(LEN=*), INTENT(IN)                            :: diminname0
   INTEGER, INTENT(IN)                                     :: dimrange
   INTEGER, INTENT(IN)                                     :: dimNinvars
-  CHARACTER(LEN=250), DIMENSION(dimNinvars), INTENT(IN)   :: diminvars
-  CHARACTER(LEN=50), INTENT(IN)                           :: dimmethod
+  CHARACTER(LEN=*), DIMENSION(dimNinvars), INTENT(IN)     :: diminvars0
+  CHARACTER(LEN=*), INTENT(IN)                            :: dimmethod0
   REAL, INTENT(IN)                                        :: dimct
   INTEGER, DIMENSION(dimNinvars), INTENT(IN)              :: indim
-  CHARACTER(LEN=250), INTENT(IN)                          :: dimstd
-  CHARACTER(LEN=250), INTENT(IN)                          :: dimlong
-  CHARACTER(LEN=50), INTENT(IN)                           :: dimu
+  CHARACTER(LEN=*), INTENT(IN)                            :: dimstd0
+  CHARACTER(LEN=*), INTENT(IN)                            :: dimlong0
+  CHARACTER(LEN=*), INTENT(IN)                            :: dimu0
   INTEGER, INTENT(IN)                                     :: dimNval
   REAL, DIMENSION(dimNval), INTENT(IN)                    :: dimval
-  CHARACTER(LEN=250), INTENT(IN)                          :: dimcoord
-  CHARACTER(LEN=50), INTENT(IN)                           :: dimpos
-  CHARACTER(LEN=250), INTENT(IN)                          :: dimform
-  TYPE(dimension)                                         :: dimfilled  
+  CHARACTER(LEN=*), INTENT(IN)                            :: dimcoord0
+  CHARACTER(LEN=*), INTENT(IN)                            :: dimpos0
+  CHARACTER(LEN=*), INTENT(IN)                            :: dimform0
+  TYPE(dimensiondef), INTENT(OUT)                         :: dimfilled  
 
 ! Local
   INTEGER                                                 :: idim
@@ -575,11 +566,37 @@ SUBROUTINE fill_dimension_type(debg, dimname, dimid, dimtype, dimaxs, diminname,
   INTEGER, DIMENSION(dimNinvars), TARGET                  :: indimvars_targ
   REAL, DIMENSION(dimNval), TARGET                        :: dimval_targ
 
+  CHARACTER(LEN=50)                                       :: dimname
+  CHARACTER(LEN=50)                                       :: diminname
+  CHARACTER(LEN=250), DIMENSION(dimNinvars)               :: diminvars
+  CHARACTER(LEN=50)                                       :: dimmethod
+  CHARACTER(LEN=250)                                      :: dimstd
+  CHARACTER(LEN=250)                                      :: dimlong
+  CHARACTER(LEN=50)                                       :: dimu
+  CHARACTER(LEN=250)                                      :: dimcoord
+  CHARACTER(LEN=50)                                       :: dimpos
+  CHARACTER(LEN=250)                                      :: dimform
+
 !!!!!!! Variables
 ! dimfilled: dimension variable type filled with given values
 
   section="'fill_dimension_type'"
   IF (debg >= 100) PRINT *,'Section '//section//'... .. .'
+
+  IF (ASSOCIATED(dimfilled%INvarnames)) NULLIFY(dimfilled%INvarnames)
+  IF (ASSOCIATED(dimfilled%indimensions)) NULLIFY(dimfilled%indimensions)
+  IF (ASSOCIATED(dimfilled%values)) NULLIFY(dimfilled%values)
+
+  dimname=dimname0
+  diminname=diminname0
+  diminvars=diminvars0
+  dimmethod=dimmethod0
+  dimstd=dimstd0
+  dimlong=dimlong0
+  dimu=dimu0
+  dimcoord=dimcoord0
+  dimpos=dimpos0
+  dimform=dimform0
 
   diminvars_targ=diminvars
   indimvars_targ=indim
@@ -592,6 +609,8 @@ SUBROUTINE fill_dimension_type(debg, dimname, dimid, dimtype, dimaxs, diminname,
   dimfilled%INname=diminname
   dimfilled%range=dimrange
   dimfilled%NinVarnames=dimNinvars
+  IF (.NOT.(ASSOCIATED(dimfilled%INvarnames))) ALLOCATE(dimfilled%INvarnames(dimNinvars))
+  PRINT *,dimNinvars, 'Ei!: ',  UBOUND(dimfilled%INvarnames)
   dimfilled%INvarnames=>diminvars_targ
   dimfilled%method=dimmethod
   dimfilled%constant=dimct  
@@ -732,7 +751,7 @@ REAL FUNCTION print_6Dhalfdim(mat, rgs)
     rgs(6)), INTENT(IN)                                   :: mat
     
 ! Local
-  INTEGER                                                 :: halfdim
+!  INTEGER                                                 :: halfdim
 
   print_6Dhalfdim=mat(halfdim(rgs(1)), halfdim(rgs(2)), halfdim(rgs(3)), halfdim(rgs(4)),       &
       halfdim(rgs(5)), halfdim(rgs(6)))
@@ -758,7 +777,7 @@ INTEGER FUNCTION string_int(debg, string)
 
   section="'string_int'"  
   IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
-  IF (debg >= 150) PRINT *,"String: '"//TRIM(string)//"'"
+  IF (debg >= 150) PRINT *,"  String: '"//TRIM(string)//"'"
 
   Lstring=LEN_TRIM(string)
 
@@ -768,7 +787,7 @@ INTEGER FUNCTION string_int(debg, string)
   END DO 
 
 
-  IF (debg >= 150) PRINT *,'Integer:',string_int
+  IF (debg >= 150) PRINT *,'  Integer:',string_int
   
   RETURN
 END FUNCTION string_int
@@ -796,7 +815,7 @@ SUBROUTINE string_real(debg, string, value)
 
   section="'string_real'"  
   IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
-  IF (debg >= 150) PRINT *,"String: '"//TRIM(string)//"'"
+  IF (debg >= 150) PRINT *,"  String: '"//TRIM(string)//"'"
 
   Lstring=LEN_TRIM(string)
   point=INDEX(string, '.')
@@ -812,7 +831,7 @@ SUBROUTINE string_real(debg, string, value)
     value=value+(IACHAR(string(point+i:point+i))-48)*10.**(-i)
   END DO
 
-!  PRINT *,'String:',string,'Lpre:',Lpre,'Laft:',Laft,'Real:',value
+!  PRINT *,'  String:',string,'Lpre:',Lpre,'Laft:',Laft,'Real:',value
   RETURN
 END SUBROUTINE string_real 
 
@@ -833,7 +852,7 @@ SUBROUTINE string_Intvalues(debg, string, Nvalues, values)
 
   section="'string_Intvalues'"
   IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
-  IF (debg >= 150) PRINT *,"string: '"//TRIM(string)//"'"
+  IF (debg >= 150) PRINT *,"  string: '"//TRIM(string)//"'"
 
   Lstring = len_trim(string)
 
@@ -854,9 +873,9 @@ SUBROUTINE string_Intvalues(debg, string, Nvalues, values)
   values(jval)=string_int(debg, Svalues)
 
   IF (debg >= 150) THEN
-    PRINT *,'Found values_______________'
+    PRINT *,'  Found values_______________'
     DO jval=1,Nvalues
-      PRINT *,values(jval)
+      PRINT *,'  ',values(jval)
     END DO
   END IF
   RETURN
@@ -879,7 +898,7 @@ SUBROUTINE string_Realvalues(debg, string, Nvalues, values)
 
   section="'string_Realvalues'"
   IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
-  IF (debg >= 150) PRINT *,"string: '"//TRIM(string)//"'"
+  IF (debg >= 150) PRINT *,"  string: '"//TRIM(string)//"'"
 
   Lstring = len_trim(string)
 
@@ -900,9 +919,9 @@ SUBROUTINE string_Realvalues(debg, string, Nvalues, values)
   CALL string_real(debg, Svalues, values(jval))
 
   IF (debg >= 150) THEN
-    PRINT *,'Found values_______________'
+    PRINT *,'  Found values_______________'
     DO jval=1,Nvalues
-      PRINT *,values(jval)
+      PRINT *,'  ',values(jval)
     END DO
   END IF
   RETURN
@@ -928,6 +947,7 @@ SUBROUTINE string_values(string, debg, Nvalues, values)
   IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
 
   Lstring = LEN_TRIM(string)
+  values=''
 
   ival=1
   jval=1
@@ -944,9 +964,9 @@ SUBROUTINE string_values(string, debg, Nvalues, values)
   values(jval)=ADJUSTL(string(ival:Lstring))
 
   IF (debg >= 150) THEN
-    PRINT *,'Found values_______________'
+    PRINT *,'  Found', Nvalues,' values_______________'
     DO jval=1,Nvalues
-      PRINT *,'************'//TRIM(values(jval))//'********'
+      PRINT *,"  '"//TRIM(values(jval))//"'"
     END DO
   END IF
   RETURN
@@ -979,7 +999,7 @@ SUBROUTINE number_values(string, debg, Nvalues)
     END IF
   END DO
 
-!  PRINT *,'There are ',Nvalues,' values'
+  IF (debg >= 150) PRINT *,'  There are ',Nvalues,' values'
   RETURN
 
 END SUBROUTINE number_values
