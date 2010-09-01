@@ -21,7 +21,8 @@ PROGRAM diagnostics_computation
   INTEGER                                                :: grid_filt, ntimes_filt, debug,      &
     global_att_file
   CHARACTER(LEN=4)                                       :: process, lev_process
-  CHARACTER(LEN=50)                                      :: X_grid_spacing, Y_grid_spacing
+  CHARACTER(LEN=50)                                      :: X_grid_spacing_gatt,                &
+    Y_grid_spacing_gatt, T_grid_spacing_gatt
   CHARACTER(LEN=3000)                                    :: diagnostics, input_names, p_levels, &
     dimension_in4names, dimension_outnames
   CHARACTER(LEN=250)                                     :: path_to_input, path_to_output,      & 
@@ -49,12 +50,13 @@ PROGRAM diagnostics_computation
   CHARACTER(LEN=50), ALLOCATABLE, DIMENSION(:)           :: TOTdimsname,dimsoutname,dims4inname
   CHARACTER(LEN=250), ALLOCATABLE, DIMENSION(:)          :: dimsoutname0
   CHARACTER(LEN=250), DIMENSION(4)                       :: dims4inname0
-  REAL                                                   :: X_grid, Y_grid
+  REAL                                                   :: X_grid, Y_grid, T_grid
+  CHARACTER(LEN=250)                                     :: stringT_grid
 
   NAMELIST /io/ path_to_input, input_names, global_att_file, geofile, path_to_geofile,          &
     diagnostics, process, debug, filt, grid_filt, ntimes_filt, path_to_output, outfile
-  NAMELIST /dimensions/ lev_process, p_levels, X_grid_spacing, Y_grid_spacing, cartesian_x,     &
-    cartesian_y, dimension_in4names, dimension_outnames
+  NAMELIST /dimensions/ lev_process, p_levels, X_grid_spacing_gatt, Y_grid_spacing_gatt,        &
+    T_grid_spacing_gatt, cartesian_x, cartesian_y, dimension_in4names, dimension_outnames
 
 !!!!!!!!! Variables
 ! Ninputs: number of input files
@@ -74,6 +76,7 @@ PROGRAM diagnostics_computation
 ! IDunlimit: id dimension with unlimit range
 ! TOTdimsname: vector with names of all dimensions of netCDF file
 ! [X/Y]_grid: grid spacing in X/Y grid direction [m]
+! [T]_grid: time-step spacing in T grid direction [s]
 ! dims4inname: vector with names of 4-basic dimension names from input files
 ! dimsoutname: vector with names of dimensions to be written in output file
 ! Ndimsout: number of dimensions to be write in output file
@@ -228,10 +231,12 @@ PROGRAM diagnostics_computation
 !  CALL nc_dimensions(infiles(1), debug, nTOTdims, WEdimname, SNdimname, BTdimname, Timedimname,&
 !    TOTdims, TOTdimsname, dimx, dimy, dimz, dimt)
 
-  CALL gattribute_REALvalue(infiles(1), debug, X_grid_spacing, 1, X_grid)
-  CALL gattribute_REALvalue(infiles(1), debug, Y_grid_spacing, 1, Y_grid)
+! Obtaining dimension spacing as global attribute
+  CALL gattribute_REALvalue(infiles(1), debug, X_grid_spacing_gatt, 1, X_grid)
+  CALL gattribute_REALvalue(infiles(1), debug, Y_grid_spacing_gatt, 1, Y_grid)
+  CALL gattribute_REALvalue(infiles(1), debug, T_grid_spacing_gatt, 1, T_grid)
 
-  CALL com_diagnostics(debug,infiles, Ninputs, diags, Ndiagnostics, X_grid, Y_grid, dims4inname,&
-    dimsoutname, Ndimsout, outputfile, global_att_file, cartesian_x, cartesian_y)
+  CALL com_diagnostics(debug,infiles, Ninputs, diags, Ndiagnostics, X_grid, Y_grid, T_grid,     &
+    dims4inname, dimsoutname, Ndimsout, outputfile, global_att_file, cartesian_x, cartesian_y)
 
 END PROGRAM diagnostics_computation

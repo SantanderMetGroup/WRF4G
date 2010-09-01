@@ -1,9 +1,11 @@
 PROGRAM sub_test
 ! Program to test functions & subroutines
 
+  USE module_types
+
   IMPLICIT NONE
 
-  INCLUDE 'include/types.inc'
+!  INCLUDE 'include/types.inc'
 
   INTEGER                                                :: i,j,k,l,m,n,ijk,idim
   INTEGER                                                :: debug
@@ -13,6 +15,7 @@ PROGRAM sub_test
   CHARACTER(LEN=250)                                     :: give_Lstring, funsub
   INTEGER, DIMENSION(6)                                  :: dimranges
   REAL                                                   :: constant, print_6Dhalfdim
+  REAL                                                   :: number, only_number
   REAL, DIMENSION(:), ALLOCATABLE                        :: mat1D
   REAL, DIMENSION(:,:,:,:,:,:), ALLOCATABLE              :: matval, matnew
 
@@ -22,7 +25,7 @@ PROGRAM sub_test
   LOGICAL                                                :: is_word_in
   TYPE(dimensiondef)                                     :: dimensionsearch
 
-  funsub='diagnostic_dim_inf'
+  funsub='only_number'
 
   debug=150
   dim1=100
@@ -53,6 +56,13 @@ PROGRAM sub_test
   END DO
 
   SELECT CASE (funsub)
+
+!!  only_number
+!!!!
+  CASE ('only_number')
+    word='....A150...f'
+    number=only_number(debug, word)
+    PRINT *,"From '"//TRIM(word)//"' :",number
 
 !!  diagnostic_dim_inf
 !!!!
@@ -167,6 +177,79 @@ PROGRAM sub_test
   END SELECT
 END PROGRAM sub_test
 
+REAL FUNCTION only_number(debg, string0in)
+! Function to give a real number from any string with contiguous numbers (point included)
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: debg
+  CHARACTER(LEN=*), INTENT(IN)                            :: string0in
+
+! Local
+  INTEGER                                                 :: icar, Lstring, Lnewstring
+  INTEGER                                                 :: string_int
+  CHARACTER(LEN=50)                                       :: stringin, section, newstring
+  LOGICAL                                                 :: point
+  INTEGER                                                 :: firstnumber, lastnumber
+
+!!!!!!! Variables
+! string: string to obtain a number
+! Lstring: length of 'string'
+! [first/last]number: position of the first/last number in 'string'
+! newstring: string obtained from initial string with desired chain of numbers (maybe with point)
+! point: indicates if '.' has been found, so real number
+! Lnewsting: length of 'newstring'
+
+  section="'only_number'"
+    
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+  point=.FALSE.
+  stringin=string0in
+  newstring=''
+
+  Lstring=LEN_TRIM(stringin)
+  IF (debg >= 150) PRINT *,'  Length of string: ',Lstring
+  
+! Looking for number of points
+!!
+  firstnumber=0
+  DO icar=1, Lstring
+    IF ((ICHAR(stringin(icar:icar)) >= 48 ) .AND. (ICHAR(stringin(icar:icar)) <= 57 )) THEN
+      IF (firstnumber == 0) firstnumber=icar
+      lastnumber=icar
+    END IF
+  END DO
+  IF (debg >= 150) PRINT *,'First number: ',firstnumber,' last number: ',lastnumber
+  
+  Lnewstring=0
+  DO icar=1, Lstring
+    PRINT *,stringin(icar:icar)//': ',ICHAR(stringin(icar:icar))
+    IF ((ICHAR(stringin(icar:icar)) >= 48 ) .AND. (ICHAR(stringin(icar:icar)) <= 57 )) THEN
+      Lnewstring=Lnewstring+1
+      newstring(Lnewstring:Lnewstring)=stringin(icar:icar)
+    END IF
+! Filling with point. If 'point' has not been previously found and it is at firstnumber +/- 1 
+!   and/or lastnumber +/- 1
+    IF ((ICHAR(stringin(icar:icar)) == 46) .AND. (.NOT.point) .AND. ((ABS(firstnumber - icar) ==&
+      1) .OR. (ABS(lastnumber - icar) == 1))) THEN
+      Lnewstring=Lnewstring+1
+      newstring(Lnewstring:Lnewstring)=stringin(icar:icar)
+      point=.TRUE.
+    END IF
+    PRINT *,icar,'|',stringin(icar:icar)//': ',ICHAR(stringin(icar:icar)), "'"//                         &
+      TRIM(newstring(1:Lnewstring))//"'"
+  END DO
+
+  IF (point) THEN
+    CALL string_real(debg, newstring, only_number)
+  ELSE
+    only_number=string_int(debg, newstring)*1.
+  END IF
+
+  IF (debg >= 150) PRINT *,"  From string '"//TRIM(stringin)//"' real number:", only_number
+
+END FUNCTION only_number
+
 SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
 ! Subroutine to read dimension information from 'dimensions_diagnostics.inf' external 
 ! ASCII file. '-' values mean NOVALUE. File format:
@@ -201,10 +284,11 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
 ! (...)
 
   USE module_constants
+  USE module_types
 
   IMPLICIT NONE
 
-  INCLUDE 'include/types.inc'
+!  INCLUDE 'include/types.inc'
 
   INTEGER, INTENT(IN)                                    :: debg, dimid
   TYPE(dimensiondef), INTENT(OUT)                        :: diminf

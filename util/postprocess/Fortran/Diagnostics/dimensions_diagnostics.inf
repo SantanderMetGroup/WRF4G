@@ -38,17 +38,17 @@
 *lev*
   dimtype                  V
   dimaxis                  Z
-  dim_in_name              bottom_top
+  dim_in_name              -
   num_dimInVarnames        1
   dim_in_varnames          ZNU
   dim_method               direct
   dim_constant             0.
-  dim_indimensions         2
+  dim_indimensions         1
   standard_name            atmosphere_sigma_coordinate
   long_name                'atmosphere level in sigma coordinate'
   units                    NO
   Ndim_values              0
-  dim_values               -
+  dim_values               0.
   dim_coords               '-'
   dim_positive             down
   dim_formula              'sigma: lev ps: PSFC ptop: P_TOP'
@@ -59,9 +59,9 @@
   dim_in_name              Time
   num_dimInVarnames        1
   dim_in_varnames          Times
-  dim_method               Y-m-d_h:m:s 
+  dim_method               Y-m-d_h:m:s_refT 
   dim_constant             0.
-  dim_indimensions         0
+  dim_indimensions         2
   standard_name            time
   long_name                time
   units                    'seconds since 1950-1-1 0:0:0'

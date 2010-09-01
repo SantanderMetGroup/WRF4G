@@ -4,7 +4,7 @@
   global_att_file          = 1
   geofile                  = ''
   path_to_geofile          = '',
-  diagnostics              = 'CLT',
+  diagnostics              = 'CLT,HURS,MRSO,PRW,TDPS',
   process                  = 'list',
   debug                    = 150,
   filt                     = .FALSE.,
@@ -20,8 +20,9 @@
 
 &dimensions
   lev_process              = 'all',
-  X_grid_spacing           = 'DX',
-  Y_grid_spacing           = 'DY',
+  X_grid_spacing_gatt      = 'DX',
+  Y_grid_spacing_gatt      = 'DY',
+  T_grid_spacing_gatt      = 'DT',
   cartesian_x              = .FALSE.,
   cartesian_y              = .FALSE.,
   dimension_in4names       = 'west_east,south_north,bottom_top,Time',

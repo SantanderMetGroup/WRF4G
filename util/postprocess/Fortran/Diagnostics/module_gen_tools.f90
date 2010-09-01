@@ -20,6 +20,8 @@ MODULE module_gen_tools
 !     to 250) 
 ! give1D_from6D: Subroutine to give a 1D vector from any dimension of a 6D matrix
 ! halfdim: Function to give the half value of a dimension
+! only_number: Function to give a real number from any string with contiguous numbers (point
+!     included) 
 ! print_6Dhalfdim: Subroutine to print central value of a real 6D matrix
 ! search_variables: Subroutine to search variables from a given netcCDF file
 ! string_int: Function to transform a string to a real value
@@ -562,9 +564,9 @@ SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname
 ! Local
   INTEGER                                                 :: idim
   CHARACTER(LEN=50)                                       :: section
-  CHARACTER(LEN=250), DIMENSION(dimNinvars), TARGET       :: diminvars_targ
-  INTEGER, DIMENSION(dimNinvars), TARGET                  :: indimvars_targ
-  REAL, DIMENSION(dimNval), TARGET                        :: dimval_targ
+  CHARACTER(LEN=250),DIMENSION(:),ALLOCATABLE,TARGET,SAVE :: diminvars_targ
+  INTEGER, DIMENSION(:), ALLOCATABLE, TARGET, SAVE        :: indimvars_targ
+  REAL, DIMENSION(:), ALLOCATABLE, TARGET, SAVE           :: dimval_targ
 
   CHARACTER(LEN=50)                                       :: dimname
   CHARACTER(LEN=50)                                       :: diminname
@@ -598,6 +600,17 @@ SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname
   dimpos=dimpos0
   dimform=dimform0
 
+! Dimensions of target vectors for pointers of 'dimensiondef' type
+!!
+  IF (ALLOCATED(diminvars_targ)) DEALLOCATE(diminvars_targ)
+  ALLOCATE(diminvars_targ(dimNinvars))
+
+  IF (ALLOCATED(indimvars_targ)) DEALLOCATE(indimvars_targ)
+  ALLOCATE(indimvars_targ(dimNinvars))
+
+  IF (ALLOCATED(dimval_targ)) DEALLOCATE(dimval_targ)
+  ALLOCATE(dimval_targ(dimNval))
+
   diminvars_targ=diminvars
   indimvars_targ=indim
   dimval_targ=dimval
@@ -610,15 +623,16 @@ SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname
   dimfilled%range=dimrange
   dimfilled%NinVarnames=dimNinvars
   IF (.NOT.(ASSOCIATED(dimfilled%INvarnames))) ALLOCATE(dimfilled%INvarnames(dimNinvars))
-  PRINT *,dimNinvars, 'Ei!: ',  UBOUND(dimfilled%INvarnames)
   dimfilled%INvarnames=>diminvars_targ
   dimfilled%method=dimmethod
   dimfilled%constant=dimct  
+  IF (.NOT.(ASSOCIATED(dimfilled%indimensions))) ALLOCATE(dimfilled%indimensions(dimNinvars))
   dimfilled%indimensions=>indimvars_targ
   dimfilled%stdname=dimstd
   dimfilled%lonname=dimlong
   dimfilled%units=dimu
   dimfilled%Nvalues=dimNval
+  IF (.NOT.(ASSOCIATED(dimfilled%values))) ALLOCATE(dimfilled%values(dimNval))
   dimfilled%values=>dimval_targ
   dimfilled%coords=dimcoord
   dimfilled%positive=dimpos
@@ -699,6 +713,7 @@ SUBROUTINE give1D_from6D(debg, matrix, matrg, wtddim, vec)
   
 ! Local
   CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=250)                                      :: mssg
   
 !!!!!!! Variables
 ! matrix: 6D matrix
@@ -709,6 +724,11 @@ SUBROUTINE give1D_from6D(debg, matrix, matrg, wtddim, vec)
   
   section="'give1D_from6D'"
   IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
+  
+  IF (wtddim > 6) THEN
+    mssg = 'Desired dimension '//CHAR(48+wtddim)//' is larger than 6D !!'
+    CALL diag_fatal(mssg)
+  END IF
   
   SELECT CASE (wtddim)
     CASE (1)
@@ -740,6 +760,77 @@ INTEGER FUNCTION halfdim(dim)
   IF (dim < 2) halfdim = 1     ! Assuming non-zero dimension range
   
 END FUNCTION halfdim
+
+REAL FUNCTION only_number(debg, string0in)
+! Function to give a real number from any string with contiguous numbers (point included)
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: debg
+  CHARACTER(LEN=*), INTENT(IN)                            :: string0in
+
+! Local
+  INTEGER                                                 :: icar, Lstring, Lnewstring
+  CHARACTER(LEN=50)                                       :: stringin, section, newstring
+  LOGICAL                                                 :: point
+  INTEGER                                                 :: firstnumber, lastnumber
+
+!!!!!!! Variables
+! string: string to obtain a number
+! Lstring: length of 'string'
+! [first/last]number: position of the first/last number in 'string'
+! newstring: string obtained from initial string with desired chain of numbers (maybe with point)
+! point: indicates if '.' has been found, so real number
+! Lnewsting: length of 'newstring'
+
+  section="'only_number'"
+    
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+  point=.FALSE.
+  stringin=string0in
+  newstring=''
+
+  Lstring=LEN_TRIM(stringin)
+  IF (debg >= 150) PRINT *,'  Length of string: ',Lstring
+  
+! Looking for number of points
+!!
+  firstnumber=0
+  DO icar=1, Lstring
+    IF ((ICHAR(stringin(icar:icar)) >= 48 ) .AND. (ICHAR(stringin(icar:icar)) <= 57 )) THEN
+      IF (firstnumber == 0) firstnumber=icar
+      lastnumber=icar
+    END IF
+  END DO
+  IF (debg >= 150) PRINT *,'First number: ',firstnumber,' last number: ',lastnumber
+  
+  Lnewstring=0
+  DO icar=1, Lstring
+    PRINT *,stringin(icar:icar)//': ',ICHAR(stringin(icar:icar))
+    IF ((ICHAR(stringin(icar:icar)) >= 48 ) .AND. (ICHAR(stringin(icar:icar)) <= 57 )) THEN
+      Lnewstring=Lnewstring+1
+      newstring(Lnewstring:Lnewstring)=stringin(icar:icar)
+    END IF
+! Filling with point. If 'point' has not been previously found and it is at firstnumber +/- 1 
+!   and/or lastnumber +/- 1
+    IF ((ICHAR(stringin(icar:icar)) == 46) .AND. (.NOT.point) .AND. ((ABS(firstnumber - icar) ==&
+      1) .OR. (ABS(lastnumber - icar) == 1))) THEN
+      Lnewstring=Lnewstring+1
+      newstring(Lnewstring:Lnewstring)=stringin(icar:icar)
+      point=.TRUE.
+    END IF
+  END DO
+
+  IF (point) THEN
+    CALL string_real(debg, newstring, only_number)
+  ELSE
+    only_number=string_int(debg, newstring)*1.
+  END IF
+
+  IF (debg >= 150) PRINT *,"  From string '"//TRIM(stringin)//"' real number:", only_number
+
+END FUNCTION only_number
+
 
 REAL FUNCTION print_6Dhalfdim(mat, rgs)
 ! Subroutine to print central value of a real 6D matrix
