@@ -24,8 +24,9 @@ PROGRAM sub_test
   CHARACTER(LEN=50), DIMENSION(:), ALLOCATABLE           :: words
   LOGICAL                                                :: is_word_in
   TYPE(dimensiondef)                                     :: dimensionsearch
+  TYPE(variabledef)                                      :: variableget
 
-  funsub='only_number'
+  funsub='diagnostic_var_inf'
 
   debug=150
   dim1=100
@@ -56,6 +57,12 @@ PROGRAM sub_test
   END DO
 
   SELECT CASE (funsub)
+
+!!  diagnostic_var_inf
+!!!!
+  CASE ('diagnostic_var_inf')
+    word='CLT'
+    CALL diagnostic_var_inf(debug, word, variableget)
 
 !!  only_number
 !!!!
@@ -176,6 +183,149 @@ PROGRAM sub_test
     PRINT *,"'"//TRIM(funsub)//"' does not exist !!!!"
   END SELECT
 END PROGRAM sub_test
+
+SUBROUTINE diagnostic_var_inf(debg, varDIAG, varread)
+! Subroutine to read diagnostic variable information from 'variables_diagnostics.inf' external 
+! ASCII file. File format:
+!*varDIAG*
+! diagnostic_type:      (type of diagnostic)
+! Num_input_variables:  (number of input variables) 
+! Input_variables:      (names of input variable, coma separated) 
+! diagnostic_rank:      (rank of diagnostic) 
+! diagnostic_shape:     (shape of diagnostic according to 'namelist.dimension_outnames', coma
+!    separated)  
+! diagnostic_std_name:  (standard name)
+! diagnostic_longdesc:  (long name)
+! diagnostic_units:     (units)
+! diagnostic_method:    (method of computation of diagnostic, change varDIAG if one desires each
+!    method)
+! diagnostic_constant:  (constant to use to compute diagnostic according to 'method')
+! diagnostic_coords:    (base coords of diagnostic, optional)
+! diagnostic_formula:   (formula to be given as attribute of diagnostic, optional)
+! diagnostic_Noptions:  (number of options for diagnostic)
+! diagnostic_options:   (values of options)
+!    (blank line)
+!*varDIAG*
+! (...)
+
+  USE module_types
+
+  IMPLICIT NONE
+
+  CHARACTER(LEN=50), INTENT(IN)                          :: varDIAG
+  INTEGER, INTENT(IN)                                    :: debg
+  TYPE(variabledef), INTENT(OUT)                         :: varread
+  
+! Local variables
+  INTEGER                                                :: i, ilin
+  INTEGER                                                :: iunit, ios
+  INTEGER                                                :: Llabel, posvarDIAG
+  CHARACTER(LEN=1)                                       :: car
+  CHARACTER(LEN=50)                                      :: label, section
+  LOGICAL                                                :: is_used
+  INTEGER                                                :: Ninvar
+  INTEGER                                                :: NdimDIAG
+  INTEGER, DIMENSION(:), ALLOCATABLE, TARGET, SAVE       :: shapeDIAG_targ, optionsDIAG_targ
+  CHARACTER(LEN=250), DIMENSION(:), ALLOCATABLE, TARGET,                                        &
+    SAVE                                                 :: invarnames_targ
+  CHARACTER(LEN=250)                                     :: longdescDIAG
+  CHARACTER(LEN=50)                                      :: unitsDIAG, stddescDIAG
+  CHARACTER(LEN=3000)                                    :: READinvarnames
+
+!!!!!!!!!!!!!! Variables
+!  varDIAG: variable diagnostic name
+!  varread: output variable
+
+  section="'diagnostic_var_inf'"
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+!  Read parameters from diagnostic variables information file 'variables_diagnostics.inf' 
+   DO iunit=10,100
+     INQUIRE(unit=iunit, opened=is_used)
+     IF (.not. is_used) EXIT
+   END DO
+   OPEN(iunit, file='variables_diagnostics.inf', status='old', form='formatted', iostat=ios)
+   IF ( ios /= 0 ) STOP "ERROR opening 'variables_diagnostics.inf'"
+   ilin=1
+   posvarDIAG=0
+   DO 
+     READ(iunit,*,END=100)label
+     Llabel=LEN_TRIM(label)
+     IF (label(2:Llabel-1)==TRIM(varDIAG)) THEN
+       posvarDIAG=ilin
+       EXIT
+     END IF
+     ilin=ilin+1
+   END DO
+
+ 100 CONTINUE
+
+   IF (posvarDIAG == 0) THEN
+     PRINT *,"Diagnostic variable '"//TRIM(varDIAG)//"' not found in 'variables_diagnostics.inf'"
+     STOP
+   END IF
+
+   REWIND (iunit)
+
+   DO ilin=1,posvarDIAG
+     READ(iunit,*)car
+   END DO
+
+   READ(iunit,*)car, varread%type
+   READ(iunit,*)car, varread%Ninvarnames
+   READ(iunit,*)car, READinvarnames
+   IF (ALLOCATED(invarnames_targ)) DEALLOCATE(invarnames_targ)
+   ALLOCATE(invarnames_targ(varread%Ninvarnames))
+   CALL string_values(READinvarnames, debg, varread%Ninvarnames, invarnames_targ)
+   IF (ASSOCIATED(varread%INvarnames)) NULLIFY(varread%INvarnames)
+   ALLOCATE(varread%INvarnames(varread%Ninvarnames))
+   varread%INvarnames=>invarnames_targ
+   READ(iunit,*)car, varread%rank
+   IF (ALLOCATED(shapeDIAG_targ)) DEALLOCATE(shapeDIAG_targ)
+   ALLOCATE(shapeDIAG_targ(varread%rank))
+   READ(iunit,*)car, shapeDIAG_targ
+   IF (ASSOCIATED(varread%shape)) NULLIFY(varread%shape)
+   ALLOCATE(varread%shape(varread%rank))
+   varread%shape=>shapeDIAG_targ
+   READ(iunit,*)car, varread%stdname
+   READ(iunit,*)car, varread%lonname
+   READ(iunit,*)car, varread%units
+   READ(iunit,*)car, varread%method
+   READ(iunit,*)car, varread%constant
+   READ(iunit,*)car, varread%coords
+   READ(iunit,*)car, varread%form
+   READ(iunit,*)car, varread%Noptions
+   IF (ALLOCATED(optionsDIAG_targ)) DEALLOCATE(optionsDIAG_targ)
+   ALLOCATE(optionsDIAG_targ(varread%Noptions))
+   READ(iunit,*)car, optionsDIAG_targ
+   IF (ASSOCIATED(varread%options)) NULLIFY(varread%options)
+   ALLOCATE(varread%options(varread%Noptions))
+   varread%options=>optionsDIAG_targ
+
+   CLOSE(iunit)
+
+   IF (debg >= 75) THEN
+     PRINT *,"  Read information for '"//TRIM(varDIAG)//"' variable________"
+     IF (varread%type == 2) PRINT *,'  string variable'
+     IF (varread%type == 4) PRINT *,'  integer variable'
+     IF (varread%type == 5) PRINT *,'  real variable'
+     PRINT *,'  Number of necessary input variables:', varread%NinVarnames
+     PRINT *,'  Name of input variables:', ("'"//TRIM(varread%INvarnames(i))//"'", char(44),  &
+       i=1, varread%NinVarnames)
+     PRINT *,'  rank:', varread%rank
+     PRINT *,'  Shape of dimensions:', (varread%shape(i), char(44), i=1,varread%rank)
+     PRINT *,'  CF-standard name:', TRIM(varread%stdname)
+     PRINT *,'  Long description:', TRIM(varread%lonname)
+     PRINT *,'  Units:', TRIM(varread%units)
+     PRINT *,'  Method:', TRIM(varread%method)
+     PRINT *,'  constant:', varread%constant
+     PRINT *,'  coordinates:', TRIM(varread%coords)
+     PRINT *,'  formula:', TRIM(varread%form)
+     PRINT *,'  number of options for diagnostic: ',varread%Noptions
+     PRINT *,'  values of options: ',varread%options
+   END IF
+  
+END SUBROUTINE diagnostic_var_inf
 
 REAL FUNCTION only_number(debg, string0in)
 ! Function to give a real number from any string with contiguous numbers (point included)

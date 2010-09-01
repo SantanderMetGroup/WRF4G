@@ -68,7 +68,7 @@ MODULE module_constants
 
 !!!!!! Variables
 ! generic_calcs1D: generic calcs with 1D vectors with the same sahpe
-! generic_calcs6D: generic calcs with 6D matrixs wiht the same shape
+! generic_calcs6D: generic calcs with 6D matrixs wiht the same rank and shape
 
 !  END SUBROUTINE generic_calcs
 

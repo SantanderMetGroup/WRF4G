@@ -61,4 +61,54 @@ MODULE module_types
 ! positive: sign of increment of dimension (specific of dimtype=V)
 ! form: formula of dimension (specific of dimtype=V)
 
+! Variable type definition
+!!
+    TYPE variabledef
+      CHARACTER(LEN=50)                                   :: name
+      INTEGER                                             :: id
+      INTEGER                                             :: type
+      INTEGER                                             :: NinVarnames
+      CHARACTER(LEN=250), POINTER, DIMENSION(:)           :: INvarnames      
+      INTEGER                                             :: rank
+      INTEGER, POINTER, DIMENSION(:)                      :: shape
+      CHARACTER(LEN=250)                                  :: stdname
+      CHARACTER(LEN=250)                                  :: lonname
+      CHARACTER(LEN=50)                                   :: units
+      CHARACTER(LEN=250)                                  :: method
+      REAL                                                :: constant
+      CHARACTER(LEN=250)                                  :: coords
+      CHARACTER(LEN=250)                                  :: form
+      INTEGER                                             :: Noptions
+      INTEGER, POINTER, DIMENSION(:)                      :: options
+    END TYPE variabledef
+
+!!!!!!!!!!!!!! Variables
+! name: variable/diagnostic name
+! id: variable id
+! type: type of variable: 
+!    2: string      4: integer    5: real
+! NinVarnames: number of variables from input files to compute diagnostic
+! INvarnames: names of variables from input fields to compute diagnostic
+! rank: rank of variable
+! shape: shape of variable (order will follow dimension names in
+!    'namelist.dimension_outnames'
+! stdname: standard CF convection name of diagnostic
+! lonname: long name of diagnostic
+! units: units of diagnostic
+! method: method to compute diagnostic (a pre-defined list of generic methods is given in
+!    'generic_calcs6D' (in 'module_constants') for input 'INvariables' with same rank and shape
+!    direct6D: values are the same from INname/dim_in_varnames [for num_dimInVarnames=1]
+!    sumct6D: values are the same from INname/dim_in_varnames plus a constant [for
+!       num_dimInVarnames=1] 
+!    prodct6D: values are the same from INname/dim_in_varnames multiplyed by a constant [for
+!       num_dimInVarnames=1] 
+!    sumall6D: values are the result of the sum of all [INname/dim_in_varnames]
+!    xxxxxx: specific for this variable (xxxxx must have some sense in 'calc_method_gen6D' (in
+!       'module_calc_tools') or in 'module_com_diagnostics' for 'name'
+! constant: constant value for 'method'
+! coords: coordinates in which is based variable (optional)
+! form: formula of dimension (optional)
+! Noptions: number of extra values to compute diagnostic (specific for each 'method')
+! options: integer values of optional values for diagnostic
+
 END MODULE module_types

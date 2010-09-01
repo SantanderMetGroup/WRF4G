@@ -7,10 +7,10 @@ MODULE module_gen_tools
 ! Following previous work of many authors for vis5D as 'userfuncs'
 !
 !!!!!!!!! Subroutines/Functions
-! calc_method1D: Subroutine to compute specific 1D method
-! calc_method_gen6D: Subroutine to compute generic methods for 6D matrices of the same shape
 ! diag_fatal: Subroutine to give fatal error with a message
 ! diagnostic_inf: Subroutine to read diagnostic variable information from 
+!     'variables_diagnostics.inf' external ASCII file
+! diagnostic_var_inf: Subroutine to read diagnostic variable information from 
 !     'variables_diagnostics.inf' external ASCII file
 ! diagnostic_dim_inf: Subroutine to read diagnostic variable information from 
 !     'dimensions_diagnostics.inf' external ASCII file
@@ -31,113 +31,6 @@ MODULE module_gen_tools
 ! string_values: Subroutine to obtain values from a 'namelist' string separated by comas
 ! number_values: Subroutine to obtain number of variables from a 'namelist' variable with coma    
 !    separation
-
-SUBROUTINE calc_method1D(debg, meth, rg, Ninvalues, invalues, ct, vals)
-! Subroutine to compute specific 1D method
-
-  IMPLICIT NONE
-  
-  INTEGER, INTENT(IN)                                     :: debg, rg, Ninvalues
-  CHARACTER(LEN=50)                                       :: meth
-  REAL, INTENT(IN)                                        :: ct
-  REAL, DIMENSION(rg, Ninvalues), INTENT(IN)              :: invalues
-  REAL, DIMENSION(rg), INTENT(OUT)                        :: vals
-  
-! Local
-  INTEGER                                                 :: ival, j
-  CHARACTER(LEN=50)                                       :: section
-  CHARACTER(LEN=250)                                      :: messg
-  
-!!!!!!! Variables
-! meth: method to compute
-! rg: range of input values
-! Ninvalues: number of input values
-! invalues: input values
-! ct: constant for 'sumct' and 'prodct' methods
-! vals: result of application of the method
-
-  section="'calc_method1D'"
-  
-  IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
-  
-  SELECT CASE (meth)
-    CASE ('direct')
-      vals=invalues(:,1)
-    CASE ('sumct')
-      vals=invalues(:,1)+ct
-    CASE ('prodct')
-      vals=invalues(:,1)*ct    
-    CASE ('sumall')
-      vals=SUM(invalues, DIM=2)
-    CASE DEFAULT
-      messg="  Giving method: '"//TRIM(meth)//"' is not defined!"
-      CALL diag_fatal(messg)
-  END SELECT
-  
-  IF (debg >= 150) THEN
-    PRINT *,"  Values given by "//TRIM(meth)//"' method: "
-    DO ival=1, rg
-      PRINT *,'    ',ival,(invalues(ival, j), char(44), j=1, Ninvalues), '-->', vals(ival)
-    END DO
-  END IF
-  
-END SUBROUTINE calc_method1D
-
-SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, vals)
-! Subroutine to compute generic methods for 6D matrices of the same shape
-
-  IMPLICIT NONE
-  
-  INTEGER, INTENT(IN)                                     :: debg, Ninvalues
-  INTEGER, DIMENSION(6), INTENT(IN)                       :: rgs
-  CHARACTER(LEN=50)                                       :: meth
-  REAL, INTENT(IN)                                        :: ct
-  REAL, DIMENSION(rgs(1), rgs(2), rgs(3), rgs(4), rgs(5),                                       &
-    rgs(6), Ninvalues), INTENT(IN)                        :: invalues
-  REAL, DIMENSION(rgs(1), rgs(2), rgs(3), rgs(4), rgs(5),                                       &
-    rgs(6)), INTENT(OUT)                                  :: vals
-  
-! Local
-  INTEGER                                                 :: ival, j
-  CHARACTER(LEN=50)                                       :: section
-  CHARACTER(LEN=250)                                      :: messg
-  
-!!!!!!! Variables
-! meth: method to compute
-! rgs: ranges of input values
-! Ninvalues: number of input values
-! invalues: input values
-! ct: constant for 'sumct' and 'prodct' methods
-! vals: result of application of the method
-
-  section="'calc_method_gen6D'"
-  
-  IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
-  vals=0.
-  
-  SELECT CASE (meth)
-    CASE ('direct6D')
-      vals=invalues(:,:,:,:,:,:,1)
-    CASE ('sumct6D')
-      vals=invalues(:,:,:,:,:,:,1)+ct
-    CASE ('prodct6D')
-      vals=invalues(:,:,:,:,:,:,1)*ct    
-    CASE ('sumall6D')
-      PRINT *,meth
-      vals=SUM(invalues, DIM=7)
-    CASE DEFAULT
-      messg="  Giving 6D general method: '"//TRIM(meth)//"' is not defined!"
-      CALL diag_fatal(messg)
-  END SELECT
-  
-  IF (debg >= 150) THEN
-    PRINT *,"  dim/2 values given by "//TRIM(meth)//"' method: "
-    PRINT *,'    ',(invalues(halfdim(rgs(1)), halfdim(rgs(2)), halfdim(rgs(3)), halfdim(rgs(4)),&
-      halfdim(rgs(5)), halfdim(rgs(6)),j), char(44), j=1, Ninvalues), '-->',                    &
-      print_6Dhalfdim(vals, rgs)
-  END IF
-  
-END SUBROUTINE calc_method_gen6D
 
 SUBROUTINE diag_fatal(msg)
 ! Subroutine to give fatal error with a message
@@ -254,6 +147,149 @@ SUBROUTINE diagnostic_inf(debg, varDIAG, Ninvar, varinnames, NdimDIAG, shapeDIAG
    END IF
   
 END SUBROUTINE diagnostic_inf
+
+SUBROUTINE diagnostic_var_inf(debg, varDIAG, varread)
+! Subroutine to read diagnostic variable information from 'variables_diagnostics.inf' external 
+! ASCII file. File format:
+!*varDIAG*
+! diagnostic_type:      (type of diagnostic)
+! Num_input_variables:  (number of input variables) 
+! Input_variables:      (names of input variable, coma separated) 
+! diagnostic_rank:      (rank of diagnostic) 
+! diagnostic_shape:     (shape of diagnostic according to 'namelist.dimension_outnames', coma
+!    separated)  
+! diagnostic_std_name:  (standard name)
+! diagnostic_longdesc:  (long name)
+! diagnostic_units:     (units)
+! diagnostic_method:    (method of computation of diagnostic, change varDIAG if one desires each
+!    method)
+! diagnostic_constant:  (constant to use to compute diagnostic according to 'method')
+! diagnostic_coords:    (base coords of diagnostic, optional)
+! diagnostic_formula:   (formula to be given as attribute of diagnostic, optional)
+! diagnostic_Noptions:  (number of options for diagnostic)
+! diagnostic_options:   (values of options)
+!    (blank line)
+!*varDIAG*
+! (...)
+
+  USE module_types
+
+  IMPLICIT NONE
+
+  CHARACTER(LEN=50), INTENT(IN)                          :: varDIAG
+  INTEGER, INTENT(IN)                                    :: debg
+  TYPE(variabledef), INTENT(OUT)                         :: varread
+  
+! Local variables
+  INTEGER                                                :: i, ilin
+  INTEGER                                                :: iunit, ios
+  INTEGER                                                :: Llabel, posvarDIAG
+  CHARACTER(LEN=1)                                       :: car
+  CHARACTER(LEN=50)                                      :: label, section
+  LOGICAL                                                :: is_used
+  INTEGER                                                :: Ninvar
+  INTEGER                                                :: NdimDIAG
+  INTEGER, DIMENSION(:), ALLOCATABLE, TARGET, SAVE       :: shapeDIAG_targ, optionsDIAG_targ
+  CHARACTER(LEN=250), DIMENSION(:), ALLOCATABLE, TARGET,                                        &
+    SAVE                                                 :: invarnames_targ
+  CHARACTER(LEN=250)                                     :: longdescDIAG
+  CHARACTER(LEN=50)                                      :: unitsDIAG, stddescDIAG
+  CHARACTER(LEN=3000)                                    :: READinvarnames
+
+!!!!!!!!!!!!!! Variables
+!  varDIAG: variable diagnostic name
+!  varread: output variable
+
+  section="'diagnostic_var_inf'"
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+!  Read parameters from diagnostic variables information file 'variables_diagnostics.inf' 
+   DO iunit=10,100
+     INQUIRE(unit=iunit, opened=is_used)
+     IF (.not. is_used) EXIT
+   END DO
+   OPEN(iunit, file='variables_diagnostics.inf', status='old', form='formatted', iostat=ios)
+   IF ( ios /= 0 ) STOP "ERROR opening 'variables_diagnostics.inf'"
+   ilin=1
+   posvarDIAG=0
+   DO 
+     READ(iunit,*,END=100)label
+     Llabel=LEN_TRIM(label)
+     IF (label(2:Llabel-1)==TRIM(varDIAG)) THEN
+       posvarDIAG=ilin
+       EXIT
+     END IF
+     ilin=ilin+1
+   END DO
+
+ 100 CONTINUE
+
+   IF (posvarDIAG == 0) THEN
+     PRINT *,"Diagnostic variable '"//TRIM(varDIAG)//"' not found in 'variables_diagnostics.inf'"
+     STOP
+   END IF
+
+   REWIND (iunit)
+
+   DO ilin=1,posvarDIAG
+     READ(iunit,*)car
+   END DO
+
+   READ(iunit,*)car, varread%type
+   READ(iunit,*)car, varread%Ninvarnames
+   READ(iunit,*)car, READinvarnames
+   IF (ALLOCATED(invarnames_targ)) DEALLOCATE(invarnames_targ)
+   ALLOCATE(invarnames_targ(varread%Ninvarnames))
+   CALL string_values(READinvarnames, debg, varread%Ninvarnames, invarnames_targ)
+   IF (ASSOCIATED(varread%INvarnames)) NULLIFY(varread%INvarnames)
+   ALLOCATE(varread%INvarnames(varread%Ninvarnames))
+   varread%INvarnames=>invarnames_targ
+   READ(iunit,*)car, varread%rank
+   IF (ALLOCATED(shapeDIAG_targ)) DEALLOCATE(shapeDIAG_targ)
+   ALLOCATE(shapeDIAG_targ(varread%rank))
+   READ(iunit,*)car, shapeDIAG_targ
+   IF (ASSOCIATED(varread%shape)) NULLIFY(varread%shape)
+   ALLOCATE(varread%shape(varread%rank))
+   varread%shape=>shapeDIAG_targ
+   READ(iunit,*)car, varread%stdname
+   READ(iunit,*)car, varread%lonname
+   READ(iunit,*)car, varread%units
+   READ(iunit,*)car, varread%method
+   READ(iunit,*)car, varread%constant
+   READ(iunit,*)car, varread%coords
+   READ(iunit,*)car, varread%form
+   READ(iunit,*)car, varread%Noptions
+   IF (ALLOCATED(optionsDIAG_targ)) DEALLOCATE(optionsDIAG_targ)
+   ALLOCATE(optionsDIAG_targ(varread%Noptions))
+   READ(iunit,*)car, optionsDIAG_targ
+   IF (ASSOCIATED(varread%options)) NULLIFY(varread%options)
+   ALLOCATE(varread%options(varread%Noptions))
+   varread%options=>optionsDIAG_targ
+
+   CLOSE(iunit)
+
+   IF (debg >= 75) THEN
+     PRINT *,"  Read information for '"//TRIM(varDIAG)//"' variable________"
+     IF (varread%type == 2) PRINT *,'  string variable'
+     IF (varread%type == 4) PRINT *,'  integer variable'
+     IF (varread%type == 5) PRINT *,'  real variable'
+     PRINT *,'  Number of necessary input variables:', varread%NinVarnames
+     PRINT *,'  Name of input variables:', ("'"//TRIM(varread%INvarnames(i))//"'", char(44),  &
+       i=1, varread%NinVarnames)
+     PRINT *,'  rank:', varread%rank
+     PRINT *,'  Shape of dimensions:', (varread%shape(i), char(44), i=1,varread%rank)
+     PRINT *,'  CF-standard name:', TRIM(varread%stdname)
+     PRINT *,'  Long description:', TRIM(varread%lonname)
+     PRINT *,'  Units:', TRIM(varread%units)
+     PRINT *,'  Method:', TRIM(varread%method)
+     PRINT *,'  constant:', varread%constant
+     PRINT *,'  coordinates:', TRIM(varread%coords)
+     PRINT *,'  formula:', TRIM(varread%form)
+     PRINT *,'  number of options for diagnostic: ',varread%Noptions
+     PRINT *,'  values of options: ',varread%options
+   END IF
+  
+END SUBROUTINE diagnostic_var_inf
 
 SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
 ! Subroutine to read dimension information from 'dimensions_diagnostics.inf' external 

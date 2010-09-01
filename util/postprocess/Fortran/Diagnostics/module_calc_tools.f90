@@ -9,6 +9,8 @@ MODULE module_calc_tools
 
 !!!!!!!!!! Subroutines
 ! borders3D: Subroutine to compute border values of 3D fields
+! calc_method1D: Subroutine to compute specific 1D method
+! calc_method_gen6D: Subroutine to compute generic methods for 6D matrices of the same shape
 ! diff_dates: Subroutine to copute difference between 2 dates in [AAAA]-[MM]-[DD]_[HH]:[MI]:[SS] 
 !    format in 's': seconds, 'm': minutes, 'h': hours, 'd': days. NOTE: Assuming dateA < dateB
 ! diff_days: Function to give the difference in days between two years
@@ -49,6 +51,117 @@ MODULE module_calc_tools
   RETURN
 
   END SUBROUTINE borders3D
+
+SUBROUTINE calc_method1D(debg, meth, rg, Ninvalues, invalues, ct, vals)
+! Subroutine to compute specific 1D method
+
+  USE module_gen_tools
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: debg, rg, Ninvalues
+  CHARACTER(LEN=50)                                       :: meth
+  REAL, INTENT(IN)                                        :: ct
+  REAL, DIMENSION(rg, Ninvalues), INTENT(IN)              :: invalues
+  REAL, DIMENSION(rg), INTENT(OUT)                        :: vals
+  
+! Local
+  INTEGER                                                 :: ival, j
+  CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=250)                                      :: messg
+  
+!!!!!!! Variables
+! meth: method to compute
+! rg: range of input values
+! Ninvalues: number of input values
+! invalues: input values
+! ct: constant for 'sumct' and 'prodct' methods
+! vals: result of application of the method
+
+  section="'calc_method1D'"
+  
+  IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
+  
+  SELECT CASE (meth)
+    CASE ('direct')
+      vals=invalues(:,1)
+    CASE ('sumct')
+      vals=invalues(:,1)+ct
+    CASE ('prodct')
+      vals=invalues(:,1)*ct    
+    CASE ('sumall')
+      vals=SUM(invalues, DIM=2)
+    CASE DEFAULT
+      messg="  Giving method: '"//TRIM(meth)//"' is not defined!"
+      CALL diag_fatal(messg)
+  END SELECT
+  
+  IF (debg >= 150) THEN
+    PRINT *,"  Values given by "//TRIM(meth)//"' method: "
+    DO ival=1, rg
+      PRINT *,'    ',ival,(invalues(ival, j), char(44), j=1, Ninvalues), '-->', vals(ival)
+    END DO
+  END IF
+  
+END SUBROUTINE calc_method1D
+
+SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, vals)
+! Subroutine to compute generic methods for 6D matrices of the same shape
+
+  USE module_gen_tools
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: debg, Ninvalues
+  INTEGER, DIMENSION(6), INTENT(IN)                       :: rgs
+  CHARACTER(LEN=50)                                       :: meth
+  REAL, INTENT(IN)                                        :: ct
+  REAL, DIMENSION(rgs(1), rgs(2), rgs(3), rgs(4), rgs(5),                                       &
+    rgs(6), Ninvalues), INTENT(IN)                        :: invalues
+  REAL, DIMENSION(rgs(1), rgs(2), rgs(3), rgs(4), rgs(5),                                       &
+    rgs(6)), INTENT(OUT)                                  :: vals
+  
+! Local
+  INTEGER                                                 :: ival, j
+  CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=250)                                      :: messg
+  
+!!!!!!! Variables
+! meth: method to compute
+! rgs: ranges of input values
+! Ninvalues: number of input values
+! invalues: input values
+! ct: constant for 'sumct' and 'prodct' methods
+! vals: result of application of the method
+
+  section="'calc_method_gen6D'"
+  
+  IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
+  vals=0.
+  
+  SELECT CASE (meth)
+    CASE ('direct6D')
+      vals=invalues(:,:,:,:,:,:,1)
+    CASE ('sumct6D')
+      vals=invalues(:,:,:,:,:,:,1)+ct
+    CASE ('prodct6D')
+      vals=invalues(:,:,:,:,:,:,1)*ct    
+    CASE ('sumall6D')
+      PRINT *,meth
+      vals=SUM(invalues, DIM=7)
+    CASE DEFAULT
+      messg="  Giving 6D general method: '"//TRIM(meth)//"' is not defined!"
+      CALL diag_fatal(messg)
+  END SELECT
+  
+  IF (debg >= 150) THEN
+    PRINT *,"  dim/2 values given by "//TRIM(meth)//"' method: "
+    PRINT *,'    ',(invalues(halfdim(rgs(1)), halfdim(rgs(2)), halfdim(rgs(3)), halfdim(rgs(4)),&
+      halfdim(rgs(5)), halfdim(rgs(6)),j), char(44), j=1, Ninvalues), '-->',                    &
+      print_6Dhalfdim(vals, rgs)
+  END IF
+  
+END SUBROUTINE calc_method_gen6D
 
 SUBROUTINE diff_dates(debg, dateA, dateB, units, difference)
 ! Subroutine to copute difference between 2 dates in [AAAA]-[MM]-[DD]_[HH]:[MI]:[SS] 

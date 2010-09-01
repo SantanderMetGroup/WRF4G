@@ -39,6 +39,7 @@ SUBROUTINE compute_1Dmethod_values(debg, Ninc, incs, dimensioncalc)
   USE module_constants
   USE module_types
   USE module_gen_tools
+  USE module_calc_tools
 
   IMPLICIT NONE
   
