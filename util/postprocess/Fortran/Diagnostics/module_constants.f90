@@ -60,11 +60,11 @@ MODULE module_constants
 !  SUBROUTINE generic_calcs
 ! Definition of vectors with generic calcs
 
-  INTEGER, PARAMETER                                     :: Ngen1D=4, Ngen6D=4
+  INTEGER, PARAMETER                                     :: Ngen1D=4, Ngen6D=5
   CHARACTER(LEN=50), DIMENSION(Ngen1D)                   :: generic_calcs1D=(/'direct', 'sumct',&
     'prodct', 'sumall'/) 
   CHARACTER(LEN=50), DIMENSION(Ngen6D)                   :: generic_calcs6D=(/ 'direct6D',      &
-    'sumct6D', 'prodct6D', 'sumall6D'/)
+    'max6D', 'sumct6D', 'prodct6D', 'sumall6D'/)
 
 !!!!!! Variables
 ! generic_calcs1D: generic calcs with 1D vectors with the same sahpe. Values must appear in
