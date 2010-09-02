@@ -4,7 +4,7 @@
   global_att_file          = 1
   geofile                  = ''
   path_to_geofile          = '',
-  diagnostics              = 'CLT,HURS,MRSO,PRW,TDPS',
+  diagnostics              = 'CLT, CLT_CAM',
   process                  = 'list',
   debug                    = 150,
   filt                     = .FALSE.,

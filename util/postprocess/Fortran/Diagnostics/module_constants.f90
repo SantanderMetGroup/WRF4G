@@ -67,8 +67,10 @@ MODULE module_constants
     'sumct6D', 'prodct6D', 'sumall6D'/)
 
 !!!!!! Variables
-! generic_calcs1D: generic calcs with 1D vectors with the same sahpe
-! generic_calcs6D: generic calcs with 6D matrixs wiht the same rank and shape
+! generic_calcs1D: generic calcs with 1D vectors with the same sahpe. Values must appear in
+!    'calc_method1D'
+! generic_calcs6D: generic calcs with 6D matrixs wiht the same rank and shape. Values must appear in
+!    'calc_method_gen6D'
 
 !  END SUBROUTINE generic_calcs
 

@@ -7,9 +7,10 @@ PROGRAM sub_test
 
 !  INCLUDE 'include/types.inc'
 
-  INTEGER                                                :: i,j,k,l,m,n,ijk,idim
+  INTEGER                                                :: i,j,k,l,m,n,o,ijk,idim
   INTEGER                                                :: debug
-  INTEGER                                                :: dim1, dim2, dim3, dim4, dim5, dim6 
+  INTEGER                                                :: dim1, dim2, dim3, dim4, dim5, dim6, &
+    dim7 
   INTEGER                                                :: wanteddim
   CHARACTER(LEN=50)                                      :: st, method
   CHARACTER(LEN=250)                                     :: give_Lstring, funsub
@@ -19,14 +20,15 @@ PROGRAM sub_test
   REAL, DIMENSION(:), ALLOCATABLE                        :: mat1D
   REAL, DIMENSION(:,:,:,:,:,:), ALLOCATABLE              :: matval, matnew
 
-  INTEGER                                                :: Nwords
+  INTEGER                                                :: Nwords, Nops
   CHARACTER(LEN=50)                                      :: word
   CHARACTER(LEN=50), DIMENSION(:), ALLOCATABLE           :: words
+  INTEGER, DIMENSION(:), ALLOCATABLE                     :: ops
   LOGICAL                                                :: is_word_in
   TYPE(dimensiondef)                                     :: dimensionsearch
   TYPE(variabledef)                                      :: variableget
 
-  funsub='diagnostic_var_inf'
+  funsub='calc_method_gen6D'
 
   debug=150
   dim1=100
@@ -35,6 +37,7 @@ PROGRAM sub_test
   dim4=8
   dim5=1
   dim6=1
+  dim7=1
   
   dimranges=(/dim1, dim2, dim3, dim4, dim5, dim6 /)
   
@@ -56,6 +59,7 @@ PROGRAM sub_test
     END DO
   END DO
 
+    PRINT *,'Neng: '
   SELECT CASE (funsub)
 
 !!  diagnostic_var_inf
@@ -117,13 +121,18 @@ PROGRAM sub_test
   CASE('calc_method_gen6D')
 
     constant=0.5
-    method='sumall'
+    method='max6D'
+    Nops=1
+    IF (ALLOCATED(ops)) DEALLOCATE(ops)
+    ALLOCATE(ops(Nops))
+    ops=3
   
+    PRINT *,'Neng: '
     IF (ALLOCATED(matnew)) DEALLOCATE(matnew)
     ALLOCATE(matnew(dim1, dim2, dim3, dim4, dim5, dim6))
   
-    CALL calc_method_gen6D(debug, method,(/dim1,dim2,dim3,dim4,dim5,dim6/),2,(/matval,matval/),&
-      constant, matnew)
+    CALL calc_method_gen6D(debug, method,(/dim1,dim2,dim3,dim4,dim5,dim6/),1,(/matval/),        &
+      constant, Nops, ops, matnew)
   
     PRINT *,'matnew: ',print_6Dhalfdim(matnew, (/dim1,dim2,dim3,dim4,dim5,dim6 /))
 
@@ -146,12 +155,12 @@ PROGRAM sub_test
 !!!!
   CASE ('give1D_from6D')
 
-   wanteddim=1
+   wanteddim=3
 
    IF (ALLOCATED(mat1D)) DEALLOCATE(mat1D)
    ALLOCATE(mat1D(dimranges(wanteddim)))
   
-   CALL give1D_from6D(debug, matval, dimranges, wanteddim, mat1D)
+   CALL give1D_from6D(debug, matval, dimranges, wanteddim, (/1,1,1,1,1/), mat1D)
 
 !! give_Lstring
 !!!!
@@ -180,6 +189,8 @@ PROGRAM sub_test
   DEALLOCATE(words)
 
   CASE DEFAULT
+    PRINT *,MAXVAL(matval, DIM=3)
+    
     PRINT *,"'"//TRIM(funsub)//"' does not exist !!!!"
   END SELECT
 END PROGRAM sub_test
@@ -635,25 +646,32 @@ REAL FUNCTION print_6Dhalfdim(mat, rgs)
 
 END FUNCTION print_6Dhalfdim
 
-SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, vals)
+SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops, vals)
 ! Subroutine to compute generic methods for 6D matrices of the same shape
+
+!  USE module_gen_tools
 
   IMPLICIT NONE
   
-  INTEGER, INTENT(IN)                                     :: debg, Ninvalues
+  INTEGER, INTENT(IN)                                     :: debg, Ninvalues, Nops
   INTEGER, DIMENSION(6), INTENT(IN)                       :: rgs
   CHARACTER(LEN=50)                                       :: meth
   REAL, INTENT(IN)                                        :: ct
   REAL, DIMENSION(rgs(1), rgs(2), rgs(3), rgs(4), rgs(5),                                       &
     rgs(6), Ninvalues), INTENT(IN)                        :: invalues
+  INTEGER, DIMENSION(Nops), INTENT(IN)                    :: ops
   REAL, DIMENSION(rgs(1), rgs(2), rgs(3), rgs(4), rgs(5),                                       &
     rgs(6)), INTENT(OUT)                                  :: vals
   
 ! Local
-  INTEGER                                                 :: ival, j
-  INTEGER                                                 :: halfdim
-  CHARACTER(LEN=50)                                       :: section, messg
-  REAL                                                    :: print_6Dhalfdim
+  INTEGER                                                 :: i,j,k,l,m,n
+  INTEGER                                                 :: ival
+  CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=250)                                      :: messg
+  REAL, DIMENSION(:,:), ALLOCATABLE                       :: values_1col
+  REAL, DIMENSION(:,:,:,:,:), ALLOCATABLE                 :: values5D
+  
+  INTEGER                                                 :: halfdim, print_6dhalfdim
   
 !!!!!!! Variables
 ! meth: method to compute
@@ -661,6 +679,8 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, vals)
 ! Ninvalues: number of input values
 ! invalues: input values
 ! ct: constant for 'sumct' and 'prodct' methods
+! Nops: number of options of 'method'
+! ops: options of method
 ! vals: result of application of the method
 
   section="'calc_method_gen6D'"
@@ -669,13 +689,131 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, vals)
   vals=0.
   
   SELECT CASE (meth)
-    CASE ('direct')
+    CASE ('direct6D')
       vals=invalues(:,:,:,:,:,:,1)
-    CASE ('sumct')
-      vals=invalues(:,:,:,:,:,:,1)+ct
-    CASE ('prodct')
+    CASE ('max6D')
+
+! ops(1) is the dimension of search the maximum
+      IF (ALLOCATED(values_1col)) DEALLOCATE(values_1col)
+      ALLOCATE(values_1col(rgs(ops(1)), Ninvalues))
+      
+      max6dops: SELECT CASE (ops(1))
+      
+        CASE (1)
+	
+          DO i=1,rgs(2)
+            DO j=1,rgs(3)
+	      DO k=1,rgs(4)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+		    DO n=1, Ninvalues
+                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1), &
+                        (/i,j,k,l,m/), values_1col(:,n))
+	            END DO
+	          vals(:,i,j,k,l,m)=MAXVAL(values_1col)
+		  END DO
+		END DO
+	      END DO
+	    END DO
+          END DO
+       
+        CASE (2)
+	
+          DO i=1,rgs(1)
+            DO j=1,rgs(3)
+	      DO k=1,rgs(4)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+		    DO n=1, Ninvalues
+                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),&
+                        (/i,j,k,l,m/), values_1col(:,n))
+	            END DO
+	          vals(i,:,j,k,l,m)=MAXVAL(values_1col)
+		  END DO
+		END DO
+	      END DO
+	    END DO
+          END DO
+       
+        CASE (3)
+	
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(4)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+		    DO n=1, Ninvalues
+                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),&
+                        (/i,j,k,l,m/), values_1col(:,n))
+	            END DO
+	          vals(i,j,:,k,l,m)=MAXVAL(values_1col)
+		  END DO
+		END DO
+	      END DO
+	    END DO
+          END DO
+       
+        CASE (4)
+	
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(3)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+		    DO n=1, Ninvalues
+                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),&
+                        (/i,j,k,l,m/), values_1col(:,n))
+	            END DO
+	          vals(i,j,k,:,l,m)=MAXVAL(values_1col)
+		  END DO
+		END DO
+	      END DO
+	    END DO
+          END DO
+       
+        CASE (5)
+	
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(3)
+	        DO l=1,rgs(4)
+	          DO m=1,rgs(6)
+		    DO n=1, Ninvalues
+                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),&
+                        (/i,j,k,l,m/), values_1col(:,n))
+	            END DO
+	          vals(i,j,k,l,:,m)=MAXVAL(values_1col)
+		  END DO
+		END DO
+	      END DO
+	    END DO
+          END DO
+       
+        CASE (6)
+	
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(3)
+	        DO l=1,rgs(4)
+	          DO m=1,rgs(5)
+		    DO n=1, Ninvalues
+                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),              &
+                        (/i,j,k,l,m/), values_1col(:,n))
+	            END DO
+	          vals(i,j,k,l,m,:)=MAXVAL(values_1col)
+		  END DO
+		END DO
+	      END DO
+	    END DO
+          END DO
+       
+      END SELECT max6dops
+
+    CASE ('prodct6D')
       vals=invalues(:,:,:,:,:,:,1)*ct    
-    CASE ('sumall')
+    CASE ('sumct6D')
+      vals=invalues(:,:,:,:,:,:,1)+ct
+    CASE ('sumall6D')
       PRINT *,meth
       vals=SUM(invalues, DIM=7)
     CASE DEFAULT
@@ -691,7 +829,6 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, vals)
   END IF
   
 END SUBROUTINE calc_method_gen6D
-
 
 SUBROUTINE calc_method1D(debg, meth, rg, Ninvalues, invalues, ct, vals)
 ! Subroutine to compute specific 1D method
@@ -743,39 +880,54 @@ SUBROUTINE calc_method1D(debg, meth, rg, Ninvalues, invalues, ct, vals)
   
 END SUBROUTINE calc_method1D
 
-SUBROUTINE give1D_from6D(debg, matrix, matrg, wtddim, vec)
+SUBROUTINE give1D_from6D(debg, matrix, matrg, wtddim, othrval, vec)
 ! Subroutine to give a 1D vector from any dimension of a 6D matrix
 
   IMPLICIT NONE
   
   INTEGER, INTENT(IN)                                     :: debg, wtddim
   INTEGER, DIMENSION(6), INTENT(IN)                       :: matrg
+  INTEGER, DIMENSION(5), INTENT(IN)                       :: othrval
   REAL, DIMENSION(matrg(1), matrg(2), matrg(3), matrg(4),                                       &
     matrg(5), matrg(6) )                                  :: matrix
   REAL, DIMENSION(matrg(wtddim)), INTENT(OUT)             :: vec
   
 ! Local
   CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=250)                                      :: mssg
+  
+!!!!!!! Variables
+! matrix: 6D matrix
+! matrg: ranges of 6D 
+! wtddim: wanted dimension
+! othrval: values of other dimensions
+! vec: vector with all the values of 'matrix' taking all range of dimension 'wtddim' and all the
+!    rest at the first position
   
   section="'give1D_from6D'"
-  IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
+  IF (debg >= 1500) PRINT *,'Section '//section//'... .. .'
+  
+  IF (wtddim > 6) THEN
+    mssg = 'Desired dimension '//CHAR(48+wtddim)//' is larger than 6D !!'
+    CALL diag_fatal(mssg)
+  END IF
   
   SELECT CASE (wtddim)
     CASE (1)
-      vec=matrix(:,1,1,1,1,1)
+      vec=matrix(:,othrval(1),othrval(2),othrval(3),othrval(4),othrval(5))
     CASE (2)
-      vec=matrix(1,:,1,1,1,1)
+      vec=matrix(othrval(1),:,othrval(2),othrval(3),othrval(4),othrval(5))
     CASE (3)
-      vec=matrix(1,1,:,1,1,1)
+      vec=matrix(othrval(1),othrval(2),:,othrval(3),othrval(4),othrval(5))
     CASE (4)
-      vec=matrix(1,1,1,:,1,1)
+      vec=matrix(othrval(1),othrval(2),othrval(3),:,othrval(4),othrval(5))
     CASE (5)
-      vec=matrix(1,1,1,1,:,1)
+      vec=matrix(othrval(1),othrval(2),othrval(3),othrval(4),:,othrval(5))
     CASE (6)
-      vec=matrix(1,1,1,1,1,:)
+      vec=matrix(othrval(1),othrval(2),othrval(3),othrval(4),othrval(5),:)
   END SELECT
   
-  IF (debg >= 150) PRINT *,'  Given values of dim ',wtddim,' : ',vec
+  IF (debg >= 1500) PRINT *,'  Given values of dim ',wtddim,' : ',vec
   
 END SUBROUTINE give1D_from6D
 

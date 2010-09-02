@@ -105,33 +105,39 @@ SUBROUTINE calc_method1D(debg, meth, rg, Ninvalues, invalues, ct, vals)
   
 END SUBROUTINE calc_method1D
 
-SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, vals)
+SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops, vals)
 ! Subroutine to compute generic methods for 6D matrices of the same shape
 
   USE module_gen_tools
 
   IMPLICIT NONE
   
-  INTEGER, INTENT(IN)                                     :: debg, Ninvalues
+  INTEGER, INTENT(IN)                                     :: debg, Ninvalues, Nops
   INTEGER, DIMENSION(6), INTENT(IN)                       :: rgs
   CHARACTER(LEN=50)                                       :: meth
   REAL, INTENT(IN)                                        :: ct
   REAL, DIMENSION(rgs(1), rgs(2), rgs(3), rgs(4), rgs(5),                                       &
     rgs(6), Ninvalues), INTENT(IN)                        :: invalues
+  INTEGER, DIMENSION(Nops), INTENT(IN)                    :: ops
   REAL, DIMENSION(rgs(1), rgs(2), rgs(3), rgs(4), rgs(5),                                       &
     rgs(6)), INTENT(OUT)                                  :: vals
   
 ! Local
-  INTEGER                                                 :: ival, j
+  INTEGER                                                 :: i,j,k,l,m,n
+  INTEGER                                                 :: ival
   CHARACTER(LEN=50)                                       :: section
   CHARACTER(LEN=250)                                      :: messg
-  
+  REAL, DIMENSION(:,:), ALLOCATABLE                       :: values_1col
+  REAL, DIMENSION(:,:,:,:,:), ALLOCATABLE                 :: values5D
+    
 !!!!!!! Variables
 ! meth: method to compute
 ! rgs: ranges of input values
 ! Ninvalues: number of input values
 ! invalues: input values
 ! ct: constant for 'sumct' and 'prodct' methods
+! Nops: number of options of 'method'
+! ops: options of method
 ! vals: result of application of the method
 
   section="'calc_method_gen6D'"
@@ -142,10 +148,128 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, vals)
   SELECT CASE (meth)
     CASE ('direct6D')
       vals=invalues(:,:,:,:,:,:,1)
-    CASE ('sumct6D')
-      vals=invalues(:,:,:,:,:,:,1)+ct
+    CASE ('max6D')
+
+! ops(1) is the dimension of search the maximum
+      IF (ALLOCATED(values_1col)) DEALLOCATE(values_1col)
+      ALLOCATE(values_1col(rgs(ops(1)), Ninvalues))
+      
+      max6dops: SELECT CASE (ops(1))
+      
+        CASE (1)
+	
+          DO i=1,rgs(2)
+            DO j=1,rgs(3)
+	      DO k=1,rgs(4)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+		    DO n=1, Ninvalues
+                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1), &
+                        (/i,j,k,l,m/), values_1col(:,n))
+	            END DO
+	          vals(:,i,j,k,l,m)=MAXVAL(values_1col)
+		  END DO
+		END DO
+	      END DO
+	    END DO
+          END DO
+       
+        CASE (2)
+	
+          DO i=1,rgs(1)
+            DO j=1,rgs(3)
+	      DO k=1,rgs(4)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+		    DO n=1, Ninvalues
+                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),&
+                        (/i,j,k,l,m/), values_1col(:,n))
+	            END DO
+	          vals(i,:,j,k,l,m)=MAXVAL(values_1col)
+		  END DO
+		END DO
+	      END DO
+	    END DO
+          END DO
+       
+        CASE (3)
+	
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(4)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+		    DO n=1, Ninvalues
+                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),&
+                        (/i,j,k,l,m/), values_1col(:,n))
+	            END DO
+	          vals(i,j,:,k,l,m)=MAXVAL(values_1col)
+		  END DO
+		END DO
+	      END DO
+	    END DO
+          END DO
+       
+        CASE (4)
+	
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(3)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+		    DO n=1, Ninvalues
+                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),&
+                        (/i,j,k,l,m/), values_1col(:,n))
+	            END DO
+	          vals(i,j,k,:,l,m)=MAXVAL(values_1col)
+		  END DO
+		END DO
+	      END DO
+	    END DO
+          END DO
+       
+        CASE (5)
+	
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(3)
+	        DO l=1,rgs(4)
+	          DO m=1,rgs(6)
+		    DO n=1, Ninvalues
+                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),&
+                        (/i,j,k,l,m/), values_1col(:,n))
+	            END DO
+	          vals(i,j,k,l,:,m)=MAXVAL(values_1col)
+		  END DO
+		END DO
+	      END DO
+	    END DO
+          END DO
+       
+        CASE (6)
+	
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(3)
+	        DO l=1,rgs(4)
+	          DO m=1,rgs(5)
+		    DO n=1, Ninvalues
+                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),              &
+                        (/i,j,k,l,m/), values_1col(:,n))
+	            END DO
+	          vals(i,j,k,l,m,:)=MAXVAL(values_1col)
+		  END DO
+		END DO
+	      END DO
+	    END DO
+          END DO
+       
+      END SELECT max6dops
+
     CASE ('prodct6D')
       vals=invalues(:,:,:,:,:,:,1)*ct    
+    CASE ('sumct6D')
+      vals=invalues(:,:,:,:,:,:,1)+ct
     CASE ('sumall6D')
       PRINT *,meth
       vals=SUM(invalues, DIM=7)

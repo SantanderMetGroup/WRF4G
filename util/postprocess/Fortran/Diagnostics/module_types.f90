@@ -20,6 +20,8 @@ MODULE module_types
       CHARACTER(LEN=50)                                   :: method
       REAL                                                :: constant
       INTEGER, POINTER, DIMENSION(:)                      :: indimensions
+      INTEGER                                             :: Noptions
+      INTEGER, POINTER, DIMENSION(:)                      :: options
       CHARACTER(LEN=250)                                  :: stdname
       CHARACTER(LEN=250)                                  :: lonname
       CHARACTER(LEN=50)                                   :: units
@@ -40,18 +42,28 @@ MODULE module_types
 ! range: 1D range of dimension
 ! NinVarnames: number of variables from input files to compute dimension
 ! INvarnames: names of variables from input fields to compute dimension
-! method: method to compute dimension
+! method: method to compute diagnostic (a pre-defined list of generic methods is given in
+!  'generic_calcs1D' (for 1D computations), 'generic_calcs6D' (for 6D comp.) (in
+!  'module_constants') for input 'INvariables' with same rank and shape 
 !    direct: values are the same from INname/dim_in_varnames [for num_dimInVarnames=1]
 !    sumct: values are the same from INname/dim_in_varnames plus a constant [for
 !       num_dimInVarnames=1] 
 !    prodct: values are the same from INname/dim_in_varnames multiplyed by a constant [for
 !       num_dimInVarnames=1] 
 !    sumall: values are the result of the sum of all [INname/dim_in_varnames]
+!    direct6D: values are the same from INname/dim_in_varnames [for num_dimInVarnames=1]
+!    sumct6D: values are the same from INname/dim_in_varnames plus a constant [for
+!       num_dimInVarnames=1] 
+!    prodct6D: values are the same from INname/dim_in_varnames multiplyed by a constant [for
+!       num_dimInVarnames=1] 
+!    sumall6D: values are the result of the sum of all [INname/dim_in_varnames]
 !    xxxxxx: specific for this dimension (xxxxx must have some sense in 'calc_method1D' (in
 !       'module_gen_tools') or in 'compute_dimensions' for 'name' (in 'module_nc_tools')
 ! constant: constant value for method='constant'
 ! indimensions: which dimension of each 'dim_in_varnames' have to be used to compute dimension [for
 !   num_dimInVarnames=1]
+! Noptions: number of extra values to compute diagnostic (specific for each 'method')
+! options: integer values of optional values for diagnostic
 ! stdname: standard CF convection name of dimension
 ! lonname: long name of dimension
 ! units: units of dimension
@@ -74,12 +86,12 @@ MODULE module_types
       CHARACTER(LEN=250)                                  :: stdname
       CHARACTER(LEN=250)                                  :: lonname
       CHARACTER(LEN=50)                                   :: units
-      CHARACTER(LEN=250)                                  :: method
+      CHARACTER(LEN=50)                                   :: method
       REAL                                                :: constant
-      CHARACTER(LEN=250)                                  :: coords
-      CHARACTER(LEN=250)                                  :: form
       INTEGER                                             :: Noptions
       INTEGER, POINTER, DIMENSION(:)                      :: options
+      CHARACTER(LEN=250)                                  :: coords
+      CHARACTER(LEN=250)                                  :: form
     END TYPE variabledef
 
 !!!!!!!!!!!!!! Variables
@@ -106,9 +118,9 @@ MODULE module_types
 !    xxxxxx: specific for this variable (xxxxx must have some sense in 'calc_method_gen6D' (in
 !       'module_calc_tools') or in 'module_com_diagnostics' for 'name'
 ! constant: constant value for 'method'
-! coords: coordinates in which is based variable (optional)
-! form: formula of dimension (optional)
 ! Noptions: number of extra values to compute diagnostic (specific for each 'method')
 ! options: integer values of optional values for diagnostic
+! coords: coordinates in which is based variable (optional)
+! form: formula of dimension (optional)
 
 END MODULE module_types

@@ -15,7 +15,8 @@ MODULE module_gen_tools
 ! diagnostic_dim_inf: Subroutine to read diagnostic variable information from 
 !     'dimensions_diagnostics.inf' external ASCII file
 ! diagnostic_inf_Ninvar: Subroutine to give number of input variables to compute varDIAG diagnostic
-! fill_dimension_type: Function to fill a dimension type variable
+! fill_dimension_type: Function to fill a dimension type
+! fill_variable_type: Function to fill a variable type
 ! give_Lstring: Function that gives a string of length 'Lstring' filling blanks after 'string' (up
 !     to 250) 
 ! give1D_from6D: Subroutine to give a 1D vector from any dimension of a 6D matrix
@@ -164,10 +165,10 @@ SUBROUTINE diagnostic_var_inf(debg, varDIAG, varread)
 ! diagnostic_method:    (method of computation of diagnostic, change varDIAG if one desires each
 !    method)
 ! diagnostic_constant:  (constant to use to compute diagnostic according to 'method')
-! diagnostic_coords:    (base coords of diagnostic, optional)
-! diagnostic_formula:   (formula to be given as attribute of diagnostic, optional)
 ! diagnostic_Noptions:  (number of options for diagnostic)
 ! diagnostic_options:   (values of options)
+! diagnostic_coords:    (base coords of diagnostic, optional)
+! diagnostic_formula:   (formula to be given as attribute of diagnostic, optional)
 !    (blank line)
 !*varDIAG*
 ! (...)
@@ -204,90 +205,90 @@ SUBROUTINE diagnostic_var_inf(debg, varDIAG, varread)
   IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
 
 !  Read parameters from diagnostic variables information file 'variables_diagnostics.inf' 
-   DO iunit=10,100
-     INQUIRE(unit=iunit, opened=is_used)
-     IF (.not. is_used) EXIT
-   END DO
-   OPEN(iunit, file='variables_diagnostics.inf', status='old', form='formatted', iostat=ios)
-   IF ( ios /= 0 ) STOP "ERROR opening 'variables_diagnostics.inf'"
-   ilin=1
-   posvarDIAG=0
-   DO 
-     READ(iunit,*,END=100)label
-     Llabel=LEN_TRIM(label)
-     IF (label(2:Llabel-1)==TRIM(varDIAG)) THEN
-       posvarDIAG=ilin
-       EXIT
-     END IF
-     ilin=ilin+1
-   END DO
+  DO iunit=10,100
+    INQUIRE(unit=iunit, opened=is_used)
+    IF (.not. is_used) EXIT
+  END DO
+  OPEN(iunit, file='variables_diagnostics.inf', status='old', form='formatted', iostat=ios)
+  IF ( ios /= 0 ) STOP "ERROR opening 'variables_diagnostics.inf'"
+  ilin=1
+  posvarDIAG=0
+  DO 
+    READ(iunit,*,END=100)label
+    Llabel=LEN_TRIM(label)
+    IF (label(2:Llabel-1)==TRIM(varDIAG)) THEN
+      posvarDIAG=ilin
+      EXIT
+    END IF
+    ilin=ilin+1
+  END DO
 
  100 CONTINUE
 
-   IF (posvarDIAG == 0) THEN
-     PRINT *,"Diagnostic variable '"//TRIM(varDIAG)//"' not found in 'variables_diagnostics.inf'"
-     STOP
-   END IF
+  IF (posvarDIAG == 0) THEN
+    PRINT *,"Diagnostic variable '"//TRIM(varDIAG)//"' not found in 'variables_diagnostics.inf'"
+    STOP
+  END IF
 
-   REWIND (iunit)
+  REWIND (iunit)
 
-   DO ilin=1,posvarDIAG
-     READ(iunit,*)car
-   END DO
+  DO ilin=1,posvarDIAG
+    READ(iunit,*)car
+  END DO
+  varread%name=varDIAG
+  READ(iunit,*)car, varread%type
+  READ(iunit,*)car, varread%Ninvarnames
+  READ(iunit,*)car, READinvarnames
+  IF (ALLOCATED(invarnames_targ)) DEALLOCATE(invarnames_targ)
+  ALLOCATE(invarnames_targ(varread%Ninvarnames))
+  CALL string_values(READinvarnames, debg, varread%Ninvarnames, invarnames_targ)
+  IF (ASSOCIATED(varread%INvarnames)) NULLIFY(varread%INvarnames)
+  ALLOCATE(varread%INvarnames(varread%Ninvarnames))
+  varread%INvarnames=>invarnames_targ
+  READ(iunit,*)car, varread%rank
+  IF (ALLOCATED(shapeDIAG_targ)) DEALLOCATE(shapeDIAG_targ)
+  ALLOCATE(shapeDIAG_targ(varread%rank))
+  READ(iunit,*)car, shapeDIAG_targ
+  IF (ASSOCIATED(varread%shape)) NULLIFY(varread%shape)
+  ALLOCATE(varread%shape(varread%rank))
+  varread%shape=>shapeDIAG_targ
+  READ(iunit,*)car, varread%stdname
+  READ(iunit,*)car, varread%lonname
+  READ(iunit,*)car, varread%units
+  READ(iunit,*)car, varread%method
+  READ(iunit,*)car, varread%constant
+  READ(iunit,*)car, varread%Noptions
+  IF (ALLOCATED(optionsDIAG_targ)) DEALLOCATE(optionsDIAG_targ)
+  ALLOCATE(optionsDIAG_targ(varread%Noptions))
+  READ(iunit,*)car, optionsDIAG_targ
+  IF (ASSOCIATED(varread%options)) NULLIFY(varread%options)
+  ALLOCATE(varread%options(varread%Noptions))
+  varread%options=>optionsDIAG_targ
+  READ(iunit,*)car, varread%coords
+  READ(iunit,*)car, varread%form
 
-   READ(iunit,*)car, varread%type
-   READ(iunit,*)car, varread%Ninvarnames
-   READ(iunit,*)car, READinvarnames
-   IF (ALLOCATED(invarnames_targ)) DEALLOCATE(invarnames_targ)
-   ALLOCATE(invarnames_targ(varread%Ninvarnames))
-   CALL string_values(READinvarnames, debg, varread%Ninvarnames, invarnames_targ)
-   IF (ASSOCIATED(varread%INvarnames)) NULLIFY(varread%INvarnames)
-   ALLOCATE(varread%INvarnames(varread%Ninvarnames))
-   varread%INvarnames=>invarnames_targ
-   READ(iunit,*)car, varread%rank
-   IF (ALLOCATED(shapeDIAG_targ)) DEALLOCATE(shapeDIAG_targ)
-   ALLOCATE(shapeDIAG_targ(varread%rank))
-   READ(iunit,*)car, shapeDIAG_targ
-   IF (ASSOCIATED(varread%shape)) NULLIFY(varread%shape)
-   ALLOCATE(varread%shape(varread%rank))
-   varread%shape=>shapeDIAG_targ
-   READ(iunit,*)car, varread%stdname
-   READ(iunit,*)car, varread%lonname
-   READ(iunit,*)car, varread%units
-   READ(iunit,*)car, varread%method
-   READ(iunit,*)car, varread%constant
-   READ(iunit,*)car, varread%coords
-   READ(iunit,*)car, varread%form
-   READ(iunit,*)car, varread%Noptions
-   IF (ALLOCATED(optionsDIAG_targ)) DEALLOCATE(optionsDIAG_targ)
-   ALLOCATE(optionsDIAG_targ(varread%Noptions))
-   READ(iunit,*)car, optionsDIAG_targ
-   IF (ASSOCIATED(varread%options)) NULLIFY(varread%options)
-   ALLOCATE(varread%options(varread%Noptions))
-   varread%options=>optionsDIAG_targ
+  CLOSE(iunit)
 
-   CLOSE(iunit)
-
-   IF (debg >= 75) THEN
-     PRINT *,"  Read information for '"//TRIM(varDIAG)//"' variable________"
-     IF (varread%type == 2) PRINT *,'  string variable'
-     IF (varread%type == 4) PRINT *,'  integer variable'
-     IF (varread%type == 5) PRINT *,'  real variable'
-     PRINT *,'  Number of necessary input variables:', varread%NinVarnames
-     PRINT *,'  Name of input variables:', ("'"//TRIM(varread%INvarnames(i))//"'", char(44),  &
-       i=1, varread%NinVarnames)
-     PRINT *,'  rank:', varread%rank
-     PRINT *,'  Shape of dimensions:', (varread%shape(i), char(44), i=1,varread%rank)
-     PRINT *,'  CF-standard name:', TRIM(varread%stdname)
-     PRINT *,'  Long description:', TRIM(varread%lonname)
-     PRINT *,'  Units:', TRIM(varread%units)
-     PRINT *,'  Method:', TRIM(varread%method)
-     PRINT *,'  constant:', varread%constant
-     PRINT *,'  coordinates:', TRIM(varread%coords)
-     PRINT *,'  formula:', TRIM(varread%form)
-     PRINT *,'  number of options for diagnostic: ',varread%Noptions
-     PRINT *,'  values of options: ',varread%options
-   END IF
+  IF (debg >= 75) THEN
+    PRINT *,"  Read information for '"//TRIM(varDIAG)//"' variable________"
+    IF (varread%type == 2) PRINT *,'  string variable'
+    IF (varread%type == 4) PRINT *,'  integer variable'
+    IF (varread%type == 5) PRINT *,'  real variable'
+    PRINT *,'  Number of necessary input variables:', varread%NinVarnames
+    PRINT *,'  Name of input variables:', ("'"//TRIM(varread%INvarnames(i))//"'", char(44),   &
+      i=1, varread%NinVarnames)
+    PRINT *,'  rank:', varread%rank
+    PRINT *,'  Shape of dimensions:', (varread%shape(i), char(44), i=1,varread%rank)
+    PRINT *,'  CF-standard name:', TRIM(varread%stdname)
+    PRINT *,'  Long description:', TRIM(varread%lonname)
+    PRINT *,'  Units:', TRIM(varread%units)
+    PRINT *,'  Method:', TRIM(varread%method)
+    PRINT *,'  constant:', varread%constant
+    PRINT *,'  number of options for diagnostic: ',varread%Noptions
+    PRINT *,'    values of options: ',varread%options
+    PRINT *,'  coordinates:', TRIM(varread%coords)
+    PRINT *,'  formula:', TRIM(varread%form)
+  END IF
   
 END SUBROUTINE diagnostic_var_inf
 
@@ -310,6 +311,8 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
 !       'module_gen_tools') or in 'compute_dimensions' for 'name' (in 'module_nc_tools') 
 ! constant              (constant value for method='constant')
 ! indimensions          (rank of input variables to 1D compute dimension values)
+! diagnostic_Noptions:  (number of options for diagnostic)
+! diagnostic_options:   (values of options)
 ! standard_name         (CF-1.4 standard name of dimension)
 ! long_name             (long name of dimension)
 ! units                 (units of dimension)
@@ -344,7 +347,7 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
   LOGICAL                                                :: is_used
   CHARACTER(LEN=250), DIMENSION(:), ALLOCATABLE, TARGET,                                       &
     SAVE  :: dimInvarnames
-  INTEGER, DIMENSION(:), ALLOCATABLE, TARGET, SAVE       :: dimindimensions
+  INTEGER, DIMENSION(:), ALLOCATABLE, TARGET, SAVE       :: dimindimensions, optionsDIAG_targ
   REAL, DIMENSION(:), ALLOCATABLE, TARGET, SAVE          :: dimfixvalues
   CHARACTER(LEN=3000)                                    :: readINvarnames, readINdimensions,  &
     readFIXvalues
@@ -424,20 +427,20 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
    READ(iunit,*)car, diminf%constant
    IF (ALLOCATED(dimindimensions)) DEALLOCATE(dimindimensions)
    ALLOCATE(dimindimensions(diminf%NinVarnames))
-   READ(iunit,*)car, readINdimensions
-   CALL string_Intvalues(debg, readINdimensions, diminf%NinVarnames, dimindimensions)
+   READ(iunit,*)car, dimindimensions
    diminf%indimensions=>dimindimensions
    READ(iunit,*)car, diminf%stdname
    READ(iunit,*)car, diminf%lonname
    READ(iunit,*)car, diminf%units
    READ(iunit,*)car, diminf%Nvalues
-   IF (ALLOCATED(dimfixvalues)) DEALLOCATE(dimfixvalues)
-   ALLOCATE(dimfixvalues(diminf%Nvalues))
-   READ(iunit,*)car, readFIXvalues
-   IF (TRIM(readFIXvalues) /= '-') THEN
-     CALL string_Realvalues(debg, readFIXvalues, diminf%Nvalues, dimfixvalues)
+   IF (diminf%Nvalues > 0) THEN
+     IF (ALLOCATED(dimfixvalues)) DEALLOCATE(dimfixvalues)
+     ALLOCATE(dimfixvalues(diminf%Nvalues))
+     READ(iunit,*)car, dimfixvalues
    ELSE
-     dimfixvalues=0.
+     IF (ALLOCATED(dimfixvalues)) DEALLOCATE(dimfixvalues)
+     ALLOCATE(dimfixvalues(0))
+     dimfixvalues=0
    END IF
    diminf%values=>dimfixvalues
    
@@ -471,6 +474,7 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
      END IF
      PRINT *,'  Dimension computation method: ',TRIM(diminf%method)
      PRINT *,'  Constant: ',diminf%constant
+     PRINT *,'  Number of options of variable: ',diminf%Noptions,' values: ',diminf%options
      PRINT *,'  Dimensions of input variables: ',diminf%indimensions
      PRINT *,'  Dimension standard name: ',TRIM(diminf%stdname)
      PRINT *,'  Dimension long name: ',TRIM(diminf%lonname)
@@ -565,9 +569,9 @@ SUBROUTINE diagnostic_inf_Ninvar(varDIAG, debg, Ninvar)
 END SUBROUTINE diagnostic_inf_Ninvar
 
 SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname0, dimrange,   &
-  dimNinvars, diminvars0, dimmethod0, dimct, indim, dimstd0, dimlong0, dimu0, dimNval, dimval, &
-  dimcoord0, dimpos0, dimform0, dimfilled) 
-! Function to fill a dimension type variable
+  dimNinvars, diminvars0, dimmethod0, dimct, indim, Nopts, opts, dimstd0, dimlong0, dimu0,     &
+  dimNval, dimval, dimcoord0, dimpos0, dimform0, dimfilled) 
+! Function to fill a 'dimensiondef' type
 
 !  USE module_constans, ONLY: dimension_type
   USE module_types
@@ -587,6 +591,8 @@ SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname
   CHARACTER(LEN=*), INTENT(IN)                            :: dimmethod0
   REAL, INTENT(IN)                                        :: dimct
   INTEGER, DIMENSION(dimNinvars), INTENT(IN)              :: indim
+  INTEGER, INTENT(IN)                                     :: Nopts
+  INTEGER, DIMENSION(Nopts), INTENT(IN)                   :: opts
   CHARACTER(LEN=*), INTENT(IN)                            :: dimstd0
   CHARACTER(LEN=*), INTENT(IN)                            :: dimlong0
   CHARACTER(LEN=*), INTENT(IN)                            :: dimu0
@@ -601,7 +607,7 @@ SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname
   INTEGER                                                 :: idim
   CHARACTER(LEN=50)                                       :: section
   CHARACTER(LEN=250),DIMENSION(:),ALLOCATABLE,TARGET,SAVE :: diminvars_targ
-  INTEGER, DIMENSION(:), ALLOCATABLE, TARGET, SAVE        :: indimvars_targ
+  INTEGER, DIMENSION(:), ALLOCATABLE, TARGET, SAVE        :: indimvars_targ, opts_targ
   REAL, DIMENSION(:), ALLOCATABLE, TARGET, SAVE           :: dimval_targ
 
   CHARACTER(LEN=50)                                       :: dimname
@@ -623,6 +629,7 @@ SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname
 
   IF (ASSOCIATED(dimfilled%INvarnames)) NULLIFY(dimfilled%INvarnames)
   IF (ASSOCIATED(dimfilled%indimensions)) NULLIFY(dimfilled%indimensions)
+  IF (ASSOCIATED(dimfilled%options)) NULLIFY(dimfilled%options)
   IF (ASSOCIATED(dimfilled%values)) NULLIFY(dimfilled%values)
 
   dimname=dimname0
@@ -644,11 +651,15 @@ SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname
   IF (ALLOCATED(indimvars_targ)) DEALLOCATE(indimvars_targ)
   ALLOCATE(indimvars_targ(dimNinvars))
 
+  IF (ALLOCATED(opts_targ)) DEALLOCATE(opts_targ)
+  ALLOCATE(opts_targ(Nopts))
+
   IF (ALLOCATED(dimval_targ)) DEALLOCATE(dimval_targ)
   ALLOCATE(dimval_targ(dimNval))
 
   diminvars_targ=diminvars
   indimvars_targ=indim
+  opts_targ=opts
   dimval_targ=dimval
 
   dimfilled%name=dimname
@@ -664,6 +675,8 @@ SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname
   dimfilled%constant=dimct  
   IF (.NOT.(ASSOCIATED(dimfilled%indimensions))) ALLOCATE(dimfilled%indimensions(dimNinvars))
   dimfilled%indimensions=>indimvars_targ
+  IF (.NOT.(ASSOCIATED(dimfilled%options))) ALLOCATE(dimfilled%options(Nopts))
+  dimfilled%options=>opts_targ
   dimfilled%stdname=dimstd
   dimfilled%lonname=dimlong
   dimfilled%units=dimu
@@ -693,6 +706,7 @@ SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname
      END IF
      PRINT *,'  Dimension computation method: ',TRIM(dimfilled%method)
      PRINT *,'  Constant for the method: ',dimfilled%constant
+     PRINT *,'  Number of options: ',dimfilled%Noptions,' values:', dimfilled%options
      PRINT *,'  Dimensions to use of input variables: ',dimfilled%indimensions
      PRINT *,'  Dimension standard name: ',TRIM(dimfilled%stdname)
      PRINT *,'  Dimension long name: ',TRIM(dimfilled%lonname)
@@ -711,6 +725,106 @@ SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname
    END IF
   RETURN
 END SUBROUTINE fill_dimension_type
+
+SUBROUTINE fill_variable_type(debg, varname0, varid, vartype, varNinnames, varINnames0,       &
+  varrank, varshape, varstd0, varlon0, varu0, varmethod0, varct, varNops, varops, varcoords0,   &
+  varform0, varfill)
+  
+! Subroutine to fill up a 'variabledef' type
+
+  USE module_types
+
+  IMPLICIT NONE
+
+  CHARACTER(LEN=*), INTENT(IN)                           :: varname0, varstd0, varlon0, varu0,  &
+    varmethod0, varcoords0, varform0
+  INTEGER, INTENT(IN)                                    :: debg, varid, vartype, varNinnames,  &
+    varrank, varNops
+  CHARACTER(LEN=*), DIMENSION(varNinnames), INTENT(IN)   :: varINnames0
+  INTEGER, DIMENSION(varrank), INTENT(IN)                :: varshape
+  INTEGER, DIMENSION(varNops), INTENT(IN)                :: varops
+  REAL, INTENT(IN)                                       :: varct
+  TYPE(variabledef), INTENT(OUT)                         :: varfill
+  
+! Local variables
+  INTEGER                                                :: i
+  CHARACTER(LEN=50)                                      :: section
+  INTEGER                                                :: Ninvar
+  INTEGER                                                :: NdimDIAG
+  INTEGER, DIMENSION(:), ALLOCATABLE, TARGET, SAVE       :: shapeVAR_targ, optionsVAR_targ
+  CHARACTER(LEN=250), DIMENSION(:), ALLOCATABLE, TARGET,                                        &
+    SAVE                                                 :: innames_targ
+  CHARACTER(LEN=250)                                     :: longDIAG, stdDIAG, crdDIAG, formDIAG
+  CHARACTER(LEN=50)                                      :: nameDIAG, unitsDIAG, methDIAG
+
+!!!!!!!!!!!!!! Variables
+!  varDIAG: variable diagnostic name
+!  varfill: output variable
+
+  section="'fill_diagnostic_type'"
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+  nameDIAG=varname0
+  stdDIAG=varstd0
+  longDIAG=varlon0
+  unitsDIAG=varu0
+  methDIAG=varmethod0
+  crdDIAG=varcoords0
+  formDIAG=varform0
+
+  IF (ALLOCATED(innames_targ)) DEALLOCATE(innames_targ)
+  ALLOCATE(innames_targ(varNinnames))
+
+  IF (ALLOCATED(shapeVAR_targ)) DEALLOCATE(shapeVAR_targ)
+  ALLOCATE(shapeVAR_targ(varrank))
+
+  IF (ALLOCATED(optionsVAR_targ)) DEALLOCATE(optionsVAR_targ)
+  ALLOCATE(optionsVAR_targ(varNops))
+
+  varfill%name=nameDIAG
+  varfill%id=varid
+  varfill%type=vartype
+  varfill%Ninvarnames=varNinnames
+  IF (ASSOCIATED(varfill%INvarnames)) NULLIFY(varfill%INvarnames)
+  ALLOCATE(varfill%INvarnames(varfill%Ninvarnames))
+  varfill%INvarnames=>innames_targ
+  varfill%rank=varrank
+  IF (ASSOCIATED(varfill%shape)) NULLIFY(varfill%shape)
+  ALLOCATE(varfill%shape(varfill%rank))
+  varfill%shape=>shapeVAR_targ
+  varfill%stdname=stdDIAG
+  varfill%lonname=longDIAG
+  varfill%units=unitsDIAG
+  varfill%method=methDIAG
+  varfill%constant=varct
+  varfill%Noptions=varNops
+  IF (ASSOCIATED(varfill%options)) NULLIFY(varfill%options)
+  ALLOCATE(varfill%options(varfill%Noptions))
+  varfill%options=>optionsVAR_targ
+  varfill%coords=crdDIAG
+  varfill%form=formDIAG
+
+  IF (debg >= 75) THEN
+    PRINT *,"  Read information for '"//TRIM(nameDIAG)//"' variable________"
+    IF (varfill%type == 2) PRINT *,'  string variable'
+    IF (varfill%type == 4) PRINT *,'  integer variable'
+    IF (varfill%type == 5) PRINT *,'  real variable'
+    PRINT *,'  Number of necessary input variables:', varfill%NinVarnames
+    PRINT *,'  Name of input variables:', ("'"//TRIM(varfill%INvarnames(i))//"'", char(44),   &
+      i=1, varfill%NinVarnames)
+    PRINT *,'  rank:', varfill%rank
+    PRINT *,'  Shape of dimensions:', (varfill%shape(i), char(44), i=1,varfill%rank)
+    PRINT *,'  CF-standard name:', TRIM(varfill%stdname)
+    PRINT *,'  Long description:', TRIM(varfill%lonname)
+    PRINT *,'  Units:', TRIM(varfill%units)
+    PRINT *,'  Method:', TRIM(varfill%method)
+    PRINT *,'  constant:', varfill%constant
+    PRINT *,'  number of options for diagnostic: ',varfill%Noptions, ' values: ',varfill%options
+    PRINT *,'  coordinates:', TRIM(varfill%coords)
+    PRINT *,'  formula:', TRIM(varfill%form)
+  END IF
+
+END SUBROUTINE fill_variable_type
 
 CHARACTER(LEN=250) FUNCTION give_Lstring(debg, string)
 ! Function that gives a string of length filling blanks after 'string' (up to 250)
@@ -736,13 +850,14 @@ CHARACTER(LEN=250) FUNCTION give_Lstring(debg, string)
 
 END FUNCTION give_Lstring
 
-SUBROUTINE give1D_from6D(debg, matrix, matrg, wtddim, vec)
+SUBROUTINE give1D_from6D(debg, matrix, matrg, wtddim, othrval, vec)
 ! Subroutine to give a 1D vector from any dimension of a 6D matrix
 
   IMPLICIT NONE
   
   INTEGER, INTENT(IN)                                     :: debg, wtddim
   INTEGER, DIMENSION(6), INTENT(IN)                       :: matrg
+  INTEGER, DIMENSION(5), INTENT(IN)                       :: othrval
   REAL, DIMENSION(matrg(1), matrg(2), matrg(3), matrg(4),                                       &
     matrg(5), matrg(6) )                                  :: matrix
   REAL, DIMENSION(matrg(wtddim)), INTENT(OUT)             :: vec
@@ -755,6 +870,7 @@ SUBROUTINE give1D_from6D(debg, matrix, matrg, wtddim, vec)
 ! matrix: 6D matrix
 ! matrg: ranges of 6D 
 ! wtddim: wanted dimension
+! othrval: values of other dimensions
 ! vec: vector with all the values of 'matrix' taking all range of dimension 'wtddim' and all the
 !    rest at the first position
   
@@ -768,17 +884,17 @@ SUBROUTINE give1D_from6D(debg, matrix, matrg, wtddim, vec)
   
   SELECT CASE (wtddim)
     CASE (1)
-      vec=matrix(:,1,1,1,1,1)
+      vec=matrix(:,othrval(1),othrval(2),othrval(3),othrval(4),othrval(5))
     CASE (2)
-      vec=matrix(1,:,1,1,1,1)
+      vec=matrix(othrval(1),:,othrval(2),othrval(3),othrval(4),othrval(5))
     CASE (3)
-      vec=matrix(1,1,:,1,1,1)
+      vec=matrix(othrval(1),othrval(2),:,othrval(3),othrval(4),othrval(5))
     CASE (4)
-      vec=matrix(1,1,1,:,1,1)
+      vec=matrix(othrval(1),othrval(2),othrval(3),:,othrval(4),othrval(5))
     CASE (5)
-      vec=matrix(1,1,1,1,:,1)
+      vec=matrix(othrval(1),othrval(2),othrval(3),othrval(4),:,othrval(5))
     CASE (6)
-      vec=matrix(1,1,1,1,1,:)
+      vec=matrix(othrval(1),othrval(2),othrval(3),othrval(4),othrval(5),:)
   END SELECT
   
   IF (debg >= 150) PRINT *,'  Given values of dim ',wtddim,' : ',vec

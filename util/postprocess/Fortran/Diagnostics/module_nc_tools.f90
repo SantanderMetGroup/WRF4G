@@ -11,7 +11,8 @@ MODULE module_nc_tools
 ! compute_1Dmethod_values: Subroutine to compute 'method' values of dimensions 1D methods
 ! copy_nc_att: Subroutine to copy all global attributes from a netCDF file to other open one
 ! create_output: Subroutine to create netCDF output
-! def_dimension: Subroutine to define a dimension from a dimension type variable
+! def_dimension: Subroutine to define a dimension from a dimensiondef type
+! def_variable: Subroutine to define a diagnostic from a variabledef type
 ! def_dim: Subroutine to define a 1D dimension 
 ! def_dim_ver: Subroutine to define a vertical coordinate
 ! def_dim_time: Subroutine to define a time coordinate
@@ -127,7 +128,7 @@ SUBROUTINE compute_1Dmethod_values(debg, Ninc, incs, dimensioncalc)
       CALL fill_inputs_real(debg, incs, Ninc, dimvarfound(ivar, :),                             &
         dimvardimfound(ivar, :), valuesMATin)
       CALL give1D_from6D(debg, valuesMATin, dimvardimfound(ivar, :),                            &
-        dimensioncalc%indimensions(ivar), diminvalues(:,dimensioncalc%NinVarnames))
+        dimensioncalc%indimensions(ivar), (/1,1,1,1,1/),diminvalues(:,dimensioncalc%NinVarnames))
     END DO
 
 ! Dimension range values
@@ -269,7 +270,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	    END DO
 
             CALL fill_dimension_type(debg,'xc', nc_last_iddim(debg, ncid)+1, 'H', 'X','-',      &
-	      dimfound(3), 0, (/'-'/), 'direct', 0., (/0/), '-',                                &
+	      dimfound(3), 0, (/'-'/), 'direct', 0., (/0/), 0, (/0/), '-',                      &
 	      'X-coordinate in Cartesian system', 'm', dimfound(3), cdimvalues, '-', '-', '-',  &
 	      dimensionnew)
 
@@ -294,7 +295,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	    END DO
 
             CALL fill_dimension_type(debg,'yc', nc_last_iddim(debg, ncid)+1, 'H', 'Y','-',      &
-	      dimfound(3), 0, (/'-'/), 'direct', 0., (/0/), '-',                                &
+	      dimfound(3), 0, (/'-'/), 'direct', 0., (/0/), 0, (/0/), '-',                      &
 	      'Y-coordinate in Cartesian system', 'm', dimfound(3), cdimvalues, '-', '-', '-',  &
 	      dimensionnew)
 
@@ -344,7 +345,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
               IF (ANY(generic_calcs6D==dimensioncompute%method)) THEN
                 CALL calc_method_gen6D(debg, dimensioncompute%method, dimvardimfound(1,:),      &
 		dimensioncompute%NinVarnames, valuesMATinA, dimensioncompute%constant,          &
-		valuesMATdim ) 
+		0, (/0/), valuesMATdim ) 
               ELSE
                 IF (debg>= 100) PRINT *,"  Specific dimension '"//TRIM(dimensioncompute%name)// &   
                   "' computation..." 
@@ -404,7 +405,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	    END DO
 
             CALL fill_dimension_type(debg,'xc', nc_last_iddim(debg, ncid)+1, 'H', 'X','-',      &
-	      dimfound(3), 0, (/'-'/), 'direct', 0., (/0/), '-',                                &
+	      dimfound(3), 0, (/'-'/), 'direct', 0., (/0/), 0, (/0/), '-',                      &
 	      'X-coordinate in Cartesian system', 'm', dimfound(3), cdimvalues, '-', '-', '-',  &
 	      dimensionnew)
 
@@ -430,7 +431,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	    END DO
 
             CALL fill_dimension_type(debg,'yc', nc_last_iddim(debg, ncid)+1, 'H', 'Y','-',      &
-	      dimfound(3), 0, (/'-'/), 'direct', 0., (/0/), '-',                                &
+	      dimfound(3), 0, (/'-'/), 'direct', 0., (/0/), 0, (/0/), '-',                      &
 	      'Y-coordinate in Cartesian system', 'm', dimfound(3), cdimvalues, '-', '-', '-',  &
 	      dimensionnew)
 
@@ -480,7 +481,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
               IF (ANY(generic_calcs6D==dimensioncompute%method)) THEN
                 CALL calc_method_gen6D(debg, dimensioncompute%method, dimvardimfound(1,:),      &
 		dimensioncompute%NinVarnames, valuesMATinA, dimensioncompute%constant,          &
-		valuesMATdim ) 
+		0, (/0/), valuesMATdim ) 
               ELSE
                 IF (debg>= 100) PRINT *,"  Specific dimension '"//TRIM(dimensioncompute%name)// &
                   "' computation..."
@@ -553,7 +554,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 
               IF (debg >= 100) PRINT *,"  values 'tc':", coordinate(:,1,1,1,1,1)
 	      CALL fill_dimension_type(debg,dimensioncompute%name, nc_last_iddim(debg, ncid)+1, &
-	        'T', 'T', '-', dimensioncompute%Nvalues, 0, (/'-'/), '-', 0., (/0/),            &
+	        'T', 'T', '-', dimensioncompute%Nvalues, 0, (/'-'/), '-', 0., (/0/), 0, (/0/),  &
 		dimensioncompute%stdname, dimensioncompute%lonname, dimensioncompute%units,     &
 		dimensioncompute%Nvalues, coordinate(:,1,1,1,1,1), dimensioncompute%coords,     &
 		dimensioncompute%positive, dimensioncompute%form, dimensionnew)
@@ -842,6 +843,145 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
 
   RETURN
 END SUBROUTINE def_dimension
+
+SUBROUTINE def_variable (debg, mcid, varwrite )
+! Subroutine to define a variable inside a netCDF file
+
+  USE module_constants
+  USE module_gen_tools, ONLY: diag_fatal
+  USE module_types
+
+  IMPLICIT NONE
+
+  INCLUDE 'netcdf.inc'
+
+  INTEGER, INTENT(IN)                                    :: mcid, debg
+  TYPE(variabledef)                                      :: varwrite
+  
+! Local
+  INTEGER                                                :: rcode, ilen, ivar
+  CHARACTER (LEN=60)                                     :: att_text
+  CHARACTER (LEN=50)                                     :: section
+  CHARACTER(LEN=250)                                     :: messg
+
+!!!!!!!!!! Variables
+! mcid: netCDF file id
+! varwrite: vriable to define and write in netCDF
+! ivar: variable id
+ 
+  section="'def_variable'"
+  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+  rcode = nf_redef(mcid)
+  CALL error_nc(section, rcode)
+  ivar=nc_last_idvar(debg, mcid)+1
+
+! Initial definition
+!!
+  SELECT CASE (varwrite%type)
+    CASE ( 2 ) 
+!     Text variable
+!!
+      IF (debg >= 100) PRINT *,"  Defining text variable '"//TRIM(varwrite%name)//"' number:",  &
+        ivar
+      rcode = nf_def_var(mcid, TRIM(varwrite%name), NF_CHAR, varwrite%rank, varwrite%shape,ivar)
+      CALL error_nc(section, rcode)
+!      rcode = nf_put_att_int(mcid, ivar, "FieldType", NF_INT, 1, 104)
+!      CALL error_nc(section, rcode)
+
+    CASE ( 4 ) 
+!     Integer variable
+!!
+      IF (debg >= 100) PRINT *,"  Defining real variable '"//TRIM(varwrite%name)//"' number:",  &
+        ivar
+      rcode = nf_def_var(mcid, TRIM(varwrite%name), NF_REAL, varwrite%rank, varwrite%shape, ivar)
+      CALL error_nc(section, rcode)
+      rcode = nf_put_att_int(mcid, ivar, "FieldType", NF_INT, 1, 106)
+      CALL error_nc(section, rcode)
+  
+    CASE ( 5 ) 
+!     Real variable
+!!
+      IF (debg >= 100) PRINT *,"  Defining real variable '"//TRIM(varwrite%name)//"' number:",  &
+        ivar
+      rcode = nf_def_var(mcid, TRIM(varwrite%name), NF_REAL, varwrite%rank, varwrite%shape, ivar)
+      CALL error_nc(section, rcode)
+      rcode = nf_put_att_int(mcid, ivar, "FieldType", NF_INT, 1, 104)
+      CALL error_nc(section, rcode)
+    CASE DEFAULT
+      messg="Nothing to do with variable type '"//CHAR(varwrite%type+48)//"'"
+      CALL diag_fatal(messg)
+      
+  END SELECT
+
+  IF (TRIM(varwrite%stdname) /= '-') THEN
+    IF (debg >= 100) PRINT *,"  Adding standard name attribute"
+    att_text = TRIM(varwrite%stdname)
+    ilen = len_trim(att_text)
+    rcode = nf_put_att_text(mcid, ivar, "standard_name", ilen, att_text(1:ilen) )
+    CALL error_nc(section, rcode)
+    att_text = ' '
+  END IF
+
+  IF (TRIM(varwrite%lonname) /= '-') THEN
+    IF (debg >= 100) PRINT *,"  Adding long name attribute"
+    att_text = TRIM(varwrite%lonname)
+    ilen = len_trim(att_text)
+    rcode = nf_put_att_text(mcid, ivar, "long_name", ilen, att_text(1:ilen) )
+    CALL error_nc(section, rcode)
+    att_text = ' '
+  END IF
+
+  IF (TRIM(varwrite%units) /= '-') THEN
+    IF (debg >= 100) PRINT *,"  Adding units attribute"
+    att_text = TRIM(varwrite%units)
+    ilen = len_trim(att_text)
+    rcode = nf_put_att_text(mcid, ivar, "units", ilen, att_text(1:ilen) )
+    CALL error_nc(section, rcode)
+    att_text = ' '
+  END IF
+
+  IF (TRIM(varwrite%coords) /= '-') THEN
+    IF (debg >= 100) PRINT *,"  Adding coordinates attribute"
+    att_text = TRIM(varwrite%coords)
+    ilen = len_trim(att_text)
+    rcode = nf_put_att_text(mcid, ivar, "coordinates", ilen, att_text(1:ilen) )
+    CALL error_nc(section, rcode)
+    att_text = ' '
+  END IF
+
+  IF (TRIM(varwrite%form) /= '-') THEN
+    IF (debg >= 100) PRINT *,"  Adding formula attribute"
+    att_text = TRIM(varwrite%form)
+    ilen = len_trim(att_text)
+    rcode = nf_put_att_text(mcid, ivar, "formula", ilen, att_text(1:ilen) )
+    CALL error_nc(section, rcode)
+    att_text = ' '
+  END IF
+
+!  IF (TRIM(varwrite%stdname) /= '-') THEN
+!    IF (debg >= 100) PRINT *,"  Adding standard name attribute"
+!    att_text = TRIM(varwrite%stdname)
+!    ilen = len_trim(att_text)
+!    rcode = nf_put_att_text(mcid, ivar, "standard_name", ilen, att_text(1:ilen) )
+!    CALL error_nc(section, rcode)
+!    att_text = ' '
+!  END IF
+
+  IF (debg >= 100) PRINT *,"  Adding missing attribute"
+  att_text = '-99999.' 
+  ilen = len_trim(att_text)
+  rcode = nf_put_att_text(mcid, ivar, "missing_value", ilen, att_text(1:ilen) )
+  CALL error_nc(section, rcode)
+  att_text = '-99999.'
+  rcode = nf_put_att_text(mcid, ivar, "_Fillvalue", ilen, att_text(1:ilen) )
+  CALL error_nc(section, rcode)
+  att_text = ''
+
+  rcode = nf_enddef(mcid)
+  CALL error_nc(section, rcode)
+
+END SUBROUTINE def_variable
 
 SUBROUTINE def_dim(debg, ncid, ivar, dimname, dimax, dimlong, dimunit, dimrg, dimid, dimvalues)
 ! Subroutine to define a 1D dimension
