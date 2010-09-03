@@ -164,10 +164,13 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
 	        DO l=1,rgs(5)
 	          DO m=1,rgs(6)
 		    DO n=1, Ninvalues
-                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1), &
-                        (/i,j,k,l,m/), values_1col(:,n))
+                      values_1col(:,n)=invalues(:,i,j,k,l,m,n)
 	            END DO
 	          vals(:,i,j,k,l,m)=MAXVAL(values_1col)
+		  IF ((debg >= 75) .AND. (i == halfdim(rgs(2))) .AND. (j == halfdim(rgs(3)))    &
+		     .AND. (k == halfdim(rgs(4))) .AND. (l == halfdim(rgs(5))) .AND.            &
+		     (m == halfdim(rgs(6)))) PRINT *,'  values:',values_1col,' maximum value: ',&
+		     vals(i,j,1,k,l,m)
 		  END DO
 		END DO
 	      END DO
@@ -182,10 +185,13 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
 	        DO l=1,rgs(5)
 	          DO m=1,rgs(6)
 		    DO n=1, Ninvalues
-                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),&
-                        (/i,j,k,l,m/), values_1col(:,n))
+                      values_1col(:,n)=invalues(i,:,j,k,l,m,n)
 	            END DO
 	          vals(i,:,j,k,l,m)=MAXVAL(values_1col)
+		  IF ((debg >= 75) .AND. (i == halfdim(rgs(1))) .AND. (j == halfdim(rgs(3)))    &
+		     .AND. (k == halfdim(rgs(4))) .AND. (l == halfdim(rgs(5))) .AND.            &
+		     (m == halfdim(rgs(6)))) PRINT *,'  values:',values_1col,' maximum value: ',&
+		     vals(i,j,1,k,l,m)
 		  END DO
 		END DO
 	      END DO
@@ -200,10 +206,14 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
 	        DO l=1,rgs(5)
 	          DO m=1,rgs(6)
 		    DO n=1, Ninvalues
-                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),&
-                        (/i,j,k,l,m/), values_1col(:,n))
+                      values_1col(:,n)=invalues(i,j,:,k,l,m,n)
 	            END DO
 	          vals(i,j,:,k,l,m)=MAXVAL(values_1col)
+		  IF ((debg >= 75) .AND. (i == halfdim(rgs(1))) .AND. (j == halfdim(rgs(2)))    &
+		     .AND. (k == halfdim(rgs(4))) .AND. (l == halfdim(rgs(5))) .AND.            &
+		     (m == halfdim(rgs(6)))) PRINT *,'  values:',values_1col,' maximum value: ',&
+		     vals(i,j,1,k,l,m)
+		     
 		  END DO
 		END DO
 	      END DO
@@ -218,10 +228,13 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
 	        DO l=1,rgs(5)
 	          DO m=1,rgs(6)
 		    DO n=1, Ninvalues
-                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),&
-                        (/i,j,k,l,m/), values_1col(:,n))
+                      values_1col(:,n)=invalues(i,j,k,:,l,m,n)
 	            END DO
 	          vals(i,j,k,:,l,m)=MAXVAL(values_1col)
+		  IF ((debg >= 75) .AND. (i == halfdim(rgs(1))) .AND. (j == halfdim(rgs(2)))    &
+		     .AND. (k == halfdim(rgs(3))) .AND. (l == halfdim(rgs(5))) .AND.            &
+		     (m == halfdim(rgs(6)))) PRINT *,'  values:',values_1col,' maximum value: ',&
+		     vals(i,j,1,k,l,m)
 		  END DO
 		END DO
 	      END DO
@@ -236,10 +249,13 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
 	        DO l=1,rgs(4)
 	          DO m=1,rgs(6)
 		    DO n=1, Ninvalues
-                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),&
-                        (/i,j,k,l,m/), values_1col(:,n))
+                      values_1col(:,n)=invalues(i,j,k,l,:,m,n)
 	            END DO
 	          vals(i,j,k,l,:,m)=MAXVAL(values_1col)
+		  IF ((debg >= 75) .AND. (i == halfdim(rgs(1))) .AND. (j == halfdim(rgs(2)))    &
+		     .AND. (k == halfdim(rgs(3))) .AND. (l == halfdim(rgs(4))) .AND.            &
+		     (m == halfdim(rgs(6)))) PRINT *,'  values:',values_1col,' maximum value: ',&
+		     vals(i,j,1,k,l,m)
 		  END DO
 		END DO
 	      END DO
@@ -254,10 +270,13 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
 	        DO l=1,rgs(4)
 	          DO m=1,rgs(5)
 		    DO n=1, Ninvalues
-                      CALL give1D_from6D(debg, invalues(:,:,:,:,:,:,n),rgs,ops(1),              &
-                        (/i,j,k,l,m/), values_1col(:,n))
+                      values_1col(:,n)=invalues(i,j,k,l,m,:,n)
 	            END DO
 	          vals(i,j,k,l,m,:)=MAXVAL(values_1col)
+		  IF ((debg >= 75) .AND. (i == halfdim(rgs(1))) .AND. (j == halfdim(rgs(2)))    &
+		     .AND. (k == halfdim(rgs(3))) .AND. (l == halfdim(rgs(4))) .AND.            &
+		     (m == halfdim(rgs(5)))) PRINT *,'  values:',values_1col,' maximum value: ',&
+		     vals(i,j,1,k,l,m)
 		  END DO
 		END DO
 	      END DO

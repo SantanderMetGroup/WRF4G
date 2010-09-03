@@ -44,7 +44,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
   LOGICAL, INTENT(IN)                                    :: car_x, car_y
 
 ! Local vars
-  INTEGER                                                :: i, idiag, iinput
+  INTEGER                                                :: i, j, idiag, iinput
   INTEGER                                                :: Nvardiag
   REAL, ALLOCATABLE, DIMENSION(:,:,:,:,:,:,:)            :: rMATinputsA, rMATinputsB,           &
     rMATinputsC, rMATinputsD, rMATinputsE, rMATinputsF 
@@ -197,13 +197,20 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 ! method computation
 !!
 
-! Creation of specific matrix for computation of diagnostic according to the method. 
+       IF (ANY(diagcom%method == generic_calcs6D)) THEN 
+!  Variable result from generic method
+!!
+         Rdiagnostic3D=gen_result6D(:,:,1,:,1,1)
+
+       ELSE
+! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
 ! Necessary input matrixs can be of different rank and/or shape MATinputs[A/F] (if necessary)
 
-       IF (.NOT.ANY(diagcom%method == generic_calcs6D)) THEN
-       
          methodsel: SELECT CASE (diagcom%method)
+
            CASE ('Sundqvist')
+! Sundqvist, 1989, Mont. Weather Rev.
+
              PRINT *,"  calculated via the '"//TRIM(diagcom%method)//"' method"
              IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
              ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),      &
@@ -225,10 +232,6 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
          END SELECT methodsel
 
-       ELSE
-!  Variable result from generic method
-!!
-         Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)
        END IF
        
          IF (dbg >= 75) THEN
