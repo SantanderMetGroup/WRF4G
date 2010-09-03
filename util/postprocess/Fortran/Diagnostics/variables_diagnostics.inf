@@ -10,7 +10,7 @@
  diagnostic_units         '1'
  diagnostic_method        'Sundqvist'
  diagnostic_Noptions      0
- diagnpstic_options       0
+ diagnostic_options       0
  diagnostic_constant      0.
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
@@ -26,46 +26,134 @@
  diagnostic_method        'max6D'
  diagnostic_constant      0.
  diagnostic_Noptions      1
- diagnpstic_options       3
+ diagnostic_options       3
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
 *HURS*
+ diagnostic_type          5
  Num_input_variables      3
- Input_variables          T2, Q2, PSFC
+ Input_variables          'T2, Q2, PSFC'
  diagnostic_dim           3
  diagnostic_dim_shape     1, 2, 4
- diagnostic_longdesc      'relative humidty at 2 m'
  diagnostic_std_name      'relative_humidty'
+ diagnostic_longdesc      'relative humidty at 2 m'
  diagnostic_units         '1'
+ diagnostic_method        'Tetens'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
 *MRSO*
+ diagnostic_type          5
  Num_input_variables      2
- Input_variables          SMOIS, DZS
+ Input_variables          'SMOIS, DZS'
  diagnostic_dim           3
  diagnostic_dim_shape     1, 2, 4
- diagnostic_longdesc      'total soil moisture content'
  diagnostic_std_name      'soil_moisture_content'
+ diagnostic_longdesc      'total soil moisture content'
  diagnostic_units         'kgm-2'
+ diagnostic_method        'standard'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
 *PRW*
+ diagnostic_type          5
  Num_input_variables      4
- Input_variables          QVAPOR, MU, MUB, DNW
+ Input_variables          'QVAPOR, MU, MUB, DNW'
  diagnostic_dim           3
  diagnostic_dim_shape     1, 2, 4
- diagnostic_longdesc      'total column water vapor content'
  diagnostic_std_name      'atmosphere_water_vapor_content'
+ diagnostic_longdesc      'total column water vapor content'
  diagnostic_units         'kgm-2'
+ diagnostic_method        'sigma_wrf'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       - 
 *PV*
  Num_input_variables      6
- Input_variables          UU, VV, TT, F, MAPFAC_M, PLEV
+ Input_variables          'UU, VV, TT, F, MAPFAC_M, PLEV'
  diagnostic_dim           4
  diagnostic_dim_shape     1, 2, 3, 4
- diagnostic_longdesc      'potential vorticity'
  diagnostic_std_name      'potential_vorticity'
+ diagnostic_longdesc      'potential vorticity'
  diagnostic_units         'PVU (10-6 m2Ks-1kg-1)'
-*TDPS*
+*RLS*
+ diagnostic_type          5
  Num_input_variables      2
- Input_variables          Q2, PSFC
+ Input_variables          'ACLWDNB, ACLWUPB'
  diagnostic_dim           3
  diagnostic_dim_shape     1, 2, 4
- diagnostic_longdesc      'dew point temperature at 2M'
+ diagnostic_std_name      'surface_net_downward_longwave_flux'
+ diagnostic_longdesc      'net downward flux of LW radiation at surface'
+ diagnostic_units         'Wm-2'
+ diagnostic_method        'sum_spec6D'
+ diagnostic_constant      0.
+ diagnostic_Noptions      2
+ diagnostic_options       1, 0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       - 
+*RLUT*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          'OLR'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'toa_outgoing_longwave_flux'
+ diagnostic_longdesc      'outgoing LW radiation at top of atmosphere'
+ diagnostic_units         'Wm-2'
+ diagnostic_method        'direct6D'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       - 
+*RSS*
+ diagnostic_type          5
+ Num_input_variables      2
+ Input_variables          'ACSWDNB, ACSWUPB'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'surface_net_downward_shortwave_flux'
+ diagnostic_longdesc      'net downward flux of SW radiation at surface'
+ diagnostic_units         'Wm-2'
+ diagnostic_method        'sum_spec6D'
+ diagnostic_constant      0.
+ diagnostic_Noptions      2
+ diagnostic_options       1, 0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       - 
+*RST*
+ diagnostic_type          5
+ Num_input_variables      2
+ Input_variables          'ACSWDNT, ACSWUPT'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'toa_net_downward_shortwave_flux'
+ diagnostic_longdesc      'net downward flux of SW radiation at top of atmosphere'
+ diagnostic_units         'Wm-2'
+ diagnostic_method        'sum_spec6D'
+ diagnostic_constant      0.
+ diagnostic_Noptions      2
+ diagnostic_options       1, 0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       - 
+*TDPS*
+ diagnostic_type          5
+ Num_input_variables      3
+ Input_variables          'Q2, PSFC, T2'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
  diagnostic_std_name      'dew_point_temperature'
+ diagnostic_longdesc      'dew point temperature at 2M'
  diagnostic_units         'K'
+ diagnostic_method        'Tetens'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       - 

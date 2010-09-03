@@ -2065,7 +2065,7 @@ SUBROUTINE search_variables(debg, ncs, Nnc, svars, Nsvars, fvars, dimfvars)
 
   INTEGER, INTENT(IN)                                     :: debg, Nnc, Nsvars
   CHARACTER(LEN=500), DIMENSION(Nnc), INTENT(IN)          :: ncs
-  CHARACTER(LEN=50), DIMENSION(Nsvars), INTENT(IN)        :: svars
+  CHARACTER(LEN=250), DIMENSION(Nsvars), INTENT(IN)       :: svars
   INTEGER, DIMENSION(Nsvars, 2), INTENT(OUT)              :: fvars
   INTEGER, DIMENSION(Nsvars, 6), INTENT(OUT)              :: dimfvars
 

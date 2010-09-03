@@ -241,6 +241,7 @@ SUBROUTINE diagnostic_var_inf(debg, varDIAG, varread)
   READ(iunit,*)car, READinvarnames
   IF (ALLOCATED(invarnames_targ)) DEALLOCATE(invarnames_targ)
   ALLOCATE(invarnames_targ(varread%Ninvarnames))
+!  READ(iunit,*)car, invarnames_targ
   CALL string_values(READinvarnames, debg, varread%Ninvarnames, invarnames_targ)
   IF (ASSOCIATED(varread%INvarnames)) NULLIFY(varread%INvarnames)
   ALLOCATE(varread%INvarnames(varread%Ninvarnames))

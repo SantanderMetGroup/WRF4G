@@ -4,9 +4,9 @@
   global_att_file          = 1
   geofile                  = ''
   path_to_geofile          = '',
-  diagnostics              = 'CLT, CLT_CAM',
+  diagnostics              = 'CLT, HURS, MRSO, PRW, TDPS, RLS, RSS, RLUT, RST',
   process                  = 'list',
-  debug                    = 100,
+  debug                    = 150,
   filt                     = .FALSE.,
   grid_filt                = 3,
   ntimes_filt              = 10,

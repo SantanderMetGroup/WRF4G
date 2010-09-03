@@ -121,17 +121,16 @@ PROGRAM sub_test
   CASE('calc_method_gen6D')
 
     constant=0.5
-    method='max6D'
-    Nops=1
+    method='sum_spec6D'
+    Nops=2
     IF (ALLOCATED(ops)) DEALLOCATE(ops)
     ALLOCATE(ops(Nops))
-    ops=3
+    ops=(/1, 0/)
   
-    PRINT *,'Neng: '
     IF (ALLOCATED(matnew)) DEALLOCATE(matnew)
     ALLOCATE(matnew(dim1, dim2, dim3, dim4, dim5, dim6))
   
-    CALL calc_method_gen6D(debug, method,(/dim1,dim2,dim3,dim4,dim5,dim6/),1,(/matval/),        &
+    CALL calc_method_gen6D(debug, method,(/dim1,dim2,dim3,dim4,dim5,dim6/),2,(/matval, matval/),&
       constant, Nops, ops, matnew)
   
     PRINT *,'matnew: ',print_6Dhalfdim(matnew, (/dim1,dim2,dim3,dim4,dim5,dim6 /))
@@ -813,6 +812,11 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
       vals=invalues(:,:,:,:,:,:,1)*ct    
     CASE ('sumct6D')
       vals=invalues(:,:,:,:,:,:,1)+ct
+    CASE ('sum_spec6D')
+      DO i=1, Ninvalues
+        IF (ops(i)==1) vals=vals+invalues(:,:,:,:,:,:,i)
+        IF (ops(i)==0) vals=vals-invalues(:,:,:,:,:,:,i)	
+      END DO
     CASE ('sumall6D')
       PRINT *,meth
       vals=SUM(invalues, DIM=7)

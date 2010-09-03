@@ -186,76 +186,67 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 !!
     CASE ('CLT')
 
-! Setting diagnstic id in outputfile
-       IF (dbg >= 75) PRINT *,'  Computing CLT...'
+      IF (dbg >= 75) PRINT *,'  Computing CLT...'
 
 ! Preparation of diagnostic result
-       IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
-       ALLOCATE(Rdiagnostic3D(DimMatInputs(1,1),DimMatInputs(1,2),DimMatInputs(1,4)),STAT=ierr)
-       IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'diagnostic3D'"
+      IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
+      ALLOCATE(Rdiagnostic3D(DimMatInputs(1,1),DimMatInputs(1,2),DimMatInputs(1,4)),STAT=ierr)
+      IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'diagnostic3D'"
 
 ! method computation
 !!
 
-       IF (ANY(diagcom%method == generic_calcs6D)) THEN 
+      IF (ANY(diagcom%method == generic_calcs6D)) THEN 
 !  Variable result from generic method
 !!
-         Rdiagnostic3D=gen_result6D(:,:,1,:,1,1)
+        Rdiagnostic3D=gen_result6D(:,:,1,:,1,1)
 
-       ELSE
+      ELSE
 ! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
 ! Necessary input matrixs can be of different rank and/or shape MATinputs[A/F] (if necessary)
 
-         methodsel: SELECT CASE (diagcom%method)
+        methodsel: SELECT CASE (diagcom%method)
 
-           CASE ('Sundqvist')
+          CASE ('Sundqvist')
 ! Sundqvist, 1989, Mont. Weather Rev.
 
-             PRINT *,"  calculated via the '"//TRIM(diagcom%method)//"' method"
-             IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
-             ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),      &
-               DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),1), STAT=ierr)
-             IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//                      &
-      	       " allocating 'rMATinputsA'"
+            PRINT *,"  calculated via the '"//TRIM(diagcom%method)//"' method"
+            IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
+            ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),       &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),1), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//                       &
+	      " allocating 'rMATinputsA'"
        
-             DO iinput=1,1
-               CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),           &
-      	         DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
-             END DO
+            DO iinput=1,1
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
+    	        DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
+            END DO
 
-             CALL clt(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),             &
-	       DimMatInputs(1,4), rMATinputsA(:,:,:,:,1,1,1), Rdiagnostic3D)
+            CALL clt(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),              &
+	      DimMatInputs(1,4), rMATinputsA(:,:,:,:,1,1,1), Rdiagnostic3D)
 
-           CASE DEFAULT
-	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
-	     CALL diag_fatal(messg)
+          CASE DEFAULT
+	    messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
+	    CALL diag_fatal(messg)
 
-         END SELECT methodsel
+        END SELECT methodsel
 
-       END IF
+      END IF
        
-         IF (dbg >= 75) THEN
-           PRINT *,'  VAR: '//TRIM(diagcom%name)//' idvar:',jvar
-           PRINT *,'  1/2 example value:', Rdiagnostic3D(halfdim(DimMatInputs(1,1)),            &
-	     halfdim(DimMatInputs(1,2)), halfdim(DimMatInputs(1,4)))
-         ENDIF
+        IF (dbg >= 75) THEN
+          PRINT *,'  VAR: '//TRIM(diagcom%name)//' idvar:',jvar
+          PRINT *,'  1/2 example value:', Rdiagnostic3D(halfdim(DimMatInputs(1,1)),             &
+            halfdim(DimMatInputs(1,2)), halfdim(DimMatInputs(1,4)))
+        ENDIF
 
 ! Writting diagnostic in output file
-       SELECT CASE (diagcom%type)
-         CASE (2)
-!        Text diagnostic
-           rcode = nf_put_var_text (oid, jvar, Cdiagnostic3D)
-           CALL error_nc(section, rcode)
-         CASE (4)
-!        integer diagnostic
-           rcode = nf_put_var_real (oid, jvar, Idiagnostic3D)
-           CALL error_nc(section, rcode)
-         CASE (5)
-!        Real diagnostic
-           rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
-           CALL error_nc(section, rcode)
-	 CASE DEFAULT
-	   messg="Nothing to do with variable type '"//CHAR(diagcom%type+48)//"'"
+      SELECT CASE (diagcom%type)
+        CASE (5)
+!         Real diagnostic
+          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          CALL error_nc(section, rcode)
+	CASE DEFAULT
+	  messg="Nothing to do write with variable type '"//CHAR(diagcom%type+48)//"'"
           CALL diag_fatal(messg)
 
        END SELECT
@@ -264,6 +255,555 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
        DEALLOCATE(foundvariables, DimMatInputs)
        DEALLOCATE(rMATinputsA)
              
+! HURS. 2m relative humidity
+!!
+    CASE ('HURS')
+
+      IF (dbg >= 75) PRINT *,'  Computing HURS...'
+
+! Preparation of diagnostic result
+      IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
+      ALLOCATE(Rdiagnostic3D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3)), STAT=ierr)
+      IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'Rdiagnostic3D'"
+
+! method computation
+!!
+
+      IF (ANY(diagcom%method == generic_calcs6D)) THEN 
+!  Variable result from generic method
+!!
+        Rdiagnostic3D=gen_result6D(:,:,1,:,1,1)
+
+      ELSE
+! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
+! Necessary input matrixs can be of different rank and/or shape MATinputs[A/F] (if necessary)
+
+        methodhurs: SELECT CASE (diagcom%method)
+
+          CASE ('Tetens')
+! Tetens equation (Tetens, 1930)
+            IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
+            ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),       &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),3), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsA'"
+       
+            DO iinput=1,3
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
+                DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
+            END DO
+
+            CALL hurs(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),             &
+              rMATinputsA(:,:,:,:,1,1,1), rMATinputsA(:,:,:,:,1,1,2),rMATinputsA(:,:,:,:,1,1,3),&
+              Rdiagnostic3D)
+	      
+          CASE DEFAULT
+	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
+	     CALL diag_fatal(messg)
+
+        END SELECT methodhurs
+
+       END IF
+       
+       IF (dbg >= 75) THEN
+         PRINT *,'  VAR: '//TRIM(diagcom%name)//' idvar:',jvar
+         PRINT *,'  1/2 example value:', Rdiagnostic3D(halfdim(DimMatInputs(1,1)),              &
+           halfdim(DimMatInputs(1,2)), halfdim(DimMatInputs(1,4)))
+       ENDIF
+
+! Writting diagnostic in output file
+       SELECT CASE (diagcom%type)
+         CASE (5)
+!        Real diagnostic
+           rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+           CALL error_nc(section, rcode)
+	 CASE DEFAULT
+	   messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
+          CALL diag_fatal(messg)
+
+       END SELECT
+
+      DEALLOCATE(Rdiagnostic3D)
+      DEALLOCATE(foundvariables, DimMatInputs)
+      DEALLOCATE(rMATinputsA)
+
+! MRSO. Total soil moisture
+!!
+    CASE ('MRSO')
+
+      IF (dbg >= 75) PRINT *,'  Computing MRSO...'
+
+! Preparation of diagnostic result
+      IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
+      ALLOCATE(Rdiagnostic3D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,4)), STAT=ierr)
+      IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'Rdiagnostic3D'"
+
+! method computation
+!!
+
+      IF (ANY(diagcom%method == generic_calcs6D)) THEN 
+!  Variable result from generic method
+!!
+        Rdiagnostic3D=gen_result6D(:,:,1,:,1,1)
+
+      ELSE
+! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
+! Necessary input matrixs can be of different rank and/or shape MATinputs[A/F] (if necessary)
+
+        methodmrso: SELECT CASE (diagcom%method)
+
+          CASE ('standard')
+	  
+! SMOIS
+            IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
+            ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),       &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),1), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsA'"
+       
+            DO iinput=1,1
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
+	        DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
+            END DO
+
+! DZS
+            IF (ALLOCATED(rMATinputsB)) DEALLOCATE(rMATinputsB)
+              ALLOCATE(rMATinputsB(DimMatInputs(2,1), DimMatInputs(2,2), DimMatInputs(2,3),     &
+                DimMatInputs(2,4), DimMatInputs(2,5), DimMatInputs(2,6),1), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsB'"
+            DO iinput=1,1
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput+1,:),          &
+	        DimMatInputs(2,:), rMATinputsB(:,:,:,:,:,:,iinput))
+            END DO
+	  
+            CALL mrso(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),             &
+	      DimMatInputs(1,4), rMATinputsA(:,:,:,:,1,1,1), rMATinputsB(:,:,1,1,1,1,1),        &
+	      Rdiagnostic3D)
+
+          CASE DEFAULT
+	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
+	     CALL diag_fatal(messg)
+
+        END SELECT methodmrso
+
+       END IF
+       
+       IF (dbg >= 75) THEN
+         PRINT *,'  VAR: '//TRIM(diagcom%name)//' idvar:',jvar
+         PRINT *,'  1/2 example value:', Rdiagnostic3D(halfdim(DimMatInputs(1,1)),              &
+           halfdim(DimMatInputs(1,2)), halfdim(DimMatInputs(1,4)))
+       ENDIF
+
+! Writting diagnostic in output file
+       SELECT CASE (diagcom%type)
+         CASE (5)
+!        Real diagnostic
+           rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+           CALL error_nc(section, rcode)
+	 CASE DEFAULT
+	   messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
+          CALL diag_fatal(messg)
+
+       END SELECT
+
+      DEALLOCATE(Rdiagnostic3D)
+      DEALLOCATE(foundvariables, DimMatInputs)
+      DEALLOCATE(rMATinputsA, rMATinputsB)
+
+! PRW. Total column water content
+!!
+    CASE ('PRW')
+
+      IF (dbg >= 75) PRINT *,'  Computing PRW...'
+
+! Preparation of diagnostic result
+      IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
+      ALLOCATE(Rdiagnostic3D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,4)), STAT=ierr)
+      IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'Rdiagnostic3D'"
+
+! method computation
+!!
+
+      IF (ANY(diagcom%method == generic_calcs6D)) THEN 
+!  Variable result from generic method
+!!
+        Rdiagnostic3D=gen_result6D(:,:,1,:,1,1)
+
+      ELSE
+! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
+! Necessary input matrixs can be of different rank and/or shape MATinputs[A/F] (if necessary)
+
+        methodprw: SELECT CASE (diagcom%method)
+
+          CASE ('sigma_wrf')
+! Vertical integration in eta sigma coordinates with wrfout variables
+	  
+! QVAPOR
+            IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
+            ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),       &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),1), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsA'"
+       
+            DO iinput=1,1
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
+	        DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
+            END DO
+
+! MU, MUB
+            IF (ALLOCATED(rMATinputsB)) DEALLOCATE(rMATinputsB)
+            ALLOCATE(rMATinputsB(DimMatInputs(2,1), DimMatInputs(2,2), DimMatInputs(2,3),       &
+              DimMatInputs(2,4), DimMatInputs(2,5), DimMatInputs(2,6),2), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsB'"
+       
+            DO iinput=2,3
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
+	        DimMatInputs(2,:), rMATinputsB(:,:,:,:,:,:,iinput-1))
+            END DO
+
+! DNW
+            IF (ALLOCATED(rMATinputsC)) DEALLOCATE(rMATinputsC)
+            ALLOCATE(rMATinputsC(DimMatInputs(4,1), DimMatInputs(4,2), DimMatInputs(4,3),       &
+              DimMatInputs(4,4), DimMatInputs(4,5), DimMatInputs(4,6),1), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsC'"
+
+            DO iinput=4,4
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
+	        DimMatInputs(4,:), rMATinputsC(:,:,:,:,:,:,iinput-3))
+            END DO
+
+            CALL prw(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),              &
+	      DimMatInputs(1,4), rMATinputsA(:,:,:,:,1,1,1), rMATinputsB(:,:,:,:,1,1,1)+        &
+	      rMATinputsB(:,:,:,:,1,1,2), -rMATinputsC(:,:,1,1,1,1,1), Rdiagnostic3D)
+	      
+          CASE DEFAULT
+	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
+	     CALL diag_fatal(messg)
+
+        END SELECT methodprw
+
+      END IF
+       
+      IF (dbg >= 75) THEN
+        PRINT *,'  VAR: '//TRIM(diagcom%name)//' idvar:',jvar
+        PRINT *,'  1/2 example value:', Rdiagnostic3D(halfdim(DimMatInputs(1,1)),               &
+          halfdim(DimMatInputs(1,2)), halfdim(DimMatInputs(1,4)))
+      ENDIF
+
+! Writting diagnostic in output file
+      SELECT CASE (diagcom%type)
+        CASE (5)
+!       Real diagnostic
+          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          CALL error_nc(section, rcode)
+	CASE DEFAULT
+	  messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
+          CALL diag_fatal(messg)
+
+      END SELECT
+
+      DEALLOCATE(Rdiagnostic3D)
+      DEALLOCATE(foundvariables, DimMatInputs)
+      DEALLOCATE(rMATinputsA, rMATinputsB, rMATinputsC)
+
+! RLS. Net LW surface radiation
+!!
+    CASE ('RLS')
+
+      IF (dbg >= 75) PRINT *,'  Computing RLS...'
+
+! Preparation of diagnostic result
+      IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
+      ALLOCATE(Rdiagnostic3D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3)), STAT=ierr)
+      IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'Rdiagnostic3D'"
+
+! method computation
+!!
+
+      IF (ANY(diagcom%method == generic_calcs6D)) THEN 
+!  Variable result from generic method
+!!
+        Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/deltaT
+
+      ELSE
+! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
+! Necessary input matrixs can be of different rank and/or shape MATinputs[A/F] (if necessary)
+
+        methodrls: SELECT CASE (diagcom%method)
+
+          CASE DEFAULT
+	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
+	     CALL diag_fatal(messg)
+
+        END SELECT methodrls
+
+      END IF
+       
+      IF (dbg >= 75) THEN
+        PRINT *,'  VAR: '//TRIM(diagcom%name)//' idvar:',jvar
+        PRINT *,'  1/2 example value:', Rdiagnostic3D(halfdim(DimMatInputs(1,1)),               &
+          halfdim(DimMatInputs(1,2)), halfdim(DimMatInputs(1,3)))
+      ENDIF
+
+! Writting diagnostic in output file
+      SELECT CASE (diagcom%type)
+        CASE (5)
+!       Real diagnostic
+          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          CALL error_nc(section, rcode)
+	CASE DEFAULT
+	  messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
+          CALL diag_fatal(messg)
+
+      END SELECT
+      
+      DEALLOCATE(Rdiagnostic3D)
+      DEALLOCATE(foundvariables, DimMatInputs)
+
+! RLUT. Top of atmosphere net LW radiation flux
+!!
+    CASE ('RLUT')
+
+      IF (dbg >= 75) PRINT *,'  Computing RLUT...'
+
+! Preparation of diagnostic result
+      IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
+      ALLOCATE(Rdiagnostic3D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3)), STAT=ierr)
+      IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'Rdiagnostic3D'"
+
+! method computation
+!!
+
+      IF (ANY(diagcom%method == generic_calcs6D)) THEN 
+!  Variable result from generic method
+!!
+        Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/deltaT
+
+      ELSE
+! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
+! Necessary input matrixs can be of different rank and/or shape MATinputs[A/F] (if necessary)
+
+        methodrlut: SELECT CASE (diagcom%method)
+
+          CASE DEFAULT
+	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
+	     CALL diag_fatal(messg)
+
+        END SELECT methodrlut
+
+      END IF
+       
+      IF (dbg >= 75) THEN
+        PRINT *,'  VAR: '//TRIM(diagcom%name)//' idvar:',jvar
+        PRINT *,'  1/2 example value:', Rdiagnostic3D(halfdim(DimMatInputs(1,1)),               &
+          halfdim(DimMatInputs(1,2)), halfdim(DimMatInputs(1,3)))
+      ENDIF
+
+! Writting diagnostic in output file
+      SELECT CASE (diagcom%type)
+        CASE (5)
+!       Real diagnostic
+          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          CALL error_nc(section, rcode)
+	CASE DEFAULT
+	  messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
+          CALL diag_fatal(messg)
+
+      END SELECT
+      
+      DEALLOCATE(Rdiagnostic3D)
+      DEALLOCATE(foundvariables, DimMatInputs)
+
+! RSS. Net SW surface radiation
+!!
+    CASE ('RSS')
+
+      IF (dbg >= 75) PRINT *,'  Computing RSS...'
+
+! Preparation of diagnostic result
+      IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
+      ALLOCATE(Rdiagnostic3D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3)), STAT=ierr)
+      IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'Rdiagnostic3D'"
+
+! method computation
+!!
+
+      IF (ANY(diagcom%method == generic_calcs6D)) THEN 
+!  Variable result from generic method
+!!
+        Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/deltaT
+
+      ELSE
+! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
+! Necessary input matrixs can be of different rank and/or shape MATinputs[A/F] (if necessary)
+
+        methodrss: SELECT CASE (diagcom%method)
+
+          CASE DEFAULT
+	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
+	     CALL diag_fatal(messg)
+
+        END SELECT methodrss
+
+      END IF
+       
+      IF (dbg >= 75) THEN
+        PRINT *,'  VAR: '//TRIM(diagcom%name)//' idvar:',jvar
+        PRINT *,'  1/2 example value:', Rdiagnostic3D(halfdim(DimMatInputs(1,1)),               &
+          halfdim(DimMatInputs(1,2)), halfdim(DimMatInputs(1,3)))
+      ENDIF
+
+! Writting diagnostic in output file
+      SELECT CASE (diagcom%type)
+        CASE (5)
+!       Real diagnostic
+          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          CALL error_nc(section, rcode)
+	CASE DEFAULT
+	  messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
+          CALL diag_fatal(messg)
+
+      END SELECT
+
+      DEALLOCATE(Rdiagnostic3D)
+      DEALLOCATE(foundvariables, DimMatInputs)
+
+! RST. Net SW at top of atmosphere radiation
+!!
+    CASE ('RST')
+
+      IF (dbg >= 75) PRINT *,'  Computing RST...'
+
+! Preparation of diagnostic result
+      IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
+      ALLOCATE(Rdiagnostic3D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3)), STAT=ierr)
+      IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'Rdiagnostic3D'"
+
+! method computation
+!!
+
+      IF (ANY(diagcom%method == generic_calcs6D)) THEN 
+!  Variable result from generic method
+!!
+        Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/deltaT
+
+      ELSE
+! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
+! Necessary input matrixs can be of different rank and/or shape MATinputs[A/F] (if necessary)
+
+        methodrst: SELECT CASE (diagcom%method)
+
+          CASE DEFAULT
+	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
+	     CALL diag_fatal(messg)
+
+        END SELECT methodrst
+
+      END IF
+       
+      IF (dbg >= 75) THEN
+        PRINT *,'  VAR: '//TRIM(diagcom%name)//' idvar:',jvar
+        PRINT *,'  1/2 example value:', Rdiagnostic3D(halfdim(DimMatInputs(1,1)),               &
+          halfdim(DimMatInputs(1,2)), halfdim(DimMatInputs(1,3)))
+      ENDIF
+
+! Writting diagnostic in output file
+      SELECT CASE (diagcom%type)
+        CASE (5)
+!       Real diagnostic
+          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          CALL error_nc(section, rcode)
+	CASE DEFAULT
+	  messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
+          CALL diag_fatal(messg)
+
+      END SELECT
+
+      DEALLOCATE(Rdiagnostic3D)
+      DEALLOCATE(foundvariables, DimMatInputs)
+
+! TDPS. dew point temperature at 2m
+!!
+    CASE ('TDPS')
+
+      IF (dbg >= 75) PRINT *,'  Computing TDPS...'
+
+! Preparation of diagnostic result
+      IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
+      ALLOCATE(Rdiagnostic3D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3)), STAT=ierr)
+      IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'Rdiagnostic3D'"
+
+! method computation
+!!
+
+      IF (ANY(diagcom%method == generic_calcs6D)) THEN 
+!  Variable result from generic method
+!!
+        Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)
+
+      ELSE
+! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
+! Necessary input matrixs can be of different rank and/or shape MATinputs[A/F] (if necessary)
+
+        methodtdps: SELECT CASE (diagcom%method)
+
+          CASE ('Tetens')
+! Tetens equation (Tetens, 1930)
+            IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
+              ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),     &
+                DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),3), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsA'"
+       
+! Q2, PSFC, T2
+            DO iinput=1,3
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
+	        DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
+            END DO
+	  
+            CALL tdps(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),             &
+              rMATinputsA(:,:,:,1,1,1,1), rMATinputsA(:,:,:,1,1,1,2),                           &
+	      rMATinputsA(:,:,:,1,1,1,3), Rdiagnostic3D)
+
+          CASE DEFAULT
+	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
+	     CALL diag_fatal(messg)
+
+        END SELECT methodtdps
+
+      END IF
+       
+      IF (dbg >= 75) THEN
+        PRINT *,'  VAR: '//TRIM(diagcom%name)//' idvar:',jvar
+        PRINT *,'  1/2 example value:', Rdiagnostic3D(halfdim(DimMatInputs(1,1)),               &
+          halfdim(DimMatInputs(1,2)), halfdim(DimMatInputs(1,4)))
+      ENDIF
+
+! Writting diagnostic in output file
+      SELECT CASE (diagcom%type)
+        CASE (5)
+!       Real diagnostic
+          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          CALL error_nc(section, rcode)
+	CASE DEFAULT
+	  messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
+          CALL diag_fatal(messg)
+
+      END SELECT
+
+      DEALLOCATE(Rdiagnostic3D)
+      DEALLOCATE(foundvariables, DimMatInputs)
+      DEALLOCATE(rMATinputsA)
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!! NO VARIABLE DEFINED
+
+    CASE DEFAULT
+      messg="Nothing to do with '"//TRIM(diagcom%name)//"' variable !!"
+      CALL diag_fatal(messg)
+
     END SELECT diag_var
 
   END DO compute_diags

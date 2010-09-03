@@ -132,6 +132,14 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
     
 !!!!!!! Variables
 ! meth: method to compute
+!   'direct6D': values are te same of input values [Ninvalues=1]
+!   'max6D': the maximum value from all 'Ninvalues' is search for dimension 'ops(1)' at each 
+!      point 
+!   'prodct6D': values are multiplyed by 'ct' [Ninvaluyes=1]
+!   'sum_spec6D': invalues are added/rested consecutively according to ops(n)[1: added, 0: 
+!      rested]
+!   'sumall6D': sum of all invalues
+!   'sumct6D': values are added with 'ct' [Ninvaluyes=1]
 ! rgs: ranges of input values
 ! Ninvalues: number of input values
 ! invalues: input values
@@ -287,11 +295,28 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
 
     CASE ('prodct6D')
       vals=invalues(:,:,:,:,:,:,1)*ct    
+    CASE ('sum_spec6D')
+      DO i=1, Ninvalues
+        IF (ops(i)==1) THEN
+	  vals=vals+invalues(:,:,:,:,:,:,i)
+          IF (debg >= 100 ) PRINT *,'  +',print_6Dhalfdim(invalues(:,:,:,:,:,:,i), rgs)
+        ELSEIF (ops(i)==0) THEN
+          vals=vals-invalues(:,:,:,:,:,:,i)	
+          IF (debg >= 100 ) PRINT *,'  -',print_6Dhalfdim(invalues(:,:,:,:,:,:,i), rgs)
+        ELSE
+	  messg="Option '"//CHAR(ops(i)+48)//"' is not a part of 'sum_spec6D' method"
+	  CALL diag_fatal(messg)
+	END IF
+      END DO
+      IF (debg >= 100) THEN
+        PRINT *,'  ----------'
+	PRINT *,'  ',print_6Dhalfdim(vals, rgs)
+      ENDIF
+      
+    CASE ('sumall6D')
+      vals=SUM(invalues, DIM=7)
     CASE ('sumct6D')
       vals=invalues(:,:,:,:,:,:,1)+ct
-    CASE ('sumall6D')
-      PRINT *,meth
-      vals=SUM(invalues, DIM=7)
     CASE DEFAULT
       messg="  Giving 6D general method: '"//TRIM(meth)//"' is not defined!"
       CALL diag_fatal(messg)
