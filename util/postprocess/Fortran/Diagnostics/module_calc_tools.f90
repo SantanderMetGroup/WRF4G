@@ -72,6 +72,11 @@ SUBROUTINE calc_method1D(debg, meth, rg, Ninvalues, invalues, ct, vals)
   
 !!!!!!! Variables
 ! meth: method to compute
+!    'direct': same values as input values
+!    'sumct': add 'constant' to input values
+!    'prodct': multiply by 'constant' input values
+!    'sumall': sum all input values
+!    'sumct': add 'constant' to input values
 ! rg: range of input values
 ! Ninvalues: number of input values
 ! invalues: input values
@@ -85,12 +90,12 @@ SUBROUTINE calc_method1D(debg, meth, rg, Ninvalues, invalues, ct, vals)
   SELECT CASE (meth)
     CASE ('direct')
       vals=invalues(:,1)
-    CASE ('sumct')
-      vals=invalues(:,1)+ct
     CASE ('prodct')
       vals=invalues(:,1)*ct    
     CASE ('sumall')
       vals=SUM(invalues, DIM=2)
+    CASE ('sumct')
+      vals=invalues(:,1)+ct
     CASE DEFAULT
       messg="  Giving method: '"//TRIM(meth)//"' is not defined!"
       CALL diag_fatal(messg)
@@ -132,6 +137,8 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
     
 !!!!!!! Variables
 ! meth: method to compute
+!   'diff_T6D': retrieve simulated values from an accumulated field (time coord is ops(1))
+!      [Ninvalues=1] 
 !   'direct6D': values are te same of input values [Ninvalues=1]
 !   'max6D': the maximum value from all 'Ninvalues' is search for dimension 'ops(1)' at each 
 !      point 
@@ -154,6 +161,94 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
   vals=0.
   
   SELECT CASE (meth)
+    CASE ('diff_T6D')
+      vals=0
+      timecoord: SELECT CASE (ops(1))
+        CASE (1)
+          DO i=1,rgs(2)
+            DO j=1,rgs(3)
+	      DO k=1,rgs(4)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+          	    vals(2:rgs(1),i,j,k,l,m)=invalues(2:rgs(1),i,j,k,l,m,1)-invalues(1:rgs(1)-1,&
+		      i,j,k,l,m,1)
+	          END DO
+	        END DO
+	      END DO
+	    END DO
+          END DO
+
+        CASE (2)
+          DO i=1,rgs(1)
+            DO j=1,rgs(3)
+	      DO k=1,rgs(4)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+          	    vals(i,2:rgs(2),j,k,l,m)=invalues(i,2:rgs(2),j,k,l,m,1)-invalues(i,         &
+                      1:rgs(2)-1,j,k,l,m,1)
+	          END DO
+	        END DO
+	      END DO
+	    END DO
+          END DO
+
+        CASE (3)
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(4)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+          	    vals(i,j,2:rgs(3),k,l,m)=invalues(i,j,2:rgs(3),k,l,m,1)-invalues(i,j,       &
+		      1:rgs(3)-1,k,l,m,1)
+	          END DO
+	        END DO
+	      END DO
+	    END DO
+          END DO
+
+        CASE (4)
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(3)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+          	    vals(i,j,k,2:rgs(4),l,m)=invalues(i,j,k,2:rgs(4),l,m,1)-invalues(i,j,k,     &
+		      1:rgs(4)-1, l,m,1)
+	          END DO
+	        END DO
+	      END DO
+	    END DO
+          END DO
+
+        CASE (5)
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(3)
+	        DO l=1,rgs(4)
+	          DO m=1,rgs(6)
+          	    vals(i,j,k,l,2:rgs(5),m)=invalues(i,j,k,l,2:rgs(5),m,1)-invalues(i,j,k,l,   &
+		      1:rgs(5)-1,m,1)
+	          END DO
+	        END DO
+	      END DO
+	    END DO
+          END DO
+
+        CASE (6)
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(3)
+	        DO l=1,rgs(4)
+	          DO m=1,rgs(5)
+          	    vals(i,j,k,l,m,2:rgs(6))=invalues(i,j,k,l,m,2:rgs(6),1)-invalues(i,j,k,l,m, &
+		      1:rgs(6)-1,1)
+	          END DO
+	        END DO
+	      END DO
+	    END DO
+          END DO
+
+      END SELECT timecoord
     CASE ('direct6D')
       vals=invalues(:,:,:,:,:,:,1)
     CASE ('max6D')
@@ -331,7 +426,7 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
   
 END SUBROUTINE calc_method_gen6D
 
-SUBROUTINE diff_dates(debg, dateA, dateB, units, difference)
+SUBROUTINE diff_dates(debg, dateA, dateB, units, yref, difference)
 ! Subroutine to copute difference between 2 dates in [AAAA]-[MM]-[DD]_[HH]:[MI]:[SS] 
 !    format in 's': seconds, 'm': minutes, 'h': hours, 'd': days. NOTE: Assuming dateA < dateB
 
@@ -340,7 +435,7 @@ SUBROUTINE diff_dates(debg, dateA, dateB, units, difference)
 
   IMPLICIT NONE
 
-  INTEGER, INTENT(IN)                                     :: debg
+  INTEGER, INTENT(IN)                                     :: debg, yref
   CHARACTER(LEN=19), INTENT(IN)                           :: dateA, dateB
   CHARACTER(LEN=1), INTENT(IN)                            :: units
   REAL, INTENT(OUT)                                       :: difference
@@ -358,9 +453,10 @@ SUBROUTINE diff_dates(debg, dateA, dateB, units, difference)
 ! dateA: initial date
 ! dateB: ending date
 ! units: result in 's': seconds, 'm': minutes, 'h': hours, 'd': days
-! differences: difference between dates dateB - dateA (taking as reference yearref-01-01_00:00:00)
-! diffsecA: distance in seconds of date A to yearref-01-01_00:00:00
-! diffsecB: distance in seconds of date B to yearref-01-01_00:00:00
+! yref: year of reference to five reference
+! differences: difference between dates dateB - dateA (taking as reference yref-01-01_00:00:00)
+! diffsecA: distance in seconds of date A to yref-01-01_00:00:00
+! diffsecB: distance in seconds of date B to yref-01-01_00:00:00
 
   section="'diff_dates'"
   IF (debg >= 150 ) PRINT *,'Section '//TRIM(section)//'... .. .'
@@ -405,21 +501,19 @@ SUBROUTINE diff_dates(debg, dateA, dateB, units, difference)
     PRINT *,'  Julian day B:', juliandayB
   END IF
 
-  diffdaysA=diff_days(debg, yearref, yearA)
-  diffdaysB=diff_days(debg, yearref, yearB)
+  diffdaysA=diff_days(debg, yref, yearA)
+  diffdaysB=diff_days(debg, yref, yearB)
 
-! A complete day is retrieved, since jan-01 will be count twice
+! A complete day is retrieved, since jan-01 would be counted twice
   diffsecA=(diffdaysA+juliandayA-1)*24.*3600.+hourA*3600.+minA*60.+secA
   diffsecB=(diffdaysB+juliandayB-1)*24.*3600.+hourB*3600.+minB*60.+secB
 
-! Adding a day to prevent lose of a complete day
-  difference=diffsecB - diffsecA + 3600*24
+  difference=diffsecB - diffsecA 
   IF (debg >= 150) THEN
-    PRINT *,'  days and Seconds since ',yearref,'-01-01_00:00:00 of__________'
+    PRINT *,'  days and Seconds since ',yref,'-01-01_00:00:00 of__________'
     PRINT *,'  yearA: ',diffdaysA+juliandayA-1, diffsecA
     PRINT *,'  yearB: ',diffdaysB+juliandayB-1, diffsecB
   END IF
-
 
   unitsname='second'
   IF (units == 'm') THEN
@@ -433,7 +527,7 @@ SUBROUTINE diff_dates(debg, dateA, dateB, units, difference)
     unitsname='day'
   END IF
   
-  IF (debg >= 150 ) PRINT *,'  Differnce between dates: ',difference,unitsname
+  IF (debg >= 150 ) PRINT *,'  Difference between dates: ',difference,unitsname
   
   RETURN
 END SUBROUTINE diff_dates
@@ -464,48 +558,56 @@ INTEGER FUNCTION diff_days(debg, yearC, yearD)
 
   IF (debg >= 100 ) PRINT *,'Section: '//TRIM(section)//'... .. .'
   
-  IF (yearD < yearC) THEN
-    yearA=yearD
-    yearB=yearC
+  IF (yearD /= yearC) THEN
+
+    IF (yearD < yearC) THEN
+      yearA=yearD
+      yearB=yearC
+    ELSE
+      yearA=yearC
+      yearB=yearD
+    END IF
+
+    sign=1
+    IF (yearA < yearleap ) sign=-1
+  
+!   yearleap was a leap year
+    nearestleap=0
+    DO iyear=0, ABS(yearA - yearleap), 4
+      IF (ABS(yearleap + sign*iyear - yearA) < 4) nearestleap  = yearleap + sign*iyear
+    END DO
+
+!   nearest leap before yearA should be given after
+    IF (nearestleap < yearA) nearestleap = nearestleap + sign*4
+  
+!   nearestleap after 'yearB' yeardiff should not be corrected. In other case, number of leap 
+!     years between yearA and yearB must be computed
+
+    diff_days = (yearB - yearA)*365
+
+    IF ( nearestleap < yearB) THEN
+      yeardiff = yearB - nearestleap
+      numleap = INT(yeardiff/4)
+      diff_days = diff_days + numleap
+    END IF
+  
+!   Looking to leap of years A and B
+    CALL year_leap(yearA, year_is_leap)
+    IF (year_is_leap) diff_days = diff_days + 1
+
+    IF (yearD < yearC) diff_days=-diff_days
+
   ELSE
-    yearA=yearC
-    yearB=yearD
+    nearestleap=0
+    numleap=0
+    diff_days=0
   END IF
-
-  sign=1
-  IF (yearA < yearleap ) sign=-1
-  
-! yearleap was a leap year
-  nearestleap=0
-  DO iyear=0, ABS(yearA - yearleap), 4
-    IF (ABS(yearleap + sign*iyear - yearA) < 4) nearestleap  = yearleap + sign*iyear
-  END DO
-
-! nearest leap before yearA should be given after
-  IF (nearestleap < yearA) nearestleap = nearestleap + sign*4
-  
-! nearestleap after 'yearB' yeardiff should not be corrected. In other case, number of leap years 
-! between yearA and yearB must be computed
-
-  diff_days = (yearB - yearA)*365
-
-  IF ( nearestleap < yearB) THEN
-    yeardiff = yearB - nearestleap
-    numleap = INT(yeardiff/4)
-    diff_days = diff_days + numleap
-  END IF
-  
-! Looking to leap of years A and B
-  CALL year_leap(yearA, year_is_leap)
-  IF (year_is_leap) diff_days = diff_days + 1
-
-  IF (yearD < yearC) diff_days=-diff_days
 
   IF (debg >= 150 ) THEN
-    PRINT *,'yearC: ',yearC,' yearD: ',yearD
-    PRINT *,'leap year closest to lowest year: ',nearestleap,' (within years interval)'
-    PRINT *,'Number of leap years within the year interval: ',numleap
-    PRINT *,'Number of days between years: ',diff_days
+    PRINT *,'  yearC: ',yearC,' yearD: ',yearD
+    PRINT *,'  leap year closest to lowest year: ',nearestleap,' (within years interval)'
+    PRINT *,'  Number of leap years within the year interval: ',numleap
+    PRINT *,'  Number of days between years: ',diff_days
   END IF
     
 END FUNCTION diff_days

@@ -91,10 +91,10 @@
  diagnostic_std_name      'surface_net_downward_longwave_flux'
  diagnostic_longdesc      'net downward flux of LW radiation at surface'
  diagnostic_units         'Wm-2'
- diagnostic_method        'sum_spec6D'
+ diagnostic_method        'wrf_accum'
  diagnostic_constant      0.
- diagnostic_Noptions      2
- diagnostic_options       1, 0
+ diagnostic_Noptions      1
+ diagnostic_options       3
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
 *RLUT*
@@ -121,10 +121,10 @@
  diagnostic_std_name      'surface_net_downward_shortwave_flux'
  diagnostic_longdesc      'net downward flux of SW radiation at surface'
  diagnostic_units         'Wm-2'
- diagnostic_method        'sum_spec6D'
+ diagnostic_method        'wrf_accum'
  diagnostic_constant      0.
- diagnostic_Noptions      2
- diagnostic_options       1, 0
+ diagnostic_Noptions      1
+ diagnostic_options       3
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
 *RST*
@@ -136,10 +136,10 @@
  diagnostic_std_name      'toa_net_downward_shortwave_flux'
  diagnostic_longdesc      'net downward flux of SW radiation at top of atmosphere'
  diagnostic_units         'Wm-2'
- diagnostic_method        'sum_spec6D'
+ diagnostic_method        'wrf_accum'
  diagnostic_constant      0.
- diagnostic_Noptions      2
- diagnostic_options       1, 0
+ diagnostic_Noptions      1
+ diagnostic_options       3
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
 *TDPS*

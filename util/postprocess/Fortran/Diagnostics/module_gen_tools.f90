@@ -21,7 +21,8 @@ MODULE module_gen_tools
 !     to 250) 
 ! give1D_from6D: Subroutine to give a 1D vector from any dimension of a 6D matrix
 ! halfdim: Function to give the half value of a dimension
-! only_number: Function to give a real number from any string with contiguous numbers (point
+! Int_String: Function to convert an integer to a String
+! only_number: Function to give a real number from any string with contiguous numbers (point 
 !     included) 
 ! print_6Dhalfdim: Subroutine to print central value of a real 6D matrix
 ! search_variables: Subroutine to search variables from a given netcCDF file
@@ -312,8 +313,8 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
 !       'module_gen_tools') or in 'compute_dimensions' for 'name' (in 'module_nc_tools') 
 ! constant              (constant value for method='constant')
 ! indimensions          (rank of input variables to 1D compute dimension values)
-! diagnostic_Noptions:  (number of options for diagnostic)
-! diagnostic_options:   (values of options)
+! dim_Noptions:         (number of options for method of dimension)
+! dim_options:          (values of options)
 ! standard_name         (CF-1.4 standard name of dimension)
 ! long_name             (long name of dimension)
 ! units                 (units of dimension)
@@ -348,7 +349,7 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
   LOGICAL                                                :: is_used
   CHARACTER(LEN=250), DIMENSION(:), ALLOCATABLE, TARGET,                                       &
     SAVE  :: dimInvarnames
-  INTEGER, DIMENSION(:), ALLOCATABLE, TARGET, SAVE       :: dimindimensions, optionsDIAG_targ
+  INTEGER, DIMENSION(:), ALLOCATABLE, TARGET, SAVE       :: dimindimensions, optionsDIM_targ
   REAL, DIMENSION(:), ALLOCATABLE, TARGET, SAVE          :: dimfixvalues
   CHARACTER(LEN=3000)                                    :: readINvarnames, readINdimensions,  &
     readFIXvalues
@@ -429,7 +430,14 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
    IF (ALLOCATED(dimindimensions)) DEALLOCATE(dimindimensions)
    ALLOCATE(dimindimensions(diminf%NinVarnames))
    READ(iunit,*)car, dimindimensions
+   IF (.NOT.(ASSOCIATED(diminf%indimensions))) ALLOCATE(diminf%indimensions(diminf%NinVarnames))
    diminf%indimensions=>dimindimensions
+   READ(iunit,*)car, diminf%Noptions
+   IF (ALLOCATED(optionsDIM_targ)) DEALLOCATE(optionsDIM_targ)
+   ALLOCATE(optionsDIM_targ(diminf%Noptions))
+   READ(iunit,*)car, optionsDIM_targ
+   IF (.NOT.(ASSOCIATED(diminf%options))) ALLOCATE(diminf%options(diminf%Noptions))
+   diminf%options=>optionsDIM_targ
    READ(iunit,*)car, diminf%stdname
    READ(iunit,*)car, diminf%lonname
    READ(iunit,*)car, diminf%units
@@ -913,6 +921,38 @@ INTEGER FUNCTION halfdim(dim)
   IF (dim < 2) halfdim = 1     ! Assuming non-zero dimension range
   
 END FUNCTION halfdim
+
+CHARACTER(LEN=8) FUNCTION Int_String(debg, integer)
+! Function to convert an integer to a String
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: debg, integer
+  
+! Local
+  INTEGER                                                 :: ipot
+  REAL                                                    :: pot, int_portion
+  CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=32)                                       :: string
+  
+  section="'Int_String'"
+  IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
+
+  Int_String=''  
+  string=''
+  int_portion=integer*1.
+  DO ipot=1, 8
+    pot=10.**(8.-ipot*1.)
+    IF (pot <= integer) THEN
+      string(ipot:ipot)=CHAR(INT(int_portion/pot)+48)
+      int_portion=int_portion-INT(int_portion/pot)*1.*pot
+    END IF
+  END DO
+  Int_String=ADJUSTL(string)
+  
+  IF (debg >= 150) PRINT *,'From integer: ',integer," string '"//TRIM(Int_String)//"' "
+
+END FUNCTION Int_String
 
 REAL FUNCTION only_number(debg, string0in)
 ! Function to give a real number from any string with contiguous numbers (point included)

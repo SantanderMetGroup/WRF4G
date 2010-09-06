@@ -18,6 +18,7 @@ MODULE module_nc_tools
 ! def_dim_time: Subroutine to define a time coordinate
 ! def_nc_var: Subroutine to define a variable inside a netCDF file 
 ! def_nc_gatt_text: Subroutine to define a global text attribute inside a netCDF file 
+! diff_dimtimes: Function to give the difference in seconds between two time coordinate values
 ! error_nc: Subroutine to print error nc messages
 ! exists_dim: Function to determine if a dimension exists
 ! exists_var: Function to determine if a variable exists
@@ -188,6 +189,8 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
     coordscoord
   CHARACTER(LEN=50), DIMENSION(:,:,:,:,:), ALLOCATABLE    :: charcoor
   REAL, DIMENSION(:), ALLOCATABLE                         :: cdimvalues
+  CHARACTER(LEN=1)                                        :: udate
+  CHARACTER(LEN=4)                                        :: yearref
 
 !!!!!!! Variables
 ! ncid: netCDF if where to write dimensions
@@ -525,8 +528,9 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
           SELECT CASE (dimensioncompute%method)
             CASE ('Y-m-d_h:m:s_refT')
 ! Time values have the format [YYYY]-[MM]-[DD]_[HH]:[MI]:[SS] in a character variable (of 19
-!    characrters length as second dimension). Time variable is processed to give date as seconds
-!    since a reference date [yearref(in module_constants)]-01-01_00:00:00
+!    characrters length as second dimension). Time variable is processed to give date as 
+!    dimensioncompute%options(2) (1: seconds, 2: minutes, 3: hours, 4: days) since a reference date
+!    dimensioncompute%options(1)-01-01_00:00:00 
 !!
               IF (ALLOCATED(dimvarfound)) DEALLOCATE(dimvarfound)
 	      ALLOCATE(dimvarfound(Nfiles, dimensioncompute%NinVarnames))
@@ -546,9 +550,26 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 
               CALL fill_inputs_50char(debg, (/file_gatt/), 1, dimvarfound(1,:),                 &
 	        dimvardimfound(1,:), charcoor)
+
+! Reference year and time units
+              yearref=Int_String(debg, dimensioncompute%options(1))
+	      SELECT CASE (dimensioncompute%options(2))
+                CASE (1)
+	          udate='s'
+	        CASE (2)
+		  udate='m'
+		CASE (3)
+		  udate='h'
+		CASE (4)
+		  udate='h'
+		CASE DEFAULT
+		  messg="Nothing to do with time-units '"//CHAR(dimensioncompute%options(2)+48) &
+		    //"'"
+		  CALL diag_fatal(messg)
+	      END SELECT
               DO i=1, dimvardimfound(1,dimensioncompute%indimensions(1))
-                CALL diff_dates(debg, '1950-01-01_00:00:00', charcoor(i,1,1,1,1), 's',          &
-                  coordinate(i,1,1,1,1,1))
+                CALL diff_dates(debg, yearref//'-01-01_00:00:00', charcoor(i,1,1,1,1), udate,   &
+                  dimensioncompute%options(1), coordinate(i,1,1,1,1,1))
               END DO
               dimensioncompute%Nvalues=dimvardimfound(1,dimensioncompute%indimensions(1))
 
@@ -1354,6 +1375,130 @@ SUBROUTINE def_nc_var (mcid, ivar0, cval, itype, idm, jshape, order, desc, stdde
   CALL error_nc(section, rcode)
 
 END SUBROUTINE def_nc_var
+
+REAL FUNCTION diff_dimtimes(debg, oid, dimT, NdimTA, NdimTB)
+! Function to give the difference in seconds between two time coordinate values
+
+  USE module_types
+  USE module_gen_tools
+
+  IMPLICIT NONE
+  
+  INCLUDE 'netcdf.inc'
+  
+  INTEGER, INTENT(IN)                                     :: debg, oid, dimT, NdimTA, NdimTB
+  
+! Local
+  INTEGER                                                 :: i, funit, ios, rcode
+  INTEGER                                                 :: Ndimsout
+  INTEGER                                                 :: timeidvar, timeiddim, Ntimes
+  CHARACTER(LEN=4)                                        :: lev_process
+  CHARACTER(LEN=50)                                       :: X_grid_spacing_gatt,               &
+    Y_grid_spacing_gatt, T_grid_spacing_gatt
+  CHARACTER(LEN=3000)                                     :: p_levels, dimension_in4names,      &
+    dimension_outnames
+  LOGICAL                                                 :: cartesian_x, cartesian_y
+  CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=250), DIMENSION(:), ALLOCATABLE           :: dimsout0
+  CHARACTER(LEN=50), DIMENSION(:), ALLOCATABLE            :: dimsout
+  LOGICAL                                                 :: is_used
+  TYPE(dimensiondef)                                      :: dimtime
+  CHARACTER(LEN=250)                                      :: messg
+  REAL, DIMENSION(:), ALLOCATABLE                         :: Rtimes
+  
+!!!!!!! Variables
+! oid: id of netCDF output file
+! dimT: number of time dimension (from 'namelist.dimension_outnames')
+! NdimT[A/B]: number of time steps to compute difference between them timeB-timeA
+! dimension_outnames: dimension output names
+! Ndimsout: number of output dimensions
+! dimsout: vector with dimensions name
+! dimtime: definition of temporal dimension
+! timeidvar: id of variable with values of time dimension in 'oid'
+! timeiddim: id of time dimension in 'oid'
+! Ntimes: number of times in 'oid'
+! Rtimes: real vector with time values
+
+    NAMELIST /dimensions/ lev_process, p_levels, X_grid_spacing_gatt, Y_grid_spacing_gatt,        &
+      T_grid_spacing_gatt, cartesian_x, cartesian_y, dimension_in4names, dimension_outnames
+
+  section="'diff_dimtimes'"
+  IF ( debg>= 150) PRINT *,'Section '//section//' ... .. .'
+
+! Reading parameters from namelist
+  DO funit=10,100
+    INQUIRE(unit=funit, opened=is_used)
+    IF (.not. is_used) EXIT
+  END DO
+  OPEN(funit, file='namelist.diagnostics', status='old', form='formatted', iostat=ios)
+  IF ( ios /= 0 ) STOP "ERROR opening 'namelist.diagnostics'"
+  READ(funit,dimensions)
+  CLOSE(funit)
+
+! Dimensions in output file
+!!
+  IF (debg >= 150) PRINT *,'  Dimensions in output file...'
+  CALL number_values(dimension_outnames, debg, Ndimsout)
+  IF (ALLOCATED(dimsout)) DEALLOCATE(dimsout)
+  ALLOCATE(dimsout(Ndimsout))
+  IF (ALLOCATED(dimsout0)) DEALLOCATE(dimsout0)
+  ALLOCATE(dimsout0(Ndimsout))
+ 
+  CALL string_values(dimension_outnames, debg, Ndimsout, dimsout0)
+  dimsout=dimsout0
+  
+  IF (debg >= 150) THEN
+    PRINT *,'  Dimensions in output file: '
+    DO i=1, Ndimsout
+      PRINT *,'  #: ',i,"'"//TRIM(dimsout(i))//"'"
+    END DO
+  END IF
+
+! time dimension information in 'oid' a variable with the name has the dimension values
+  rcode = nf_inq_varid (oid, dimsout(dimT), timeidvar)
+  CALL error_nc(section, rcode)
+  
+  rcode = nf_inq_vardimid (oid, timeidvar, timeiddim)
+  CALL error_nc(section, rcode)
+  rcode = nf_inq_dimlen (oid, timeiddim, Ntimes)
+  CALL error_nc(section, rcode)
+  
+! Loading time dimension information  
+  CALL diagnostic_dim_inf(debg, dimsout(dimT), 4, dimtime)
+  
+  timemethod: SELECT CASE (dimtime%method)
+    CASE ('Y-m-d_h:m:s_refT')
+      IF (ALLOCATED(Rtimes)) DEALLOCATE(Rtimes)
+      ALLOCATE(Rtimes(Ntimes))
+      
+      rcode = nf_get_var_real (oid, timeidvar, Rtimes)
+      diff_dimtimes = Rtimes(NdimTB) - Rtimes(NdimTA)
+      timeu: SELECT CASE (dimtime%options(2))
+        CASE (1)
+!       Time in seconds
+          diff_dimtimes = diff_dimtimes
+        CASE (2)
+!       Time in minutes
+          diff_dimtimes = diff_dimtimes * 60.
+        CASE (3)
+!       Time in hours
+          diff_dimtimes = diff_dimtimes * 3600.
+        CASE (4)
+!       Time in days
+          diff_dimtimes = diff_dimtimes * 3600. * 24.
+	  
+      END SELECT timeu
+  
+    CASE DEFAULT
+      messg="Nothing to do for '"//TRIM(dimtime%method)//"' method"
+      CALL diag_fatal(messg)
+      
+  END SELECT timemethod
+  
+  IF (debg >= 75 ) PRINT *,'  Difference time between #time ',NdimTA,' & ',NdimTB,': ',         &
+    diff_dimtimes,' seconds'
+
+END FUNCTION diff_dimtimes
 
 SUBROUTINE error_nc(sec, rc, Ivalue, Rvalue, Cvalue)
 ! Subroutine to print error nc messages

@@ -13,6 +13,7 @@ PROGRAM sub_test
     dim7 
   INTEGER                                                :: wanteddim
   CHARACTER(LEN=50)                                      :: st, method
+  CHARACTER(LEN=8)                                       :: int_string
   CHARACTER(LEN=250)                                     :: give_Lstring, funsub
   INTEGER, DIMENSION(6)                                  :: dimranges
   REAL                                                   :: constant, print_6Dhalfdim
@@ -61,6 +62,10 @@ PROGRAM sub_test
 
     PRINT *,'Neng: '
   SELECT CASE (funsub)
+!!  Int_String
+!!!!
+  CASE ('Int_String')
+    PRINT *,'Int_String: ',Int_String(debug, 12345678)
 
 !!  diagnostic_var_inf
 !!!!
@@ -121,11 +126,11 @@ PROGRAM sub_test
   CASE('calc_method_gen6D')
 
     constant=0.5
-    method='sum_spec6D'
-    Nops=2
+    method='diff_T6D'
+    Nops=1
     IF (ALLOCATED(ops)) DEALLOCATE(ops)
     ALLOCATE(ops(Nops))
-    ops=(/1, 0/)
+    ops=(/6/)
   
     IF (ALLOCATED(matnew)) DEALLOCATE(matnew)
     ALLOCATE(matnew(dim1, dim2, dim3, dim4, dim5, dim6))
@@ -193,6 +198,42 @@ PROGRAM sub_test
     PRINT *,"'"//TRIM(funsub)//"' does not exist !!!!"
   END SELECT
 END PROGRAM sub_test
+
+!!!!!!!    !!!!!!!    !!!!!!!    !!!!!!!    !!!!!!!    !!!!!!!    !!!!!!!    !!!!!!!    !!!!!!!    
+    !!!!!!!    !!!!!!!    !!!!!!!    !!!!!!!    !!!!!!!    !!!!!!!    !!!!!!!    !!!!!!!    !!!!!!!
+
+CHARACTER(LEN=8) FUNCTION Int_String(debg, integer)
+! Function to convert an integer to a String
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: debg, integer
+  
+! Local
+  INTEGER                                                 :: ipot
+  REAL                                                    :: pot, int_portion
+  CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=32)                                       :: string
+  
+  section="'Int_String'"
+  IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
+
+  Int_String=''  
+  string=''
+  int_portion=integer*1.
+  DO ipot=1, 8
+    pot=10.**(8.-ipot*1.)
+    IF (pot <= integer) THEN
+      string(ipot:ipot)=CHAR(INT(int_portion/pot)+48)
+      int_portion=int_portion-INT(int_portion/pot)*1.*pot
+    END IF
+  END DO
+  Int_String=ADJUSTL(string)
+  
+  IF (debg >= 150) PRINT *,'From integer: ',integer," string '"//TRIM(Int_String)//"' "
+
+END FUNCTION Int_String
+
 
 SUBROUTINE diagnostic_var_inf(debg, varDIAG, varread)
 ! Subroutine to read diagnostic variable information from 'variables_diagnostics.inf' external 
@@ -685,9 +726,98 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
   section="'calc_method_gen6D'"
   
   IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
+  PRINT *,Nops, ' Nops: ',ops
   vals=0.
   
   SELECT CASE (meth)
+    CASE ('diff_T6D')
+      vals=0.
+      timecoord: SELECT CASE (ops(1))
+        CASE (1)
+          DO i=1,rgs(2)
+            DO j=1,rgs(3)
+	      DO k=1,rgs(4)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+          	    vals(2:rgs(1),i,j,k,l,m)=invalues(2:rgs(1),i,j,k,l,m,1)-invalues(1:rgs(1)-1,&
+		      i,j,k,l,m,1)
+	          END DO
+	        END DO
+	      END DO
+	    END DO
+          END DO
+
+        CASE (2)
+          DO i=1,rgs(1)
+            DO j=1,rgs(3)
+	      DO k=1,rgs(4)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+          	    vals(i,2:rgs(2),j,k,l,m)=invalues(i,2:rgs(2),j,k,l,m,1)-invalues(i,         &
+                      1:rgs(2)-1,j,k,l,m,1)
+	          END DO
+	        END DO
+	      END DO
+	    END DO
+          END DO
+
+        CASE (3)
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(4)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+          	    vals(i,j,2:rgs(3),k,l,m)=invalues(i,j,2:rgs(3),k,l,m,1)-invalues(i,j,       &
+		      1:rgs(3)-1,k,l,m,1)
+	          END DO
+	        END DO
+	      END DO
+	    END DO
+          END DO
+
+        CASE (4)
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(3)
+	        DO l=1,rgs(5)
+	          DO m=1,rgs(6)
+          	    vals(i,j,k,2:rgs(4),l,m)=invalues(i,j,k,2:rgs(4),l,m,1)-invalues(i,j,k,     &
+		      1:rgs(4)-1, l,m,1)
+	          END DO
+	        END DO
+	      END DO
+	    END DO
+          END DO
+
+        CASE (5)
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(3)
+	        DO l=1,rgs(4)
+	          DO m=1,rgs(6)
+          	    vals(i,j,k,l,2:rgs(5),m)=invalues(i,j,k,l,2:rgs(5),m,1)-invalues(i,j,k,l,   &
+		      1:rgs(5)-1,m,1)
+	          END DO
+	        END DO
+	      END DO
+	    END DO
+          END DO
+
+        CASE (6)
+          DO i=1,rgs(1)
+            DO j=1,rgs(2)
+	      DO k=1,rgs(3)
+	        DO l=1,rgs(4)
+	          DO m=1,rgs(5)
+          	    vals(i,j,k,l,m,2:rgs(6))=invalues(i,j,k,l,m,2:rgs(6),1)-invalues(i,j,k,l,m, &
+		      1:rgs(6)-1,1)
+	          END DO
+	        END DO
+	      END DO
+	    END DO
+          END DO
+
+      END SELECT timecoord
     CASE ('direct6D')
       vals=invalues(:,:,:,:,:,:,1)
     CASE ('max6D')

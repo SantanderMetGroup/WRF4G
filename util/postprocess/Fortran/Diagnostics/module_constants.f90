@@ -29,7 +29,6 @@ MODULE module_constants
   REAL, PARAMETER                                          :: missingval=-99999.
   REAL, PARAMETER                                          :: rocp=2./7.
   REAL, PARAMETER                                          :: tkelvin=273.15
-  INTEGER, PARAMETER                                       :: yearref = 1970
   INTEGER, PARAMETER                                       :: yearleap = 1900
 
 !!!!!!!!!!!!!!!!!! Variables
@@ -52,7 +51,6 @@ MODULE module_constants
 !      missingval: value for missings
 !      rocp: 
 !      tkelvin: conversion from celsius degrees to kelvin [K]
-!      yearref: year as reference
 !      yearleap: year as reference of leap years
 
 !  CONTAINS
@@ -60,11 +58,11 @@ MODULE module_constants
 !  SUBROUTINE generic_calcs
 ! Definition of vectors with generic calcs
 
-  INTEGER, PARAMETER                                     :: Ngen1D=4, Ngen6D=6
+  INTEGER, PARAMETER                                     :: Ngen1D=4, Ngen6D=7
   CHARACTER(LEN=50), DIMENSION(Ngen1D)                   :: generic_calcs1D=(/'direct', 'sumct',&
     'prodct', 'sumall'/) 
   CHARACTER(LEN=50), DIMENSION(Ngen6D)                   :: generic_calcs6D=(/ 'direct6D',      &
-    'max6D', 'sumct6D', 'prodct6D', 'sum_spec6D', 'sumall6D'/)
+    'diff_T6D', 'max6D', 'sumct6D', 'prodct6D', 'sum_spec6D', 'sumall6D'/)
 
 !!!!!! Variables
 ! generic_calcs1D: generic calcs with 1D vectors with the same sahpe. Values must appear in

@@ -63,7 +63,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
   INTEGER                                                :: ierr, oid, jvar, rcode
   CHARACTER(LEN=50), ALLOCATABLE, DIMENSION(:)           :: DIAGvariables
   CHARACTER(LEN=250)                                     :: messg
-  CHARACTER(LEN=50)                                      :: section
+  CHARACTER(LEN=50)                                      :: section, indivmethod
   TYPE(variabledef)                                      :: diagcom
 
 !!!!!!!!!!!!!!!!! Variables
@@ -534,9 +534,45 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
         methodrls: SELECT CASE (diagcom%method)
 
+          CASE ('wrf_accum')
+! Field is the difference between ACLWDNB, ACLWUPB whom are accumulations and need to be
+!   diferenciated
+            
+! ACLWDNB, ACLWUPB
+            IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
+            ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),       &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),2), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsA'"
+             IF (ALLOCATED(rMATinputsB)) DEALLOCATE(rMATinputsB)
+            ALLOCATE(rMATinputsB(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),       &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),1), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsB'"
+      
+            DO iinput=1,2
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
+	        DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
+            END DO
+
+            IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
+            ALLOCATE(gen_result6D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),      &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6)), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//                       &
+  	      " allocating 'gen_result6D'"
+
+! Difference between fields
+            rMATinputsB(:,:,:,:,:,:,1)=rMATinputsA(:,:,:,:,:,:,1)-rMATinputsA(:,:,:,:,:,:,2)
+       
+            indivmethod='diff_T6D'
+            CALL calc_method_gen6D(dbg, indivmethod, DimMatInputs(1,:), 1, rMATinputsB,         &
+  	      diagcom%constant, diagcom%Noptions, diagcom%options, gen_result6D)
+
+            Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/diff_dimtimes(dbg, oid, 4, 1, 2)
+
           CASE DEFAULT
-	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
-	     CALL diag_fatal(messg)
+            messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
+	    CALL diag_fatal(messg)
 
         END SELECT methodrls
 
@@ -562,6 +598,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       
       DEALLOCATE(Rdiagnostic3D)
       DEALLOCATE(foundvariables, DimMatInputs)
+      DEALLOCATE(rMATinputsA, rMATinputsB)
 
 ! RLUT. Top of atmosphere net LW radiation flux
 !!
@@ -580,7 +617,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       IF (ANY(diagcom%method == generic_calcs6D)) THEN 
 !  Variable result from generic method
 !!
-        Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/deltaT
+        Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)!/diff_dimtimes(dbg, oid, 4, 1, 2)
 
       ELSE
 ! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
@@ -634,13 +671,49 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       IF (ANY(diagcom%method == generic_calcs6D)) THEN 
 !  Variable result from generic method
 !!
-        Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/deltaT
+        Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/diff_dimtimes(dbg, oid, 4, 1, 2)
 
       ELSE
 ! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
 ! Necessary input matrixs can be of different rank and/or shape MATinputs[A/F] (if necessary)
 
         methodrss: SELECT CASE (diagcom%method)
+
+          CASE ('wrf_accum')
+! Field is the difference between ACSWDNB, ACSWUPB whom are accumulations and need to be
+!   diferenciated
+            
+! ACSWDNB, ACSWUPB
+            IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
+            ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),       &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),2), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsA'"
+             IF (ALLOCATED(rMATinputsB)) DEALLOCATE(rMATinputsB)
+            ALLOCATE(rMATinputsB(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),       &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),1), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsB'"
+      
+            DO iinput=1,2
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
+	        DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
+            END DO
+
+            IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
+            ALLOCATE(gen_result6D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),      &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6)), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//                       &
+  	      " allocating 'gen_result6D'"
+
+! Difference between fields
+            rMATinputsB(:,:,:,:,:,:,1)=rMATinputsA(:,:,:,:,:,:,1)-rMATinputsA(:,:,:,:,:,:,2)
+       
+            indivmethod='diff_T6D'
+            CALL calc_method_gen6D(dbg, indivmethod, DimMatInputs(1,:), 1, rMATinputsB,         &
+  	      diagcom%constant, diagcom%Noptions, diagcom%options, gen_result6D)
+
+            Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/diff_dimtimes(dbg, oid, 4, 1, 2)
 
           CASE DEFAULT
 	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
@@ -688,13 +761,49 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       IF (ANY(diagcom%method == generic_calcs6D)) THEN 
 !  Variable result from generic method
 !!
-        Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/deltaT
+        Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/diff_dimtimes(dbg, oid, 4, 1, 2)
 
       ELSE
 ! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
 ! Necessary input matrixs can be of different rank and/or shape MATinputs[A/F] (if necessary)
 
         methodrst: SELECT CASE (diagcom%method)
+
+          CASE ('wrf_accum')
+! Field is the difference between ACSWDNT, ACSWUPT whom are accumulations and need to be
+!   diferenciated
+            
+! ACSWDNT, ACSWUPT
+            IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
+            ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),       &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),2), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsA'"
+             IF (ALLOCATED(rMATinputsB)) DEALLOCATE(rMATinputsB)
+            ALLOCATE(rMATinputsB(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),       &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),1), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsB'"
+      
+            DO iinput=1,2
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
+	        DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
+            END DO
+
+            IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
+            ALLOCATE(gen_result6D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),      &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6)), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//                       &
+  	      " allocating 'gen_result6D'"
+
+! Difference between fields
+            rMATinputsB(:,:,:,:,:,:,1)=rMATinputsA(:,:,:,:,:,:,1)-rMATinputsA(:,:,:,:,:,:,2)
+       
+            indivmethod='diff_T6D'
+            CALL calc_method_gen6D(dbg, indivmethod, DimMatInputs(1,:), 1, rMATinputsB,         &
+  	      diagcom%constant, diagcom%Noptions, diagcom%options, gen_result6D)
+
+            Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/diff_dimtimes(dbg, oid, 4, 1, 2)
 
           CASE DEFAULT
 	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"

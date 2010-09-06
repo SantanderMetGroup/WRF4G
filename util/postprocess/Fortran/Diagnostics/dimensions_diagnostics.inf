@@ -8,6 +8,8 @@
   dim_method               direct6D
   dim_constant             0.
   dim_indimensions         0
+  dim_Noptions             0
+  dim_options              0
   standard_name            longitude
   long_name                longitude
   units                    degrees
@@ -26,6 +28,8 @@
   dim_method               direct6D
   dim_constant             0.
   dim_indimensions         0
+  dim_Noptions             0
+  dim_options              0
   standard_name            latitude
   long_name                latitude
   units                    degrees
@@ -44,6 +48,8 @@
   dim_method               direct
   dim_constant             0.
   dim_indimensions         1
+  dim_Noptions             0
+  dim_options              0
   standard_name            atmosphere_sigma_coordinate
   long_name                'atmosphere level in sigma coordinate'
   units                    NO
@@ -62,6 +68,8 @@
   dim_method               Y-m-d_h:m:s_refT 
   dim_constant             0.
   dim_indimensions         2
+  dim_Noptions             2
+  dim_options              1950, 1
   standard_name            time
   long_name                time
   units                    'seconds since 1950-1-1 0:0:0'
