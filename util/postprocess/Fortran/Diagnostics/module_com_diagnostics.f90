@@ -20,6 +20,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
   dimsIname, dimsOname, NdimsO, ofile, g_att_file, car_x, car_y)
 ! Subroutine to compute all desired diagnostics
 
+  USE netcdf
   USE module_list_diagnostics
   USE module_gen_tools
   USE module_nc_tools
@@ -29,7 +30,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
   IMPLICIT NONE
 
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
   INTEGER, INTENT(IN)                                    :: dbg
   INTEGER, INTENT(IN)                                    :: Ninfiles, g_att_file
@@ -109,8 +110,8 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
   CALL create_output(dbg, ofile, dimsIname, NdimsO, dimsOname, ifiles(g_att_file), car_x, car_y,&
      ifiles, Ninfiles)
 
-  rcode = nf_open(TRIM(ofile), NF_WRITE, oid)
-!  rcode = nf_create(TRIM(ofile), NF_CLOBBER, oid)
+  rcode = nf90_open(TRIM(ofile), NF90_WRITE, oid)
+!  rcode = nf90_create(TRIM(ofile), NF90_CLOBBER, oid)
 
 !!!
 !!
@@ -121,7 +122,8 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
   jvar=nc_last_idvar(dbg, oid)
     
   compute_diags: DO idiag=1, Ndiags
-   
+   PRINT *,'  --- - --- - --- - ---  '
+   PRINT *,'  '
    CALL diagnostic_var_inf(dbg, diags(idiag), diagcom)
 
 !!
@@ -144,7 +146,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
          CALL def_variable(dbg, oid, diagcom)
          jvar=nc_last_idvar(dbg, oid)
        ELSE
-         rcode = nf_inq_varid (oid, diagcom%name, jvar)
+         rcode = nf90_inq_varid (oid, diagcom%name, jvar)
        END IF
 
 ! Looking if diagnostic can be calculated by a generic method (see 'generic_calcs6D' in
@@ -186,7 +188,11 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 !!
     CASE ('CLT')
 
-      IF (dbg >= 75) PRINT *,'  Computing CLT...'
+      IF (dbg >= 75) THEN
+        PRINT *,'  ----- ---- --- -- -'
+        PRINT *,'  Computing CLT...'
+        PRINT *,'  ----- ---- --- -- -'
+      END IF
 
 ! Preparation of diagnostic result
       IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
@@ -243,7 +249,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       SELECT CASE (diagcom%type)
         CASE (5)
 !         Real diagnostic
-          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          rcode = nf90_put_var (oid, jvar, Rdiagnostic3D)
           CALL error_nc(section, rcode)
 	CASE DEFAULT
 	  messg="Nothing to do write with variable type '"//CHAR(diagcom%type+48)//"'"
@@ -259,7 +265,11 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 !!
     CASE ('HURS')
 
-      IF (dbg >= 75) PRINT *,'  Computing HURS...'
+      IF (dbg >= 75) THEN
+        PRINT *,'  ----- ---- --- -- -'
+        PRINT *,'  Computing HURS...'
+        PRINT *,'  ----- ---- --- -- -'
+      END IF
 
 ! Preparation of diagnostic result
       IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
@@ -315,7 +325,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
        SELECT CASE (diagcom%type)
          CASE (5)
 !        Real diagnostic
-           rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+           rcode = nf90_put_var (oid, jvar, Rdiagnostic3D)
            CALL error_nc(section, rcode)
 	 CASE DEFAULT
 	   messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
@@ -331,7 +341,11 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 !!
     CASE ('MRSO')
 
-      IF (dbg >= 75) PRINT *,'  Computing MRSO...'
+      IF (dbg >= 75) THEN
+        PRINT *,'  ----- ---- --- -- -'
+        PRINT *,'  Computing MRSO...'
+        PRINT *,'  ----- ---- --- -- -'
+      END IF
 
 ! Preparation of diagnostic result
       IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
@@ -399,7 +413,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
        SELECT CASE (diagcom%type)
          CASE (5)
 !        Real diagnostic
-           rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+           rcode = nf90_put_var (oid, jvar, Rdiagnostic3D)
            CALL error_nc(section, rcode)
 	 CASE DEFAULT
 	   messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
@@ -415,7 +429,11 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 !!
     CASE ('PRW')
 
-      IF (dbg >= 75) PRINT *,'  Computing PRW...'
+      IF (dbg >= 75) THEN
+        PRINT *,'  ----- ---- --- -- -'
+        PRINT *,'  Computing PRW...'
+        PRINT *,'  ----- ---- --- -- -'
+      END IF
 
 ! Preparation of diagnostic result
       IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
@@ -497,7 +515,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       SELECT CASE (diagcom%type)
         CASE (5)
 !       Real diagnostic
-          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          rcode = nf90_put_var (oid, jvar, Rdiagnostic3D)
           CALL error_nc(section, rcode)
 	CASE DEFAULT
 	  messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
@@ -513,7 +531,11 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 !!
     CASE ('RLS')
 
-      IF (dbg >= 75) PRINT *,'  Computing RLS...'
+      IF (dbg >= 75) THEN
+        PRINT *,'  ----- ---- --- -- -'
+        PRINT *,'  Computing RLS...'
+        PRINT *,'  ----- ---- --- -- -'
+      END IF
 
 ! Preparation of diagnostic result
       IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
@@ -588,7 +610,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       SELECT CASE (diagcom%type)
         CASE (5)
 !       Real diagnostic
-          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          rcode = nf90_put_var (oid, jvar, Rdiagnostic3D)
           CALL error_nc(section, rcode)
 	CASE DEFAULT
 	  messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
@@ -604,7 +626,11 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 !!
     CASE ('RLUT')
 
-      IF (dbg >= 75) PRINT *,'  Computing RLUT...'
+      IF (dbg >= 75) THEN
+        PRINT *,'  ----- ---- --- -- -'
+        PRINT *,'  Computing RLUT...'
+        PRINT *,'  ----- ---- --- -- -'
+      END IF
 
 ! Preparation of diagnostic result
       IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
@@ -643,7 +669,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       SELECT CASE (diagcom%type)
         CASE (5)
 !       Real diagnostic
-          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          rcode = nf90_put_var (oid, jvar, Rdiagnostic3D)
           CALL error_nc(section, rcode)
 	CASE DEFAULT
 	  messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
@@ -658,7 +684,11 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 !!
     CASE ('RSS')
 
-      IF (dbg >= 75) PRINT *,'  Computing RSS...'
+      IF (dbg >= 75) THEN
+        PRINT *,'  ----- ---- --- -- -'
+        PRINT *,'  Computing RSS...'
+        PRINT *,'  ----- ---- --- -- -'
+      END IF
 
 ! Preparation of diagnostic result
       IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
@@ -733,7 +763,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       SELECT CASE (diagcom%type)
         CASE (5)
 !       Real diagnostic
-          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          rcode = nf90_put_var (oid, jvar, Rdiagnostic3D)
           CALL error_nc(section, rcode)
 	CASE DEFAULT
 	  messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
@@ -744,11 +774,103 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       DEALLOCATE(Rdiagnostic3D)
       DEALLOCATE(foundvariables, DimMatInputs)
 
+! RSDT. Incoming/downward SW at top of atmosphere radiation
+!!
+    CASE ('RSDT')
+
+      IF (dbg >= 75) THEN
+        PRINT *,'  ----- ---- --- -- -'
+        PRINT *,'  Computing RSDT...'
+        PRINT *,'  ----- ---- --- -- -'
+      END IF
+
+! Preparation of diagnostic result
+      IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
+      ALLOCATE(Rdiagnostic3D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3)), STAT=ierr)
+      IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating 'Rdiagnostic3D'"
+
+! method computation
+!!
+
+      IF (ANY(diagcom%method == generic_calcs6D)) THEN 
+!  Variable result from generic method
+!!
+        Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/diff_dimtimes(dbg, oid, 4, 1, 2)
+
+      ELSE
+! Creation of specific matrix for computation of diagnostic according to the NON-generic method. 
+! Necessary input matrixs can be of different rank and/or shape MATinputs[A/F] (if necessary)
+
+        methodrsdt: SELECT CASE (diagcom%method)
+
+          CASE ('wrf_accum')
+! Field is the difference between ACSWDNT is accumulated and need to be time-diferenciated
+            
+! ACSWDNT
+            IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
+            ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),       &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),1), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsA'"
+      
+            DO iinput=1,1
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
+	        DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
+            END DO
+
+            IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
+            ALLOCATE(gen_result6D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),      &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6)), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//                       &
+  	      " allocating 'gen_result6D'"
+
+! Difference between fields
+      
+            indivmethod='diff_T6D'
+            CALL calc_method_gen6D(dbg, indivmethod, DimMatInputs(1,:), 1, rMATinputsA,         &
+  	      diagcom%constant, diagcom%Noptions, diagcom%options, gen_result6D)
+
+            Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/diff_dimtimes(dbg, oid, 4, 1, 2)
+
+          CASE DEFAULT
+	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
+	     CALL diag_fatal(messg)
+
+        END SELECT methodrsdt
+
+      END IF
+       
+      IF (dbg >= 75) THEN
+        PRINT *,'  VAR: '//TRIM(diagcom%name)//' idvar:',jvar
+        PRINT *,'  1/2 example value:', Rdiagnostic3D(halfdim(DimMatInputs(1,1)),               &
+          halfdim(DimMatInputs(1,2)), halfdim(DimMatInputs(1,3)))
+      ENDIF
+
+! Writting diagnostic in output file
+      SELECT CASE (diagcom%type)
+        CASE (5)
+!       Real diagnostic
+          rcode = nf90_put_var (oid, jvar, Rdiagnostic3D)
+          CALL error_nc(section, rcode)
+	CASE DEFAULT
+	  messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
+          CALL diag_fatal(messg)
+
+      END SELECT
+
+      DEALLOCATE(Rdiagnostic3D)
+      DEALLOCATE(foundvariables, DimMatInputs)
+      DEALLOCATE(rMATinputsA)
+
 ! RST. Net SW at top of atmosphere radiation
 !!
     CASE ('RST')
 
-      IF (dbg >= 75) PRINT *,'  Computing RST...'
+      IF (dbg >= 75) THEN
+        PRINT *,'  ----- ---- --- -- -'
+        PRINT *,'  Computing RST...'
+        PRINT *,'  ----- ---- --- -- -'
+      END IF
 
 ! Preparation of diagnostic result
       IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
@@ -823,7 +945,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       SELECT CASE (diagcom%type)
         CASE (5)
 !       Real diagnostic
-          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          rcode = nf90_put_var (oid, jvar, Rdiagnostic3D)
           CALL error_nc(section, rcode)
 	CASE DEFAULT
 	  messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
@@ -833,12 +955,17 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
       DEALLOCATE(Rdiagnostic3D)
       DEALLOCATE(foundvariables, DimMatInputs)
+      DEALLOCATE(rMATinputsA, rMATinputsB)
 
 ! TDPS. dew point temperature at 2m
 !!
     CASE ('TDPS')
 
-      IF (dbg >= 75) PRINT *,'  Computing TDPS...'
+      IF (dbg >= 75) THEN
+        PRINT *,'  ----- ---- --- -- -'
+        PRINT *,'  Computing TDPS...'
+        PRINT *,'  ----- ---- --- -- -'
+      END IF
 
 ! Preparation of diagnostic result
       IF (ALLOCATED(Rdiagnostic3D)) DEALLOCATE(Rdiagnostic3D)
@@ -895,7 +1022,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       SELECT CASE (diagcom%type)
         CASE (5)
 !       Real diagnostic
-          rcode = nf_put_var_real (oid, jvar, Rdiagnostic3D)
+          rcode = nf90_put_var (oid, jvar, Rdiagnostic3D)
           CALL error_nc(section, rcode)
 	CASE DEFAULT
 	  messg="Nothing to write with variable type '"//CHAR(diagcom%type+48)//"'"
@@ -910,6 +1037,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 !!!!!!!!!!!!!!!!!!!!!!!!!!!! NO VARIABLE DEFINED
 
     CASE DEFAULT
+
       messg="Nothing to do with '"//TRIM(diagcom%name)//"' variable !!"
       CALL diag_fatal(messg)
 
@@ -917,7 +1045,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
   END DO compute_diags
 
-  rcode = nf_close(oid)
+  rcode = nf90_close(oid)
   RETURN
 END SUBROUTINE com_diagnostics
 

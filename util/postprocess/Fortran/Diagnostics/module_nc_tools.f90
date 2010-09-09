@@ -38,6 +38,7 @@ MODULE module_nc_tools
 SUBROUTINE compute_1Dmethod_values(debg, Ninc, incs, dimensioncalc)
 ! Subroutine to compute 'method' values of dimensions 1D methods
 
+  USE netcdf
   USE module_constants
   USE module_types
   USE module_gen_tools
@@ -45,8 +46,7 @@ SUBROUTINE compute_1Dmethod_values(debg, Ninc, incs, dimensioncalc)
 
   IMPLICIT NONE
   
-  INCLUDE 'netcdf.inc'
-!  INCLUDE 'include/types.inc'
+!  INCLUDE 'netcdf.inc'
   
   INTEGER, INTENT(IN)                                     :: debg, Ninc
   CHARACTER(LEN=50), DIMENSION(Ninc), INTENT(IN)          :: incs
@@ -160,15 +160,15 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
   files, file_gatt)
 ! Subroutine to compute dimensions of output file
 
+  USE netcdf
   USE module_constants
   USE module_gen_tools
   USE module_calc_tools
   USE module_types
-  
+
   IMPLICIT NONE
 
-  INCLUDE 'netcdf.inc'
-!  INCLUDE 'include/types.inc'
+!  INCLUDE 'netcdf.inc'
 
   INTEGER, INTENT(IN)                                     :: debg, ncid, Ndims, Nfiles
   CHARACTER(LEN=50), DIMENSION(Ndims), INTENT(IN)         :: dimvec
@@ -257,9 +257,9 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	    dimsid(1,2)=dimensioncompute%Nvalues
           ELSE
             CALL def_dimension(debg, ncid, dimensionnew)
-            rcode = nf_inq_dimid(ncid, TRIM(dimvec(idim)), dimsid(1,1))
+            rcode = nf90_inq_dimid(ncid, TRIM(dimvec(idim)), dimsid(1,1))
             CALL error_nc(section, rcode)
-            rcode = nf_inq_dimlen(ncid, TRIM(dimvec(idim)), dimsid(1,2))
+            rcode = nf90_inquire_dimension(ncid, dimsid(1,1), len=dimsid(1,2))
             CALL error_nc(section, rcode)
           ENDIF
     
@@ -293,9 +293,9 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	    dimsid(1,1)=nc_last_iddim(debg, ncid)
 	    dimsid(1,2)=dimensionnew%Nvalues
           ELSE
-            rcode = nf_inq_dimid(ncid, 'xc', dimsid(1,1))
+            rcode = nf90_inq_dimid(ncid, 'xc', dimsid(1,1))
 	    CALL error_nc(section, rcode)
-            rcode = nf_inq_dimlen(ncid, 'xc', dimsid(1,2))
+            rcode = nf90_inquire_dimension(ncid, dimsid(1,1), len=dimsid(1,2))
 	    CALL error_nc(section, rcode)
           END IF
 
@@ -321,9 +321,9 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
             dimsid(2,1)=nc_last_iddim(debg, ncid)
 	    dimsid(2,2)=dimensionnew%Nvalues
           ELSE
-            rcode = nf_inq_dimid(ncid, 'yc', dimsid(2,1))
+            rcode = nf90_inq_dimid(ncid, 'yc', dimsid(2,1))
 	    CALL error_nc(section, rcode)
-            rcode = nf_inq_dimid(ncid, 'yc', dimsid(2,1))
+            rcode = nf90_inquire_dimension(ncid, dimsid(2,1), len=dimsid(2,2))
 	    CALL error_nc(section, rcode)
           END IF
 
@@ -380,8 +380,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	        (/dimsid(1,1), dimsid(2,1), 1, 1, 1, 1/), "XY ", coordlong, coordstd,coordunits,&
 		"-", coordscoord, debg)
 
-              rcode = nf_put_vara_real(ncid, nc_last_idvar(debg, ncid), (/1, 1/),               &
-	        (/dimvardimfound(1,1), dimvardimfound(1,2)/), valuesMATdim(:,:,1,1,1,1))
+              rcode = nf90_put_var(ncid, nc_last_idvar(debg, ncid), valuesMATdim(:,:,1,1,1,1))
               CALL error_nc(section, rcode)
             END IF notexistnoCAR
           END IF cartesian
@@ -402,7 +401,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	    dimsid(2,2)=dimensioncompute%Nvalues
           ELSE
             CALL def_dimension(debg, ncid, dimensionnew)
-            rcode = nf_inq_dimid(ncid, TRIM(dimvec(idim)), dimsid(2,1))
+            rcode = nf90_inq_dimid(ncid, TRIM(dimvec(idim)), dimsid(2,1))
             CALL error_nc(section, rcode)
           ENDIF
     
@@ -436,9 +435,9 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	    dimsid(1,2)=dimensionnew%Nvalues
    
           ELSE
-            rcode = nf_inq_dimid(ncid, 'xc', dimsid(1,1))
+            rcode = nf90_inq_dimid(ncid, 'xc', dimsid(1,1))
             CALL error_nc(section, rcode)
-            rcode = nf_inq_dimlen(ncid, dimsid(1,1), dimsid(1,2))
+            rcode = nf90_inquire_dimension(ncid, dimsid(1,1), len=dimsid(1,2))
             CALL error_nc(section, rcode)
 
           END IF
@@ -465,9 +464,9 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	    dimsid(2,1)=nc_last_iddim(debg, ncid)
 	    dimsid(2,2)=dimensionnew%Nvalues
           ELSE
-            rcode = nf_inq_dimid(ncid, 'yc', dimsid(2,1))
+            rcode = nf90_inq_dimid(ncid, 'yc', dimsid(2,1))
             CALL error_nc(section, rcode)
-            rcode = nf_inq_dimlen(ncid, dimsid(2,1), dimsid(2,2))
+            rcode = nf90_inquire_dimension(ncid, dimsid(2,1), len=dimsid(2,2))
             CALL error_nc(section, rcode)
           END IF
 
@@ -524,8 +523,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	        (/dimsid(1,1), dimsid(2,1), 1, 1, 1, 1/), "XY ", coordlong, coordstd,coordunits,&
 		"-", coordscoord, debg)
 
-              rcode = nf_put_vara_double(ncid, nc_last_idvar(debg, ncid), (/1, 1/),             &
-	        (/dimvardimfound(1,1), dimvardimfound(1,2)/), valuesMATdim(:,:,1,1,1,1))
+              rcode = nf90_put_var(ncid, nc_last_idvar(debg, ncid), valuesMATdim(:,:,1,1,1,1))
               CALL error_nc(section, rcode)
             END IF notexistnoCARy
           END IF cartesiany
@@ -541,9 +539,9 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	    dimsid(3,1)=nc_last_iddim(debg, ncid)
 	    dimsid(3,2)=dimensioncompute%Nvalues
         ELSE
-          rcode = nf_inq_dimid(ncid, dimensioncompute%name, dimsid(3,1))
+          rcode = nf90_inq_dimid(ncid, dimensioncompute%name, dimsid(3,1))
           CALL error_nc(section, rcode)
-          rcode = nf_inq_dimlen(ncid, dimsid(3,1), dimsid(3,2))
+          rcode = nf90_inquire_dimension(ncid, dimsid(3,1), len=dimsid(3,2))
           CALL error_nc(section, rcode)
         END IF
 
@@ -615,9 +613,9 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	    dimsid(4,2)=dimensionnew%Nvalues
 
         ELSE
-          rcode = nf_inq_dimid(ncid, dimensioncompute%name, dimsid(4,1))
+          rcode = nf90_inq_dimid(ncid, dimensioncompute%name, dimsid(4,1))
           CALL error_nc(section, rcode)
-          rcode = nf_inq_dimlen(ncid, dimsid(4,1), dimsid(4,2))
+          rcode = nf90_inquire_dimension(ncid, dimsid(4,1), len=dimsid(4,2))
           CALL error_nc(section, rcode)
         END IF
 
@@ -639,11 +637,12 @@ END SUBROUTINE compute_dimensions
 SUBROUTINE copy_nc_gatt(debg, mcid, infile)
 ! Subroutine to copy all global attributes from a netCDF file to other open one
 
+  USE netcdf
   USE module_constants
   
   IMPLICIT NONE
   
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
   
   INTEGER, INTENT(IN)                                     :: debg, mcid
   CHARACTER(LEN=500), INTENT(IN)                          :: infile
@@ -661,25 +660,25 @@ SUBROUTINE copy_nc_gatt(debg, mcid, infile)
   section="'copy_nc_att'"
   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
   
-  rcode = nf_open(TRIM(infile), 0, ncid)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  rcode = nf90_open(TRIM(infile), 0, ncid)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
 
-  rcode = nf_inq(ncid, ndims, nvars, ngatts, nunlimdimid)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  rcode = nf90_inquire(ncid, ndims, nvars, ngatts, nunlimdimid)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
 
-  rcode = nf_redef(mcid)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  rcode = nf90_redef(mcid)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
   
   DO iatt=1, ngatts
-    rcode = nf_inq_attname(ncid, NF_GLOBAL, iatt, attname)
-    rcode = nf_copy_att (ncid, NF_GLOBAL, attname, mcid, NF_GLOBAL)
-    IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+    rcode = nf90_inq_attname(ncid, NF90_GLOBAL, iatt, attname)
+    rcode = nf90_copy_att (ncid, NF90_GLOBAL, attname, mcid, NF90_GLOBAL)
+    IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
   END DO
 
-  rcode = nf_enddef(mcid)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//' in '//TRIM(section)//nf_strerror(rcode)
+  rcode = nf90_enddef(mcid)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//' in '//TRIM(section)//nf90_strerror(rcode)
   
-  rcode = nf_close(ncid)
+  rcode = nf90_close(ncid)
 
 END SUBROUTINE copy_nc_gatt
 
@@ -687,12 +686,13 @@ SUBROUTINE create_output(debg, outfile, dimsinname, Ndimsout, dimsoutname, file_
   ycar, ifiles, Nifiles)
 ! create_output: Subroutine to create netCDF output with 4 basic coordinates: lon, lat, lev, time
 
+  USE netcdf
   USE module_constants
   USE module_calc_tools, ONLY: diff_dates
 
   IMPLICIT NONE
 
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
   INTEGER, INTENT(IN)                                    :: Ndimsout, debg, Nifiles
   CHARACTER(LEN=500), INTENT(IN)                         :: outfile, file_gatt
@@ -750,11 +750,11 @@ SUBROUTINE create_output(debg, outfile, dimsinname, Ndimsout, dimsoutname, file_
   INQUIRE( FILE=TRIM(outfile), EXIST=exists_out) 
   IF (exists_out) THEN
     PRINT *,"Acting on a pre-existing file! '"//TRIM(outfile)//"'"
-    rcode = nf_open(TRIM(outfile), NF_WRITE, oid)
+    rcode = nf90_open(TRIM(outfile), NF90_WRITE, oid)
     CALL error_nc(section, rcode)
   ELSE
     PRINT *,"Opening the new file! '"//TRIM(outfile)//"'"  
-    rcode = nf_create(TRIM(outfile), NF_CLOBBER, oid)
+    rcode = nf90_create(TRIM(outfile), NF90_CLOBBER, oid)
     CALL error_nc(section, rcode)
   END IF
 
@@ -770,7 +770,7 @@ SUBROUTINE create_output(debg, outfile, dimsinname, Ndimsout, dimsoutname, file_
   CALL compute_dimensions(debg, oid, Ndimsout, dimsoutname, xcar, ycar, dimsinname, Nifiles,    &
     ifiles, file_gatt)
   
-  rcode = nf_close(oid)
+  rcode = nf90_close(oid)
 
 END SUBROUTINE create_output
 
@@ -783,7 +783,7 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
 
   IMPLICIT NONE
 
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 !  INCLUDE 'include/types.inc'
 
   INTEGER, INTENT(IN)                                    :: debg, ncid
@@ -809,7 +809,7 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
   IF (debg >= 100) PRINT *,"  Definition of dimension '"//TRIM(dimval%name)//"' number: ",idim, &
     'id associated var: ',ivar
 
-  rcode = nf_redef(ncid)
+  rcode = nf90_redef(ncid)
   CALL error_nc(section, rcode)
 
   IF (debg >= 100) PRINT *,'  dimension range: ',dimval%Nvalues
@@ -830,7 +830,7 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
     IF (debg >= 100) PRINT *,"  axis attribute: '"//TRIM(dimval%axis)//"'"
     atttext = TRIM(dimval%axis) 
     attlen = LEN_TRIM(atttext)
-    rcode = nf_put_att_text(ncid, ivar, "axis", attlen, atttext(1:attlen) )
+    rcode = nf90_put_att(ncid, ivar, "axis", atttext(1:attlen) )
     CALL error_nc(section, rcode)
     atttext = ' '
   END IF
@@ -839,7 +839,7 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
     IF (debg >= 100) PRINT *,"  std. name attribute: '"//TRIM(dimval%stdname)//"'"
     atttext = TRIM(dimval%stdname)
     attlen = len_trim(atttext)
-    rcode = nf_put_att_text(ncid, ivar, "standard_name", attlen, atttext(1:attlen) )
+    rcode = nf90_put_att(ncid, ivar, "standard_name", atttext(1:attlen) )
     CALL error_nc(section, rcode)
     atttext = ' '
   END IF
@@ -848,7 +848,7 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
     IF (debg >= 100) PRINT *,"  long name attribute: '"//TRIM(dimval%lonname)//"'"
     atttext = TRIM(dimval%lonname)
     attlen = len_trim(atttext)
-    rcode = nf_put_att_text(ncid, ivar, "long_name", attlen, atttext(1:attlen) )
+    rcode = nf90_put_att(ncid, ivar, "long_name", atttext(1:attlen) )
     CALL error_nc(section, rcode)
     atttext = ' '
   END IF
@@ -857,7 +857,7 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
     IF (debg >= 100) PRINT *,"  units attribute: '"//TRIM(dimval%units)//"'"
     atttext = TRIM(dimval%units)
     attlen = len_trim(atttext)
-    rcode = nf_put_att_text(ncid, ivar, "units", attlen, atttext(1:attlen) )
+    rcode = nf90_put_att(ncid, ivar, "units", atttext(1:attlen) )
     CALL error_nc(section, rcode)
     atttext = ' '
   END IF
@@ -866,7 +866,7 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
     IF (debg >= 100) PRINT *,"  coordinates attribute: '"//TRIM(dimval%coords)//"'"
     atttext = TRIM(dimval%coords)
     attlen = len_trim(atttext)
-    rcode = nf_put_att_text(ncid, ivar, "coords", attlen, atttext(1:attlen) )
+    rcode = nf90_put_att(ncid, ivar, "coords", atttext(1:attlen) )
     CALL error_nc(section, rcode)
     atttext = ' '
   END IF
@@ -875,7 +875,7 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
     IF (debg >= 100) PRINT *,"  positive attribute: '"//TRIM(dimval%positive)//"'"
     atttext = TRIM(dimval%positive)
     attlen = len_trim(atttext)
-    rcode = nf_put_att_text(ncid, ivar, "positive", attlen, atttext(1:attlen) )
+    rcode = nf90_put_att(ncid, ivar, "positive", atttext(1:attlen) )
     CALL error_nc(section, rcode)
     atttext = ' '
   END IF
@@ -884,12 +884,12 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
     IF (debg >= 100) PRINT *,"  formula attribute: '"//TRIM(dimval%form)//"'"
     atttext = TRIM(dimval%form)
     attlen = len_trim(atttext)
-    rcode = nf_put_att_text(ncid, ivar, "formula_terms", attlen, atttext(1:attlen) )
+    rcode = nf90_put_att(ncid, ivar, "formula_terms", atttext(1:attlen) )
     CALL error_nc(section, rcode)
     atttext = ' '
   END IF
 
-  rcode = nf_enddef(ncid)
+  rcode = nf90_enddef(ncid)
   CALL error_nc(section, rcode)
 
   IF (debg >= 100) PRINT *,'  values: ',dimval%values
@@ -902,13 +902,14 @@ END SUBROUTINE def_dimension
 SUBROUTINE def_variable (debg, mcid, varwrite )
 ! Subroutine to define a variable inside a netCDF file
 
+  USE netcdf
   USE module_constants
   USE module_gen_tools, ONLY: diag_fatal
   USE module_types
 
   IMPLICIT NONE
 
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
   INTEGER, INTENT(IN)                                    :: mcid, debg
   TYPE(variabledef)                                      :: varwrite
@@ -927,7 +928,7 @@ SUBROUTINE def_variable (debg, mcid, varwrite )
   section="'def_variable'"
   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
 
-  rcode = nf_redef(mcid)
+  rcode = nf90_redef(mcid)
   CALL error_nc(section, rcode)
   ivar=nc_last_idvar(debg, mcid)+1
 
@@ -939,9 +940,9 @@ SUBROUTINE def_variable (debg, mcid, varwrite )
 !!
       IF (debg >= 100) PRINT *,"  Defining text variable '"//TRIM(varwrite%name)//"' number:",  &
         ivar
-      rcode = nf_def_var(mcid, TRIM(varwrite%name), NF_CHAR, varwrite%rank, varwrite%shape,ivar)
+      rcode = nf90_def_var(mcid, TRIM(varwrite%name), NF90_CHAR, varwrite%shape,ivar)
       CALL error_nc(section, rcode)
-!      rcode = nf_put_att_int(mcid, ivar, "FieldType", NF_INT, 1, 104)
+!      rcode = nf90_put_att_int(mcid, ivar, "FieldType", NF90_INT, 1, 104)
 !      CALL error_nc(section, rcode)
 
     CASE ( 4 ) 
@@ -949,9 +950,9 @@ SUBROUTINE def_variable (debg, mcid, varwrite )
 !!
       IF (debg >= 100) PRINT *,"  Defining real variable '"//TRIM(varwrite%name)//"' number:",  &
         ivar
-      rcode = nf_def_var(mcid, TRIM(varwrite%name), NF_REAL, varwrite%rank, varwrite%shape, ivar)
+      rcode = nf90_def_var(mcid, TRIM(varwrite%name), NF90_REAL, varwrite%shape, ivar)
       CALL error_nc(section, rcode)
-      rcode = nf_put_att_int(mcid, ivar, "FieldType", NF_INT, 1, 106)
+      rcode = nf90_put_att(mcid, ivar, "FieldType", 106)
       CALL error_nc(section, rcode)
   
     CASE ( 5 ) 
@@ -959,9 +960,9 @@ SUBROUTINE def_variable (debg, mcid, varwrite )
 !!
       IF (debg >= 100) PRINT *,"  Defining real variable '"//TRIM(varwrite%name)//"' number:",  &
         ivar
-      rcode = nf_def_var(mcid, TRIM(varwrite%name), NF_REAL, varwrite%rank, varwrite%shape, ivar)
+      rcode = nf90_def_var(mcid, TRIM(varwrite%name), NF90_REAL, varwrite%shape, ivar)
       CALL error_nc(section, rcode)
-      rcode = nf_put_att_int(mcid, ivar, "FieldType", NF_INT, 1, 104)
+      rcode = nf90_put_att(mcid, ivar, "FieldType", 104)
       CALL error_nc(section, rcode)
     CASE DEFAULT
       messg="Nothing to do with variable type '"//CHAR(varwrite%type+48)//"'"
@@ -973,7 +974,7 @@ SUBROUTINE def_variable (debg, mcid, varwrite )
     IF (debg >= 100) PRINT *,"  Adding standard name attribute"
     att_text = TRIM(varwrite%stdname)
     ilen = len_trim(att_text)
-    rcode = nf_put_att_text(mcid, ivar, "standard_name", ilen, att_text(1:ilen) )
+    rcode = nf90_put_att(mcid, ivar, "standard_name", att_text(1:ilen) )
     CALL error_nc(section, rcode)
     att_text = ' '
   END IF
@@ -982,7 +983,7 @@ SUBROUTINE def_variable (debg, mcid, varwrite )
     IF (debg >= 100) PRINT *,"  Adding long name attribute"
     att_text = TRIM(varwrite%lonname)
     ilen = len_trim(att_text)
-    rcode = nf_put_att_text(mcid, ivar, "long_name", ilen, att_text(1:ilen) )
+    rcode = nf90_put_att(mcid, ivar, "long_name", att_text(1:ilen) )
     CALL error_nc(section, rcode)
     att_text = ' '
   END IF
@@ -991,7 +992,7 @@ SUBROUTINE def_variable (debg, mcid, varwrite )
     IF (debg >= 100) PRINT *,"  Adding units attribute"
     att_text = TRIM(varwrite%units)
     ilen = len_trim(att_text)
-    rcode = nf_put_att_text(mcid, ivar, "units", ilen, att_text(1:ilen) )
+    rcode = nf90_put_att(mcid, ivar, "units", att_text(1:ilen) )
     CALL error_nc(section, rcode)
     att_text = ' '
   END IF
@@ -1000,7 +1001,7 @@ SUBROUTINE def_variable (debg, mcid, varwrite )
     IF (debg >= 100) PRINT *,"  Adding coordinates attribute"
     att_text = TRIM(varwrite%coords)
     ilen = len_trim(att_text)
-    rcode = nf_put_att_text(mcid, ivar, "coordinates", ilen, att_text(1:ilen) )
+    rcode = nf90_put_att(mcid, ivar, "coordinates", att_text(1:ilen) )
     CALL error_nc(section, rcode)
     att_text = ' '
   END IF
@@ -1009,7 +1010,7 @@ SUBROUTINE def_variable (debg, mcid, varwrite )
     IF (debg >= 100) PRINT *,"  Adding formula attribute"
     att_text = TRIM(varwrite%form)
     ilen = len_trim(att_text)
-    rcode = nf_put_att_text(mcid, ivar, "formula", ilen, att_text(1:ilen) )
+    rcode = nf90_put_att(mcid, ivar, "formula", att_text(1:ilen) )
     CALL error_nc(section, rcode)
     att_text = ' '
   END IF
@@ -1018,7 +1019,7 @@ SUBROUTINE def_variable (debg, mcid, varwrite )
 !    IF (debg >= 100) PRINT *,"  Adding standard name attribute"
 !    att_text = TRIM(varwrite%stdname)
 !    ilen = len_trim(att_text)
-!    rcode = nf_put_att_text(mcid, ivar, "standard_name", ilen, att_text(1:ilen) )
+!    rcode = nf90_put_att(mcid, ivar, "standard_name", att_text(1:ilen) )
 !    CALL error_nc(section, rcode)
 !    att_text = ' '
 !  END IF
@@ -1026,244 +1027,26 @@ SUBROUTINE def_variable (debg, mcid, varwrite )
   IF (debg >= 100) PRINT *,"  Adding missing attribute"
   att_text = '-99999.' 
   ilen = len_trim(att_text)
-  rcode = nf_put_att_text(mcid, ivar, "missing_value", ilen, att_text(1:ilen) )
+  rcode = nf90_put_att(mcid, ivar, "missing_value", att_text(1:ilen) )
   CALL error_nc(section, rcode)
   att_text = '-99999.'
-  rcode = nf_put_att_text(mcid, ivar, "_Fillvalue", ilen, att_text(1:ilen) )
+  rcode = nf90_put_att(mcid, ivar, "_Fillvalue", att_text(1:ilen) )
   CALL error_nc(section, rcode)
   att_text = ''
 
-  rcode = nf_enddef(mcid)
+  rcode = nf90_enddef(mcid)
   CALL error_nc(section, rcode)
 
 END SUBROUTINE def_variable
 
-SUBROUTINE def_dim(debg, ncid, ivar, dimname, dimax, dimlong, dimunit, dimrg, dimid, dimvalues)
-! Subroutine to define a 1D dimension
-
-  IMPLICIT NONE
-
-  INCLUDE 'netcdf.inc'
-
-  INTEGER, INTENT(IN)                                    :: debg, ncid, ivar, dimrg
-  CHARACTER(LEN=50), INTENT(IN)                          :: dimname, dimax, dimlong, dimunit
-  REAL, DIMENSION(dimrg), INTENT(IN)                     :: dimvalues
-  INTEGER, INTENT(OUT)                                   :: dimid
-
-! Local
-  INTEGER                                                :: rcode, attlen
-  CHARACTER(LEN=50)                                      :: section, atttext
-
-!!!!!!!!!!!!! Variables
-! ncid: netCDF id
-! ivar: number of variable in netCDF
-! Text values of dimension (according to CF-1.4 conventions):
-!    dimname: dimension name
-!    dimax: dimension axis
-!    dimlong: dimension long_name
-!    dimunits: dimension units
-! dimrg: range of dimension
-! dimid: id of dimension
-! dimvalues: real vector with values of dimension
-
-  section="'def_dim'"
-  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
-
-  rcode = nf_redef(ncid)
-  CALL error_nc(section, rcode)
-
-  rcode = nf_def_dim(ncid, TRIM(dimname), dimrg, dimid)
-  CALL error_nc(section, rcode)
-
-  rcode = nf_def_var(ncid, TRIM(dimname), NF_REAL, 1, dimid, ivar)
-  CALL error_nc(section, rcode)
-
-  atttext = TRIM(dimax) 
-  attlen = len_trim(atttext)
-  rcode = nf_put_att_text(ncid, ivar, "axis", attlen, atttext(1:attlen) )
-  CALL error_nc(section, rcode)
-  atttext = ' '
-
-  atttext = TRIM(dimlong)
-  attlen = len_trim(atttext)
-  rcode = nf_put_att_text(ncid, ivar, "long_name", attlen, atttext(1:attlen) )
-  CALL error_nc(section, rcode)
-  atttext = ' '
-
-  atttext = TRIM(dimunit)
-  attlen = len_trim(atttext)
-  rcode = nf_put_att_text(ncid, ivar, "units", attlen, atttext(1:attlen) )
-  CALL error_nc(section, rcode)
-
-  rcode = nf_enddef(ncid)
-  CALL error_nc(section, rcode)
-
-  rcode = nf_put_vara_real (ncid, ivar, (/1/), (/dimrg/), dimvalues)
-  CALL error_nc(section, rcode)
-
-  RETURN
-END SUBROUTINE def_dim
-
-SUBROUTINE def_dim_time(debg, ncid, ivar, dimname, dimlong, dimunit, dimrg, dimid, dimvalues)
-! Subroutine to define a vertical coordinate
-
-  IMPLICIT NONE
-
-  INCLUDE 'netcdf.inc'
-
-  INTEGER, INTENT(IN)                                    :: debg, ncid, ivar, dimrg
-  CHARACTER(LEN=50), INTENT(IN)                          :: dimname, dimlong, dimunit
-  REAL, DIMENSION(dimrg), INTENT(IN)                     :: dimvalues
-  INTEGER, INTENT(OUT)                                   :: dimid
-
-! Local
-  INTEGER                                                :: rcode, attlen, lunits
-  CHARACTER(LEN=50)                                      :: section, atttext
-
-!!!!!!!!!!!!! Variables
-! ncid: netCDF id
-! ivar: number of variable in netCDF
-! Text values of dimension (according to CF-1.4 conventions):
-!    dimname: dimension name
-!    dimlong: dimension long_name
-!    dimunits: dimension units
-! dimrg: range of dimension
-! dimid: id of dimension
-! dimvalues: real vector with values of dimension
-
-  section="'def_dim_time'"
-  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
-
-  rcode = nf_redef(ncid)
-  CALL error_nc(section, rcode)
-
-  rcode = nf_def_dim(ncid, TRIM(dimname), dimrg, dimid)
-  CALL error_nc(section, rcode)
-
-  rcode = nf_def_var(ncid, TRIM(dimname), NF_REAL, 1, dimid, ivar)
-  CALL error_nc(section, rcode)
-
-  atttext = TRIM(dimlong)
-  attlen = len_trim(atttext)
-  rcode = nf_put_att_text(ncid, ivar, "long_name", attlen, atttext(1:attlen) )
-  CALL error_nc(section, rcode)
-  atttext = ' '
-
-  atttext = TRIM(dimunit)
-  attlen = len_trim(atttext)
-  rcode = nf_put_att_text(ncid, ivar, "units", attlen, atttext(1:attlen))
-  CALL error_nc(section, rcode)
-  
-  rcode = nf_enddef(ncid)
-  CALL error_nc(section, rcode)
-
-  rcode = nf_put_vara_real (ncid, ivar, (/1/), (/dimrg/), dimvalues)
-  CALL error_nc(section, rcode)
-
-  RETURN
-  
-END SUBROUTINE def_dim_time
-
-SUBROUTINE def_dim_ver(debg, ncid, ivar, dimname, dimlong, dimunit, dimpos, dimstd, dimform,     &
-  dimrg, dimid, dimvalues)
-! Subroutine to define a vertical coordinate
-
-  IMPLICIT NONE
-
-  INCLUDE 'netcdf.inc'
-
-  INTEGER, INTENT(IN)                                    :: debg, ncid, ivar, dimrg
-  CHARACTER(LEN=50), INTENT(IN)                          :: dimname, dimlong, dimunit, dimpos,  &
-    dimstd
-  CHARACTER(LEN=100), INTENT(IN)                         :: dimform
-  REAL, DIMENSION(dimrg), INTENT(IN)                     :: dimvalues
-  INTEGER, INTENT(OUT)                                   :: dimid
-
-! Local
-  INTEGER                                                :: rcode, attlen, lunits
-  CHARACTER(LEN=50)                                      :: section, atttext
-
-!!!!!!!!!!!!! Variables
-! ncid: netCDF id
-! ivar: number of variable in netCDF
-! Text values of dimension (according to CF-1.4 conventions):
-!    dimname: dimension name
-!    dimlong: dimension long_name
-!    dimunits: dimension units
-!    dimpos: dimension sign on level increase
-!    dimform: dimension formula (whether is not a udunits variable)
-! dimrg: range of dimension
-! dimid: id of dimension
-! dimvalues: real vector with values of dimension
-
-  section="'def_dim_ver'"
-  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
-
-  rcode = nf_redef(ncid)
-  CALL error_nc(section, rcode)
-
-  rcode = nf_def_dim(ncid, TRIM(dimname), dimrg, dimid)
-  CALL error_nc(section, rcode)
-
-  rcode = nf_def_var(ncid, TRIM(dimname), NF_REAL, 1, dimid, ivar)
-  CALL error_nc(section, rcode)
-
-  atttext = TRIM(dimlong)
-  attlen = len_trim(atttext)
-  rcode = nf_put_att_text(ncid, ivar, "long_name", attlen, atttext(1:attlen) )
-  CALL error_nc(section, rcode)
-  atttext = ' '
-
-  atttext = TRIM(dimpos)
-  attlen = len_trim(atttext)
-  rcode = nf_put_att_text(ncid, ivar, "positive", attlen, atttext(1:attlen) )
-  CALL error_nc(section, rcode)
-  atttext = ' '
-
-  atttext = TRIM(dimstd)
-  attlen = len_trim(atttext)
-  rcode = nf_put_att_text(ncid, ivar, "standard_name", attlen, atttext(1:attlen) )
-  CALL error_nc(section, rcode)
-  atttext = ' '
-
-  IF (TRIM(dimunit) == "NO") THEN
-
-    atttext = ''
-    attlen = len_trim(atttext)
-    rcode = nf_put_att_text(ncid, ivar, "units", attlen, atttext(1:attlen) )
-    CALL error_nc(section, rcode)
-    atttext = ' '
-
-    atttext = TRIM(dimform)
-    attlen = len_trim(atttext)
-    rcode = nf_put_att_text(ncid, ivar, "formula_terms", attlen, atttext(1:attlen) )
-    CALL error_nc(section, rcode)
-    atttext = ' '
-
-  ELSE
-    atttext = TRIM(dimunit)
-    attlen = len_trim(atttext)
-    rcode = nf_put_att_text(ncid, ivar, "units", attlen, atttext(1:attlen) )
-    CALL error_nc(section, rcode)
-  
-  END IF
-  
-  rcode = nf_enddef(ncid)
-  CALL error_nc(section, rcode)
-
-  rcode = nf_put_vara_real (ncid, ivar, (/1/), (/dimrg/), dimvalues)
-  CALL error_nc(section, rcode)
-
-  RETURN
-  
-END SUBROUTINE def_dim_ver
-
 SUBROUTINE def_nc_gatt_text (debg, mcid, atdesc, atvalue)
 ! Subroutine to define a global text attribute inside a netCDF file
 
+  USE netcdf
+
   IMPLICIT NONE
   
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
   
   INTEGER, INTENT(IN)                                     :: mcid, debg
   CHARACTER(LEN=50), INTENT(IN)                           :: atdesc
@@ -1282,18 +1065,18 @@ SUBROUTINE def_nc_gatt_text (debg, mcid, atdesc, atvalue)
   section="'def_nc_att_text'"
   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
 
-  rcode = nf_redef(mcid)
+  rcode = nf90_redef(mcid)
   CALL error_nc(section, rcode)
  
   IF (debg >= 100) PRINT *,"Adding global attribute '"//TRIM(atdesc)//"' in netCDF file"
   att_text = atvalue
   ilen = len_trim(att_text)
-  rcode = nf_put_att_text(mcid, NF_GLOBAL, TRIM(atdesc), ilen, att_text(1:ilen) )
+  rcode = nf90_put_att(mcid, NF90_GLOBAL, TRIM(atdesc), att_text(1:ilen) )
   CALL error_nc(section, rcode)
 
   att_text = ' '
 
-  rcode = nf_enddef(mcid)
+  rcode = nf90_enddef(mcid)
   CALL error_nc(section, rcode)
 
 END SUBROUTINE def_nc_gatt_text
@@ -1302,11 +1085,12 @@ SUBROUTINE def_nc_var (mcid, ivar0, cval, itype, idm, jshape, order, desc, stdde
   coord, debg )
 ! Subroutine to define a variable inside a netCDF file
 
+  USE netcdf
   USE module_constants
 
   IMPLICIT NONE
 
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
   INTEGER, INTENT(IN)                                    :: mcid, itype, idm, ivar0
   CHARACTER(LEN=50), INTENT(IN)                          :: cval
@@ -1341,71 +1125,71 @@ SUBROUTINE def_nc_var (mcid, ivar0, cval, itype, idm, jshape, order, desc, stdde
   section="'def_nc_var'"
   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
 
-  rcode = nf_redef(mcid)
+  rcode = nf90_redef(mcid)
   CALL error_nc(section, rcode)
   ivar=nc_last_idvar(debg, mcid)+1
 
   IF ( itype == 5 ) THEN
     IF (debg >= 100) PRINT *,"  Defining real variable '"//TRIM(cval)//"' number:",ivar
-    rcode = nf_def_var(mcid, TRIM(cval), NF_REAL, idm, jshape(1:idm), ivar)
+    rcode = nf90_def_var(mcid, TRIM(cval), NF90_REAL, jshape(1:idm), ivar)
     CALL error_nc(section, rcode)
-    rcode = nf_put_att_int(mcid, ivar, "FieldType", NF_INT, 1, 104)
+    rcode = nf90_put_att(mcid, ivar, "FieldType", 104)
     CALL error_nc(section, rcode)
   ENDIF
 
   IF (debg >= 100) PRINT *,"  Adding MemoryOrder attribute"
   att_text = order
   ilen = len_trim(att_text)
-  rcode = nf_put_att_text(mcid, ivar, "MemoryOrder", ilen, att_text(1:ilen) )
+  rcode = nf90_put_att(mcid, ivar, "MemoryOrder", att_text(1:ilen) )
   CALL error_nc(section, rcode)
   att_text = ' '
 
   IF (debg >= 100) PRINT *,"  Adding long_name attribute"
   att_text = desc
   ilen = len_trim(att_text)
-  rcode = nf_put_att_text(mcid, ivar, "long_name", ilen, att_text(1:ilen) )
+  rcode = nf90_put_att(mcid, ivar, "long_name", att_text(1:ilen) )
   CALL error_nc(section, rcode)
   att_text = ' '
 
   IF (debg >= 100) PRINT *,"  Adding standard_name attribute"
   att_text = stddesc
   ilen = len_trim(att_text)
-  rcode = nf_put_att_text(mcid, ivar, "standard_name", ilen, att_text(1:ilen) )
+  rcode = nf90_put_att(mcid, ivar, "standard_name", att_text(1:ilen) )
   CALL error_nc(section, rcode)
   att_text = ' '
 
   IF (debg >= 100) PRINT *,"  Adding units attribute"
   att_text = units
   ilen = len_trim(att_text)
-  rcode = nf_put_att_text(mcid, ivar, "units", ilen, att_text(1:ilen) )
+  rcode = nf90_put_att(mcid, ivar, "units", att_text(1:ilen) )
   CALL error_nc(section, rcode)
   att_text = ''
 
   IF (debg >= 100) PRINT *,"  Adding stagger attribute"
   att_text = stag
   ilen = len_trim(att_text)
-  rcode = nf_put_att_text(mcid, ivar, "stagger", ilen, att_text(1:ilen) )
+  rcode = nf90_put_att(mcid, ivar, "stagger", att_text(1:ilen) )
   CALL error_nc(section, rcode)
   att_text = ''
 
   IF (debg >= 100) PRINT *,"  Adding coordinates attribute"
   att_text = coord
   ilen = len_trim(att_text)
-  rcode = nf_put_att_text(mcid, ivar, "coordinates", ilen, att_text(1:ilen) )
+  rcode = nf90_put_att(mcid, ivar, "coordinates", att_text(1:ilen) )
   CALL error_nc(section, rcode)
   att_text = ''
 
   IF (debg >= 100) PRINT *,"  Adding missing attribute"
   att_text = '-99999.' 
   ilen = len_trim(att_text)
-  rcode = nf_put_att_text(mcid, ivar, "missing_value", ilen, att_text(1:ilen) )
+  rcode = nf90_put_att(mcid, ivar, "missing_value", att_text(1:ilen) )
   CALL error_nc(section, rcode)
   att_text = '-99999.'
-  rcode = nf_put_att_text(mcid, ivar, "_Fillvalue", ilen, att_text(1:ilen) )
+  rcode = nf90_put_att(mcid, ivar, "_Fillvalue", att_text(1:ilen) )
   CALL error_nc(section, rcode)
   att_text = ''
 
-  rcode = nf_enddef(mcid)
+  rcode = nf90_enddef(mcid)
   CALL error_nc(section, rcode)
 
 END SUBROUTINE def_nc_var
@@ -1413,19 +1197,21 @@ END SUBROUTINE def_nc_var
 REAL FUNCTION diff_dimtimes(debg, oid, dimT, NdimTA, NdimTB)
 ! Function to give the difference in seconds between two time coordinate values
 
+  USE netcdf
   USE module_types
   USE module_gen_tools
 
   IMPLICIT NONE
   
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
   
   INTEGER, INTENT(IN)                                     :: debg, oid, dimT, NdimTA, NdimTB
   
 ! Local
   INTEGER                                                 :: i, funit, ios, rcode
   INTEGER                                                 :: Ndimsout
-  INTEGER                                                 :: timeidvar, timeiddim, Ntimes
+  INTEGER                                                 :: timeidvar, Ntimes
+  INTEGER, DIMENSION(1)                                   :: timeiddim
   CHARACTER(LEN=4)                                        :: lev_process
   CHARACTER(LEN=50)                                       :: X_grid_spacing_gatt,               &
     Y_grid_spacing_gatt, T_grid_spacing_gatt
@@ -1489,12 +1275,12 @@ REAL FUNCTION diff_dimtimes(debg, oid, dimT, NdimTA, NdimTB)
   END IF
 
 ! time dimension information in 'oid' a variable with the name has the dimension values
-  rcode = nf_inq_varid (oid, dimsout(dimT), timeidvar)
+  rcode = nf90_inq_varid (oid, dimsout(dimT), timeidvar)
   CALL error_nc(section, rcode)
   
-  rcode = nf_inq_vardimid (oid, timeidvar, timeiddim)
+  rcode = nf90_inquire_variable (oid, timeidvar, dimids=timeiddim)
   CALL error_nc(section, rcode)
-  rcode = nf_inq_dimlen (oid, timeiddim, Ntimes)
+  rcode = nf90_inquire_dimension (oid, timeiddim(1), len=Ntimes)
   CALL error_nc(section, rcode)
   
 ! Loading time dimension information  
@@ -1505,7 +1291,7 @@ REAL FUNCTION diff_dimtimes(debg, oid, dimT, NdimTA, NdimTB)
       IF (ALLOCATED(Rtimes)) DEALLOCATE(Rtimes)
       ALLOCATE(Rtimes(Ntimes))
       
-      rcode = nf_get_var_double (oid, timeidvar, Rtimes)
+      rcode = nf90_get_var (oid, timeidvar, Rtimes)
       diff_dimtimes = REAL(Rtimes(NdimTB) - Rtimes(NdimTA))
       timeu: SELECT CASE (dimtime%options(2))
         CASE (1)
@@ -1537,11 +1323,12 @@ END FUNCTION diff_dimtimes
 SUBROUTINE error_nc(sec, rc, Ivalue, Rvalue, Cvalue)
 ! Subroutine to print error nc messages
 
+  USE netcdf
   USE module_constants
   
   IMPLICIT NONE
   
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
   
   INTEGER, INTENT(IN)                                     :: rc
   CHARACTER(LEN=50), INTENT(IN)                           :: sec
@@ -1554,13 +1341,13 @@ SUBROUTINE error_nc(sec, rc, Ivalue, Rvalue, Cvalue)
   IF (rc /= 0) THEN
   
     IF (PRESENT(Ivalue)) THEN
-      PRINT *,TRIM(errmsg)//" in "//TRIM(sec)//" "//nf_strerror(rc)//' :',Ivalue
+      PRINT *,TRIM(errmsg)//" in "//TRIM(sec)//" "//nf90_strerror(rc)//' :',Ivalue
     ELSEIF (PRESENT(Rvalue)) THEN
-      PRINT *,TRIM(errmsg)//" in "//TRIM(sec)//" "//nf_strerror(rc)//' :',Rvalue
+      PRINT *,TRIM(errmsg)//" in "//TRIM(sec)//" "//nf90_strerror(rc)//' :',Rvalue
     ELSEIF (PRESENT(Cvalue)) THEN
-      PRINT *,TRIM(errmsg)//" in "//TRIM(sec)//" "//nf_strerror(rc)//" :'"//TRIM(Cvalue)
+      PRINT *,TRIM(errmsg)//" in "//TRIM(sec)//" "//nf90_strerror(rc)//" :'"//TRIM(Cvalue)
     ELSE 
-      PRINT *,TRIM(errmsg)//" in "//TRIM(sec)//" "//nf_strerror(rc)
+      PRINT *,TRIM(errmsg)//" in "//TRIM(sec)//" "//nf90_strerror(rc)
     END IF
   END IF
 END SUBROUTINE error_nc
@@ -1568,9 +1355,11 @@ END SUBROUTINE error_nc
 LOGICAL FUNCTION exists_dim(ncid, dimname)
 ! Function to determine if a dimension exists
 
+  USE netcdf
+
   IMPLICIT NONE
   
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
   
   INTEGER, INTENT(IN)                                     :: ncid
   CHARACTER(LEN=50), INTENT(IN)                           :: dimname
@@ -1587,7 +1376,7 @@ LOGICAL FUNCTION exists_dim(ncid, dimname)
   exists_dim = .FALSE.
 
   exists_dim = .TRUE.
-  rcode = nf_inq_dimid (ncid, dimname, dimid)
+  rcode = nf90_inq_dimid (ncid, dimname, dimid)
   IF (rcode /= 0) exists_dim = .FALSE.
 
 END FUNCTION exists_dim
@@ -1595,9 +1384,11 @@ END FUNCTION exists_dim
 LOGICAL FUNCTION exists_var(ncid, varname)
 ! Function to determine if a variable exists
 
+  USE netcdf
+
   IMPLICIT NONE
   
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
   
   INTEGER, INTENT(IN)                                     :: ncid
   CHARACTER(LEN=50), INTENT(IN)                           :: varname
@@ -1614,7 +1405,7 @@ LOGICAL FUNCTION exists_var(ncid, varname)
 !  PRINT *,'Section '//TRIM(section)//'... .. .'
 
   exists_var = .TRUE.
-  rcode = nf_inq_varid (ncid, TRIM(varname), varid)
+  rcode = nf90_inq_varid (ncid, TRIM(varname), varid)
   IF (rcode /= 0) exists_var = .FALSE.
 
 END FUNCTION exists_var
@@ -1622,12 +1413,13 @@ END FUNCTION exists_var
 SUBROUTINE fill_inputs_50char(debg, ncs, Nncs, fvars, dimMin, matou)
 ! Subroutine to fill a kind-shape of input real fields
 
+  USE netcdf
   USE module_constants
   USE module_gen_tools, ONLY: halfdim
 
   IMPLICIT NONE
   
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
   INTEGER, INTENT(IN)                                     :: debg, Nncs 
   INTEGER, DIMENSION(2), INTENT(IN)                       :: fvars
@@ -1658,7 +1450,7 @@ SUBROUTINE fill_inputs_50char(debg, ncs, Nncs, fvars, dimMin, matou)
     PRINT *,'Filling matrices of dimension: ',UBOUND(matou)
     PRINT *,"Variable in file: '"//TRIM(ncs(fvars(1)))//"' with id:",fvars(2)
   END IF
-  rcode = nf_open(TRIM(ncs(fvars(1))), 0, ncid)
+  rcode = nf90_open(TRIM(ncs(fvars(1))), 0, ncid)
   call error_nc(section, rcode)
 
   matou=''
@@ -1672,7 +1464,8 @@ SUBROUTINE fill_inputs_50char(debg, ncs, Nncs, fvars, dimMin, matou)
         DO l=1,dimMin(4)
           DO m=1,dimMin(5)
             DO n=1,dimMin(6)
-              rcode = nf_get_var1_text ( ncid, fvars(2), (/ i, j, k, l, m, n /), char1)
+              rcode = nf90_get_var ( ncid, fvars(2), char1, start=(/i, j, k, l, m, n /),         &
+                count = (/1, 1, 1, 1, 1, 1/))
               call error_nc(section, rcode)
               matou(j,k,l,m,n)(i:i)=char1
 	      IF ((debg >= 150) .AND. (j == halfdim(dimMin(2))) .AND. (k == halfdim(dimMin(3)))  &
@@ -1686,7 +1479,7 @@ SUBROUTINE fill_inputs_50char(debg, ncs, Nncs, fvars, dimMin, matou)
     END DO
   END DO
 
-  rcode = nf_close(ncid)
+  rcode = nf90_close(ncid)
   call error_nc(section, rcode)
 
   IF (debg >= 100) PRINT *,'Memory loaded input variable. Value (dimN/2)=',                     &
@@ -1699,12 +1492,13 @@ END SUBROUTINE fill_inputs_50char
 SUBROUTINE fill_inputs_real(debg, ncs, Nncs, fvars, dimMin, matin)
 ! Subroutine to fill a kind-shape of input real fields
 
+  USE netcdf
   USE module_constants
   USE module_gen_tools, ONLY: halfdim
 
   IMPLICIT NONE
   
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
   INTEGER, INTENT(IN)                                     :: debg, Nncs 
   INTEGER, DIMENSION(2), INTENT(IN)                       :: fvars
@@ -1734,12 +1528,12 @@ SUBROUTINE fill_inputs_real(debg, ncs, Nncs, fvars, dimMin, matin)
     PRINT *,'Filling matrices of dimension: ',UBOUND(matin)
     PRINT *,"Variable in file: '"//TRIM(ncs(fvars(1)))//"' with id:",fvars(2)
   END IF
-  rcode = nf_open(TRIM(ncs(fvars(1))), 0, ncid)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-  rcode = nf_get_var_real ( ncid, fvars(2), matin )
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-  rcode = nf_close(ncid)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  rcode = nf90_open(TRIM(ncs(fvars(1))), 0, ncid)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
+  rcode = nf90_get_var ( ncid, fvars(2), matin )
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
+  rcode = nf90_close(ncid)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
 
   IF (debg >= 100) PRINT *,'Memory loaded input variable. Value (dimN/2)=',                     &
     matin(halfdim(dimMin(1)), halfdim(dimMin(2)), halfdim(dimMin(3)), halfdim(dimMin(4)),       &
@@ -1751,11 +1545,12 @@ END SUBROUTINE fill_inputs_real
 SUBROUTINE gattribute_REALvalue(file, debg, attributename, attelement, value)
 ! Subroutine to obtain a real value from an attribute from a netCDF file
 
+  USE netcdf
   USE module_gen_tools, ONLY: diag_fatal
 
   IMPLICIT NONE
 
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
   CHARACTER(LEN=500), INTENT(IN)                         :: file
   CHARACTER(LEN=50), INTENT(IN)                          :: attributename
@@ -1779,13 +1574,13 @@ SUBROUTINE gattribute_REALvalue(file, debg, attributename, attelement, value)
   section="'attribute_REALvalue'"
   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
 
-  rcode = nf_open(file, 0, ncid)
-  rcode = nf_inq(ncid, ndims, nvars, ngatts, nunlimdimid)
+  rcode = nf90_open(file, 0, ncid)
+  rcode = nf90_inquire(ncid, ndims, nvars, ngatts, nunlimdimid)
 
   IF (debg >= 100) PRINT *,"Reading in fle '"//TRIM(file)//"'"
   
   PRINT *,"Attribute name: '"//TRIM(attributename)//"' "
-  rcode = nf_inq_atttype(ncid, NF_GLOBAL, attributename, atttype)
+  rcode = nf90_inquire_attribute(ncid, NF90_GLOBAL, attributename, atttype)
   CALL error_nc(section, rcode)
 
 ! If attribute is not real (TYPE =5) stops
@@ -1796,18 +1591,18 @@ SUBROUTINE gattribute_REALvalue(file, debg, attributename, attelement, value)
 
 ! Looking for attribute length
 !!
-  rcode = nf_inq_attlen(ncid, NF_GLOBAL, attributename, attlen)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  rcode = nf90_inquire_attribute(ncid, NF90_GLOBAL, attributename, len=attlen)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
 
 ! Allocating and getting value
 !!
   IF (ALLOCATED(attrealvalues)) DEALLOCATE(attrealvalues)
   ALLOCATE (attrealvalues(attlen))
-  rcode = nf_get_att_real(ncid, NF_GLOBAL, attributename, attrealvalues)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  rcode = nf90_get_att(ncid, NF90_GLOBAL, attributename, attrealvalues)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
   IF (debg >= 75) PRINT *,"attribute: '"//TRIM(attributename)//' values: ',attrealvalues(1:attlen)
 
-  rcode = nf_close(ncid)
+  rcode = nf90_close(ncid)
   value=attrealvalues(attelement)
   IF (debg >= 75) PRINT *,'giving back value: ',value
 
@@ -1818,11 +1613,12 @@ END SUBROUTINE gattribute_REALvalue
 SUBROUTINE gattribute_STRINGvalue(file, debg, attributename, attelement, value)
 ! Subroutine to obtain a string value from an attribute from a netCDF file
 
+  USE netcdf
   USE module_gen_tools, ONLY: diag_fatal
 
   IMPLICIT NONE
 
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
   CHARACTER(LEN=500), INTENT(IN)                         :: file
   CHARACTER(LEN=50), INTENT(IN)                          :: attributename
@@ -1833,7 +1629,7 @@ SUBROUTINE gattribute_STRINGvalue(file, debg, attributename, attelement, value)
   INTEGER                                                :: rcode
   CHARACTER(LEN=50)                                      :: section, attname
   INTEGER                                                :: ndims, nvars, ngatts, nunlimdimid
-  CHARACTER(LEN=250), DIMENSION(:), ALLOCATABLE          :: attstringvalues
+  CHARACTER(LEN=250)                                     :: attstringvalues
   CHARACTER(LEN=250)                                     :: message
 
 !!!!!!!!!!!!!!! Variables
@@ -1846,13 +1642,13 @@ SUBROUTINE gattribute_STRINGvalue(file, debg, attributename, attelement, value)
   section="'attribute_STRINGvalue'"
   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
 
-  rcode = nf_open(file, 0, ncid)
-  rcode = nf_inq(ncid, ndims, nvars, ngatts, nunlimdimid)
+  rcode = nf90_open(file, 0, ncid)
+  rcode = nf90_inquire(ncid, ndims, nvars, ngatts, nunlimdimid)
 
   IF (debg >= 100) PRINT *,"  Reading in fle '"//TRIM(file)//"'"
   
   PRINT *,"  Attribute name: '"//TRIM(attributename)//"' "
-  rcode = nf_inq_atttype(ncid, NF_GLOBAL, attributename, atttype)
+  rcode = nf90_inquire_attribute(ncid, NF90_GLOBAL, attributename, atttype)
   CALL error_nc(section, rcode)
 
 ! If attribute is not string (TYPE =2) stops
@@ -1863,32 +1659,30 @@ SUBROUTINE gattribute_STRINGvalue(file, debg, attributename, attelement, value)
 
 ! Looking for attribute length
 !!
-  rcode = nf_inq_attlen(ncid, NF_GLOBAL, attributename, attlen)
+  rcode = nf90_inquire_attribute(ncid, NF90_GLOBAL, attributename, len=attlen)
   CALL error_nc(section, rcode)
 
 ! Allocating and getting value
 !!
-  IF (ALLOCATED(attstringvalues)) DEALLOCATE(attstringvalues)
-  ALLOCATE (attstringvalues(attlen))
-  rcode = nf_get_att_text(ncid, NF_GLOBAL, attributename, attstringvalues)
+  rcode = nf90_get_att(ncid, NF90_GLOBAL, attributename, attstringvalues)
   CALL error_nc(section, rcode)
-  IF (debg >= 75) PRINT *,"  attribute: '"//TRIM(attributename)//' values: ',                   &
-    attstringvalues(1:attlen)
+  IF (debg >= 75) PRINT *,"  attribute: '"//TRIM(attributename)//" value: '"//                  &
+    TRIM(attstringvalues)//"'"
 
-  rcode = nf_close(ncid)
-  value=attstringvalues(attelement)
+  rcode = nf90_close(ncid)
+  value=attstringvalues
   IF (debg >= 75) PRINT *,"  giving back value: '"//TRIM(value)//"'"
 
-  DEALLOCATE(attstringvalues)
   RETURN
 END SUBROUTINE gattribute_STRINGvalue
 
 SUBROUTINE nc_gatts(fileinf, debg) 
 ! Subroutine to print all global attributes of a netCDF file 
 
+  USE netcdf
   IMPLICIT NONE
   
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
   CHARACTER(LEN=500), INTENT(IN)                         :: fileinf
   INTEGER, INTENT(IN)                                    :: debg
@@ -1912,56 +1706,55 @@ SUBROUTINE nc_gatts(fileinf, debg)
   section="'nc_atts'"
   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
 
-  rcode = nf_open(fileinf, 0, ncid)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-  rcode = nf_inq(ncid, ndims, nvars, ngatts, nunlimdimid)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  rcode = nf90_open(fileinf, 0, ncid)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
+  rcode = nf90_inquire(ncid, ndims, nvars, ngatts, nunlimdimid)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
   IF (debg >= 100) THEN
     PRINT *,'File: '//TRIM(fileinf)
     DO iatt=1, ngatts
-      rcode = nf_inq_attname(ncid, NF_GLOBAL, iatt, attname)
-      rcode = nf_inq_atttype(ncid, NF_GLOBAL, attname, atttype)
-      rcode = nf_inq_attlen(ncid, NF_GLOBAL, attname, attlen)     
+      rcode = nf90_inq_attname(ncid, NF90_GLOBAL, iatt, attname)
+      rcode = nf90_inquire_attribute(ncid, NF90_GLOBAL, attname, atttype, attlen)
       PRINT *,'     iatt:',iatt,'***'//TRIM(attname)//'*** type:',atttype,' length: ',attlen
       SELECT CASE(atttype)
       CASE(2)
         attcharvalues=''
-        rcode = nf_get_att_text(ncid, NF_GLOBAL, attname, attcharvalues)
-	IF ( rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+        rcode = nf90_get_att(ncid, NF90_GLOBAL, attname, attcharvalues)
+	IF ( rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
         PRINT *,"          * value: '"//TRIM(attcharvalues)//"'"
       CASE(3)
         IF (ALLOCATED(attintvalues)) DEALLOCATE(attintvalues)
         ALLOCATE (attintvalues(attlen))
-        rcode = nf_get_att_int1(ncid, NF_GLOBAL, TRIM(attname), attintvalues)
-	IF ( rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+        rcode = nf90_get_att(ncid, NF90_GLOBAL, TRIM(attname), attintvalues)
+	IF ( rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
         PRINT *,'          * values:',(attintvalues(j),' ,',j=1,attlen)
         DEALLOCATE(attintvalues)
       CASE(4)
         IF (ALLOCATED(attintvalues)) DEALLOCATE(attintvalues)
         ALLOCATE (attintvalues(attlen))
-        rcode = nf_get_att_int(ncid, NF_GLOBAL, TRIM(attname), attintvalues)
-	IF ( rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+        rcode = nf90_get_att(ncid, NF90_GLOBAL, TRIM(attname), attintvalues)
+	IF ( rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
         PRINT *,'          * values:',(attintvalues(j),' ,',j=1,attlen)
         DEALLOCATE(attintvalues)
 !      CASE(8)
 !        IF (ALLOCATED(attlongintvalues)) DEALLOCATE(attlongintvalues)
 !        ALLOCATE (attlongintvalues(attlen))
-!        rcode = nf_get_att_int2(ncid, NF_GLOBAL, TRIM(attname), attlongintvalues)
-!	IF ( rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+!        rcode = nf90_get_att(ncid, NF90_GLOBAL, TRIM(attname), attlongintvalues)
+!	IF ( rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
 !        PRINT *,'          * values:',(attlongintvalues(j),' ,',j=1,attlen)
 !        DEALLOCATE(attlongintvalues)
       CASE(5)
         IF (ALLOCATED(attrealvalues)) DEALLOCATE(attrealvalues)
         ALLOCATE (attrealvalues(attlen))
-        rcode = nf_get_att_real(ncid, NF_GLOBAL, TRIM(attname), attrealvalues)
-	IF ( rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+        rcode = nf90_get_att(ncid, NF90_GLOBAL, TRIM(attname), attrealvalues)
+	IF ( rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
         PRINT *,'          * values:',(attrealvalues(j),' ,',j=1,attlen)
         DEALLOCATE(attrealvalues)
       CASE(6)
         IF (ALLOCATED(attdoublevalues)) DEALLOCATE(attdoublevalues)
         ALLOCATE (attdoublevalues(attlen))
-        rcode = nf_get_att_double(ncid, NF_GLOBAL, TRIM(attname), attdoublevalues)
-	IF ( rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+        rcode = nf90_get_att(ncid, NF90_GLOBAL, TRIM(attname), attdoublevalues)
+	IF ( rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
         PRINT *,'          * values:',(attdoublevalues(j),' ,',j=1,attlen)
         DEALLOCATE(attdoublevalues)
       CASE DEFAULT
@@ -1969,7 +1762,7 @@ SUBROUTINE nc_gatts(fileinf, debg)
       END SELECT
     END DO
   ENDIF
-  rcode = nf_close(ncid)
+  rcode = nf90_close(ncid)
 
   RETURN
 END SUBROUTINE nc_gatts
@@ -1978,11 +1771,12 @@ SUBROUTINE nc_dimensions(file, dbg, ndims, Xdimname, Ydimname, Zdimname, Tdimnam
   dimsname, dx, dy, dz, dt) 
 ! Subroutine to obtain range of dimensions of a netCDF file
 
+  USE netcdf
   USE module_constants
   
   IMPLICIT NONE
 
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
   INTEGER                                                :: idim
   CHARACTER(LEN=500), INTENT(IN)                         :: file
@@ -2006,12 +1800,12 @@ SUBROUTINE nc_dimensions(file, dbg, ndims, Xdimname, Ydimname, Zdimname, Tdimnam
   section="'nc_dimensions'"
   IF (dbg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
   
-  rcode = nf_open(file, 0, ncid)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  rcode = nf90_open(file, 0, ncid)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
 
   DO idim=1, ndims
 
-    rcode = nf_inq_dim(ncid, idim, dimsname(idim), dimsval(idim))
+    rcode = nf90_inquire_dimension(ncid, idim, dimsname(idim), dimsval(idim))
     IF (TRIM(dimsname(idim)) == TRIM(Xdimname)) dx=dimsval(idim)
     IF (TRIM(dimsname(idim)) == TRIM(Ydimname)) dy=dimsval(idim)
     IF (TRIM(dimsname(idim)) == TRIM(Zdimname)) dz=dimsval(idim)
@@ -2025,7 +1819,7 @@ SUBROUTINE nc_dimensions(file, dbg, ndims, Xdimname, Ydimname, Zdimname, Tdimnam
     END DO
     PRINT *,'File dimensions. dimx:',dx,' dimy:',dy,' dimz:',dz,' dimt:',dt
   END IF
-  rcode = nf_close(ncid)
+  rcode = nf90_close(ncid)
   RETURN
 
 END SUBROUTINE nc_dimensions
@@ -2033,9 +1827,10 @@ END SUBROUTINE nc_dimensions
 INTEGER FUNCTION nc_last_iddim(debg, ncid)
 ! Function to give higest iddim of a netCDF file
 
+  USE netcdf
   IMPLICIT NONE
   
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
   
   INTEGER, INTENT(IN)                                     :: debg, ncid
 
@@ -2051,7 +1846,7 @@ INTEGER FUNCTION nc_last_iddim(debg, ncid)
   
   IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
 
-  rcode = nf_inq(ncid, ndims, nvars, ngatts, nunlimdimid)
+  rcode = nf90_inquire(ncid, ndims, nvars, ngatts, nunlimdimid)
   CALL error_nc(section, rcode)
   
   IF (debg >= 150) THEN
@@ -2059,7 +1854,7 @@ INTEGER FUNCTION nc_last_iddim(debg, ncid)
   ENDIF
 
   DO idim=1,ndims
-    rcode = nf_inq_dimname (ncid, idim, dimname)
+    rcode = nf90_inquire_dimension (ncid, idim, dimname)
     CALL error_nc(section, rcode)  
     IF (debg >= 150 ) PRINT *,'var #',idim,' name: ',dimname
   END DO  
@@ -2071,9 +1866,11 @@ END FUNCTION nc_last_iddim
 INTEGER FUNCTION nc_last_idvar(debg, ncid)
 ! Function to give higest idvar of a netCDF file
 
+  USE netcdf
+  
   IMPLICIT NONE
   
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
   
   INTEGER, INTENT(IN)                                     :: debg, ncid
 
@@ -2089,7 +1886,7 @@ INTEGER FUNCTION nc_last_idvar(debg, ncid)
   
   IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
 
-  rcode = nf_inq(ncid, ndims, nvars, ngatts, nunlimdimid)
+  rcode = nf90_inquire(ncid, ndims, nvars, ngatts, nunlimdimid)
   CALL error_nc(section, rcode)
   
   IF (debg >= 150) THEN
@@ -2097,7 +1894,7 @@ INTEGER FUNCTION nc_last_idvar(debg, ncid)
   ENDIF
 
   DO ivar=1,nvars
-    rcode = nf_inq_varname (ncid, ivar, varname)
+    rcode = nf90_inquire_variable (ncid, ivar, name=varname)
     CALL error_nc(section, rcode)  
     IF (debg >= 150 ) PRINT *,'var #',ivar,' name: ',varname
   END DO  
@@ -2109,9 +1906,11 @@ END FUNCTION nc_last_idvar
 SUBROUTINE nc_Ndim(fileinf, debg, ndims, nvars, ngatts, nunlimdimid) 
 ! Subroutine to obtain number of dimensions of a netCDF file 
 
+  USE netcdf
+  
   IMPLICIT NONE
   
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
   CHARACTER(LEN=500), INTENT(IN)                         :: fileinf
   INTEGER, INTENT(IN)                                    :: debg
@@ -2130,10 +1929,10 @@ SUBROUTINE nc_Ndim(fileinf, debg, ndims, nvars, ngatts, nunlimdimid)
   section="'nc_Ndim'"
   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
 
-  rcode = nf_open(fileinf, 0, ncid)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-  rcode = nf_inq(ncid, ndims, nvars, ngatts, nunlimdimid)
-  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+  rcode = nf90_open(fileinf, 0, ncid)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
+  rcode = nf90_inquire(ncid, ndims, nvars, ngatts, nunlimdimid)
+  IF (rcode /= 0) PRINT *,TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
   IF (debg >= 20) THEN
     PRINT *,'File: '//TRIM(fileinf)
     PRINT *,' INPUT file has = ',ndims, ' dimensions, '
@@ -2141,7 +1940,7 @@ SUBROUTINE nc_Ndim(fileinf, debg, ndims, nvars, ngatts, nunlimdimid)
     PRINT *,'                  ',ngatts,' global attributes '
     PRINT *,'  '
   ENDIF
-  rcode = nf_close(ncid)
+  rcode = nf90_close(ncid)
 
   RETURN
 END SUBROUTINE nc_Ndim
@@ -2151,12 +1950,13 @@ SUBROUTINE search_dimensions(debg, ncs, Nnc, sdims, fdims)
 !
 ! NOTE: Variable values are got from first file where it is found
 
+  USE netcdf
   USE module_constants
   USE module_gen_tools, ONLY: diag_fatal
 
   IMPLICIT NONE
 
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
   INTEGER, INTENT(IN)                                     :: debg, Nnc
   CHARACTER(LEN=500), DIMENSION(Nnc), INTENT(IN)          :: ncs
@@ -2188,32 +1988,33 @@ SUBROUTINE search_dimensions(debg, ncs, Nnc, sdims, fdims)
   IF (debg >= 75) PRINT *,"  Searching dimensions in "//TRIM(section)//"..."
   fdims=0
   files_loop: DO ifile=1, Nnc
-    rcode = nf_open(TRIM(ncs(ifile)), 0, ncid)
+    rcode = nf90_open(TRIM(ncs(ifile)), 0, ncid)
     IF (debg >= 20) PRINT *,"  Reading in file: '"//TRIM(ncs(ifile))//"' ..."
     CALL error_nc(section, rcode)
-    rcode = nf_inq_ndims(ncid, ncNdims)
+    rcode = nf90_inquire(ncid, ncNdims)
     
     IF (ALLOCATED(ncdims)) DEALLOCATE(ncdims)
     ALLOCATE(ncdims(ncNdims))
     
     DO idim=1,ncNdims
-      rcode = nf_inq_dimlen(ncid, idim, ncdims(idim))
+      rcode = nf90_inquire_dimension(ncid, idim, len=ncdims(idim))
+      CALL error_nc(section, rcode)
     END DO
 
 ! Searching dimension
 !!
-    rcode = nf_inq_dimid(ncid, TRIM(sdims), iddim)
+    rcode = nf90_inq_dimid(ncid, TRIM(sdims), iddim)
     CALL error_nc(section, rcode)
     IF (fdims(1) == 0 ) THEN
       fdims(1)=ifile
       fdims(2)=iddim
-      rcode = nf_inq_dimlen (ncid, iddim, fdims(3))
+      rcode = nf90_inquire_dimension (ncid, iddim, len=fdims(3))
 
       IF (debg >= 75) PRINT *,"  Dimension: '"//TRIM(sdims)//"' found in '"//TRIM(ncs(ifile))// &
         ' dim id:',fdims(2),' range: ', fdims(3)
     END IF
     
-    rcode = nf_close(ncid)
+    rcode = nf90_close(ncid)
     DEALLOCATE (ncdims)
   END DO files_loop
 
@@ -2235,12 +2036,13 @@ SUBROUTINE search_variables(debg, ncs, Nnc, svars, Nsvars, fvars, dimfvars)
 !
 ! NOTE: Variable values are got from first file where it is found
 
+  USE netcdf
   USE module_constants
   USE module_gen_tools, ONLY: diag_fatal
 
   IMPLICIT NONE
 
-  INCLUDE 'netcdf.inc'
+!  INCLUDE 'netcdf.inc'
 
   INTEGER, INTENT(IN)                                     :: debg, Nnc, Nsvars
   CHARACTER(LEN=500), DIMENSION(Nnc), INTENT(IN)          :: ncs
@@ -2283,28 +2085,28 @@ SUBROUTINE search_variables(debg, ncs, Nnc, svars, Nsvars, fvars, dimfvars)
   fvars=0
   dimfvars=1
   files_loop: DO ifile=1, Nnc
-    rcode = nf_open(TRIM(ncs(ifile)), 0, ncid)
+    rcode = nf90_open(TRIM(ncs(ifile)), 0, ncid)
     IF (debg >= 20) PRINT *,"  Reading in file: '"//TRIM(ncs(ifile))//"' ..."
-    IF (rcode /= 0) PRINT *, '  '//TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
-    rcode = nf_inq_ndims(ncid, ncNdims)
+    IF (rcode /= 0) PRINT *, '  '//TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
+    rcode = nf90_inquire(ncid, ncNdims)
     
     IF (ALLOCATED(ncdims)) DEALLOCATE(ncdims)
     ALLOCATE(ncdims(ncNdims))
     
     DO idim=1,ncNdims
-      rcode = nf_inq_dimlen(ncid, idim, ncdims(idim))
+      rcode = nf90_inquire_dimension(ncid, idim, len=ncdims(idim))
     END DO
 
 ! Searching variables characteristics
 !!
     DO ivar=1, Nsvars
-      rcode = nf_inq_varid(ncid, TRIM(svars(ivar)), idvar)
-      IF (rcode /= 0) PRINT *,'  '//TRIM(errmsg)//" in "//TRIM(section)//" "//nf_strerror(rcode)
+      rcode = nf90_inq_varid(ncid, TRIM(svars(ivar)), idvar)
+      IF (rcode /= 0) PRINT *,'  '//TRIM(errmsg)//" in "//TRIM(section)//" "//nf90_strerror(rcode)
       IF (fvars(ivar,1) == 0 ) THEN
         fvars(ivar,1)=ifile
 	fvars(ivar,2)=idvar
-	rcode = nf_inq_varndims (ncid, idvar, Ndimfvar)
-	rcode = nf_inq_vardimid (ncid, idvar, ndimsfvar)
+	rcode = nf90_inquire_variable (ncid, idvar, ndims=Ndimfvar)
+	rcode = nf90_inquire_variable (ncid, idvar, dimids=ndimsfvar)
 	dimfvars(ivar,1:Ndimfvar) = ncdims(ndimsfvar(1:Ndimfvar))
 	
         IF (debg >= 75) PRINT *,'  Variable # ',ivar,'/',Nsvars,": '"//TRIM(svars(ivar))//      &
@@ -2312,7 +2114,7 @@ SUBROUTINE search_variables(debg, ncs, Nnc, svars, Nsvars, fvars, dimfvars)
           dimfvars(ivar,1:Ndimfvar)
       END IF
     END DO
-    rcode = nf_close(ncid)
+    rcode = nf90_close(ncid)
     DEALLOCATE (ncdims)
   END DO files_loop
 

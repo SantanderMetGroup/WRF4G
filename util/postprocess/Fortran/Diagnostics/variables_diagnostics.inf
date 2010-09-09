@@ -127,6 +127,21 @@
  diagnostic_options       3
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
+*RSDT*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          'ACSWDNT'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'toa_incoming_shortwave_flux'
+ diagnostic_longdesc      'incoming/downward SW radiation at top of atmosphere'
+ diagnostic_units         'Wm-2'
+ diagnostic_method        'wrf_accum'
+ diagnostic_constant      0.
+ diagnostic_Noptions      1
+ diagnostic_options       3
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       - 
 *RST*
  diagnostic_type          5
  Num_input_variables      2
