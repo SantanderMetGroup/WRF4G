@@ -53,12 +53,14 @@ SUBROUTINE compute_1Dmethod_values(debg, Ninc, incs, dimensioncalc)
   TYPE(dimensiondef), INTENT(INOUT)                       :: dimensioncalc
   
 ! Local
-  INTEGER                                                 :: ival, ivar
+  INTEGER                                                 :: i, ival, ivar
   INTEGER                                                 :: rcode
   INTEGER, SAVE                                           :: dimcalcrange
   CHARACTER(LEN=50)                                       :: section
   INTEGER, DIMENSION(3)                                   :: dimfound
-  REAL, DIMENSION(:), ALLOCATABLE, TARGET, SAVE           :: dimvalues
+  REAL, DIMENSION(:), ALLOCATABLE                         :: dimvalues
+  REAL(KIND=Rhigh), DIMENSION(:), ALLOCATABLE, TARGET,                                          &
+    SAVE                                                  :: dimvalues_targ
   REAL, DIMENSION(:,:), ALLOCATABLE                       :: diminvalues
   INTEGER, DIMENSION(:,:), ALLOCATABLE                    :: dimvarfound, dimvardimfound
   REAL, DIMENSION(:,:,:,:,:,:), ALLOCATABLE               :: valuesMATin
@@ -98,6 +100,8 @@ SUBROUTINE compute_1Dmethod_values(debg, Ninc, incs, dimensioncalc)
     dimensioncalc%Nvalues=dimfound(3)
     IF (ALLOCATED(dimvalues)) DEALLOCATE(dimvalues)
     ALLOCATE(dimvalues(dimfound(3)))
+    IF (ALLOCATED(dimvalues_targ)) DEALLOCATE(dimvalues_targ)
+    ALLOCATE(dimvalues_targ(dimfound(3)))
 
   END IF
 !
@@ -137,13 +141,16 @@ SUBROUTINE compute_1Dmethod_values(debg, Ninc, incs, dimensioncalc)
     dimensioncalc%Nvalues=dimcalcrange
     IF (ALLOCATED(dimvalues)) DEALLOCATE(dimvalues)
     ALLOCATE(dimvalues(dimvardimfound(1, dimensioncalc%indimensions(1))))
+    IF (ALLOCATED(dimvalues_targ)) DEALLOCATE(dimvalues_targ)
+    ALLOCATE(dimvalues_targ(dimvardimfound(1, dimensioncalc%indimensions(1))))
 
   END IF
   
   CALL calc_method1D(debg, dimensioncalc%method, dimvardimfound(1,                              &
     dimensioncalc%indimensions(1)), dimensioncalc%NinVarnames, diminvalues,                     &
     dimensioncalc%constant, dimvalues)
-  dimensioncalc%values=>dimvalues
+  dimvalues_targ=REAL(dimvalues, KIND=Rhigh)
+  dimensioncalc%values=>dimvalues_targ
   IF (debg >= 150) PRINT *,'  ',dimensioncalc%Nvalues,' values of dimension: ',                 &
     dimensioncalc%values
 
@@ -179,7 +186,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
   INTEGER, DIMENSION(3)                                   :: dimfound
   INTEGER, DIMENSION(:,:), ALLOCATABLE                    :: dimvarfound, dimvardimfound,       &
     invarvalues
-  INTEGER, DIMENSION(Ndims)                               :: dimsid
+  INTEGER, DIMENSION(Ndims,2)                             :: dimsid
   CHARACTER(LEN=250)                                      :: coordlong, messg
   REAL, DIMENSION(:), ALLOCATABLE                         :: dimensionvalues
   REAL, DIMENSION(:,:,:,:,:,:,:), ALLOCATABLE             :: valuesMATinA, valuesMATinB,        &
@@ -188,7 +195,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
   CHARACTER(LEN=50)                                       :: coordname, coordstd, coordunits,   &
     coordscoord
   CHARACTER(LEN=50), DIMENSION(:,:,:,:,:), ALLOCATABLE    :: charcoor
-  REAL, DIMENSION(:), ALLOCATABLE                         :: cdimvalues
+  REAL(KIND=Rhigh), DIMENSION(:), ALLOCATABLE             :: cdimvalues
   CHARACTER(LEN=1)                                        :: udate
   CHARACTER(LEN=4)                                        :: yearref
 
@@ -233,7 +240,6 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
     IF ( ANY(generic_calcs1D == dimensioncompute%method)) THEN
       CALL compute_1Dmethod_values(debg,   &
       Nfiles, files, dimensioncompute)
-      PRINT *,'neng-range: ',dimensioncompute%Nvalues
     END IF
 
     indiv_dim: SELECT CASE (dimvec(idim))
@@ -247,10 +253,13 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
           IF (.NOT.exists_dim(ncid, dimvec(idim))) THEN
             jvar = jvar + 1
             CALL def_dimension(debg, ncid, dimensioncompute)
-	    dimsid(1)=nc_last_iddim(debg, ncid)
+	    dimsid(1,1)=nc_last_iddim(debg, ncid)
+	    dimsid(1,2)=dimensioncompute%Nvalues
           ELSE
             CALL def_dimension(debg, ncid, dimensionnew)
-            rcode = nf_inq_dimid(ncid, TRIM(dimvec(idim)), dimsid(1))
+            rcode = nf_inq_dimid(ncid, TRIM(dimvec(idim)), dimsid(1,1))
+            CALL error_nc(section, rcode)
+            rcode = nf_inq_dimlen(ncid, TRIM(dimvec(idim)), dimsid(1,2))
             CALL error_nc(section, rcode)
           ENDIF
     
@@ -269,7 +278,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
             ALLOCATE(cdimvalues(dimfound(3)))
 
             DO i=1,dimfound(3)
-	      cdimvalues(i)=i*1.
+	      cdimvalues(i)=i*1._Rhigh
 	    END DO
 
             CALL fill_dimension_type(debg,'xc', nc_last_iddim(debg, ncid)+1, 'H', 'X','-',      &
@@ -281,9 +290,13 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 
             CALL def_dimension(debg, ncid, dimensionnew)
 	    jvar=jvar+1
-	    dimsid(1)=nc_last_iddim(debg, ncid)
+	    dimsid(1,1)=nc_last_iddim(debg, ncid)
+	    dimsid(1,2)=dimensionnew%Nvalues
           ELSE
-            rcode = nf_inq_dimid(ncid, 'xc', dimsid(1))
+            rcode = nf_inq_dimid(ncid, 'xc', dimsid(1,1))
+	    CALL error_nc(section, rcode)
+            rcode = nf_inq_dimlen(ncid, 'xc', dimsid(1,2))
+	    CALL error_nc(section, rcode)
           END IF
 
           IF (.NOT.exists_dim(ncid, 'yc'//blanks(1:50-LEN('yc')))) THEN
@@ -294,7 +307,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
    	    ALLOCATE(cdimvalues(dimfound(3)))
 
             DO i=1,dimfound(3)
-	      cdimvalues(i)=i*1.
+	      cdimvalues(i)=i*1._Rhigh
 	    END DO
 
             CALL fill_dimension_type(debg,'yc', nc_last_iddim(debg, ncid)+1, 'H', 'Y','-',      &
@@ -305,9 +318,13 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
             IF (debg >= 150) PRINT *,"  values 'yc':", cdimvalues
 
             CALL def_dimension(debg, ncid, dimensionnew)
-            dimsid(2)=nc_last_iddim(debg, ncid)
+            dimsid(2,1)=nc_last_iddim(debg, ncid)
+	    dimsid(2,2)=dimensionnew%Nvalues
           ELSE
-            rcode = nf_inq_dimid(ncid, 'yc', dimsid(2))
+            rcode = nf_inq_dimid(ncid, 'yc', dimsid(2,1))
+	    CALL error_nc(section, rcode)
+            rcode = nf_inq_dimid(ncid, 'yc', dimsid(2,1))
+	    CALL error_nc(section, rcode)
           END IF
 
 ! Defining and writting real values of 2D longitudes
@@ -359,12 +376,10 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
               coordunits='degrees'
               coordscoord='lon lat'
 
-              PRINT *,'neng-idvar: ',nc_last_idvar(debg, ncid)
               CALL def_nc_var(ncid, nc_last_idvar(debg, ncid)+1, dimensioncompute%name, 5, 2,   &
-	        (/dimsid(1), dimsid(2), 1, 1, 1, 1/), "XY ", coordlong, coordstd, coordunits,   &
+	        (/dimsid(1,1), dimsid(2,1), 1, 1, 1, 1/), "XY ", coordlong, coordstd,coordunits,&
 		"-", coordscoord, debg)
 
-              PRINT *,'neng-idvar: ',nc_last_idvar(debg, ncid)
               rcode = nf_put_vara_real(ncid, nc_last_idvar(debg, ncid), (/1, 1/),               &
 	        (/dimvardimfound(1,1), dimvardimfound(1,2)/), valuesMATdim(:,:,1,1,1,1))
               CALL error_nc(section, rcode)
@@ -383,10 +398,11 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
           IF (.NOT.exists_dim(ncid, dimvec(idim))) THEN
             jvar = nc_last_iddim(debg, ncid)+1
             CALL def_dimension(debg, ncid, dimensioncompute)
-	    dimsid(2)=nc_last_iddim(debg, ncid)
+	    dimsid(2,1)=nc_last_iddim(debg, ncid)
+	    dimsid(2,2)=dimensioncompute%Nvalues
           ELSE
             CALL def_dimension(debg, ncid, dimensionnew)
-            rcode = nf_inq_dimid(ncid, TRIM(dimvec(idim)), dimsid(2))
+            rcode = nf_inq_dimid(ncid, TRIM(dimvec(idim)), dimsid(2,1))
             CALL error_nc(section, rcode)
           ENDIF
     
@@ -404,7 +420,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
             ALLOCATE(cdimvalues(dimfound(3)))
 
             DO i=1,dimfound(3)
-	      cdimvalues(i)=i*1.
+	      cdimvalues(i)=i*1._Rhigh
 	    END DO
 
             CALL fill_dimension_type(debg,'xc', nc_last_iddim(debg, ncid)+1, 'H', 'X','-',      &
@@ -416,10 +432,15 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 
             CALL def_dimension(debg, ncid, dimensionnew)
 	    jvar=jvar+1
-	    dimsid(1)=nc_last_iddim(debg, ncid)
-    
+	    dimsid(1,1)=nc_last_iddim(debg, ncid)
+	    dimsid(1,2)=dimensionnew%Nvalues
+   
           ELSE
-            rcode = nf_inq_dimid(ncid, 'xc', dimsid(1))
+            rcode = nf_inq_dimid(ncid, 'xc', dimsid(1,1))
+            CALL error_nc(section, rcode)
+            rcode = nf_inq_dimlen(ncid, dimsid(1,1), dimsid(1,2))
+            CALL error_nc(section, rcode)
+
           END IF
 
           IF (.NOT.exists_dim(ncid, 'yc'//blanks(1:50-LEN('yc')))) THEN
@@ -430,7 +451,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
    	    ALLOCATE(cdimvalues(dimfound(3)))
 
             DO i=1,dimfound(3)
-	      cdimvalues(i)=i*1.
+	      cdimvalues(i)=i*1._Rhigh
 	    END DO
 
             CALL fill_dimension_type(debg,'yc', nc_last_iddim(debg, ncid)+1, 'H', 'Y','-',      &
@@ -441,9 +462,13 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
             IF (debg >= 150) PRINT *,"  values 'yc':", cdimvalues
 
             CALL def_dimension(debg, ncid, dimensionnew)
-	    dimsid(2)=nc_last_iddim(debg, ncid)
+	    dimsid(2,1)=nc_last_iddim(debg, ncid)
+	    dimsid(2,2)=dimensionnew%Nvalues
           ELSE
-            rcode = nf_inq_dimid(ncid, 'yc', dimsid(2))
+            rcode = nf_inq_dimid(ncid, 'yc', dimsid(2,1))
+            CALL error_nc(section, rcode)
+            rcode = nf_inq_dimlen(ncid, dimsid(2,1), dimsid(2,2))
+            CALL error_nc(section, rcode)
           END IF
 
 ! Defining and writting real values of 2D latitudes
@@ -496,10 +521,10 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
               coordscoord='lon lat'
 
               CALL def_nc_var(ncid, nc_last_idvar(debg, ncid)+1, dimensioncompute%name, 5, 2,   &
-	        (/dimsid(1), dimsid(2), 1, 1, 1, 1/), "XY ", coordlong, coordstd, coordunits,   &
+	        (/dimsid(1,1), dimsid(2,1), 1, 1, 1, 1/), "XY ", coordlong, coordstd,coordunits,&
 		"-", coordscoord, debg)
 
-              rcode = nf_put_vara_real(ncid, nc_last_idvar(debg, ncid), (/1, 1/),               &
+              rcode = nf_put_vara_double(ncid, nc_last_idvar(debg, ncid), (/1, 1/),             &
 	        (/dimvardimfound(1,1), dimvardimfound(1,2)/), valuesMATdim(:,:,1,1,1,1))
               CALL error_nc(section, rcode)
             END IF notexistnoCARy
@@ -513,9 +538,13 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
           jvar = jvar + 1
 
             CALL def_dimension(debg, ncid, dimensioncompute)
-	    dimsid(3)=nc_last_iddim(debg, ncid)
+	    dimsid(3,1)=nc_last_iddim(debg, ncid)
+	    dimsid(3,2)=dimensioncompute%Nvalues
         ELSE
-          rcode = nf_inq_dimid(ncid, dimensioncompute%name, dimsid(3))
+          rcode = nf_inq_dimid(ncid, dimensioncompute%name, dimsid(3,1))
+          CALL error_nc(section, rcode)
+          rcode = nf_inq_dimlen(ncid, dimsid(3,1), dimsid(3,2))
+          CALL error_nc(section, rcode)
         END IF
 
 ! T-dimension
@@ -541,9 +570,8 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
               CALL search_variables(debg, files, Nfiles, dimensioncompute%INvarnames,           &
 	        dimensioncompute%NinVarnames, dimvarfound, dimvardimfound)
 	    
-              IF (ALLOCATED(coordinate)) DEALLOCATE(coordinate)
-              ALLOCATE(coordinate(dimvardimfound(1,1),dimvardimfound(1,2),dimvardimfound(1,3),  &
-	        dimvardimfound(1,4),dimvardimfound(1,5),dimvardimfound(1,6))) 
+              IF (ALLOCATED(cdimvalues)) DEALLOCATE(cdimvalues)
+              ALLOCATE(cdimvalues(dimvardimfound(1,1))) 
               IF (ALLOCATED(charcoor)) DEALLOCATE(charcoor)
               ALLOCATE(charcoor(dimvardimfound(1,2), dimvardimfound(1,3), dimvardimfound(1,4),  &
 	        dimvardimfound(1,5), dimvardimfound(1,6)))
@@ -569,25 +597,28 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 	      END SELECT
               DO i=1, dimvardimfound(1,dimensioncompute%indimensions(1))
                 CALL diff_dates(debg, yearref//'-01-01_00:00:00', charcoor(i,1,1,1,1), udate,   &
-                  dimensioncompute%options(1), coordinate(i,1,1,1,1,1))
+                  dimensioncompute%options(1), cdimvalues(i))
               END DO
               dimensioncompute%Nvalues=dimvardimfound(1,dimensioncompute%indimensions(1))
 
-              IF (debg >= 100) PRINT *,"  values 'tc':", coordinate(:,1,1,1,1,1)
+              IF (debg >= 100) PRINT *,"  values 'tc':", cdimvalues
 	      CALL fill_dimension_type(debg,dimensioncompute%name, nc_last_iddim(debg, ncid)+1, &
 	        'T', 'T', '-', dimensioncompute%Nvalues, 0, (/'-'/), '-', 0., (/0/), 0, (/0/),  &
 		dimensioncompute%stdname, dimensioncompute%lonname, dimensioncompute%units,     &
-		dimensioncompute%Nvalues, coordinate(:,1,1,1,1,1), dimensioncompute%coords,     &
+		dimensioncompute%Nvalues, cdimvalues, dimensioncompute%coords,                  &
 		dimensioncompute%positive, dimensioncompute%form, dimensionnew)
 
             END SELECT
            
-            PRINT *,'neng tc-:',dimensionnew%values
             CALL def_dimension(debg, ncid, dimensionnew)
-	    dimsid(4)=nc_last_iddim(debg, ncid)
+	    dimsid(4,1)=nc_last_iddim(debg, ncid)
+	    dimsid(4,2)=dimensionnew%Nvalues
 
         ELSE
-          rcode = nf_inq_dimid(ncid, dimensioncompute%name, dimsid(4))
+          rcode = nf_inq_dimid(ncid, dimensioncompute%name, dimsid(4,1))
+          CALL error_nc(section, rcode)
+          rcode = nf_inq_dimlen(ncid, dimsid(4,1), dimsid(4,2))
+          CALL error_nc(section, rcode)
         END IF
 
       CASE DEFAULT
@@ -596,14 +627,12 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
     
     END SELECT indiv_dim
 
-    IF (debg >= 100) THEN
-      PRINT *,'  Output file dimensions id:'
-      PRINT *,'  dx:',dimsid(1),' dy:',dimsid(2),' dz:',dimsid(3),' dt:',dimsid(4)
-    END IF
-
-    IF (ALLOCATED(coordinate)) DEALLOCATE(coordinate)
-
   END DO com_dimensions
+  IF (debg >= 100) THEN
+    PRINT *,'  Output file dimensions id:'
+    PRINT *,'  dx:',dimsid(1,1),' rg= ',dimsid(1,2),' dy:',dimsid(2,1),' rg= ',dimsid(2,2),     &
+      ' dz:',dimsid(3,1),' rg= ',dimsid(3,2),' dt:',dimsid(4,1),' rg= ',dimsid(4,2)
+  END IF
 
 END SUBROUTINE compute_dimensions
 
@@ -748,6 +777,7 @@ END SUBROUTINE create_output
 SUBROUTINE def_dimension(debg, ncid, dimval)
 ! Subroutine to define a dimension from a dimension type variable
 
+  USE netcdf
   USE module_constants
   USE module_types
 
@@ -762,6 +792,7 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
 ! Local
   INTEGER                                                :: rcode, attlen, ivar, idim
   CHARACTER(LEN=50)                                      :: section, atttext
+  REAL, DIMENSION(:), ALLOCATABLE                        :: dimension_values
 
 !!!!!!!!!!!!! Variables
 ! ncid: netCDF id
@@ -781,19 +812,18 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
   rcode = nf_redef(ncid)
   CALL error_nc(section, rcode)
 
+  IF (debg >= 100) PRINT *,'  dimension range: ',dimval%Nvalues
   IF (TRIM(dimval%name) == 'time') THEN
-    IF (debg >= 100) PRINT *,'  dimension range: ',dimval%Nvalues
-    rcode = nf_def_dim(ncid, TRIM(dimval%name), NF_UNLIMITED, idim)  
+    rcode = nf90_def_dim(ncid, TRIM(dimval%name), NF90_UNLIMITED, idim)  
     CALL error_nc(section, rcode)
   ELSE
-    IF (debg >= 100) PRINT *,'  dimension range: ',dimval%Nvalues
-    rcode = nf_def_dim(ncid, TRIM(dimval%name), dimval%Nvalues, idim)
+    rcode = nf90_def_dim(ncid, TRIM(dimval%name), dimval%Nvalues, idim)
     CALL error_nc(section, rcode, Ivalue = dimval%Nvalues)
   END IF
 
   IF (debg >= 100) PRINT *,'  dimension of associated variable (with dimension values): ',      &
-    dimval%Nvalues
-  rcode = nf_def_var(ncid, TRIM(dimval%name), NF_REAL, 1, (/idim/), ivar)
+    dimval%Nvalues,' of dimension #:', idim
+    rcode = nf90_def_var(ncid, TRIM(dimval%name), NF90_DOUBLE, (/idim/), ivar)
   CALL error_nc(section, rcode)
 
   IF (TRIM(dimval%axis) /= '-') THEN
@@ -829,6 +859,7 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
     attlen = len_trim(atttext)
     rcode = nf_put_att_text(ncid, ivar, "units", attlen, atttext(1:attlen) )
     CALL error_nc(section, rcode)
+    atttext = ' '
   END IF
 
   IF (TRIM(dimval%coords) /= '-') THEN 
@@ -837,6 +868,7 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
     attlen = len_trim(atttext)
     rcode = nf_put_att_text(ncid, ivar, "coords", attlen, atttext(1:attlen) )
     CALL error_nc(section, rcode)
+    atttext = ' '
   END IF
 
   IF (TRIM(dimval%positive) /= '-') THEN 
@@ -845,6 +877,7 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
     attlen = len_trim(atttext)
     rcode = nf_put_att_text(ncid, ivar, "positive", attlen, atttext(1:attlen) )
     CALL error_nc(section, rcode)
+    atttext = ' '
   END IF
 
   IF (TRIM(dimval%form) /= '-') THEN 
@@ -853,13 +886,14 @@ SUBROUTINE def_dimension(debg, ncid, dimval)
     attlen = len_trim(atttext)
     rcode = nf_put_att_text(ncid, ivar, "formula_terms", attlen, atttext(1:attlen) )
     CALL error_nc(section, rcode)
+    atttext = ' '
   END IF
 
   rcode = nf_enddef(ncid)
   CALL error_nc(section, rcode)
 
   IF (debg >= 100) PRINT *,'  values: ',dimval%values
-  rcode = nf_put_vara_real (ncid, ivar, (/1/), (/dimval%Nvalues/), dimval%values)
+  rcode = nf90_put_var (ncid, ivar, dimval%values)
   CALL error_nc(section, rcode)
 
   RETURN
@@ -1404,7 +1438,7 @@ REAL FUNCTION diff_dimtimes(debg, oid, dimT, NdimTA, NdimTB)
   LOGICAL                                                 :: is_used
   TYPE(dimensiondef)                                      :: dimtime
   CHARACTER(LEN=250)                                      :: messg
-  REAL, DIMENSION(:), ALLOCATABLE                         :: Rtimes
+  REAL(KIND=Rhigh), DIMENSION(:), ALLOCATABLE             :: Rtimes
   
 !!!!!!! Variables
 ! oid: id of netCDF output file
@@ -1471,8 +1505,8 @@ REAL FUNCTION diff_dimtimes(debg, oid, dimT, NdimTA, NdimTB)
       IF (ALLOCATED(Rtimes)) DEALLOCATE(Rtimes)
       ALLOCATE(Rtimes(Ntimes))
       
-      rcode = nf_get_var_real (oid, timeidvar, Rtimes)
-      diff_dimtimes = Rtimes(NdimTB) - Rtimes(NdimTA)
+      rcode = nf_get_var_double (oid, timeidvar, Rtimes)
+      diff_dimtimes = REAL(Rtimes(NdimTB) - Rtimes(NdimTA))
       timeu: SELECT CASE (dimtime%options(2))
         CASE (1)
 !       Time in seconds
@@ -1496,7 +1530,7 @@ REAL FUNCTION diff_dimtimes(debg, oid, dimT, NdimTA, NdimTB)
   END SELECT timemethod
   
   IF (debg >= 75 ) PRINT *,'  Difference time between #time ',NdimTA,' & ',NdimTB,': ',         &
-    diff_dimtimes,' seconds'
+    diff_dimtimes,' seconds', Rtimes(NdimTB) - Rtimes(NdimTA)
 
 END FUNCTION diff_dimtimes
 
@@ -1619,7 +1653,7 @@ SUBROUTINE fill_inputs_50char(debg, ncs, Nncs, fvars, dimMin, matou)
 ! halfdim: Function to give the half value of a dimension
 
   section="'fill_inputs_50char'"
-  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
+  IF (debg >= 75) PRINT *,'Section '//TRIM(section)//'... .. .'
   IF (debg >= 75) THEN
     PRINT *,'Filling matrices of dimension: ',UBOUND(matou)
     PRINT *,"Variable in file: '"//TRIM(ncs(fvars(1)))//"' with id:",fvars(2)
@@ -1641,8 +1675,8 @@ SUBROUTINE fill_inputs_50char(debg, ncs, Nncs, fvars, dimMin, matou)
               rcode = nf_get_var1_text ( ncid, fvars(2), (/ i, j, k, l, m, n /), char1)
               call error_nc(section, rcode)
               matou(j,k,l,m,n)(i:i)=char1
-	      IF ((j == halfdim(dimMin(2))) .AND. (k == halfdim(dimMin(3))) .AND.                &
-                (l == halfdim(dimMin(4))) .AND. (m == halfdim(dimMin(5))) .AND.                  &
+	      IF ((debg >= 150) .AND. (j == halfdim(dimMin(2))) .AND. (k == halfdim(dimMin(3)))  &
+	        .AND. (l == halfdim(dimMin(4))) .AND. (m == halfdim(dimMin(5))) .AND.            &
                 (n == halfdim(dimMin(6)))) PRINT *,i,": '",char1,"' value: '"//                  &
 		TRIM(matou(j,k,l,m,n))//"'"
             END DO

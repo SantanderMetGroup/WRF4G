@@ -6,6 +6,8 @@ MODULE module_types
 
 !   456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
 
+  USE module_constants
+
 ! Dimension type definition
 !!
     TYPE dimensiondef
@@ -26,7 +28,7 @@ MODULE module_types
       CHARACTER(LEN=250)                                  :: lonname
       CHARACTER(LEN=50)                                   :: units
       INTEGER                                             :: Nvalues
-      REAL, POINTER, DIMENSION(:)                         :: values
+      REAL(KIND=Rhigh), POINTER, DIMENSION(:)             :: values
       CHARACTER(LEN=250)                                  :: coords
       CHARACTER(LEN=50)                                   :: positive
       CHARACTER(LEN=250)                                  :: form

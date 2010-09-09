@@ -6,7 +6,7 @@
   path_to_geofile          = '',
   diagnostics              = 'CLT, HURS, MRSO, PRW, TDPS, RLS, RSS, RLUT, RST',
   process                  = 'list',
-  debug                    = 150,
+  debug                    = 100,
   filt                     = .FALSE.,
   grid_filt                = 3,
   ntimes_filt              = 10,

@@ -102,7 +102,7 @@ SUBROUTINE calc_method1D(debg, meth, rg, Ninvalues, invalues, ct, vals)
   END SELECT
   
   IF (debg >= 150) THEN
-    PRINT *,"  Values given by "//TRIM(meth)//"' method: "
+    PRINT *,"  Values given by '"//TRIM(meth)//"' method: "
     DO ival=1, rg
       PRINT *,'    ',ival,(invalues(ival, j), char(44), j=1, Ninvalues), '-->', vals(ival)
     END DO
@@ -438,14 +438,14 @@ SUBROUTINE diff_dates(debg, dateA, dateB, units, yref, difference)
   INTEGER, INTENT(IN)                                     :: debg, yref
   CHARACTER(LEN=19), INTENT(IN)                           :: dateA, dateB
   CHARACTER(LEN=1), INTENT(IN)                            :: units
-  REAL, INTENT(OUT)                                       :: difference
+  REAL(Rhigh), INTENT(OUT)                                :: difference
 
 ! Local
   INTEGER                                                 :: yearA, monthA, dayA, hourA, minA, secA
   INTEGER                                                 :: yearB, monthB, dayB, hourB, minB, secB
   INTEGER                                                 :: juliandayA, juliandayB
   INTEGER                                                 :: diffdaysA, diffdaysB
-  REAL                                                    :: diffsecA, diffsecB
+  REAL(Rhigh)                                             :: diffsecA, diffsecB, direc_diff
   CHARACTER(LEN=20)                                       :: word
   CHARACTER(LEN=50)                                       :: section, unitsname
 
@@ -505,10 +505,10 @@ SUBROUTINE diff_dates(debg, dateA, dateB, units, yref, difference)
   diffdaysB=diff_days(debg, yref, yearB)
 
 ! A complete day is retrieved, since jan-01 would be counted twice
-  diffsecA=(diffdaysA+juliandayA-1)*24.*3600.+hourA*3600.+minA*60.+secA
-  diffsecB=(diffdaysB+juliandayB-1)*24.*3600.+hourB*3600.+minB*60.+secB
+  diffsecA=REAL((diffdaysA+juliandayA-1)*24.*3600.+hourA*3600.+minA*60.+secA, KIND=Rhigh)
+  diffsecB=REAL((diffdaysB+juliandayB-1)*24.*3600.+hourB*3600.+minB*60.+secB, KIND=Rhigh)
 
-  difference=diffsecB - diffsecA 
+  direc_diff=diffsecB - diffsecA 
   IF (debg >= 150) THEN
     PRINT *,'  days and Seconds since ',yref,'-01-01_00:00:00 of__________'
     PRINT *,'  yearA: ',diffdaysA+juliandayA-1, diffsecA
@@ -516,14 +516,15 @@ SUBROUTINE diff_dates(debg, dateA, dateB, units, yref, difference)
   END IF
 
   unitsname='second'
+  difference = direc_diff
   IF (units == 'm') THEN
-    difference = difference / 60.
+    difference = direc_diff / 60._Rhigh
     unitsname='minute'
   ELSE IF (units == 'h') THEN
-    difference = difference / 3600.
+    difference = direc_diff / 3600._Rhigh
     unitsname='hour'
   ELSE IF (units == 'd') THEN
-    difference = difference / (3600. * 24.)
+    difference = direc_diff / (3600._Rhigh * 24._Rhigh)
     unitsname='day'
   END IF
   
@@ -556,7 +557,7 @@ INTEGER FUNCTION diff_days(debg, yearC, yearD)
 
   section="'diff_days'"
 
-  IF (debg >= 100 ) PRINT *,'Section: '//TRIM(section)//'... .. .'
+  IF (debg >= 150 ) PRINT *,'Section: '//TRIM(section)//'... .. .'
   
   IF (yearD /= yearC) THEN
 

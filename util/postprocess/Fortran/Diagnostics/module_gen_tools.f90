@@ -348,9 +348,10 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
   CHARACTER(LEN=50)                                      :: label, section, dimDIAG
   LOGICAL                                                :: is_used
   CHARACTER(LEN=250), DIMENSION(:), ALLOCATABLE, TARGET,                                       &
-    SAVE  :: dimInvarnames
+    SAVE                                                 :: dimInvarnames
   INTEGER, DIMENSION(:), ALLOCATABLE, TARGET, SAVE       :: dimindimensions, optionsDIM_targ
-  REAL, DIMENSION(:), ALLOCATABLE, TARGET, SAVE          :: dimfixvalues
+  REAL(KIND=Rhigh), DIMENSION(:), ALLOCATABLE, TARGET,                                         &
+    SAVE                                                 :: dimfixvalues
   CHARACTER(LEN=3000)                                    :: readINvarnames, readINdimensions,  &
     readFIXvalues
   
@@ -450,6 +451,7 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
      IF (ALLOCATED(dimfixvalues)) DEALLOCATE(dimfixvalues)
      ALLOCATE(dimfixvalues(0))
      dimfixvalues=0
+     READ(iunit,*)car, car
    END IF
    diminf%values=>dimfixvalues
    
@@ -606,7 +608,7 @@ SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname
   CHARACTER(LEN=*), INTENT(IN)                            :: dimlong0
   CHARACTER(LEN=*), INTENT(IN)                            :: dimu0
   INTEGER, INTENT(IN)                                     :: dimNval
-  REAL, DIMENSION(dimNval), INTENT(IN)                    :: dimval
+  REAL(KIND=Rhigh), DIMENSION(dimNval), INTENT(IN)        :: dimval
   CHARACTER(LEN=*), INTENT(IN)                            :: dimcoord0
   CHARACTER(LEN=*), INTENT(IN)                            :: dimpos0
   CHARACTER(LEN=*), INTENT(IN)                            :: dimform0
@@ -617,7 +619,8 @@ SUBROUTINE fill_dimension_type(debg, dimname0, dimid, dimtype, dimaxs, diminname
   CHARACTER(LEN=50)                                       :: section
   CHARACTER(LEN=250),DIMENSION(:),ALLOCATABLE,TARGET,SAVE :: diminvars_targ
   INTEGER, DIMENSION(:), ALLOCATABLE, TARGET, SAVE        :: indimvars_targ, opts_targ
-  REAL, DIMENSION(:), ALLOCATABLE, TARGET, SAVE           :: dimval_targ
+  REAL(KIND=Rhigh), DIMENSION(:), ALLOCATABLE, TARGET,                                          &
+    SAVE                                                  :: dimval_targ
 
   CHARACTER(LEN=50)                                       :: dimname
   CHARACTER(LEN=50)                                       :: diminname

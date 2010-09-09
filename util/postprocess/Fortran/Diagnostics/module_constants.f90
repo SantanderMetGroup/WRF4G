@@ -10,9 +10,11 @@ MODULE module_constants
 
   SAVE
 
-  CHARACTER(LEN=250), PARAMETER                            :: blanks=' '  
+  CHARACTER(LEN=250), PARAMETER                            :: blanks=' ' 
+  INTEGER, PARAMETER                                       :: Ihigh=SELECTED_INT_KIND(10)
   REAL, PARAMETER                                          :: Lv=2500000.
   REAL, PARAMETER                                          :: Pi=3.141596
+  INTEGER, PARAMETER                                       :: Rhigh=SELECTED_REAL_KIND(8)
   REAL, PARAMETER                                          :: Rt=6371227.
   REAL, PARAMETER                                          :: Rv=461.5
   REAL, PARAMETER                                          :: e0=611.
@@ -33,8 +35,10 @@ MODULE module_constants
 
 !!!!!!!!!!!!!!!!!! Variables
 !      blanks: 50 character string of blanks
+!      Ihigh: High precision integer KIND definition
 !      Lv: latent heat of vaporization of water [Jkg-1]
 !      Pi: number pi [ACOS(-1.)]
+!      Rhigh: High precision real KIND definition
 !      Rt:  
 !      Rv: gas constant for water vapor [J K-1kg-1]
 !      e0: reference saturation vapor pressure (at T=273.15 K) [Pa]
