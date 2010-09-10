@@ -7,6 +7,8 @@ MODULE module_gen_tools
 ! Following previous work of many authors for vis5D as 'userfuncs'
 !
 !!!!!!!!! Subroutines/Functions
+! all_diagnostic: Subroutine to obtain all diagnostic names from 'variables_diagnostics.inf'
+! all_Ndiagnostic: Function to obtain how many diagnostic names are in 'variables_diagnostics.inf'
 ! diag_fatal: Subroutine to give fatal error with a message
 ! diagnostic_inf: Subroutine to read diagnostic variable information from 
 !     'variables_diagnostics.inf' external ASCII file
@@ -33,6 +35,92 @@ MODULE module_gen_tools
 ! string_values: Subroutine to obtain values from a 'namelist' string separated by comas
 ! number_values: Subroutine to obtain number of variables from a 'namelist' variable with coma    
 !    separation
+
+SUBROUTINE all_diagnostic(debg, Ndiag, vecDIAG)
+! Subroutine to obtain all diagnostic names from 'variables_diagnostics.inf'
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                    :: debg, Ndiag
+  CHARACTER(LEN=250), DIMENSION(Ndiag), INTENT(OUT)      :: vecDIAG
+  
+! Local variables
+  INTEGER                                                :: iunit, ios, idiag, Llabel
+  CHARACTER(LEN=50)                                      :: label, section
+  LOGICAL                                                :: is_used
+
+  section="'all_diagnostic'"
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+!  Read parameters from diagnostic variables information file 'variables_diagnostics.inf' 
+  DO iunit=10,100
+    INQUIRE(unit=iunit, opened=is_used)
+    IF (.not. is_used) EXIT
+  END DO
+  OPEN(iunit, file='variables_diagnostics.inf', status='old', form='formatted', iostat=ios)
+  IF ( ios /= 0 ) STOP "ERROR opening 'variables_diagnostics.inf'"
+
+  vecDIAG=''
+  idiag=0
+  DO 
+    READ(iunit,*,END=100)label
+    Llabel=LEN_TRIM(label)
+    IF (label(1:1)//label(Llabel:Llabel)=='**') THEN
+      idiag=idiag+1
+      vecDIAG(idiag)=label(2:Llabel-1)
+    END IF
+  END DO
+
+ 100 CONTINUE
+  
+  CLOSE(iunit)
+  IF (debg >= 150) THEN
+    PRINT *,'  Number of diagnostics: ',idiag
+    DO idiag=1, Ndiag
+      PRINT *,"  '"//TRIM(vecDIAG(idiag))//"'"
+    END DO
+  END IF 
+
+END SUBROUTINE all_diagnostic
+
+INTEGER FUNCTION all_Ndiagnostic(debg)
+! Function to obtain how many diagnostic names are in 'variables_diagnostics.inf'
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                    :: debg
+  
+! Local variables
+  INTEGER                                                :: iunit, ios, Llabel
+  CHARACTER(LEN=50)                                      :: label, section
+  LOGICAL                                                :: is_used
+
+  section="'all_Ndiagnostic'"
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+!  Read parameters from diagnostic variables information file 'variables_diagnostics.inf' 
+  DO iunit=10,100
+    INQUIRE(unit=iunit, opened=is_used)
+    IF (.not. is_used) EXIT
+  END DO
+  OPEN(iunit, file='variables_diagnostics.inf', status='old', form='formatted', iostat=ios)
+  IF ( ios /= 0 ) STOP "ERROR opening 'variables_diagnostics.inf'"
+
+  all_Ndiagnostic=0
+  DO 
+    READ(iunit,*,END=100)label
+    Llabel=LEN_TRIM(label)
+    IF (label(1:1)//label(Llabel:Llabel)=='**') THEN
+      all_Ndiagnostic=all_Ndiagnostic+1
+    END IF
+  END DO
+
+ 100 CONTINUE
+  CLOSE(iunit)  
+
+  IF (debg >= 150) PRINT *,'  Number of diagnostics: ',all_Ndiagnostic
+
+END FUNCTION all_Ndiagnostic
 
 SUBROUTINE diag_fatal(msg)
 ! Subroutine to give fatal error with a message
@@ -72,6 +160,7 @@ SUBROUTINE diagnostic_inf(debg, varDIAG, Ninvar, varinnames, NdimDIAG, shapeDIAG
   CHARACTER(LEN=250), INTENT(OUT)                        :: longdescDIAG
   CHARACTER(LEN=50), INTENT(OUT)                         :: unitsDIAG, stddescDIAG
   INTEGER, INTENT(IN)                                    :: debg
+
 ! Local variables
   INTEGER                                                :: i, ilin
   INTEGER                                                :: iunit, ios
@@ -421,9 +510,13 @@ SUBROUTINE diagnostic_dim_inf(debg, dimDIAG0, dimid, diminf)
    READ(iunit,*)car, diminf%NinVarnames
    IF (ALLOCATED(dimInvarnames)) DEALLOCATE(dimInvarnames)
    ALLOCATE(dimInvarnames(diminf%NinVarnames))
-   READ(iunit,*)car, readINvarnames
-   CALL string_values(readINvarnames, debg, diminf%NinVarnames, dimInvarnames)
-   ALLOCATE(diminf%INvarnames(diminf%NinVarnames))
+   IF (diminf%NinVarnames > 0) THEN
+     READ(iunit,*)car, readINvarnames
+     CALL string_values(readINvarnames, debg, diminf%NinVarnames, dimInvarnames)
+   ELSE
+     READ(iunit,*)car, car
+     dimInvarnames='-'
+   END IF
    IF (.NOT.(ASSOCIATED(diminf%INvarnames))) ALLOCATE(diminf%INvarnames(diminf%NinVarnames))
    diminf%INvarnames=>dimInvarnames
    READ(iunit,*)car, diminf%method

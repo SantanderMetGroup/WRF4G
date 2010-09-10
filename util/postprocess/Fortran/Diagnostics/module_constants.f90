@@ -13,7 +13,7 @@ MODULE module_constants
   CHARACTER(LEN=250), PARAMETER                            :: blanks=' ' 
   INTEGER, PARAMETER                                       :: Ihigh=SELECTED_INT_KIND(10)
   REAL, PARAMETER                                          :: Lv=2500000.
-  REAL, PARAMETER                                          :: Pi=3.141596
+  REAL, PARAMETER                                          :: Pi=3.141592653589793
   INTEGER, PARAMETER                                       :: Rhigh=SELECTED_REAL_KIND(8)
   REAL, PARAMETER                                          :: Rt=6371227.
   REAL, PARAMETER                                          :: Rv=461.5

@@ -168,17 +168,32 @@ PROGRAM diagnostics_computation
   END IF
 
 ! Constructing diagnostics names
-  CALL number_values(diagnostics, debug, Ndiagnostics)
-  PRINT *,'Are required',Ndiagnostics,' diagnostics'
-  IF (ALLOCATED(diags)) DEALLOCATE(diags)
-  ALLOCATE(diags(Ndiagnostics), STAT=ierr)
-  IF (ierr /= 0 ) PRINT *,"Error allocating 'diags'"
-  diags=' '
-  CALL string_values(diagnostics, debug, Ndiagnostics, diags)
+  IF (TRIM(process) == 'list') THEN
+    CALL number_values(diagnostics, debug, Ndiagnostics)
+    PRINT *,'Are required',Ndiagnostics,' diagnostics'
+    IF (ALLOCATED(diags)) DEALLOCATE(diags)
+    ALLOCATE(diags(Ndiagnostics), STAT=ierr)
+    IF (ierr /= 0 ) PRINT *,"Error allocating 'diags'"
+    diags=' '
+    CALL string_values(diagnostics, debug, Ndiagnostics, diags)
 
-  DO i=1,Ndiagnostics
-    PRINT *,i,TRIM(diags(i))
-  END DO
+! All diagnostics
+  ELSEIF (TRIM(process) == 'all') THEN
+    PRINT *,'All diagnostics will be computed !'
+    Ndiagnostics=all_Ndiagnostic(debug)
+    IF (ALLOCATED(diags)) DEALLOCATE(diags)
+    ALLOCATE(diags(Ndiagnostics), STAT=ierr)
+    IF (ierr /= 0 ) PRINT *,"Error allocating 'diags'"
+    diags=' '
+    CALL all_diagnostic(debug, Ndiagnostics, diags)
+  END IF
+
+  IF (debug >= 20 ) THEN
+    PRINT *,'Will be compute de following diagnostics:'
+    DO i=1,Ndiagnostics
+      PRINT *,i, "'"//TRIM(diags(i))//"'"
+    END DO
+  END IF
 
 ! Constructing vertical levels
   Nlevels=1

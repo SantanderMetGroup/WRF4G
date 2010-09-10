@@ -1,4 +1,44 @@
 ==Information file for each diagnose dimension==
+*depth*
+  dimtype                  V
+  dimaxis                  Z
+  dim_in_name              soil_layers_stag
+  num_dimInVarnames        1
+  dim_in_varnames          ZS
+  dim_method               direct
+  dim_constant             0.
+  dim_indimensions         1
+  dim_Noptions             0
+  dim_options              0
+  standard_name            depth
+  long_name                'depth below surface'
+  units                    m
+  Ndim_values              0
+  dim_values               0.
+  dim_coords               '-'
+  dim_positive             down
+  dim_formula              -
+
+*height*
+  dimtype                  V
+  dimaxis                  Z
+  dim_in_name              -
+  num_dimInVarnames        0
+  dim_in_varnames          -
+  dim_method               -
+  dim_constant             0.
+  dim_indimensions         0
+  dim_Noptions             0
+  dim_options              0
+  standard_name            height
+  long_name                height above surface
+  units                    m
+  Ndim_values              2
+  dim_values               2., 10.
+  dim_coords               '-'
+  dim_positive             up
+  dim_formula              -
+
 *lon*
   dimtype                  H
   dimaxis                  X

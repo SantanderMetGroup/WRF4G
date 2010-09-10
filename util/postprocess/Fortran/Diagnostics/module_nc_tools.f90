@@ -181,7 +181,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 ! Local
   INTEGER                                                 :: i,idim
   INTEGER                                                 :: rcode, dimidin
-  INTEGER                                                 :: jvar, lastdim
+  INTEGER                                                 :: jvar, lastdim, jodim
   CHARACTER(LEN=50)                                       :: section
   INTEGER, DIMENSION(3)                                   :: dimfound
   INTEGER, DIMENSION(:,:), ALLOCATABLE                    :: dimvarfound, dimvardimfound,       &
@@ -213,12 +213,13 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 !    dimension
 ! jvar: id of last variable in netCDF file
 ! lastdim: if of last dimension in netCDF file
+! jodim: id of dimension (not 4 basic ones)
 ! dimfound: found characteristics of dimension in input files
 ! dimvarfound: found characteristics of variables related to dimension
 ! dimvardimfound: dimensions of dimvarfound
 ! invarvalues: values of variables used to compute dimension values (when they are 1D)
 ! dimsid: id of dimension as they are defined in 'ncid'. Id of dimensions will preserve order from
-!   'dimensions_diagnostics.inf' file
+!   'dimensions_diagnostics.inf' file and their range
 ! valuesMATin[A/F]: 6D real matrix with values to compute dimensions
 ! valuesMATdim: 6D real matrix with 'dimension'-related matrix values
 ! coordname, coordstd, coordunits, coordscoord, coordaxis, coordpositive: strings for direct
@@ -229,6 +230,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 
   jvar=nc_last_idvar(debg, ncid)
   lastdim=nc_last_iddim(debg, ncid)
+  jodim=4
 
   com_dimensions: DO idim=1, Ndims
   
@@ -530,6 +532,36 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
 
 ! Z-dimension
 !!
+      CASE('depth')
+        IF (.NOT.exists_dim(ncid,dimensioncompute%name)) THEN
+          IF (debg >= 100) PRINT *,'  Creation of z dimension...'
+          jodim = jodim + 1
+
+            CALL def_dimension(debg, ncid, dimensioncompute)
+	    dimsid(nc_last_iddim(debg, ncid),1)=nc_last_iddim(debg, ncid)
+	    dimsid(nc_last_iddim(debg, ncid),2)=dimensioncompute%Nvalues
+        ELSE
+          rcode = nf90_inq_dimid(ncid, dimensioncompute%name, dimsid(jodim,1))
+          CALL error_nc(section, rcode)
+          rcode = nf90_inquire_dimension(ncid, dimsid(jodim,1), len=dimsid(jodim,2))
+          CALL error_nc(section, rcode)
+        END IF
+
+      CASE('height')
+        IF (.NOT.exists_dim(ncid,dimensioncompute%name)) THEN
+          IF (debg >= 100) PRINT *,'  Creation of z dimension...'
+          jodim = jodim + 1
+
+            CALL def_dimension(debg, ncid, dimensioncompute)
+	    dimsid(nc_last_iddim(debg, ncid),1)=nc_last_iddim(debg, ncid)
+	    dimsid(nc_last_iddim(debg, ncid),2)=dimensioncompute%Nvalues
+        ELSE
+          rcode = nf90_inq_dimid(ncid, dimensioncompute%name, dimsid(jodim,1))
+          CALL error_nc(section, rcode)
+          rcode = nf90_inquire_dimension(ncid, dimsid(jodim,1), len=dimsid(jodim,2))
+          CALL error_nc(section, rcode)
+        END IF
+
       CASE('lev')
         IF (.NOT.exists_dim(ncid,dimensioncompute%name)) THEN
           IF (debg >= 100) PRINT *,'  Creation of z dimension...'
@@ -630,6 +662,7 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
     PRINT *,'  Output file dimensions id:'
     PRINT *,'  dx:',dimsid(1,1),' rg= ',dimsid(1,2),' dy:',dimsid(2,1),' rg= ',dimsid(2,2),     &
       ' dz:',dimsid(3,1),' rg= ',dimsid(3,2),' dt:',dimsid(4,1),' rg= ',dimsid(4,2)
+    IF (Ndims > 4) PRINT *,'   ',(dimsid(idim,1),' rg= ',dimsid(idim,2), idim=5,Ndims)
   END IF
 
 END SUBROUTINE compute_dimensions
@@ -940,7 +973,7 @@ SUBROUTINE def_variable (debg, mcid, varwrite )
 !!
       IF (debg >= 100) PRINT *,"  Defining text variable '"//TRIM(varwrite%name)//"' number:",  &
         ivar
-      rcode = nf90_def_var(mcid, TRIM(varwrite%name), NF90_CHAR, varwrite%shape,ivar)
+      rcode = nf90_def_var(mcid, TRIM(varwrite%name), NF90_CHAR, varwrite%shape, ivar)
       CALL error_nc(section, rcode)
 !      rcode = nf90_put_att_int(mcid, ivar, "FieldType", NF90_INT, 1, 104)
 !      CALL error_nc(section, rcode)
@@ -1445,8 +1478,8 @@ SUBROUTINE fill_inputs_50char(debg, ncs, Nncs, fvars, dimMin, matou)
 ! halfdim: Function to give the half value of a dimension
 
   section="'fill_inputs_50char'"
-  IF (debg >= 75) PRINT *,'Section '//TRIM(section)//'... .. .'
-  IF (debg >= 75) THEN
+  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
+  IF (debg >= 100) THEN
     PRINT *,'Filling matrices of dimension: ',UBOUND(matou)
     PRINT *,"Variable in file: '"//TRIM(ncs(fvars(1)))//"' with id:",fvars(2)
   END IF
@@ -1524,7 +1557,7 @@ SUBROUTINE fill_inputs_real(debg, ncs, Nncs, fvars, dimMin, matin)
 
   section="'fill_inputs'"
   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
-  IF (debg >= 75) THEN
+  IF (debg >= 100) THEN
     PRINT *,'Filling matrices of dimension: ',UBOUND(matin)
     PRINT *,"Variable in file: '"//TRIM(ncs(fvars(1)))//"' with id:",fvars(2)
   END IF
@@ -1985,7 +2018,7 @@ SUBROUTINE search_dimensions(debg, ncs, Nnc, sdims, fdims)
   section="'search_dimensions'"  
   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
 
-  IF (debg >= 75) PRINT *,"  Searching dimensions in "//TRIM(section)//"..."
+  IF (debg >= 100) PRINT *,"  Searching dimensions in "//TRIM(section)//"..."
   fdims=0
   files_loop: DO ifile=1, Nnc
     rcode = nf90_open(TRIM(ncs(ifile)), 0, ncid)
@@ -2022,7 +2055,7 @@ SUBROUTINE search_dimensions(debg, ncs, Nnc, sdims, fdims)
   
   messg='  The dimension has not been not found !!'
   IF (fdims(1) == 0) CALL diag_fatal(messg)
-  IF (debg >= 75) THEN
+  IF (debg >= 100) THEN
     PRINT *,'  Characterstics of found dimension_______________'
     PRINT *,"  dimension: '"//TRIM(sdims)//' file #',fdims(1),' position in file', fdims(2),     &
       ' range:',fdims(3)
@@ -2075,7 +2108,7 @@ SUBROUTINE search_variables(debg, ncs, Nnc, svars, Nsvars, fvars, dimfvars)
   section="'search_variables'"  
   IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
 
-  IF (debg >= 75) THEN
+  IF (debg >= 100) THEN
     PRINT *,"  Searching ..."
     DO ivar=1, Nsvars
       PRINT *,ivar,"  '"//TRIM(svars(ivar))//"'"
@@ -2109,7 +2142,7 @@ SUBROUTINE search_variables(debg, ncs, Nnc, svars, Nsvars, fvars, dimfvars)
 	rcode = nf90_inquire_variable (ncid, idvar, dimids=ndimsfvar)
 	dimfvars(ivar,1:Ndimfvar) = ncdims(ndimsfvar(1:Ndimfvar))
 	
-        IF (debg >= 75) PRINT *,'  Variable # ',ivar,'/',Nsvars,": '"//TRIM(svars(ivar))//      &
+        IF (debg >= 100) PRINT *,'  Variable # ',ivar,'/',Nsvars,": '"//TRIM(svars(ivar))//     &
 	  "' found in '"//TRIM(ncs(ifile))//' var id:',fvars(ivar,2),' of dimensions: ',        &
           dimfvars(ivar,1:Ndimfvar)
       END IF
@@ -2125,7 +2158,7 @@ SUBROUTINE search_variables(debg, ncs, Nnc, svars, Nsvars, fvars, dimfvars)
   
   messg='Some variables have not been not found !!'
   IF (.NOT.(ALL(fvars(:,1) /= 0))) CALL diag_fatal(messg)
-  IF (debg >= 75) THEN
+  IF (debg >= 100) THEN
     PRINT *,'  Characteristics of found fields_______________'
     DO ivar=1, Nsvars
       PRINT *,"  variable: '"//TRIM(svars(ivar))//' file #',fvars(ivar,1),' position in file',   &

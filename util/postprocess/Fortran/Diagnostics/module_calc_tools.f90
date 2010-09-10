@@ -16,6 +16,7 @@ MODULE module_calc_tools
 ! diff_days: Function to give the difference in days between two years
 ! juliand_day: Function to give the julian day of a date
 ! year_leap: Subroutine to give if a year is leap year or not
+! Earth_wind: Subroutine to rotate wind to Earth surface reference
 ! z_derivate: Subroutine to compute z_derivate of a field
 
   SUBROUTINE borders3D(var,dimx,dimy,dimz,dimt)
@@ -403,7 +404,7 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
 	  CALL diag_fatal(messg)
 	END IF
       END DO
-      IF (debg >= 100) THEN
+      IF (debg >= 150) THEN
         PRINT *,'  ----------'
 	PRINT *,'  ',print_6Dhalfdim(vals, rgs)
       ENDIF
@@ -418,7 +419,7 @@ SUBROUTINE calc_method_gen6D(debg, meth, rgs, Ninvalues, invalues, ct, Nops, ops
   END SELECT
   
   IF (debg >= 150) THEN
-    PRINT *,"  dim/2 values given by "//TRIM(meth)//"' method: "
+    PRINT *,"  dim/2 values given by '"//TRIM(meth)//"' method: "
     PRINT *,'    ',(invalues(halfdim(rgs(1)), halfdim(rgs(2)), halfdim(rgs(3)), halfdim(rgs(4)),&
       halfdim(rgs(5)), halfdim(rgs(6)),j), char(44), j=1, Ninvalues), '-->',                    &
       print_6Dhalfdim(vals, rgs)
@@ -666,6 +667,43 @@ END FUNCTION julian_day
   IF (MOD(diffyears,4) == 0) is_leap=.TRUE.
 
   END SUBROUTINE year_leap
+
+  SUBROUTINE Earth_wind(debg, dx, dy, dt, windu, windv, sina, cosa, windu_earth, windv_earth)
+! Subroutine to rotate wind to Earth surface reference
+
+  USE module_gen_tools
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: debg, dx, dy, dt
+  REAL, DIMENSION(dx, dy, dt), INTENT(IN)                 :: windu, windv, sina, cosa
+  REAL, DIMENSION(dx, dy, dt), INTENT(OUT)                :: windu_earth, windv_earth
+  
+! Local
+  CHARACTER(LEN=50)                                       :: section
+  
+!!!!!!! Variables
+! d[x/y/t]: dimension of horizontal wind matrixs
+! wind[u/v]: wind components in grid orientation
+! [sin/cos]a: map factors
+! wind[u/v]_earth: wind components in surface Earth reference
+
+  section="'Earth_wind'"
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+
+  windu_earth=windu*cosa-windv*sina
+  windv_earth=windv*cosa+windu*sina
+
+  IF (debg >= 150) THEN
+    PRINT *,'  dim/2 sample initial values. windu: ', windu(halfdim(dx), halfdim(dy),           &
+      halfdim(dt)),' windv: ',windv(halfdim(dx), halfdim(dy), halfdim(dt)),' sina: ',           &
+      sina(halfdim(dx), halfdim(dy), halfdim(dt)),' cosa: ',cosa(halfdim(dx), halfdim(dy),      &
+      halfdim(dt))
+    PRINT *,'dim/2 result. windu_earth: ',windu_earth(halfdim(dx), halfdim(dy), halfdim(dt)),   &
+      ' windv_earth: ',windv_earth(halfdim(dx), halfdim(dy), halfdim(dt))
+  END IF
+
+  END SUBROUTINE Earth_wind
 
   SUBROUTINE z_derivate(field, dimx, dimy, dimz, dimt, p_lev, field_p)
 ! Subroutine to compute z_derivate of a field

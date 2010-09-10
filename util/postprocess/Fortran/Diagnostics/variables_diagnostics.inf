@@ -14,31 +14,91 @@
  diagnostic_constant      0.
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*CLT_CAM*
+*DTH*
  diagnostic_type          5
  Num_input_variables      1
- Input_variables          CLDFRA
- diagnostic_dim           3
- diagnostic_dim_shape     1, 2, 4
- diagnostic_std_name      'cloud_area_fraction'
- diagnostic_longdesc      'total cloud fraction'
- diagnostic_units         '1'
- diagnostic_method        'max6D'
+ Input_variables          DZS
+ diagnostic_rank          1
+ diagnostic_shape         6
+ diagnostic_std_name      'depth_thickness'
+ diagnostic_longdesc      'thickness of depth layers'
+ diagnostic_units         'm'
+ diagnostic_method        'direct6D'
+ diagnostic_Noptions      0
+ diagnostic_options       0
  diagnostic_constant      0.
- diagnostic_Noptions      1
- diagnostic_options       3
+ diagnostic_coords        'depth'
+ diagnostic_formula       -
+*EVSPSBL*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          SFCEVP
+ diagnostic_rank          3
+ diagnostic_shape         1, 2, 4
+ diagnostic_std_name      'water_evaporation_flux'
+ diagnostic_longdesc      'surface water evaporation flux'
+ diagnostic_units         'kgm-2s-1'
+ diagnostic_method        'wrfdirect'
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_constant      0.
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
+*HFLS*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          LH
+ diagnostic_rank          3
+ diagnostic_shape         1, 2, 4
+ diagnostic_std_name      'surface_upward_latent_heat_flux'
+ diagnostic_longdesc      'surface upward latent heat flux'
+ diagnostic_units         'Ws-1'
+ diagnostic_method        'direct6D'
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_constant      0.
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
+*HFSS*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          HFX
+ diagnostic_rank          3
+ diagnostic_shape         1, 2, 4
+ diagnostic_std_name      'surface_upward_sensible_heat_flux'
+ diagnostic_longdesc      'surface upward sensible heat flux'
+ diagnostic_units         'Ws-1'
+ diagnostic_method        'direct6D'
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_constant      0.
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
 *HURS*
  diagnostic_type          5
  Num_input_variables      3
  Input_variables          'T2, Q2, PSFC'
- diagnostic_dim           3
- diagnostic_dim_shape     1, 2, 4
+ diagnostic_dim           4
+ diagnostic_dim_shape     1, 2, 5, 4
  diagnostic_std_name      'relative_humidty'
  diagnostic_longdesc      'relative humidty at 2 m'
  diagnostic_units         '1'
  diagnostic_method        'Tetens'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
+*HUSS*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          'Q2'
+ diagnostic_dim           4
+ diagnostic_dim_shape     1, 2, 5, 4
+ diagnostic_std_name      'specific_humidty'
+ diagnostic_longdesc      'specific humidty at 2 m'
+ diagnostic_units         'kg kg-1'
+ diagnostic_method        'direct6D'
  diagnostic_constant      0.
  diagnostic_Noptions      0
  diagnostic_options       0
@@ -59,6 +119,81 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
+*MRSOS*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          'SMOIS'
+ diagnostic_dim           4
+ diagnostic_dim_shape     1, 2, 6, 4
+ diagnostic_std_name      'moisture_content_of_soil_layer'
+ diagnostic_longdesc      'soil moisture content of a layer'
+ diagnostic_units         'kgm-2'
+ diagnostic_method        'direct6D'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
+*MRROS*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          SFROFF
+ diagnostic_rank          3
+ diagnostic_shape         1, 2, 4
+ diagnostic_std_name      'surface_runoff_flux'
+ diagnostic_longdesc      'surface runoff flux'
+ diagnostic_units         'kgm-2s-1'
+ diagnostic_method        'wrf'
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_constant      0.
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
+*PR*
+ diagnostic_type          5
+ Num_input_variables      2
+ Input_variables          'RAINCV, RAINNCV'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'precipitation_flux'
+ diagnostic_longdesc      'flux of precipitation'
+ diagnostic_units         'kgm-2s-1'
+ diagnostic_method        'wrf'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
+*PRC*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          'RAINCV'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'convective_precipitation_flux'
+ diagnostic_longdesc      'flux of precipitation of convective origin'
+ diagnostic_units         'kgm-2s-1'
+ diagnostic_method        'wrf'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
+*PRLS*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          'RAINNCV'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'stratiform_precipitation_flux'
+ diagnostic_longdesc      'stratiform / large-scale precipitation flux'
+ diagnostic_units         'kgm-2s-1'
+ diagnostic_method        'wrf'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
 *PRW*
  diagnostic_type          5
  Num_input_variables      4
@@ -74,14 +209,21 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
-*PV*
- Num_input_variables      6
- Input_variables          'UU, VV, TT, F, MAPFAC_M, PLEV'
- diagnostic_dim           4
- diagnostic_dim_shape     1, 2, 3, 4
- diagnostic_std_name      'potential_vorticity'
- diagnostic_longdesc      'potential vorticity'
- diagnostic_units         'PVU (10-6 m2Ks-1kg-1)'
+*PS*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          'PSFC'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'surface_air_pressure'
+ diagnostic_longdesc      'pressure at surface'
+ diagnostic_units         'Pa'
+ diagnostic_method        'direct6D'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
 *RLS*
  diagnostic_type          5
  Num_input_variables      2
@@ -95,6 +237,21 @@
  diagnostic_constant      0.
  diagnostic_Noptions      1
  diagnostic_options       3
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       - 
+*RLDS*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          'GLW'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'surface_downwelling_longwave_flux_in_air'
+ diagnostic_longdesc      'downward welling LW radiation flux at surface'
+ diagnostic_units         'Wm-2'
+ diagnostic_method        'direct6D'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
 *RLUT*
@@ -127,6 +284,21 @@
  diagnostic_options       3
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
+*RSDS*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          'SWDOWN'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'surface_downwelling_shortwave_flux_in_air'
+ diagnostic_longdesc      'downward welling SW radiation flux at surface'
+ diagnostic_units         'Wm-2'
+ diagnostic_method        'direct6D'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       - 
 *RSDT*
  diagnostic_type          5
  Num_input_variables      1
@@ -157,12 +329,42 @@
  diagnostic_options       3
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
+*SST*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          'SST'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'sea_surface_temperature'
+ diagnostic_longdesc      'sea surface temperature'
+ diagnostic_units         'K'
+ diagnostic_method        'direct6D'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
+*TAS*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          'T2'
+ diagnostic_dim           4
+ diagnostic_dim_shape     1, 2, 5, 4
+ diagnostic_std_name      'air_temperature'
+ diagnostic_longdesc      'air temperature at 2 m'
+ diagnostic_units         'K'
+ diagnostic_method        'direct6D'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
 *TDPS*
  diagnostic_type          5
  Num_input_variables      3
  Input_variables          'Q2, PSFC, T2'
- diagnostic_dim           3
- diagnostic_dim_shape     1, 2, 4
+ diagnostic_dim           4
+ diagnostic_dim_shape     1, 2, 5, 4
  diagnostic_std_name      'dew_point_temperature'
  diagnostic_longdesc      'dew point temperature at 2M'
  diagnostic_units         'K'
@@ -172,3 +374,48 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
+*TS*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          'TSK'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'surface_temperature'
+ diagnostic_longdesc      'temperature at surface'
+ diagnostic_units         'K'
+ diagnostic_method        'direct6D'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
+*UAS*
+ diagnostic_type          5
+ Num_input_variables      4
+ Input_variables          'U10, V10, SINALPHA, COSALPHA'
+ diagnostic_dim           4
+ diagnostic_dim_shape     1, 2, 5, 4
+ diagnostic_std_name      'eastward_wind'
+ diagnostic_longdesc      'eastward wind at 10 m'
+ diagnostic_units         'm s-1'
+ diagnostic_method        'wrf10'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
+*VAS*
+ diagnostic_type          5
+ Num_input_variables      4
+ Input_variables          'U10, V10, SINALPHA, COSALPHA'
+ diagnostic_dim           4
+ diagnostic_dim_shape     1, 2, 5, 4
+ diagnostic_std_name      'northward_wind'
+ diagnostic_longdesc      'northward wind at 10 m'
+ diagnostic_units         'm s-1'
+ diagnostic_method        'wrf10'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
