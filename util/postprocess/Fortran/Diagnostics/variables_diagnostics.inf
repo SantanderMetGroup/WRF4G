@@ -1,5 +1,5 @@
 ==Information file for each diagnose variable==
-*CLT*
+*clt*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          CLDFRA
@@ -14,7 +14,7 @@
  diagnostic_constant      0.
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*DTH*
+*dth*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          DZS
@@ -29,7 +29,7 @@
  diagnostic_constant      0.
  diagnostic_coords        'depth'
  diagnostic_formula       -
-*EVSPSBL*
+*evspsbl*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          SFCEVP
@@ -44,7 +44,7 @@
  diagnostic_constant      0.
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*HFLS*
+*hfls*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          LH
@@ -59,7 +59,7 @@
  diagnostic_constant      0.
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*HFSS*
+*hfss*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          HFX
@@ -74,7 +74,7 @@
  diagnostic_constant      0.
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*HURS*
+*hurs*
  diagnostic_type          5
  Num_input_variables      3
  Input_variables          'T2, Q2, PSFC'
@@ -89,7 +89,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*HUSS*
+*huss*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          'Q2'
@@ -104,7 +104,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*MRSO*
+*mrso*
  diagnostic_type          5
  Num_input_variables      2
  Input_variables          'SMOIS, DZS'
@@ -113,13 +113,13 @@
  diagnostic_std_name      'soil_moisture_content'
  diagnostic_longdesc      'total soil moisture content'
  diagnostic_units         'kgm-2'
- diagnostic_method        'standard'
+ diagnostic_method        'wrf'
  diagnostic_constant      0.
  diagnostic_Noptions      0
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*MRSOS*
+*mrsos*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          'SMOIS'
@@ -134,7 +134,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*MRROS*
+*mrros*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          SFROFF
@@ -149,7 +149,7 @@
  diagnostic_constant      0.
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*PR*
+*pr*
  diagnostic_type          5
  Num_input_variables      2
  Input_variables          'RAINCV, RAINNCV'
@@ -164,7 +164,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*PRC*
+*prc*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          'RAINCV'
@@ -179,7 +179,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*PRLS*
+*prls*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          'RAINNCV'
@@ -194,7 +194,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*PRW*
+*prw*
  diagnostic_type          5
  Num_input_variables      4
  Input_variables          'QVAPOR, MU, MUB, DNW'
@@ -209,7 +209,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
-*PS*
+*ps*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          'PSFC'
@@ -224,7 +224,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*RLS*
+*rls*
  diagnostic_type          5
  Num_input_variables      2
  Input_variables          'ACLWDNB, ACLWUPB'
@@ -239,7 +239,7 @@
  diagnostic_options       3
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
-*RLDS*
+*rlds*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          'GLW'
@@ -254,7 +254,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
-*RLUT*
+*rlut*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          'OLR'
@@ -269,7 +269,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
-*RSS*
+*rss*
  diagnostic_type          5
  Num_input_variables      2
  Input_variables          'ACSWDNB, ACSWUPB'
@@ -284,7 +284,7 @@
  diagnostic_options       3
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
-*RSDS*
+*rsds*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          'SWDOWN'
@@ -299,7 +299,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
-*RSDT*
+*rsdt*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          'ACSWDNT'
@@ -314,7 +314,7 @@
  diagnostic_options       3
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
-*RST*
+*rst*
  diagnostic_type          5
  Num_input_variables      2
  Input_variables          'ACSWDNT, ACSWUPT'
@@ -329,7 +329,7 @@
  diagnostic_options       3
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
-*SST*
+*sst*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          'SST'
@@ -344,7 +344,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*TAS*
+*tas*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          'T2'
@@ -359,7 +359,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*TDPS*
+*tdps*
  diagnostic_type          5
  Num_input_variables      3
  Input_variables          'Q2, PSFC, T2'
@@ -374,7 +374,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
-*TS*
+*ts*
  diagnostic_type          5
  Num_input_variables      1
  Input_variables          'TSK'
@@ -389,7 +389,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*UAS*
+*uas*
  diagnostic_type          5
  Num_input_variables      4
  Input_variables          'U10, V10, SINALPHA, COSALPHA'
@@ -404,7 +404,7 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
-*VAS*
+*vas*
  diagnostic_type          5
  Num_input_variables      4
  Input_variables          'U10, V10, SINALPHA, COSALPHA'

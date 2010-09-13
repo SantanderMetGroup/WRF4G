@@ -28,7 +28,7 @@ MODULE module_gen_tools
 !     included) 
 ! print_6Dhalfdim: Subroutine to print central value of a real 6D matrix
 ! search_variables: Subroutine to search variables from a given netcCDF file
-! string_int: Function to transform a string to a real value
+! string_int: Function to transform a string to an integer value
 ! string_real: Subroutine to transform a string to a real value
 ! string_Intvalues: Subroutine to obtain integer values from a 'namelist' string separated by comas
 ! string_Realvalues: Subroutine to obtain real values from a 'namelist' string separated by comas

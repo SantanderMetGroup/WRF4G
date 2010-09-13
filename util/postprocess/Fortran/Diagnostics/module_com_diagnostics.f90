@@ -186,11 +186,11 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
 ! CLT. Total Cloud fraction
 !!
-    CASE ('CLT')
+    CASE ('clt')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing CLT...'
+        PRINT *,'  Computing clt...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -258,16 +258,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
        END SELECT
 
        DEALLOCATE(Rdiagnostic3D)
-       DEALLOCATE(foundvariables, DimMatInputs)
        DEALLOCATE(rMATinputsA)
 
-! DTH. Thickness of depth layers
+! dth. Thickness of depth layers
 !!
-    CASE ('DTH')
+    CASE ('dth')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing DTH...'
+        PRINT *,'  Computing dth...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -315,17 +314,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-       IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
        DEALLOCATE(Rdiagnostic2D)
-       DEALLOCATE(foundvariables, DimMatInputs)
 
-! EVSPSBL. Surface water evaporation
+! evspsbl. Surface water evaporation
 !!
-    CASE ('EVSPSBL')
+    CASE ('evspsbl')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing EVSPSBL...'
+        PRINT *,'  Computing evspsbl...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -364,18 +361,9 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 	        DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
             END DO
 
-!            IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
-!            ALLOCATE(gen_result6D(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),      &
-!              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6)), STAT=ierr)
-!            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//                       &
-!  	      " allocating 'gen_result6D'"
 
 ! Difference between fields
        
-!            indivmethod='direct6D'
-!            CALL calc_method_gen6D(dbg, indivmethod, DimMatInputs(1,:), 1, rMATinputsA,         &
-!  	      diagcom%constant, diagcom%Noptions, diagcom%options, gen_result6D)
-
             Rdiagnostic3D=rMATinputsA(:,:,:,1,1,1,1)/diff_dimtimes(dbg, oid, 4, 1, 2)
 
           CASE DEFAULT
@@ -404,18 +392,16 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      IF (ALLOCATED(gen_Result6D)) DEALLOCATE(gen_Result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
       DEALLOCATE(rMATinputsA)
              
-! HFLS. Surface latent heat flux
+! hfls. Surface latent heat flux
 !!
-    CASE ('HFLS')
+    CASE ('hfls')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing HFLS...'
+        PRINT *,'  Computing hfls...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -464,17 +450,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
-! HFSS. Surface sensible heat flux
+! hfss. Surface sensible heat flux
 !!
-    CASE ('HFSS')
+    CASE ('hfss')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing HFSS...'
+        PRINT *,'  Computing hfss...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -523,17 +507,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
-! HURS. 2m relative humidity
+! hurs. 2m relative humidity
 !!
-    CASE ('HURS')
+    CASE ('hurs')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing HURS...'
+        PRINT *,'  Computing hurs...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -602,16 +584,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
        END SELECT
 
       DEALLOCATE(Rdiagnostic4D)
-      DEALLOCATE(foundvariables, DimMatInputs)
       DEALLOCATE(rMATinputsA)
 
-! HUSS. 2m specific humidty
+! huss. 2m specific humidty
 !!
-    CASE ('HUSS')
+    CASE ('huss')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing HUSS...'
+        PRINT *,'  Computing huss...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -661,17 +642,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      DEALLOCATE(gen_Result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
-! MRSO. Total soil moisture
+! mrso. Total soil moisture
 !!
-    CASE ('MRSO')
+    CASE ('mrso')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing MRSO...'
+        PRINT *,'  Computing mrso...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -694,7 +673,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
         methodmrso: SELECT CASE (diagcom%method)
 
-          CASE ('standard')
+          CASE ('wrf')
 	  
 ! SMOIS
             IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
@@ -750,16 +729,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
        END SELECT
 
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
       DEALLOCATE(rMATinputsA, rMATinputsB)
 
-! MRROS. Surface runoff flux
+! mrros. Surface runoff flux
 !!
-    CASE ('MRROS')
+    CASE ('mrros')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing MRROS...'
+        PRINT *,'  Computing mrros...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -826,18 +804,16 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      IF (ALLOCATED(gen_Result6D)) DEALLOCATE(gen_Result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
       DEALLOCATE(rMATinputsA)
 
-! MRSOS. Soil layer moisture
+! mrsos. Soil layer moisture
 !!
-    CASE ('MRSOS')
+    CASE ('mrsos')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing MRSOS...'
+        PRINT *,'  Computing mrsos...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -887,17 +863,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
       DEALLOCATE(Rdiagnostic4D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
-! PR. Precipitation flux
+! pr. Precipitation flux
 !!
-    CASE ('PR')
+    CASE ('pr')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing PR...'
+        PRINT *,'  Computing pr...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -976,18 +950,16 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      IF (ALLOCATED(gen_Result6D)) DEALLOCATE(gen_Result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
       DEALLOCATE(rMATinputsA)
 
-! PRC. Convective precipitation flux
+! prc. Convective precipitation flux
 !!
-    CASE ('PRC')
+    CASE ('prc')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing PRC...'
+        PRINT *,'  Computing prc...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -1066,18 +1038,16 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      DEALLOCATE(gen_Result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
       DEALLOCATE(rMATinputsA)
 
-! PRLS. Stratiform precipitation flux
+! prls. Stratiform precipitation flux
 !!
-    CASE ('PRLS')
+    CASE ('prls')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing PRLS...'
+        PRINT *,'  Computing prls...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -1156,18 +1126,16 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      IF (ALLOCATED(gen_Result6D)) DEALLOCATE(gen_Result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
       DEALLOCATE(rMATinputsA)
 
-! PRW. Total column water content
+! prw. Total column water content
 !!
-    CASE ('PRW')
+    CASE ('prw')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing PRW...'
+        PRINT *,'  Computing prw...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -1260,16 +1228,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       END SELECT
 
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
       DEALLOCATE(rMATinputsA, rMATinputsB, rMATinputsC)
 
-! PS. Surface pressure
+! ps. Surface pressure
 !!
-    CASE ('PS')
+    CASE ('ps')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing PS...'
+        PRINT *,'  Computing ps...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -1318,17 +1285,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
-! RLS. Net LW surface radiation
+! rls. Net LW surface radiation
 !!
-    CASE ('RLS')
+    CASE ('rls')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing RLS...'
+        PRINT *,'  Computing rls...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -1414,16 +1379,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       END SELECT
       
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
       DEALLOCATE(rMATinputsA, rMATinputsB)
 
-! RLDS. LW surface flux radiation
+! rlds. LW surface flux radiation
 !!
-    CASE ('RLDS')
+    CASE ('rlds')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing RLDS...'
+        PRINT *,'  Computing rlds...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -1472,17 +1436,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
       END SELECT
       
-      IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
-! RLUT. Top of atmosphere net LW radiation flux
+! rlut. Top of atmosphere net LW radiation flux
 !!
-    CASE ('RLUT')
+    CASE ('rlut')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing RLUT...'
+        PRINT *,'  Computing rlut...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -1532,15 +1494,14 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       END SELECT
       
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
-! RSS. Net SW surface radiation
+! rss. Net SW surface radiation
 !!
-    CASE ('RSS')
+    CASE ('rss')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing RSS...'
+        PRINT *,'  Computing rss...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -1626,15 +1587,14 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       END SELECT
 
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
-! RSDS. SW surface flux radiation
+! rsds. SW surface flux radiation
 !!
-    CASE ('RSDS')
+    CASE ('rsds')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing RSDS...'
+        PRINT *,'  Computing rsds...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -1683,17 +1643,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
       END SELECT
       
-      IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
-! RSDT. Incoming/downward SW at top of atmosphere radiation
+! rsdt. Incoming/downward SW at top of atmosphere radiation
 !!
-    CASE ('RSDT')
+    CASE ('rsdt')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing RSDT...'
+        PRINT *,'  Computing rsdt...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -1772,16 +1730,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       END SELECT
 
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
       DEALLOCATE(rMATinputsA)
 
-! RST. Net SW at top of atmosphere radiation
+! rst. Net SW at top of atmosphere radiation
 !!
-    CASE ('RST')
+    CASE ('rst')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing RST...'
+        PRINT *,'  Computing rst...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -1838,6 +1795,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
             CALL calc_method_gen6D(dbg, indivmethod, DimMatInputs(1,:), 1, rMATinputsB,         &
   	      diagcom%constant, diagcom%Noptions, diagcom%options, gen_result6D)
 
+! Time-Interval for flux value...
             Rdiagnostic3D=gen_result6D(:,:,:,1,1,1)/diff_dimtimes(dbg, oid, 4, 1, 2)
 
           CASE DEFAULT
@@ -1867,16 +1825,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       END SELECT
 
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
       DEALLOCATE(rMATinputsA, rMATinputsB)
 
-! SST. Sea surface temperature
+! sst. Sea surface temperature
 !!
-    CASE ('SST')
+    CASE ('sst')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing SST...'
+        PRINT *,'  Computing sst...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -1926,17 +1883,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
-! TAS. 2m temperature
+! tas. 2m temperature
 !!
-    CASE ('TAS')
+    CASE ('tas')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing TAS...'
+        PRINT *,'  Computing tas...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -1986,17 +1941,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      DEALLOCATE(gen_Result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
-! TDPS. dew point temperature at 2m
+! tdps. dew point temperature at 2m
 !!
-    CASE ('TDPS')
+    CASE ('tdps')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing TDPS...'
+        PRINT *,'  Computing tdps...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -2065,16 +2018,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       END SELECT
 
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
       DEALLOCATE(rMATinputsA)
 
-! TS. Surface temperature
+! ts. Surface temperature
 !!
-    CASE ('TS')
+    CASE ('ts')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing TS...'
+        PRINT *,'  Computing ts...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -2123,17 +2075,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      IF (ALLOCATED(gen_result6D)) DEALLOCATE(gen_result6D)
       DEALLOCATE(Rdiagnostic3D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
-! UAS. 2m westward wind
+! uas. 2m westward wind
 !!
-    CASE ('UAS')
+    CASE ('uas')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing UAS...'
+        PRINT *,'  Computing uas...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -2158,6 +2108,8 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
         methoduas: SELECT CASE (diagcom%method)
      
           CASE ('wrf10')
+! Winds in wrfout are not Earth referenciated. U10, V10. SINA, COSA wrfout variables contains
+! values to make rotation to surface Earth reference of winds
 	  
             IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
               ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),     &
@@ -2166,6 +2118,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 	      "'rMATinputsA'"
        
 ! U10, V10, SINA, COSA
+
             DO iinput=1,4
               CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
 	        DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
@@ -2203,17 +2156,15 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      IF (ALLOCATED(gen_Result6D)) DEALLOCATE(gen_Result6D)
       DEALLOCATE(Rdiagnostic4D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
-! VAS. 2m westward wind
+! vas. 2m westward wind
 !!
-    CASE ('VAS')
+    CASE ('vas')
 
       IF (dbg >= 75) THEN
         PRINT *,'  ----- ---- --- -- -'
-        PRINT *,'  Computing VAS...'
+        PRINT *,'  Computing vas...'
         PRINT *,'  ----- ---- --- -- -'
       END IF
 
@@ -2238,6 +2189,8 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
         methodvas: SELECT CASE (diagcom%method)
      
           CASE ('wrf10')
+! Winds in wrfout are not Earth referenciated. U10, V10. SINA, COSA wrfout variables contains
+! values to make rotation to surface Earth reference of winds
 	  
             IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
               ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),     &
@@ -2282,9 +2235,7 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
 
        END SELECT
 
-      IF (ALLOCATED(gen_Result6D)) DEALLOCATE(gen_Result6D)
       DEALLOCATE(Rdiagnostic4D)
-      DEALLOCATE(foundvariables, DimMatInputs)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!! NO VARIABLE DEFINED
 
@@ -2294,6 +2245,10 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
       CALL diag_fatal(messg)
 
     END SELECT diag_var
+
+    IF (ALLOCATED(gen_Result6D)) DEALLOCATE(gen_Result6D)
+    IF (ALLOCATED(foundvariables)) DEALLOCATE(foundvariables)
+    IF (ALLOCATED(DimMatInputs)) DEALLOCATE (DimMatInputs)
 
   END DO compute_diags
 
