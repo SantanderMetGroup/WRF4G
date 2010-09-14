@@ -59,6 +59,21 @@
  diagnostic_constant      0.
  diagnostic_coords        'lon lat'
  diagnostic_formula       -
+*hfso*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          GRDFLX
+ diagnostic_rank          3
+ diagnostic_shape         1, 2, 4
+ diagnostic_std_name      'upward_heat_flux_at_ground_level_in_soil'
+ diagnostic_longdesc      'soil upward heat flux'
+ diagnostic_units         'Ws-1'
+ diagnostic_method        'direct6D'
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_constant      0.
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
 *hfss*
  diagnostic_type          5
  Num_input_variables      1
@@ -209,6 +224,21 @@
  diagnostic_options       0
  diagnostic_coords        'lon lat'
  diagnostic_formula       - 
+*prsn*
+ diagnostic_type          5
+ Num_input_variables      1
+ Input_variables          'SNOW'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'snowfall_flux'
+ diagnostic_longdesc      'flux of snow fall'
+ diagnostic_units         'kgm-2s-1'
+ diagnostic_method        'wrf'
+ diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
 *ps*
  diagnostic_type          5
  Num_input_variables      1
@@ -220,6 +250,21 @@
  diagnostic_units         'Pa'
  diagnostic_method        'direct6D'
  diagnostic_constant      0.
+ diagnostic_Noptions      0
+ diagnostic_options       0
+ diagnostic_coords        'lon lat'
+ diagnostic_formula       -
+*psl*
+ diagnostic_type          5
+ Num_input_variables      6
+ Input_variables          'P, PB, T, QVAPOR, PSFC, HGT'
+ diagnostic_dim           3
+ diagnostic_dim_shape     1, 2, 4
+ diagnostic_std_name      'air_pressure_at_sea_level'
+ diagnostic_longdesc      'pressure at sea level'
+ diagnostic_units         'Pa'
+ diagnostic_method        'wrf_Benjamin'
+ diagnostic_constant      70000.
  diagnostic_Noptions      0
  diagnostic_options       0
  diagnostic_coords        'lon lat'

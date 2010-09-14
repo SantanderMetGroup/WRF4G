@@ -1,7 +1,7 @@
 MODULE module_prw
   
   CONTAINS
-! Diagnostic module of compuation of column water vpor content
+! Diagnostic module of computation of column water vpor content
 ! GMS. UC: August 2010. v0.0
 !
 
@@ -35,12 +35,10 @@ MODULE module_prw
 ! vintq: total vertical water vapor [kg m-2]
 ! dxm, dym: horizontal grid dimensions [m]
 
-  section="'module_prw'"
+  section="'prw'"
   
   IF (debg >= 75) PRINT *,'Section '//TRIM(section)//'... .. .'
-  IF (debg >= 100) PRINT *,'Dimensions: ',dx,CHAR(44), dy,CHAR(44), dz,CHAR(44), dt
-
-  IF (debg >= 75)  PRINT *,'Computing prw....'
+  IF (debg >= 100) PRINT *,'  Dimensions: ',dx,CHAR(44), dy,CHAR(44), dz,CHAR(44), dt
 
 ! NOTE
 !
@@ -58,21 +56,23 @@ MODULE module_prw
   vintq=0.
   
   DO i=1,dx
-  DO j=1,dy
-  DO l=1,dt
-  DO k=1,dz
-    vintq(i,j,l) = vintq(i,j,l) + qv(i,j,k,l)*dzh(k,1)
+    DO j=1,dy
+      DO l=1,dt
+        DO k=1,dz
+          vintq(i,j,l) = vintq(i,j,l) + qv(i,j,k,l)*dzh(k,1)
+        END DO
+      END DO
+    END DO
   END DO
-  END DO
-  END DO
-  END DO
-  DO k=1,dt
-    PRINT *,'t: ',k,'= ',qv( halfdim(dx), halfdim(dy), halfdim(dz), k)
-  END DO
+  IF (debg >= 100) THEN
+    DO k=1,dt
+      PRINT *,'  t: ',k,'= ',qv( halfdim(dx), halfdim(dy), halfdim(dz), k)
+    END DO
+  END IF
 
   IF (debg >= 150) THEN
     DO k=1,dz
-      PRINT *,'dim/2 lev. :',k,' vert. space: ',dzh(k,1),' vapor mixing ratio: ',               &
+      PRINT *,'  dim/2 lev. :',k,' vert. space: ',dzh(k,1),' vapor mixing ratio: ',               &
         qv( halfdim(dx), halfdim(dy), k, halfdim(dt) ),' rho:', rho( halfdim(dx), halfdim(dy),  &
 	halfdim(dt) )
     END DO
@@ -80,7 +80,7 @@ MODULE module_prw
   
   vintq=vintq*rho/grav
 
-  IF (debg >= 75) PRINT *,'prw at the center dimx/2:', halfdim(dx),' dimy/2:',                  &
+  IF (debg >= 75) PRINT *,'  prw at the center dimx/2:', halfdim(dx),' dimy/2:',                  &
     halfdim(dy),' dt/2:', halfdim(dt), ' =', vintq(halfdim(dx),halfdim(dy),halfdim(dt))
 
   END SUBROUTINE prw

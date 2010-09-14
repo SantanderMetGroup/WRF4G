@@ -1,7 +1,7 @@
 MODULE module_clt
   
   CONTAINS
-! Diagnostic module of compuation of total cloud cover fraction following Sundqvist, 1989, Mont.
+! Diagnostic module of computation of total cloud cover fraction following Sundqvist, 1989, Mont.
 !   Weather Rev. 
 ! GMS. UC: August 2010. v0.0
 !
@@ -32,16 +32,15 @@ MODULE module_clt
 ! cldfra: cloud fraction at each level
 ! totcfr: total cloud fraction
 
-  section="'module_clt'"
+  section="'clt'"
   
   IF (debg >= 75) PRINT *,'Section '//TRIM(section)//'... .. .'
-  IF (debg >= 100) PRINT *,'Dimensions: ',dx,CHAR(44), dy,CHAR(44), dz,CHAR(44), dt
+  IF (debg >= 100) PRINT *,'  Dimensions: ',dx,CHAR(44), dy,CHAR(44), dz,CHAR(44), dt
 
   totcfr = 1.
   
   ijk=0
 
-  IF (debg >= 75)  PRINT *,'Computing total cloud fraction....'
   DO i=1,dx
     DO j=1,dy
       DO it=1,dt
@@ -62,12 +61,12 @@ MODULE module_clt
 
   IF (debg >= 150) THEN
     DO k=1,dz
-      PRINT *,'dim/2 cloud fraction values at ',k, 'level: ', cldfra(halfdim(dx), halfdim(dy),  &
+      PRINT *,'  dim/2 cloud fraction values at ',k, 'level: ', cldfra(halfdim(dx), halfdim(dy),  &
         k, halfdim(dt))
     END DO
   END IF
 
-  IF (debg >= 75) PRINT *,'Total cloud fraction at the center dimx/2:', halfdim(dx),' dimy/2:', &
+  IF (debg >= 75) PRINT *,'  Total cloud fraction at the center dimx/2:', halfdim(dx),' dimy/2:', &
     halfdim(dy),' dt/2:', halfdim(dt), ' =', totcfr(halfdim(dx),halfdim(dy),halfdim(dt))
 
   END SUBROUTINE clt

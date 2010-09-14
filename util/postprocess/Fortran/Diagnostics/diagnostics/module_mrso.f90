@@ -1,7 +1,7 @@
 MODULE module_mrso
   
   CONTAINS
-! Diagnostic module of compuation of Total soil moisture content 
+! Diagnostic module of computation of Total soil moisture content 
 ! GMS. UC: August 2010. v0.0
 !
 
@@ -33,12 +33,10 @@ MODULE module_mrso
 ! levmois: moisture at each level [m3 m-3]
 ! totsoilmois: total moisture content [kg m-3]
 
-  section="'module_mrso'"
+  section="'mrso'"
   
   IF (debg >= 75) PRINT *,'Section '//TRIM(section)//'... .. .'
-  IF (debg >= 100) PRINT *,'Dimensions: ',dx,CHAR(44), dy,CHAR(44), dz,CHAR(44), dt
-
-  IF (debg >= 75)  PRINT *,'Computing mrso....'
+  IF (debg >= 100) PRINT *,'  Dimensions: ',dx,CHAR(44), dy,CHAR(44), dz,CHAR(44), dt
 
   DO i=1,dx
     DO j=1,dy
@@ -55,13 +53,13 @@ MODULE module_mrso
 
   IF (debg >= 150) THEN
     DO k=1,dz
-      PRINT *,'level ',k,' thickness: ',dzlev(k, halfdim(dt)),' dim/2 soil moisture: ',          &
+      PRINT *,'  level ',k,' thickness: ',dzlev(k, halfdim(dt)),' dim/2 soil moisture: ',          &
         levmois(halfdim(dx), halfdim(dy), k, halfdim(dt))
     END DO
   END IF
 
   IF (debg >= 75) THEN
-    PRINT *,'mrso at the center dimx/2:', halfdim(dx),' dimy/2:', halfdim(dy),' dt/2:',          &
+    PRINT *,'  mrso at the center dimx/2:', halfdim(dx),' dimy/2:', halfdim(dy),' dt/2:',          &
       halfdim(dt), ' =', totsoilmois(halfdim(dx),halfdim(dy),halfdim(dt))
   END IF
 

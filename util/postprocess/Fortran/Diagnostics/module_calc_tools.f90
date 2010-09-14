@@ -17,7 +17,9 @@ MODULE module_calc_tools
 ! juliand_day: Function to give the julian day of a date
 ! year_leap: Subroutine to give if a year is leap year or not
 ! Earth_wind: Subroutine to rotate wind to Earth surface reference
-! z_derivate: Subroutine to compute z_derivate of a field
+! virtual: 1D Function to return virtual temperature in K, given temperature in K and mixing ratio in
+!    kg/kg.
+! z_derivate: Subroutine to compute z_derivate of a field 
 
   SUBROUTINE borders3D(var,dimx,dimy,dimz,dimt)
 ! Subroutine to compute border values of 3D fields
@@ -704,6 +706,26 @@ END FUNCTION julian_day
   END IF
 
   END SUBROUTINE Earth_wind
+
+  REAL FUNCTION virtual (debg, tmp, rmix)
+! 1D Function to return virtual temperature in K, given temperature in K and mixing ratio in kg/kg.
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: debg
+  REAL, INTENT(IN)                                        :: tmp, rmix
+
+! Local
+  CHARACTER(LEN=50)                                       :: section
+  
+  section="'virtual'"
+  IF (debg >= 150) PRINT *,'Section '//TRIM(section)//'... .. .'
+  
+  virtual=tmp*(0.622+rmix)/(0.622*(1.+rmix))
+
+  IF (debg >= 150) PRINT *,'tmp: ',tmp,' rmix: ',rmix,' virutal temp.:', virtual
+
+  END FUNCTION virtual
 
   SUBROUTINE z_derivate(field, dimx, dimy, dimz, dimt, p_lev, field_p)
 ! Subroutine to compute z_derivate of a field

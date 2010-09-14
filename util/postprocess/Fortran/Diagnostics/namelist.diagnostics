@@ -4,9 +4,9 @@
   global_att_file          = 1
   geofile                  = ''
   path_to_geofile          = '',
-  diagnostics              = 'SST',
-  process                  = 'all',
-  debug                    = 75,
+  diagnostics              = 'psl',
+  process                  = 'list',
+  debug                    = 100,
   filt                     = .FALSE.,
   grid_filt                = 3,
   ntimes_filt              = 10,

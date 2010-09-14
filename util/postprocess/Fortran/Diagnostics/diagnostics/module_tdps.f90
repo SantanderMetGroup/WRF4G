@@ -1,7 +1,7 @@
 MODULE module_tdps
   
   CONTAINS
-! Diagnostic module of compuation of dew point temperature at 2 m
+! Diagnostic module of computation of dew point temperature at 2 m
 ! GMS. UC: August 2010. v0.0
 !
 
@@ -34,7 +34,7 @@ MODULE module_tdps
 ! tempd2: 2m de point temperature [K]
 ! e: vapor pressure in air [Pa]
 
-  section="'module_tdps'"
+  section="'tdps'"
   
   IF (debg >= 75) PRINT *,'Section '//TRIM(section)//'... .. .'
   IF (debg >= 100) PRINT *,'  Dimensions: ',dx,CHAR(44), dy,CHAR(44), dt

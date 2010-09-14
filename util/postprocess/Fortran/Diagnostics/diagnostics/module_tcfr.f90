@@ -1,6 +1,6 @@
 MODULE module_tcfr
   CONTAINS
-! Diagnostic module of compuation of total cloud cover fraction following Sundqvist, 1989, Mont.
+! Diagnostic module of computation of total cloud cover fraction following Sundqvist, 1989, Mont.
 !   Weather Rev. 
 ! GMS. UC: August 2010. v0.0
 !
@@ -19,10 +19,15 @@ MODULE module_tcfr
   REAL, DIMENSION(dx,dy,dz,dt), INTENT(IN)                :: cldfra
   REAL, DIMENSION(dx,dy,dt), INTENT(OUT)                  :: totcfr
   INTEGER, INTENT(IN)                                     :: debg
+
+! Local
+  CHARACTER(LEN=50)                                       :: section
+  
+  section="'tcfr'"
+  
+  IF (debg >= 100) PRINT *,'Section '//TRIM(section)//'... .. .'
   
   totcfr=1.
-
-  IF (debg >= 75) PRINT *,'Computing total cloud fraction....'
 
   vertical_levels: DO k=1, dz-1
     totcfr(:,:,:)=totcfr(:,:,:)*(1-MAX(cldfra(:,:,k,:),cldfra(:,:,k+1,:))/(1.-cldfra(:,:,k,:)))
@@ -31,7 +36,7 @@ MODULE module_tcfr
 
   totcfr=1.-totcfr
 
-  IF (debg >= 75) PRINT *,'Total cloud fraction at the center dimx/2:', dx/2,' dimy/2:', dy/2,   &
+  IF (debg >= 75) PRINT *,'  Total cloud fraction at the center dimx/2:', dx/2,' dimy/2:', dy/2,   &
     ' dt/2:', dt/2, ' =', totcfr(dx/2,dy/2,dt/2)
 
   END SUBROUTINE tcfr

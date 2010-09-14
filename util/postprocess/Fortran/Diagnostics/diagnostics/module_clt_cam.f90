@@ -1,7 +1,7 @@
 MODULE module_clt_cam
   
   CONTAINS
-! Diagnostic module of compuation of total cloud cover fraction following as it is done in CAM model
+! Diagnostic module of computation of total cloud cover fraction following as it is done in CAM model
 ! GMS. UC: August 2010. v0.0
 !
 
@@ -31,14 +31,13 @@ MODULE module_clt_cam
 ! cldfra: cloud fraction at each level
 ! totcfr: total cloud fraction
 
-  section="'module_clt'"
+  section="'clt_cam'"
   
   IF (debg >= 75) PRINT *,'Section '//TRIM(section)//'... .. .'
-  IF (debg >= 100) PRINT *,'Dimensions: ',dx,CHAR(44), dy,CHAR(44), dz,CHAR(44), dt
+  IF (debg >= 100) PRINT *,'  Dimensions: ',dx,CHAR(44), dy,CHAR(44), dz,CHAR(44), dt
 
   totcfr=0.
   
-  IF (debg >= 75)  PRINT *,'Computing total cloud fraction....'
   DO i=1,dx
     DO j=1,dy
       DO it=1,dt
@@ -49,12 +48,12 @@ MODULE module_clt_cam
 
   IF (debg >= 150) THEN
     DO k=1, dz
-      PRINT *,'At level :',k,' cloud fraction at center: ', cldfra(halfdim(dx), halfdim(dy), k, &
+      PRINT *,'  At level :',k,' cloud fraction at center: ', cldfra(halfdim(dx), halfdim(dy), k, &
         halfdim(dt))
     END DO
   END IF
 
-  IF (debg >= 75) PRINT *,'Total cloud fraction at the center dimx/2:', halfdim(dx),' dimy/2:', &
+  IF (debg >= 75) PRINT *,'  Total cloud fraction at the center dimx/2:', halfdim(dx),' dimy/2:', &
     halfdim(dy),' dt/2:', halfdim(dt), ' =', totcfr(halfdim(dx),halfdim(dy),halfdim(dt))
 
   END SUBROUTINE clt_cam

@@ -87,7 +87,7 @@ MODULE module_pv
 
 ! Adquiring initial variables
 !!
-    section='PVsub'
+    section="'PVsub'"
     varfound=0
     PRINT *,'varnames: ',varnames
     files_loop: DO ifile=1, Nfiles
