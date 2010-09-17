@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 #
 # Job submission abstraction layer
 #
@@ -16,9 +16,7 @@ test -n "${depid}" && depflag="-W depend=afterany:${depid}" || depflag=""
 test -n "${WRF4G_QUEUE_WALLTIME}" && wtflag="-l walltime=${WRF4G_QUEUE_WALLTIME}" || wtflag=""
 
 
-mpiexec="mpiexec $COM $DISTRIBUCION"
-#mpiexec="/software/CentOS/5.2/openmpi/1.4.2/gcc-gfortran4.1.2/bin/mpiexec -mca btl ${COM}self $DISTRIBUCION"
-#mpiexec="/software/CentOS/5.2/openmpi/1.4.2/gcc-gfortran4.1.2/bin/mpiexec -mca btl ofud,self -n 8 -npernode 4"
+mpiexec="mpiexec ${WRF4G_MPI_FLAGS}"
 
 slots=`expr ${NUMBER_OF_NODES} '*' ${PROCESSES_PER_NODE}`
 
