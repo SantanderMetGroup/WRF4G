@@ -583,8 +583,8 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
           jodim = jodim + 1
 
             CALL def_dimension(debg, ncid, dimensioncompute)
-	    dimsid(nc_last_iddim(debg, ncid),1)=nc_last_iddim(debg, ncid)
-	    dimsid(nc_last_iddim(debg, ncid),2)=dimensioncompute%Nvalues
+            dimsid(nc_last_iddim(debg, ncid),1)=nc_last_iddim(debg, ncid)
+            dimsid(nc_last_iddim(debg, ncid),2)=dimensioncompute%Nvalues
         ELSE
           rcode = nf90_inq_dimid(ncid, dimensioncompute%name, dimsid(jodim,1))
           CALL error_nc(section, rcode)

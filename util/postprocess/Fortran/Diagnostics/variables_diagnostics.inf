@@ -95,8 +95,8 @@
  Input_variables          'T2, Q2, PSFC'
  diagnostic_dim           4
  diagnostic_dim_shape     1, 2, 5, 4
- diagnostic_std_name      'relative_humidty'
- diagnostic_longdesc      'relative humidty at 2 m'
+ diagnostic_std_name      'relative_humidity'
+ diagnostic_longdesc      'relative humidity at 2 m'
  diagnostic_units         '1'
  diagnostic_method        'Tetens'
  diagnostic_constant      0.
@@ -110,8 +110,8 @@
  Input_variables          'Q2'
  diagnostic_dim           4
  diagnostic_dim_shape     1, 2, 5, 4
- diagnostic_std_name      'specific_humidty'
- diagnostic_longdesc      'specific humidty at 2 m'
+ diagnostic_std_name      'specific_humidity'
+ diagnostic_longdesc      'specific humidity at 2 m'
  diagnostic_units         'kg kg-1'
  diagnostic_method        'direct6D'
  diagnostic_constant      0.

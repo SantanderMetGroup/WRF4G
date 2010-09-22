@@ -79,6 +79,26 @@
   dim_positive             -
   dim_formula              -
 
+*lev*
+  dimtype                  V
+  dimaxis                  Z
+  dim_in_name              -
+  num_dimInVarnames        1
+  dim_in_varnames          ZNU
+  dim_method               direct
+  dim_constant             0.
+  dim_indimensions         1
+  dim_Noptions             0
+  dim_options              0
+  standard_name            atmosphere_sigma_coordinate
+  long_name                'atmosphere level in sigma coordinate'
+  units                    NO
+  Ndim_values              0
+  dim_values               0.
+  dim_coords               '-'
+  dim_positive             down
+  dim_formula              'sigma: lev ps: PSFC ptop: P_TOP'
+
 *plev*
   dimtype                  V
   dimaxis                  Z
