@@ -18,7 +18,7 @@ MODULE module_calc_tools
 ! year_leap: Subroutine to give if a year is leap year or not
 ! Earth_wind: Subroutine to rotate wind to Earth surface reference
 ! virtual: 1D Function to return virtual temperature in K, given temperature in K and mixing ratio in
-!    kg/kg.
+!    kgkg-1
 ! z_derivate: Subroutine to compute z_derivate of a field 
 
   SUBROUTINE borders3D(var,dimx,dimy,dimz,dimt)

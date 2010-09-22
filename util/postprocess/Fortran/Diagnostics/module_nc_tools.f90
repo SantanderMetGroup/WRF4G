@@ -577,6 +577,21 @@ SUBROUTINE compute_dimensions(debg, ncid, Ndims, dimvec, xcar, ycar, names4based
           CALL error_nc(section, rcode)
         END IF
 
+      CASE('plev')
+        IF (.NOT.exists_dim(ncid,dimensioncompute%name)) THEN
+          IF (debg >= 100) PRINT *,'  Creation of z dimension...'
+          jodim = jodim + 1
+
+            CALL def_dimension(debg, ncid, dimensioncompute)
+	    dimsid(nc_last_iddim(debg, ncid),1)=nc_last_iddim(debg, ncid)
+	    dimsid(nc_last_iddim(debg, ncid),2)=dimensioncompute%Nvalues
+        ELSE
+          rcode = nf90_inq_dimid(ncid, dimensioncompute%name, dimsid(jodim,1))
+          CALL error_nc(section, rcode)
+          rcode = nf90_inquire_dimension(ncid, dimsid(jodim,1), len=dimsid(jodim,2))
+          CALL error_nc(section, rcode)
+        END IF
+
 ! T-dimension
 !!
       CASE('time')
