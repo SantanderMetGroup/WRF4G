@@ -3267,6 +3267,10 @@ BENCH_END(bc_2d_tim)
 
 #ifdef CLWRF
    IF (config_flags%clwrf_variables == 1) THEN
+     IF (config_flags%auxhist3_interval == 0 ) THEN
+        WRITE (wrf_err_message , * )"CLWRF: ERROR -- error -- ERROR -- error : NO 'auxhist3_interval' has been defined in 'namelist.input'"
+        CALL wrf_error_fatal ( TRIM(wrf_err_message) )
+     END IF 
      CALL wrf_debug ( 200 , ' CLWRF: call diagnostic_calc' )
      CALL clwrf_output_calc(                                               &
         &            DPSDT=grid%dpsdt   ,DMUDT=grid%dmudt                  &
@@ -3324,6 +3328,10 @@ BENCH_END(bc_2d_tim)
         &                                                          )
 
      CALL wrf_debug ( 200 , ' CLWRF: call diagnostic_calc' )
+     IF (config_flags%auxhist5_interval == 0 ) THEN
+        WRITE (wrf_err_message , * ) "CLWRF: ERROR -- error -- ERROR -- error : NO 'auxhist5_interval' has been defined in 'nameslit.input'"
+        CALL wrf_error_fatal ( TRIM(wrf_err_message) )
+     END IF 
      CALL diagnostic_clwrf_clim(                                           &
         &            DPSDT=grid%dpsdt   ,DMUDT=grid%dmudt                  &
         &           ,PK1M=grid%pk1m                                        &
