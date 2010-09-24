@@ -1090,6 +1090,7 @@ SUBROUTINE diagnostic_clwrf_clim(                                     &
 !       gust wind
 !!
 
+#ifdef WGUST
       IF ((xtime > 0.).AND.(gustwindflag==1)) THEN
 !     Only compute wind gust when diagnostics fiels have been initialized and option has been   &
 !       activated in namelist (time_control section, variable: gust_wind)'
@@ -1099,6 +1100,7 @@ SUBROUTINE diagnostic_clwrf_clim(                                     &
           lratio, potemp+300., tkenergy, uwind, vwind, pblheight, topography, sinusa, cosena,   &
           ugustwind, vgustwind, ugustwindlow, vgustwindlow, ugustwindup, vgustwindup) 
       END IF
+#endif
 
 ! 1 hour
 !      PRINT *,'GUST gust wind calculated...'
@@ -1178,6 +1180,7 @@ SUBROUTINE diagnostic_clwrf_clim(                                     &
 
    END SUBROUTINE diagnostic_clwrf_clim
 
+#ifdef WGUST
 SUBROUTINE gustwindBrasseur01(dx, dz, dy, geopoth, qr, lr, pt, tke, u, v, hpbl, topo, sina,     &
   cosa, ugustwind, vgustwind, ugustlow, vgustlow, ugustup, vgustup) 
 ! Subroutine to compute wind gust following Brasseur (2001), MWR
@@ -1458,6 +1461,7 @@ REAL FUNCTION height2presvis5d(height)
   height2presvis5d=refpres*EXP(height/Hc)
 
 END FUNCTION height2presvis5d
+#endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #endif
