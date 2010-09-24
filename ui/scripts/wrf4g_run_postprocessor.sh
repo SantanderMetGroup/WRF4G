@@ -6,12 +6,11 @@ then
   echo "***  postprocessor   ***"
   echo "***   after WRF4G    ***"
   echo "************************"
-  echo "wrf4g_run_postprocessor.sh 'WRF4Ghome' 'postprocessor'(only name) 'DIR'(folder with wrfouts)"
+  echo "wrf4g_run_postprocessor.sh 'WRF4Ghome' 'postprocessor'(only name) 'DIR'(folder with wrfouts -- absolute path)"
 else
-  rootsh=`pwd`
   source $1/wn/lib/bash/wrf_util.sh
-  export PATH=${rootsh}/$3/bin:${PATH}
-  export LD_LIBRARY_PATH=${rootsh}/$3/shared_libs:${LD_LIBRARY_PATH}
+  export PATH=$3/bin:${PATH}
+  export LD_LIBRARY_PATH=$3/shared_libs:${LD_LIBRARY_PATH}
 
   cd $3
   wrfiles=`ls -1 wrfout*`
@@ -34,7 +33,6 @@ EOF
   rm -rf ${dirapps}/lib/*
   rmdir ${dirapps}/bin
   rmdir ${dirapps}/lib
-  rmdir ${dirapps}
   rm ../../rootdir  
 
 fi
