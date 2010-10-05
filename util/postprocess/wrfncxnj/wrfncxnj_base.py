@@ -3,26 +3,35 @@ from pyclimate.ncstruct import *
 from Scientific.IO.NetCDF import *
 #from netCDF3 import Dataset as NetCDFFile
 from Numeric import *
+import Numeric as np
 from glob import glob
 from datetime import datetime
 import sys, time, string, csv
 from wrfncxnj_cli import opt, args
 
-def rotate_lcc_wind(u,v,xlat,xlon,cen_lon,truelat1,truelat2):
-  pii = 3.14159265
-  d2r = pii/180.
-  if abs(truelat1-truelat2) > 0.1:
-    cone = (
-      (log(cos(truelat1*d2r)) - log(cos(truelat2*d2r))) /
-      (log(tan((90.-abs(truelat1))*d2r*0.5 )) - log(tan((90.-abs(truelat2))*d2r*0.5 )) )
-    )
+def screenvar_at_2m(varobj, onc, wnfiles, wntimes):
+  #
+  # Works for any variable defined at 2m with no other transformation.
+  #
+  incvar = wnfiles.current.variables[varobj.varname]
+  copyval = np.reshape(incvar[:],incvar.shape[:1]+(1,)+incvar.shape[1:])
+  oncvar = get_oncvar(varobj, incvar, onc, screenvar_at_2m=True)
+  return oncvar, copyval
+
+def deaccumulate_flux(varobj, onc, wnfiles, wntimes):
+  #
+  # De-accumulates any variable if no other transformation is required
+  #
+  incvar = wnfiles.current.variables[varobj.varname]
+  if not wnfiles.prv:
+    lastval = incvar[0]
   else:
-    cone = sin( abs(truelat1)*d2r )
-  diff = xlon - cen_lon
-  diff = where(diff > 180., diff-360., diff)
-  diff = where(diff < -180., diff+360., diff)
-  alpha = where(xlat < 0., -diff*cone*d2r, diff*cone*d2r)
-  return v*sin(alpha)[NewAxis,:,:] + u*cos(alpha)[NewAxis,:,:],  v*cos(alpha)[NewAxis,:,:] - u*sin(alpha)[NewAxis,:,:]
+    lastval = wnfiles.prv.variables[varobj.varname][-1]
+  lastval.shape = (1,) + lastval.shape
+  copyval = incvar[:] - np.concatenate([lastval,incvar[:-1]])
+  copyval = np.where(copyval<0., 0, copyval)/float(wntimes.outstep_s)
+  oncvar = get_oncvar(varobj, incvar, onc)
+  return oncvar, copyval
 
 def compute_mslp(p, pb, ph, phb, t , qvapor):
   """
@@ -218,6 +227,7 @@ def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None, create
   onc.createDimension("time", None)
   onctime = onc.createVariable("time",Numeric.Float64, ("time",))
   onctime.long_name = "time"
+  onctime.standard_name = "time"
   onctime.units = "hours since %s" % idate.strftime('%Y-%m-%d %H:%M:%S')
   if opt.tbounds:
     onctime.bounds = "time_bnds"
@@ -233,6 +243,7 @@ def add_height_coordinate(onc, coorname, val):
     hvar = onc.createVariable(coorname, 'f', (coorname,))
     hvar.long_name = "height above the ground"
     hvar.standard_name = "height"
+    hvar._CoordinateAxisType = "Height"
     hvar.units = "m"
     hvar[0] = array(val, 'f')
 
@@ -265,6 +276,151 @@ offset: %(offset)f
 scale: %(scale)f
 """ % self.__dict__
 
+class WrfNcFiles:
+  def __init__(self):
+    self.current = None
+    self.nxt = None
+    self.prv = None
+    self.geo = None
+    self.full = None
+  def loadFiles(self, filelist, previous_file=None, next_file=None):
+    self.filelist = filelist
+    self.nfiles = len(filelist)
+    self.next_file = next_file
+    self.ifile = -1
+    if previous_file:
+      self.current = NetCDFFile(previous_file, "r")
+    else:
+      self.current = None
+    self.nxt = NetCDFFile(self.filelist[0])
+  def assignNext(self):
+    if self.ifile == self.nfiles-1:
+      if self.next_file: self.nxt = NetCDFFile(self.next_file, "r")
+      else: self.nxt = None
+    else:
+      self.nxt = NetCDFFile(self.filelist[self.ifile+1], "r")
+  def cycle(self):
+    self.ifile += 1
+    self.prv = self.current
+    self.current = self.nxt
+    self.assignNext()
+  def __iter__(self):  # Make this object an iterator
+    return self 
+  def next(self):
+    if self.ifile >= self.nfiles-1:  
+      raise StopIteration
+    else:
+      self.cycle()
+      return self
+  def rewind(self):
+    self.loadFiles(self.filelist)
+  def close(self):
+    if self.current: self.current.close()
+    if self.nxt: self.nxt.close()
+    if self.prv: self.prv.close()
+  def closeCommon(self):
+    if self.geo: self.geo.close()
+    if self.full: self.full.close()
+  def __str__(self):
+    return """
+      ifile: %(ifile)i
+      prev: %(prv)s
+      curr: %(current)s
+      next: %(nxt)s
+    """ % self.__dict__
+
+class WrfNcTime:
+  def __init__(self, initialdate):
+    self.is_singlerec = False
+    self.nrec = 0
+    self.initialdate = initialdate
+    self.iini = 0
+    self.iend = None
+    self.outstep_s = 0
+  def checkStep(self, wrfnc):
+    # TODO: Check here that the next file does not have a time gap
+    incTimes = wrfnc.current.variables["Times"]
+    t0 = datetime.strptime(charr2str(incTimes[0]), '%Y-%m-%d_%H:%M:%S')
+    if len(incTimes) > 1:
+      t1 = datetime.strptime(charr2str(incTimes[1]), '%Y-%m-%d_%H:%M:%S')
+      delta = t1-t0
+    elif wrfnc.nxt:
+      t1 = datetime.strptime(
+        charr2str(wrfnc.nxt.variables["Times"][0]), '%Y-%m-%d_%H:%M:%S'
+      )
+      delta = t1-t0
+    else:
+      tp = datetime.strptime(
+        charr2str(wrfnc.prv.variables["Times"][-1]), '%Y-%m-%d_%H:%M:%S'
+      )
+      delta = t0-tp
+    self.outstep_s = 86400*delta.days + delta.seconds
+  def getTimes(self, wrfnc, is_singlerec):
+    incTimes = wrfnc.current.variables["Times"]
+    self.nrec = len(incTimes)
+    if is_singlerec:
+      self.nrec = 1
+    self.iend = self.iini + self.nrec
+    times = map(charr2str,incTimes[:self.nrec])
+    return map(lambda x: str2offset(x,self.initialdate), times)
+  def cycle(self):
+    self.iini += self.nrec
+  def __str__(self):
+    return """
+        iini = %(iini)d
+        iend = %(iend)d
+        nrec = %(nrec)d
+        outstep_s = %(outstep_s)d
+    """ % self.__dict__
+
+class ParseTransform:
+  def __init__(self, transformstr):
+    self.transformstr = transformstr
+    words = ""
+    lastchar="X"
+    for char in transformstr:
+      if char in ["+", "-"] and lastchar == "E":
+        # Takes care of constants in exp notation, e.g. 4.8e-3
+        words += char
+      elif char in ["*", "+", "-", "(", ")", "[", "]", ":", "/"]:
+        words += " "
+      else:
+        words += char
+      lastchar = char.upper()
+    words = words.split()
+    self.variables = []
+    self.constants = []
+    self.functions = []
+    for word in words:
+      try:
+        self.constants.append(float(word))
+      except:
+        if word == word.upper():
+          self.variables.append(word)
+        else:
+            self.functions.append(word)
+  def execute(self, varobj, onc, wnfiles, wntimes, vardic):
+    cmdstr = self.transformstr
+    if self.variables:
+      for var in set(self.variables):
+        cmdstr = cmdstr.replace(var, "vardic['%s']"%var)
+      print "Executing -> %s" % cmdstr
+      exec("copyval = %s" % cmdstr)
+      oncvar = get_oncvar(
+        varobj, wnfiles.current.variables[self.variables[0]], onc
+      )
+    else:
+      print "  Using function: %s" % self.functions[0]
+      process_func = globals()[self.functions[0]]
+      oncvar, copyval = process_func(varobj, onc, wnfiles, wntimes)
+    return oncvar, copyval
+  def __str__(self):
+    return """
+      variables: %(variables)s
+      functions: %(functions)s
+      constants: %(constants)s
+    """ % self.__dict__
+
 def stdvars(vars, vtable):
   rval = {}
   for line in csv.reader(open(vtable, "r"), delimiter=" ", skipinitialspace=True):
@@ -278,8 +434,7 @@ def stdvars(vars, vtable):
       v.long_name = line[2]
       v.standard_name = line[3]
       v.units = line[4]
-      v.scale = float(line[5])
-      v.offset = float(line[6])
+      v.transform = line[5]
       rval[varwrf] = v
   return rval
 

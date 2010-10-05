@@ -10,6 +10,14 @@ parser.add_option(
   help="Text file containing the input files. One per row", metavar="FILELIST.txt"
 )
 parser.add_option(
+  "--previous-file", dest="prevfile", default="",
+  help="Extra input file to be prepended to the input files ONLY for BACKWARD deaccumulations", metavar="WRFNCFILE.nc"
+)
+parser.add_option(
+  "--next-file", dest="nextfile", default="",
+  help="Extra input file to be prepended to the input files ONLY for FORWARD deaccumulations", metavar="WRFNCFILE.nc"
+)
+parser.add_option(
   "-v", "--variables", dest="vars",
   help="Variables to extract. Apart from those defined in the file, you can ask for any of the following derived variables: MSLP, U10ER, V10ER, WIND", metavar="VAR1[,VAR2,...]"
 )
