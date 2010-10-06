@@ -12,11 +12,11 @@ if ! which p_interp; then
   thisdir=$(pwd)
   cd `cat ../../rootdir`
     if test -e /software/ScientificLinux/4.6/etc/bashrc; then
-      cp /oceano/gmeteo/WORK/ASNA/Apps/p_interp.tar.gz .
-      cp /oceano/gmeteo/WORK/ASNA/Apps/nco.tar.gz .
+      cp /oceano/gmeteo/WORK/ASNA/WRF/Apps/p_interp.tar.gz .
+      cp /oceano/gmeteo/WORK/ASNA/WRF/Apps/nco.tar.gz .
     else
-      vcp gsiftp://ce01.macc.unican.es:2812/oceano/gmeteo/WORK/ASNA/Apps/p_interp.tar.gz .
-      vcp gsiftp://ce01.macc.unican.es:2812/oceano/gmeteo/WORK/ASNA/Apps/nco.tar.gz .
+      vcp gsiftp://ce01.macc.unican.es:2812/oceano/gmeteo/WORK/ASNA/WRF/Apps/p_interp.tar.gz .
+      vcp gsiftp://ce01.macc.unican.es:2812/oceano/gmeteo/WORK/ASNA/WRF/Apps/nco.tar.gz .
     fi
     tar xzf p_interp.tar.gz && rm p_interp.tar.gz
     tar xzf nco.tar.gz && rm nco.tar.gz
