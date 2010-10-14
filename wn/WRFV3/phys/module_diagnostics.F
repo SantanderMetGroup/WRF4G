@@ -786,8 +786,9 @@ CONTAINS
             skintempclmax, tskintempclmin,tskintempclmax,skintempclmean,      &
             skintempclstd)
 
-!          IF (MOD(NINT(XTIME),clwrfH) == 0) THEN
-          IF (MOD(NINT(XTIME+dt/60.),clwrfH) == 0) THEN
+!          IF (MOD(NINT(XTIME),clwrfH) >= 0) THEN
+!          IF (MOD(NINT(XTIME+dt/60.),clwrfH) >= 0) THEN
+           IF (MOD(NINT(XTIME*60./dt),NINT(clwrfH*60./dt)) == 0) THEN 
     IF  ( wrf_dm_on_monitor() ) PRINT *,'nsteps=',nsteps,' xtime:',xtime,' clwrfH:',clwrfH 
             t2clmean=t2clmean/nsteps
             t2clstd=SQRT(t2clstd/nsteps-t2clmean**2.)

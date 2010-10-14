@@ -3267,7 +3267,7 @@ BENCH_END(bc_2d_tim)
 
 #ifdef CLWRF
    IF (config_flags%clwrf_variables == 1) THEN
-     IF (config_flags%auxhist3_interval == 0 ) THEN
+     IF ((config_flags%auxhist3_interval == 0 ) .OR. (config_flags%auxhist4_interval == 0 )) THEN
         WRITE (wrf_err_message , * )"CLWRF: ERROR -- error -- ERROR -- error : NO 'auxhist3_interval' has been defined in 'namelist.input'"
         CALL wrf_error_fatal ( TRIM(wrf_err_message) )
      END IF 
