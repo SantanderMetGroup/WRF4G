@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash 
 if test $1 = '-h'
 then
   echo "************************"
@@ -28,6 +28,7 @@ EOF
 #    exit
 ### End of wrfiles
   done
+  exit
   dirapps=`cat ../../rootdir`
   rm -rf ${dirapps}/bin/*
   rm -rf ${dirapps}/lib/*
