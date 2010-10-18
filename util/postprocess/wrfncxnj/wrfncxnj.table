@@ -4,18 +4,15 @@ PSFC     ps       "surface pressure"          "surface_air_pressure"            
 RAINNC   prls     "Precipitation large scale" "large_scale_precipitation_amount"      "Kg m-2"  
 RAINC    prc      "Precipitation convective"  "convective_precipitation_amount"       "Kg m-2"  
 T2       tas      "Surface air temperature"   "air_temperature"                       "K"       screenvar_at_2m
-T2DEGC   tas      "Surface air temperature"   "air_temperature"                       "degrees Celsius" T2-273.16
-T2MAX    tasmax   "Max. surface air temperature" "air_temperature"                    "K"       screenvar_at_2m
-T2MIN    tasmin   "Min. surface air temperature" "air_temperature"                    "K"       screenvar_at_2m
 LANDMASK sftlf    "Land mask"                 "land_binary_mask"                      1         
 HGT      orog     "Surface altitude"          "surface_altitude"                      "m"       
-HGT_M    orog     "Surface altitude"          "surface_altitude"                      "m"       
 W        wa       "Upward air velocity"       "upward_air_velocity"                   "m/s"     
 Q2       huss     "Surface specific humidity" "specific_humidity"                     1         screenvar_at_2m
 QVAPOR   hus      "Specific Humidity"         "specific_humidity"                     1         
 QCLOUD   clwmr    "Cloud water content"       "cloud_liquid_water_mixing_ratio"       1         
 SFROFF   mrros    "Surface runoff"            "surface_runoff_flux"                "kg m-2 s-1" 
 SFCEVP   evspsbl  "Evaporation"               "water_evaporation_flux"             "kg m-2 s-1" 
+SMOIS    mrsos    "Moisture of soil layer" "moisture_content_of_soil_layer" "kg m-2"   
 QFX      hufs     "Upward moisture flux at the surface"  "surface_upward_water_vapor_flux_in_air"    "kg m-2 s-1" 
 HFX      hfss     "Upward sensible heat flux at surface" "surface_upward_sensible_heat_flux"         "W m-2" 
 LH       hfls     "Upward latent heat flux at surface"   "surface_upward_latent_heat_flux"           "W m-2" 
@@ -34,29 +31,42 @@ EL_MYJ   mxln     "Mixing length in MYJ scheme" "mixing_length_in_myj"          
 ACLHF    ahfls    "Acummulated latent heat flux at surface"        "integral_of_surface_upward_latent__heat_flux_wrt_time"  "W s m-2" 
 ACHFX    ahfss    "Acummulated downward heat flux at the surface"  "integral_of_surface_upward_sensible_heat_flux_wrt_time" "W s m-2" 
 POTEVP   potevp   "Acummulated potential evaporation"              "water_potential_evaporation_amount"                     "W m-2"   
+#
+# From geo_em file
+#
+HGT_M    orog     "Surface altitude"          "surface_altitude"                      "m"       
+#
 # From p_interp
+#
 RH       hur      "Relative humidity"         "relative_humidity"                      1        RH*0.01 
 GHT      zg       "Geopotential height"       "geopotential_height"                   "m"       
+MSLP     psl      "Mean sea level pressure"   "air_pressure_at_sea_level"             "Pa"      
+#
+# From CLWRF
+#
+T2MAX    tasmax   "Max. surface air temperature" "air_temperature"                    "K"       screenvar_at_2m
+T2MIN    tasmin   "Min. surface air temperature" "air_temperature"                    "K"       screenvar_at_2m
+T2MEAN   tasmean  "Mean surface air temperature" "air_temperature"                    "K"       screenvar_at_2m
+#
 # Derived variables
+#
 RAIN     pr       "Precipitation"             "precipitation_amount"                  "Kg m-2"  
 RAINFORWARD pr    "Precipitation"             "precipitation_amount"                  "Kg m-2"  
 WIND     wspd     "wind speed"                "wind_speed"                            "m s-1"   
-U10ER    uas      "Eastward surface wind"     "eastward_wind"                         "m s-1"   
-V10ER    vas      "Northward surface wind"    "northward_wind"                        "m s-1"   
+U10ER    uas      "Eastward surface wind"     "eastward_wind"                         "m s-1"    rotate_uas 
+V10ER    vas      "Northward surface wind"    "northward_wind"                        "m s-1"    rotate_vas
 UER      ua       "Eastward wind"             "eastward_wind"                         "m s-1"   
 VER      va       "Northward wind"            "northward_wind"                        "m s-1"   
-U10MER   uasmean  "Mean eastward surface wind"  "eastward_wind"                       "m s-1"   
-V10MER   vasmean  "Mean northward surface wind" "northward_wind"                      "m s-1"   
-U10XER   uasmax   "Max. eastward surface wind"  "eastward_wind"                       "m s-1"   
-V10XER   vasmax   "Max. northward surface wind" "northward_wind"                      "m s-1"   
+U10MEANER uasmean "Mean eastward surface wind"  "eastward_wind"                       "m s-1"    rotate_uas 
+V10MEANER vasmean "Mean northward surface wind" "northward_wind"                      "m s-1"    rotate_vas 
+U10MAXER  uasmax  "Max. eastward surface wind"  "eastward_wind"                       "m s-1"    rotate_uas 
+V10MAXER  vasmax  "Max. northward surface wind" "northward_wind"                      "m s-1"    rotate_vas 
 PRES     pres     "Air pressure"              "air_pressure"                          "Pa"      
 GEOP     geop     "Geopotential"              "geopotential"                          "m 2 s-2"  
 TEMP     ta       "Air temperature"           "air_temperature"                       "K"       
-MSLP     psl      "Mean sea level pressure"   "air_pressure_at_sea_level"             "Pa"      
 RSS      rss      "Net SW surface radiation"  "surface_net_downward_shortwave_flux"   "W m-2"   
 RLS      rls      "Net LW surface radiation " "surface_net_downward_longwave_flux"    "W m-2"   "EMISS*GLW - 5.67e-8*EMISS*SKINTEMP**4"
 MRSOS    mrsos    "Moisture of soil layer" "moisture_content_of_soil_layer" "kg m-2"   
-SMOIS    mrsos    "Moisture of soil layer" "moisture_content_of_soil_layer" "kg m-2"   
 MRSO     mrso     "Total soil moisture content"        "soil_moisture_content"          "kg m-2"   
 CLT      clt      "Total cloud area(fraction)"           "cloud_area_fraction"            1        
 CLD      clwi      "Total cloud water and ice"       "cloud_water_and_ice_content"   "kg m-2"  

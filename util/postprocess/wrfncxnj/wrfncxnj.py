@@ -56,7 +56,8 @@ if opt.discard:
 wrfncIter.loadFiles(files, opt.prevfile, opt.nextfile)
 for wrfnc in wrfncIter:
   if DEBUG: print wrfnc
-  wnt.checkStep(wrfnc)
+  if not opt.singlerec:
+    wnt.checkStep(wrfnc)
   times = wnt.getTimes(wrfnc, opt.singlerec)
   if DEBUG: print wnt
   #
@@ -65,25 +66,7 @@ for wrfnc in wrfncIter:
   onctime[wnt.iini:wnt.iend] = times
   for varname in vars:
     if DEBUG: print "Processing var %s" % varname 
-    if varname in ["U10MER", "V10MER"]:
-      u = wrfnc.current.variables["U10MEAN"]
-      v = wrfnc.current.variables["V10MEAN"]
-      uer, ver = rotate_lcc_wind(u,v, onclat[:,:], onclon[:,:], wrfnc.current.CEN_LON, wrfnc.current.TRUELAT1, wrfnc.current.TRUELAT2)
-      exec("incvar=%s" % varname[0].lower()) # muy cerdo
-      exec("copyval=%ser" % varname[0].lower()) # muy cerdo
-      copyval = reshape(incvar[:wnt.nrec], incvar.shape[:1]+(1,)+incvar.shape[1:])
-      oncvar = get_oncvar(vars[varname], incvar, onc, screenvar_at_10m=True)
-      oncvar[wnt.iini:wnt.iend] = copyval[:wnt.nrec].astype(oncvar.typecode())
-    elif varname in ["U10XER", "V10XER"]:
-      u = wrfnc.current.variables["U10MAX"]
-      v = wrfnc.current.variables["V10MAX"]
-      uer, ver = rotate_lcc_wind(u,v, onclat[:,:], onclon[:,:], wrfnc.current.CEN_LON, wrfnc.current.TRUELAT1, wrfnc.current.TRUELAT2)
-      exec("incvar=%s" % varname[0].lower()) # muy cerdo
-      exec("copyval=%ser" % varname[0].lower()) # muy cerdo
-      copyval = reshape(incvar[:wnt.nrec], incvar.shape[:1]+(1,)+incvar.shape[1:])
-      oncvar = get_oncvar(vars[varname], incvar, onc, screenvar_at_10m=True)
-      oncvar[wnt.iini:wnt.iend] = copyval[:wnt.nrec].astype(oncvar.typecode())
-    elif varname == "WIND":
+    if varname == "WIND":
       incvar = wrfnc.current.variables["U10"]
       u = incvar[:]
       v = wrfnc.current.variables["V10"][:]

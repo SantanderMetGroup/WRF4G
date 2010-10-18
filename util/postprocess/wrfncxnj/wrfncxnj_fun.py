@@ -10,52 +10,6 @@ def compute_temperature(p, t):
   p1000mb      = 100000.
   return (t+300.)*(p/p1000mb)**rcp
 
-def rotate_lcc_wind(u,v,xlat,xlon,cen_lon,truelat1,truelat2):
-  pii = 3.14159265
-  d2r = pii/180.
-  if np.absolute(truelat1-truelat2) > 0.1:
-    cone = (
-      (np.log(np.cos(truelat1*d2r)) - np.log(np.cos(truelat2*d2r))) /
-      (np.log(np.tan((90.-np.absolute(truelat1))*d2r*0.5 )) - np.log(np.tan((90.-np.absolute(truelat2))*d2r*0.5 )) )
-    )
-  else:
-    cone = np.sin( np.absolute(truelat1)*d2r )
-  diff = xlon - cen_lon
-  diff = np.where(diff > 180., diff-360., diff)
-  diff = np.where(diff < -180., diff+360., diff)
-  alpha = np.where(xlat < 0., -diff*cone*d2r, diff*cone*d2r)
-  return v*np.sin(alpha)[np.NewAxis,:,:] + u*np.cos(alpha)[np.NewAxis,:,:],  v*np.cos(alpha)[np.NewAxis,:,:] - u*np.sin(alpha)[np.NewAxis,:,:]
-
-def compute_U10ER(varobj, onc, wnfiles, wntimes):
-      u = wnfiles.current.variables["U10"]
-      v = wnfiles.current.variables["V10"]
-      if not wnfiles.geo:
-        print "I need the geo_em file to rotate winds!"
-      else:
-        sina = wnfiles.geo.variables["SINALPHA"][:]
-        cosa = wnfiles.geo.variables["COSALPHA"][:]
-      copyval = (
-        u[:]*cosa[np.NewAxis,...] - v[:]*sina[np.NewAxis,...]  
-      )
-      copyval.shape = u.shape[:1]+ (1,) + u.shape[1:]
-      oncvar = get_oncvar(varobj, u, onc, screenvar_at_10m=True)
-      return oncvar, copyval
-
-def compute_V10ER(varobj, onc, wnfiles, wntimes):
-      u = wnfiles.current.variables["U10"]
-      v = wnfiles.current.variables["V10"]
-      if not wnfiles.geo:
-        print "I need the geo_em file to rotate winds!"
-      else:
-        sina = wnfiles.geo.variables["SINALPHA"][:]
-        cosa = wnfiles.geo.variables["COSALPHA"][:]
-      copyval = (
-        u[:]*sina[np.NewAxis,...] + v[:]*cosa[np.NewAxis,...]  
-      )
-      copyval.shape = v.shape[:1]+ (1,) + v.shape[1:]
-      oncvar = get_oncvar(varobj, v, onc, screenvar_at_10m=True)
-      return oncvar, copyval
-
 def compute_UER(varobj, onc, wnfiles, wntimes):
   if wnfiles.current.variables.has_key("UU"):  # wind on p-levels from p_interp
     u = wnfiles.current.variables["UU"]

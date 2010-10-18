@@ -33,6 +33,40 @@ def deaccumulate_flux(varobj, onc, wnfiles, wntimes):
   oncvar = get_oncvar(varobj, incvar, onc)
   return oncvar, copyval
 
+def rotate_uas(varobj, onc, wnfiles, wntimes):
+  uvarname = varobj.varname[:-2] # remove the "ER"
+  vvarname = "V" + varobj.varname[1:-2] # remove the "U" and the "ER"
+  u = wnfiles.current.variables[uvarname]
+  v = wnfiles.current.variables[vvarname]
+  if not wnfiles.geo:
+    print "I need the geo_em file to rotate winds!"
+  else:
+    sina = wnfiles.geo.variables["SINALPHA"][:]
+    cosa = wnfiles.geo.variables["COSALPHA"][:]
+  copyval = (
+    u[:]*cosa[np.NewAxis,...] - v[:]*sina[np.NewAxis,...]
+  )
+  copyval.shape = u.shape[:1]+ (1,) + u.shape[1:]
+  oncvar = get_oncvar(varobj, u, onc, screenvar_at_10m=True)
+  return oncvar, copyval
+
+def rotate_vas(varobj, onc, wnfiles, wntimes):
+  uvarname = "U" + varobj.varname[1:-2] # remove the V and the "ER"
+  vvarname = varobj.varname[:-2] # remove the "ER"
+  u = wnfiles.current.variables[uvarname]
+  v = wnfiles.current.variables[vvarname]
+  if not wnfiles.geo:
+    print "I need the geo_em file to rotate winds!"
+  else:
+    sina = wnfiles.geo.variables["SINALPHA"][:]
+    cosa = wnfiles.geo.variables["COSALPHA"][:]
+  copyval = (
+    u[:]*sina[np.NewAxis,...] + v[:]*cosa[np.NewAxis,...]
+  )
+  copyval.shape = v.shape[:1]+ (1,) + v.shape[1:]
+  oncvar = get_oncvar(varobj, v, onc, screenvar_at_10m=True)
+  return oncvar, copyval
+
 def compute_mslp(p, pb, ph, phb, t , qvapor):
   """
   Pure python code by J. Fernandez to extrapolate surface pressure to sea level.
@@ -215,6 +249,7 @@ def create_bare_curvilinear_CF_from_wrfnc(wrfncfile, idate, createz=None, create
   onclat.long_name = "Latitudes"
   onclat.standard_name = "latitude"
   onclat.units = "degrees_north"
+  print lats.shape, onclat.shape
   onclat[:len(lats)] = lats
   onclon = onc.createVariable("lon",Numeric.Float32, ("y","x"))
   onclon.long_name = "Longitude"
@@ -349,11 +384,14 @@ class WrfNcTime:
         charr2str(wrfnc.nxt.variables["Times"][0]), '%Y-%m-%d_%H:%M:%S'
       )
       delta = t1-t0
-    else:
+    elif wrfnc.prv:
       tp = datetime.strptime(
         charr2str(wrfnc.prv.variables["Times"][-1]), '%Y-%m-%d_%H:%M:%S'
       )
       delta = t0-tp
+    else:
+      t1 = datetime.strptime(charr2str(incTimes[1]), '%Y-%m-%d_%H:%M:%S')
+      delta = t1-t1
     self.outstep_s = 86400*delta.days + delta.seconds
   def getTimes(self, wrfnc, is_singlerec):
     incTimes = wrfnc.current.variables["Times"]
