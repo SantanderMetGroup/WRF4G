@@ -1,7 +1,8 @@
 #!/bin/bash
 version="3.1.1"
 thisdir=$(pwd)
-wrf4gdir="$(dirname $(dirname $(dirname $0)))/wn"
+scriptdir=$( (cd $(dirname $0) && echo $PWD) )
+wrf4gdir="$(dirname $(dirname ${scriptdir}))/wn"
 
 while test -n "$1"; do
   case $1 in
@@ -46,7 +47,6 @@ cd ${tardir}
   mkdir -p openmpi/bin
   mkdir -p openmpi/lib
 
-  ln -s ${wrf4gdir}/WPS/ungrib/Variable_Tables_WRF4G WPS/ungrib/
   ln -s ${wrf4gdir}/WPS/ungrib/Variable_Tables WPS/ungrib/
 
   ln -s ${basedir}/WPS/metgrid/metgrid.exe WPS/metgrid/metgrid.exe
@@ -62,9 +62,11 @@ cd ${tardir}
   ln -s ${basedir}/WRFV3/run/real.exe WRFV3/run
   ln -s ${basedir}/WRFV3/run/wrf.exe WRFV3/run 
 
-  ln -s ${basedir}/openmpi/bin/mpiexec openmpi/bin/
-  ln -s ${basedir}/openmpi/bin/mpirun  openmpi/bin/
-  ln -s ${basedir}/openmpi/lib openmpi/
+  ln -s ${wrf4gdir}/openmpi/bin/mpiexec openmpi/bin/
+  ln -s ${wrf4gdir}/openmpi/bin/mpirun  openmpi/bin/
+  ln -s ${wrf4gdir}/openmpi/bin/orterun openmpi/bin/
+  ln -s ${wrf4gdir}/openmpi/bin/orted   openmpi/bin/
+  ln -s ${wrf4gdir}/openmpi/lib openmpi/
 
   tar czhv --exclude=".svn" \
   -f ${destdir}/WRF4Gbin-${version}_r${revision}${tag}.tar.gz *

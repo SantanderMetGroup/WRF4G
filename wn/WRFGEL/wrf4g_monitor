@@ -15,7 +15,7 @@ source source.it && rm source.it
 sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.input > source.it || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
 
-file_patterns="wrfout wrfrst wrfrain wrfxtrm"
+file_patterns="wrfout wrfrst wrfrain wrfxtrm wrf24hc"
 wait_s=60
 
 avoid_file="wrfrst_d01_${chunk_restart_date}"

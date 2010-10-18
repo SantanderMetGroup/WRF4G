@@ -19,8 +19,11 @@ export LD_LIBRARY_PATH="${ROOTDIR}/openmpi/lib:${LD_LIBRARY_PATH}"
 #
 mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
 mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
+mv ${LOCALDIR}/WPS/preprocessor.*      ${ROOTDIR}/bin/
 mv ${LOCALDIR}/WRFV3/run/real.exe      ${ROOTDIR}/bin/
 mv ${LOCALDIR}/WRFV3/run/wrf.exe       ${ROOTDIR}/bin/
+mv ${LOCALDIR}/WRFV3/run/icbcprocessor.*  ${ROOTDIR}/bin/
+mv ${LOCALDIR}/WRFV3/run/postprocessor.*  ${ROOTDIR}/bin/
 test "${LOCALDIR}" != ${ROOTDIR} && mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
 chmod +x ${ROOTDIR}/bin/*
 chmod +x ${ROOTDIR}/WRFGEL/*

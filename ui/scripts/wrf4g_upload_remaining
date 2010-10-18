@@ -45,7 +45,7 @@ for f in wrfts*; do
   fi
 done
 
-for f in wrfxtrm* wrfrain*; do
+for f in wrfxtrm* wrfrain* wrf24hc*; do
   if test "$f" = "${f/\*/}"; then
     $doit register_file out ${f:12} ${f}
   fi
