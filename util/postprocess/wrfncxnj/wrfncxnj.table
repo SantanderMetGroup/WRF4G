@@ -3,8 +3,6 @@ GLW          rlds      "Downward LW surface radiation"                    "surfa
 GRDFLX       hfso      "Upward soil heat flux"                            "upward_heat_flux_at_ground_level_in_soil"               "W m-2" 
 HFX          hfss      "Upward sensible heat flux at surface"             "surface_upward_sensible_heat_flux"                      "W m-2" 
 HGT          orog      "Surface altitude"                                 "surface_altitude"                                       "m"       
-LANDMASK     sftlf     "Land mask"                                        "land_binary_mask"                                       1         
-LU_INDEX     lco       "Land use"                                         "land_use"                                               1
 LH           hfls      "Upward latent heat flux at surface"               "surface_upward_latent_heat_flux"                        "W m-2" 
 LWUPT        rlnt      "Net upward longwave flux at TOA"                  "toa_net_upward_longwave_flux"                           "W m-2" 
 OLR          rlut      "Outgoing LW radiation at top of atmosphere"       "toa_outgoing_longwave_flux"                             "W m-2" 
@@ -17,7 +15,7 @@ QFX          hufs      "Upward moisture flux at the surface"              "surfa
 QVAPOR       hus       "Specific Humidity"                                "specific_humidity"                                      1         
 RAINNC       prls      "Precipitation large scale"                        "large_scale_precipitation_amount"                       "Kg m-2" deacumulate 
 RAINC        prc       "Precipitation convective"                         "convective_precipitation_amount"                        "Kg m-2" deacumulate 
-REGIME       regime    "Stability regime (1=Night/Stable, 2=Mech. Turb., 3=Forced Conv)"  "stability_regime"                       1        
+REGIME       regime    "Stability regime (1=Night/Stable, 2=Mech. Turb., 3=Forced Conv, 4=Free Conv)"  "stability_regime"                       1        
 SFCEVP       evspsbl   "Evaporation"                                      "water_evaporation_flux"                                 "kg m-2 s-1" 
 SFROFF       mrros     "Surface runoff"                                   "surface_runoff_flux"                                    "kg m-2 s-1" 
 SMOIS        mrsos     "Moisture of soil layer"                           "moisture_content_of_soil_layer"                         "kg m-2"   
@@ -31,7 +29,7 @@ TSK          ts        "Surface skin temperature"                         "surfa
 TKE_MYJ      tkemyj    "Specific turbulent kinetic Energy in MYJ scheme"  "specific_turbulent_kinetic_energy_in_myj"               "m 2 s-2" 
 U10          uascurv   "X surface wind"                                   "x_wind"                                                 "m s-1"   
 UDROFF       mrfso     "Subsurface runoff"                                "subsurface_runoff"                                      "kg m-2 s-1"
-V10          vascurv   "Y surface wind"                                   "y_wind"                                                 "m s-1"   
+V10          vascurv   "Y surface wind"                                   "y_wind"                                                 "m s-1"  
 UST          ustar     "Frictional velocity in similarity theory"         "frictional_velocity_in_similarity_theory"               "m s-1"   
 W            wa        "Upward air velocity"                              "upward_air_velocity"                                    "m s-1"     
 Z0           z0        "Surface roughness length"                         "surface_roughness_length"                               "m"       
@@ -56,7 +54,7 @@ VIQI         clivi     "Column ice water content"                         "atmos
 Q2MAX        hursmax   "Max. surface relative humidity"                   "relative_humidity"                                      1         screenvar_at_2m 
 Q2MIN        hursmin   "Min. surface relative humidity"                   "relative_humidity"                                      1         screenvar_at_2m 
 RAINMAX1H    prhmax    "Max. hourly precipitation rate"                   "precipitation_flux"                                     "kg m-2 s-1"
-SPDUV10MAX   wssmax    "Max. surface wind speed"                          "air_velocity"                                           "m s-1"   screenvar_at_2m
+SPDUV10MAX   wssmax    "Max. surface wind speed"                          "air_velocity"                                           "m s-1"   screenvar_at_10m
 SUNSHINE     sund      "Sunshine duration"                                "sunshine_duration"                                      "minutes"
 T2MAX        tasmax    "Max. surface air temperature"                     "air_temperature"                                        "K"       screenvar_at_2m
 T2MEAN       tasmean   "Mean surface air temperature"                     "air_temperature"                                        "K"       screenvar_at_2m
