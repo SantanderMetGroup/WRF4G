@@ -43,7 +43,7 @@ function filetype(){
   case ${thefile:3:3} in
     out) echo "out" ;;
     rst) echo "rst" ;;
-    rai|xtr) echo "out" ;;
+    rai|xtr|24h) echo "out" ;;
   esac
 }
 
@@ -82,13 +82,10 @@ function clean_all(){
         if test "${file}" == "${avoid_file}"; then
           continue
         else
-          if ! /usr/sbin/lsof | grep ${file}; then # Make sure it is not open...
-            time_debug "Uploading ${file} (start)"
-            post_and_register --no-bg $(filetype $file) $(filedate $file) $file
-            time_debug "Uploading ${file} (end)"
-          else
-            time_debug "${file} still open, skipping"
-          fi
+          # This time the files cannot be open by any process. We are uploading everything
+          time_debug "Uploading ${file} (start)"
+          post_and_register --no-bg $(filetype $file) $(filedate $file) $file
+          time_debug "Uploading ${file} (end)"
         fi
       done
     done
