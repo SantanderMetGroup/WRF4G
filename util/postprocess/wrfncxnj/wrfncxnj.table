@@ -44,6 +44,7 @@ LU_INDEX     lco       "Land use"                                         "land_
 #
 GHT          zg        "Geopotential height"                              "geopotential_height"                                    "m"       
 MSLP         psl       "Mean sea level pressure"                          "air_pressure_at_sea_level"                              "Pa"      
+RAINTOT      pr        "Precipitation"                                    "precipitation_amount"                                   "Kg m-2"  
 RH           hur       "Relative humidity"                                "relative_humidity"                                      1         RH*0.01 
 VIM          prw       "Column water vapour content"                      "atmosphere_water_vapor_content"                         "kg m-2"
 VIQC         cllwvi    "Column liquid water content"                      "atmosphere_cloud_liquid_water_content"                  "kg m-2"
