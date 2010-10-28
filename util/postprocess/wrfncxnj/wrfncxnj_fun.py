@@ -46,7 +46,19 @@ def compute_VER(varobj, onc, wnfiles, wntimes):
   oncvar = get_oncvar(varobj, v, onc)
   return oncvar, copyval
 
+def compute_SMOIS1(varobj, onc, wnfiles, wntimes):
+  incvar = wnfiles.current.variables['SMOIS']
+  copyval = incvar[:,0,:,:]*1000 # m3/m3 -> Kg/m3
+  oncvar = get_oncvar(varobj, incvar, onc, out_is_2D_but_in_3D=True)
+  return oncvar, copyval
+
 def compute_RAIN(varobj, onc, wnfiles, wntimes):
+  """Deaccumulates the precipitation field
+
+  This function looks for RAINTOT if available, otherwise adds up RAINNC and
+  RAINCV. It deaccumulates from the value on the previous output time step.
+  A flux is computed dividing by the timestep in seconds.
+  """
   if wnfiles.current.variables.has_key("RAINTOT"): # The file was processed by p_interp
     incvar = wnfiles.current.variables["RAINTOT"]
     pr = incvar[:]
@@ -61,7 +73,7 @@ def compute_RAIN(varobj, onc, wnfiles, wntimes):
     lastpr = wnfiles.prv.variables["RAINNC"][-1] + wnfiles.prv.variables["RAINC"][-1]
   lastpr.shape = (1,) + lastpr.shape
   copyval = pr - np.concatenate([lastpr,pr[:-1]])
-  copyval = np.where(copyval<0., 0, copyval)
+  copyval = np.where(copyval<0., 0, copyval)/float(wntimes.outstep_s)
   oncvar = get_oncvar(varobj, incvar, onc)
   return oncvar, copyval
 

@@ -129,11 +129,6 @@ for wrfnc in wrfncIter:
       copyval = sum(smois, axis=1)*1000
       oncvar = get_oncvar(vars[varname], incvar, onc, out_is_2D_but_in_3D=True)
       oncvar[wnt.iini:wnt.iend] = copyval[:wnt.nrec].astype(oncvar.typecode())
-    elif varname=="MRSOS":
-      incvar = wrfnc.current.variables['SMOIS']
-      copyval = incvar[:,0,:,:]*1000
-      oncvar = get_oncvar(vars[varname], incvar, onc, out_is_2D_but_in_3D=True)
-      oncvar[wnt.iini:wnt.iend] = copyval[:wnt.nrec].astype(oncvar.typecode())
     elif varname=="CLD":
       incvar = wrfnc.current.variables['VIQC']
       copyval = incvar[:wnt.nrec] + wrfnc.current.variables['VIQI'][:wnt.nrec]

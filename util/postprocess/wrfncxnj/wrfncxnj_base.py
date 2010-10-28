@@ -33,6 +33,21 @@ def deaccumulate_flux(varobj, onc, wnfiles, wntimes):
   oncvar = get_oncvar(varobj, incvar, onc)
   return oncvar, copyval
 
+def deaccumulate(varobj, onc, wnfiles, wntimes):
+  #
+  # De-accumulates any variable if no other transformation is required
+  #
+  incvar = wnfiles.current.variables[varobj.varname]
+  if not wnfiles.prv:
+    lastval = incvar[0]
+  else:
+    lastval = wnfiles.prv.variables[varobj.varname][-1]
+  lastval.shape = (1,) + lastval.shape
+  copyval = incvar[:] - np.concatenate([lastval,incvar[:-1]])
+  copyval = np.where(copyval<0., 0, copyval)
+  oncvar = get_oncvar(varobj, incvar, onc)
+  return oncvar, copyval
+
 def rotate_uas(varobj, onc, wnfiles, wntimes):
   uvarname = varobj.varname[:-2] # remove the "ER"
   vvarname = "V" + varobj.varname[1:-2] # remove the "U" and the "ER"
@@ -472,7 +487,10 @@ def stdvars(vars, vtable):
       v.long_name = line[2]
       v.standard_name = line[3]
       v.units = line[4]
-      v.transform = line[5]
+      try:
+        v.transform = line[5]
+      except:
+        v.transform = ""
       rval[varwrf] = v
   return rval
 
