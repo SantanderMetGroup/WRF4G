@@ -57,6 +57,8 @@ VIQI         clivi     "Column ice water content"                         "atmos
 Q2MAX        hursmax   "Max. surface relative humidity"                   "relative_humidity"                                      1         screenvar_at_2m 
 Q2MIN        hursmin   "Min. surface relative humidity"                   "relative_humidity"                                      1         screenvar_at_2m 
 RAINMAX1H    prhmax    "Max. hourly precipitation rate"                   "precipitation_flux"                                     "kg m-2 s-1"
+SKINTEMPMAX  tsosmin   "Max. surface skin temperature"                    "soil_skin_emperature"                                   "K"
+SKINTEMPMIN  tsosmin   "Min. surface skin temperature"                    "soil_skin_temperature"                                  "K"
 SPDUV10MAX   wssmax    "Max. surface wind speed"                          "air_velocity"                                           "m s-1"   screenvar_at_10m
 SUNSHINE     sund      "Sunshine duration"                                "sunshine_duration"                                      "minutes"
 T2MAX        tasmax    "Max. surface air temperature"                     "air_temperature"                                        "K"       screenvar_at_2m
