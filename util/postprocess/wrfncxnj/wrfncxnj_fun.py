@@ -52,7 +52,7 @@ def compute_SMOIS1(varobj, onc, wnfiles, wntimes):
   oncvar = get_oncvar(varobj, incvar, onc, out_is_2D_but_in_3D=True)
   return oncvar, copyval
 
-def compute_RAIN(varobj, onc, wnfiles, wntimes):
+def compute_RAINF(varobj, onc, wnfiles, wntimes):
   """Deaccumulates the precipitation field
 
   This function looks for RAINTOT if available, otherwise adds up RAINNC and
@@ -74,6 +74,31 @@ def compute_RAIN(varobj, onc, wnfiles, wntimes):
   lastpr.shape = (1,) + lastpr.shape
   copyval = pr - np.concatenate([lastpr,pr[:-1]])
   copyval = np.where(copyval<0., 0, copyval)/float(wntimes.outstep_s)
+  oncvar = get_oncvar(varobj, incvar, onc)
+  return oncvar, copyval
+
+def compute_RAIN(varobj, onc, wnfiles, wntimes):
+  """Deaccumulates the precipitation field
+
+  This function looks for RAINTOT if available, otherwise adds up RAINNC and
+  RAINCV. It deaccumulates from the value on the previous output time step.
+  A flux is computed dividing by the timestep in seconds.
+  """
+  if wnfiles.current.variables.has_key("RAINTOT"): # The file was processed by p_interp
+    incvar = wnfiles.current.variables["RAINTOT"]
+    pr = incvar[:]
+  else:  # We should add convective and large-scale rainfall
+    incvar = wnfiles.current.variables["RAINNC"]
+    pr = incvar[:] + wnfiles.current.variables["RAINC"][:]
+  if not wnfiles.prv:
+    lastpr = pr[0]
+  elif wnfiles.current.variables.has_key("RAINTOT"):
+    lastpr = wnfiles.prv.variables["RAINTOT"][-1]
+  else:
+    lastpr = wnfiles.prv.variables["RAINNC"][-1] + wnfiles.prv.variables["RAINC"][-1]
+  lastpr.shape = (1,) + lastpr.shape
+  copyval = pr - np.concatenate([lastpr,pr[:-1]])
+  copyval = np.where(copyval<0., 0, copyval)
   oncvar = get_oncvar(varobj, incvar, onc)
   return oncvar, copyval
 

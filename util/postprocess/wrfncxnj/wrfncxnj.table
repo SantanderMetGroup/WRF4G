@@ -86,8 +86,9 @@ MRSO         mrso      "Total soil moisture content"                      "soil_
 PRES         pres      "Air pressure"                                     "air_pressure"                                           "Pa"      
 PRW          prw       "Column water vapour content"                      "atmosphere_water_vapor_content"                         "kg m-2"     
 RH2          hurs      "Relative humidty at 2M"                           "relative_humidity"                                      1         screenvar_at_2m
-RAIN         pr        "Precipitation flux"                               "precipitation_flux"                                     "Kg m-2 s-1"
-#TODO: RAINM1H      prhmax    "Max. hourly precipitation rate"                   "precipitation_flux"                                     "kg m-2 s-1"
+RAINF        pr        "Precipitation flux"                               "precipitation_flux"                                     "Kg m-2 s-1"
+RAIN         pr        "Accumulated precipitation"                        "precipitation_amount"                                   "Kg m-2"
+#TODO: RAINM1H      prhmax    "Max. hourly precipitation rate"                   "precipitation_flux"                              "kg m-2 s-1"
 RAINFORWARD  pr        "Precipitation"                                    "precipitation_amount"                                   "Kg m-2"  
 #TODO: RLS          rls       "Net LW surface radiation "                        "surface_net_downward_longwave_flux"                     "W m-2"   "EMISS*GLW - 5.67e-8*EMISS*SKINTEMP**4"
 RLT          rlt       "Net downward flux of LW radiation at top of atmosphere"  "toa_net_downward_longwave_flux"                  "W m-2"
