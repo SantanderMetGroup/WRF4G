@@ -249,7 +249,7 @@ real(r8) :: gdst(ndstsz, nspint) ! dust asymmetry parameter
       real(r8) cplos    ! constant for ozone path length integral
       real(r8) cplol    ! constant for ozone path length integral
 
-#ifdef CLWRF
+#ifdef CLWRFGHG
 ! UC-CLWRF June.09
    real(r8) :: co2vmr = 3.550e-4         ! co2   volume mixing ratio
    real(r8) :: n2ovmr = 0.311e-6         ! n2o   volume mixing ratio
@@ -1426,7 +1426,7 @@ subroutine trcmix(lchnk   ,ncol     ,pcols, pver, &
 !
 end subroutine trcmix
 
-#ifdef CLWRF
+#ifdef CLWRFGHG
 
 subroutine trcmix_clwrf(lchnk   ,ncol     ,pcols, pver,       &
                   pmid    ,clat, n2ovmr, ch4vmr, f11vmr,      &
@@ -2096,7 +2096,7 @@ subroutine vert_interpolate (Match_ps, aerosolc, m_hybi, paerlev, naer_c, pint, 
    real(r8) v_coord                    ! vertical coordinate
    real(r8) m_to_mmr                   ! mass to mass mixing ratio conversion factor
    real(r8) AER_diff                   ! temp var for difference between aerosol masses
-#ifdef CLWRF
+#ifdef CLWRFGHG
 !CLWRF-UC July.09
 !   LOGICAL ISNAND, EXTERNAL           ! NaN values detection
 #endif
@@ -2231,7 +2231,7 @@ subroutine vert_interpolate (Match_ps, aerosolc, m_hybi, paerlev, naer_c, pint, 
                write(6,*)'vert_interpolate: aerosol(k),(k+1)',AEROSOL(i,k,m),AEROSOL(i,k+1,m)
                write(6,*)'vert_interpolate: pint(k+1),(k)',pint(i,k+1),pint(i,k)
                write(6,*)'n,c',n,c
-#ifdef CLWRF
+#ifdef CLWRFGHG
 !CLWRF-UC July.09
 !               IF (ISNAND(pint(i,k+1))) THEN
                  CALL wrf_error_fatal('CLWRF-module_ra_cam_support. vert_interpolate: ERROR -- error -- Error of computation pint=NaN')

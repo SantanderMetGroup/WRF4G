@@ -398,7 +398,7 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
    real(r8), dimension(its:ite,kts:kte,4)           :: absnxt ! Total nearest layer absorptivity
    real(r8), dimension(its:ite,kts:kte+1)           :: emstot ! Total emissivity
    CHARACTER(LEN=256) :: msgstr
-#ifdef CLWRF
+#ifdef CLWRFGHG
 ! CLWRF-UC June.09 
 #include <wrf_io_flags.h>
    integer, DIMENSION(1:cyr), SAVE                  :: yrdata
@@ -450,7 +450,7 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
 ! of interpolation factors to within 32-bit roundoff
 ! assume that day of year is 1 for all input data
 !
-#ifdef CLWRF
+#ifdef CLWRFGHG
 ! CLWRF-UC June.09  (Copy from share/wrf_tsin.F)
     IF (XTIME .eq. 0.) THEN
       READtrFILE = .FALSE.
@@ -797,7 +797,7 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
       else
         phyd(i,k)=phyd(i,k-1) - gravmks*rho_phy(i,k-1,j)*dz8w(i,k-1,j)
       endif
-#ifdef CLWRF
+#ifdef CLWRFGHG
 !CLWRF-UC July.09
 !      IF (ISNAND(phyd(i,k))) THEN
 !         PRINT *,'phyd:',phyd(i,k),' p8w(',i,char(44),kts,char(44),j,'):',p8w(i,kts,j)
@@ -899,7 +899,7 @@ subroutine camrad(RTHRATENLW,RTHRATENSW,                           &
                    fsns, fsnt    ,flns    ,flnt    , &
                    qrs, qrl, flwds, rel, rei,                       &
                    sols, soll, solsd, solld,                  &
-#ifdef CLWRF
+#ifdef CLWRFGHG
 !CLWRF-UC June.09
                    n2ovmr, ch4vmr, f11vmr, f12vmr  , &
 #endif
@@ -1383,7 +1383,7 @@ subroutine get_aerosol(c, julday, julian, dt, gmt, xtime, m_psp, m_psn, aerosolj
             if (AEROSOLt(i, k, m) < speciesmin(m)) then
                write(6,*) 'AEROSOL_INTERPOLATE: negative mass mixing ratio, exiting'
                write(6,*) 'm, column, pver',m, i, k ,AEROSOLt(i, k, m)
-#ifdef CLWRF
+#ifdef CLWRFGHG
 !CLWRF-UC July.09
                print *,'naer:',naer,' pver:',pver,' ncol:',ncol
                PRINT *,'ERROR -- error -- ERROR -- error -- ERROR -- error'
@@ -1673,7 +1673,7 @@ subroutine radctl(j, lchnk   ,ncol    , pcols, pver, pverp, pverr, pverrp, ppcns
                   fsns    ,fsnt    ,flns    ,flnt    , &
                   qrs     ,qrl     ,flwds   ,rel     ,rei     , &
                   sols    ,soll    ,solsd   ,solld   , &
-#ifdef CLWRF
+#ifdef CLWRFGHG
 !CLWRF-UC June.09
                   n2ovmr, ch4vmr, f11vmr, f12vmr     , &
 #endif
@@ -1857,7 +1857,7 @@ subroutine radctl(j, lchnk   ,ncol    , pcols, pver, pverp, pverr, pverrp, ppcns
 
    real(r8) aerosol(pcols, pver, naer_all) ! aerosol mass mixing ratios
    real(r8) scales(naer_all)               ! scaling factors for aerosols
-#ifdef CLWRF
+#ifdef CLWRFGHG
 !CLWRF-UC July.09
    real(r8), INTENT(IN)        ::    n2ovmr, ch4vmr, f11vmr, f12vmr
    CHARACTER (LEN=256)         ::    message
@@ -2096,7 +2096,7 @@ subroutine radctl(j, lchnk   ,ncol    , pcols, pver, pverp, pverr, pverrp, ppcns
                        aerosol(:,:,idxVOLC))
 !        call t_stopf("radclwmx")
       else
-#ifdef CLWRF
+#ifdef CLWRFGHG
          IF ( wrf_dm_on_monitor() ) THEN
            WRITE(message,*)'CLWRF-CAM_call-trcmix n2ovmr:',n2ovmr,' ch4vmr:',ch4vmr,' f11vmr:',f11vmr,' f12vmr:',f12vmr
            CALL wrf_debug(75, message)
@@ -8118,7 +8118,7 @@ end subroutine radozn
 
 #endif
 
-#ifdef CLWRF
+#ifdef CLWRFGHG
 
    SUBROUTINE interpolate_CAMgases(yr, julian, yeari, lini, yearf, gas, interp_gas)
    IMPLICIT NONE

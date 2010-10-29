@@ -227,9 +227,16 @@ CONTAINS
 #ifdef WRF4G
    CALL       wrf_message ( '  *** WRF4G code enabled' )
 #endif
-#ifdef CLWRF
-   CALL       wrf_message ( '  *** CLWRF code enabled' )
+#ifdef CLWRFXTR
+   CALL       wrf_message ( "  *** CLWRFXTR 'extreme values' code enabled" )
+#ifdef CLWRFHVY
+   CALL       wrf_message ( "  *** CLWRFHVY 'heavy stuff' code enabled" )
 #endif
+#endif
+#ifdef CLWRFGHG
+   CALL       wrf_message ( "  *** CLWRFGHG 'GreenHouse gasses' code enabled" )
+#endif
+
    CALL       wrf_debug ( 100 , 'wrf: calling alloc_and_configure_domain ' )
    CALL alloc_and_configure_domain ( domain_id  = 1 ,                  &
                                      grid       = head_grid ,          &

@@ -3265,7 +3265,7 @@ BENCH_END(bc_2d_tim)
       &             ,NUM_TILES=grid%num_tiles                              &
       &                                                          )
 
-#ifdef CLWRF
+#ifdef CLWRFXTR
    IF (config_flags%clwrf_variables == 1) THEN
      IF ((config_flags%auxhist3_interval == 0 ) .OR. (config_flags%auxhist4_interval == 0 )) THEN
         WRITE (wrf_err_message , * )"CLWRF: ERROR -- error -- ERROR -- error : NO 'auxhist3_interval' has been defined in 'namelist.input'"
@@ -3277,6 +3277,7 @@ BENCH_END(bc_2d_tim)
         &           ,P8W=p8w   ,PK1M=grid%pk1m                             &
         &           ,MU_2=grid%mu_2  ,MU_2M=grid%mu_2m                     &
         &           ,U=grid%u_2    ,V=grid%v_2                             &
+        &           ,is_restart=config_flags%restart                       &
         &           ,clwrfH=config_flags%auxhist3_interval                 &
         &           ,T2=grid%t2, Q2=grid%q2, U10=grid%u10, V10=grid%v10    & 
         &           ,SKINTEMP=grid%tsk                                     &
@@ -3348,8 +3349,9 @@ BENCH_END(bc_2d_tim)
         &           ,TKENERGY=grid%tke_myj , PBLHEIGHT=grid%pblh           &
         &           ,DSUNSHINE=grid%sunshine                               &
         &           ,INITIME_SUNSHINE=grid%tsunshine                       &
-        &           ,MAXRAIN1H=grid%rainmax1h , TMAXRAIN1H=grid%trainmax1h &
-        &           ,ACCUM1H=grid%accumrain1h                              &
+        &           ,MAXRAIN1H=grid%prmax1h , TMAXRAIN1H=grid%tprmax1h     &
+        &           ,ACCUM1H=grid%acpr1h                                   &
+        &           ,is_restart=config_flags%restart                       &
         &           ,GUSTWINDFLAG=config_flags%gust_wind                   &
         &           ,UGUSTWIND=grid%uwindgust , VGUSTWIND=grid%vwindgust   &
         &           ,UGUSTWINDLOW=grid%uwindgustlow                        &
