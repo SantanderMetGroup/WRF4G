@@ -13,8 +13,8 @@ Q2           huss      "Surface specific humidity"                        "speci
 QCLOUD       clwmr     "Cloud water content"                              "cloud_liquid_water_mixing_ratio"                        1         
 QFX          hufs      "Upward moisture flux at the surface"              "surface_upward_water_vapor_flux_in_air"                 "kg m-2 s-1" 
 QVAPOR       hus       "Specific Humidity"                                "specific_humidity"                                      1         
-RAINNC       prls      "Precipitation large scale"                        "large_scale_precipitation_amount"                       "Kg m-2" deacumulate 
-RAINC        prc       "Precipitation convective"                         "convective_precipitation_amount"                        "Kg m-2" deacumulate 
+RAINNC       prls      "Precipitation large scale"                        "large_scale_precipitation_amount"                       "Kg m-2" deaccumulate 
+RAINC        prc       "Precipitation convective"                         "convective_precipitation_amount"                        "Kg m-2" deaccumulate 
 REGIME       regime    "Stability regime (1=Night/Stable, 2=Mech. Turb., 3=Forced Conv, 4=Free Conv)"  "stability_regime"                       1        
 SFCEVP       evspsbl   "Evaporation"                                      "water_evaporation_flux"                                 "kg m-2 s-1" 
 SFROFF       mrros     "Surface runoff"                                   "surface_runoff_flux"                                    "kg m-2 s-1" 
@@ -68,15 +68,15 @@ WINDGUSTMAX  wgsmax    "Max. wind gust"                                   "wind_
 #
 # Derived variables
 #
-ACLHF        ahfls     "Latent heat flux at surface"                      "surface_upward_latent_heat_flux"                        "W m-2"  deacumulate_flux
-ACHFX        ahfss     "Heat flux at the surface"                         "surface_upward_sensible_heat_flux"                      "W m-2"  deacumulate_flux
-ACRLS        rls       "Net LW surface radiation "                        "surface_net_downward_longwave_flux"                     "W m-2"  deacumulate_flux
-ACLWUPB      rlus      "Upwelling surface LW radiation"                   "surface_upwelling_longwave_flux_in_air"                 "W m-2"  deacumulate_flux
-ACSNOM       snm       "Snow melt"                                        "surface_snow_melt_flux"                                 "kg m-2 s-1" deacumulate_flux
-ACSNOW       snw       "Accumulated snow"                                 "surface_snow_amount"                                    "kg m-2" deacumulate
-ACSWDNT      rsdt      "incoming/downward SW radiation at top of atmosphere" "toa_incoming_shortwave_flux"                         "W m-2"  deacumulate_flux
-ACSWUPB      rsus      "Upwelling surface SW radiation"                   "surface_upwelling_shortwave_flux_in_air"                "W m-2"  deacumulate_flux
-ACSWUPT      rsut      "Outgoing SW radiation at top of atmosphere"       "toa_outgoing_shortwave_flux"                            "W m-2"  deacumulate_flux
+ACLHF        ahfls     "Latent heat flux at surface"                      "surface_upward_latent_heat_flux"                        "W m-2"  deaccumulate_flux
+ACHFX        ahfss     "Heat flux at the surface"                         "surface_upward_sensible_heat_flux"                      "W m-2"  deaccumulate_flux
+ACRLS        rls       "Net LW surface radiation "                        "surface_net_downward_longwave_flux"                     "W m-2"  deaccumulate_flux
+ACLWUPB      rlus      "Upwelling surface LW radiation"                   "surface_upwelling_longwave_flux_in_air"                 "W m-2"  deaccumulate_flux
+ACSNOM       snm       "Snow melt"                                        "surface_snow_melt_flux"                                 "kg m-2 s-1" deaccumulate_flux
+ACSNOW       snw       "Accumulated snow"                                 "surface_snow_amount"                                    "kg m-2" deaccumulate
+ACSWDNT      rsdt      "incoming/downward SW radiation at top of atmosphere" "toa_incoming_shortwave_flux"                         "W m-2"  deaccumulate_flux
+ACSWUPB      rsus      "Upwelling surface SW radiation"                   "surface_upwelling_shortwave_flux_in_air"                "W m-2"  deaccumulate_flux
+ACSWUPT      rsut      "Outgoing SW radiation at top of atmosphere"       "toa_outgoing_shortwave_flux"                            "W m-2"  deaccumulate_flux
 CLD          clwi      "Total cloud water and ice"                        "cloud_water_and_ice_content"                            "kg m-2"  
 CLISCCP      clisccp   "clouds (1: p<440 hPa, 2: 660<p<440, 3: p>660)     "cloud"                                                  1  
 CLWVI        clwvi     "Column condensed water content"                   "atmosphere_cloud_condensed_water_content"               "kg m-2"
