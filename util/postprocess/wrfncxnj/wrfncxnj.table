@@ -90,7 +90,7 @@ RAINF        pr        "Precipitation flux"                               "preci
 RAIN         pr        "Accumulated precipitation"                        "precipitation_amount"                                   "Kg m-2"
 #TODO: RAINM1H      prhmax    "Max. hourly precipitation rate"                   "precipitation_flux"                              "kg m-2 s-1"
 RAINFORWARD  pr        "Precipitation"                                    "precipitation_amount"                                   "Kg m-2"  
-#TODO: RLS          rls       "Net LW surface radiation "                        "surface_net_downward_longwave_flux"              "W m-2"    "EMISS*GLW - 5.67e-8*EMISS*SKINTEMP**4"
+RLS          rls       "Net LW surface radiation "                        "surface_net_downward_longwave_flux"                     "W m-2"    "EMISS*GLW - 5.67e-8*EMISS*SKINTEMP**4"
 RLT          rlt       "Net downward flux of LW radiation at top of atmosphere"  "toa_net_downward_longwave_flux"                  "W m-2"
 RSS          rss       "Net SW surface radiation"                         "surface_net_downward_shortwave_flux"                    "W m-2"   
 RST          rst       "Net downward flux of SW radiation at top of atmosphere"  "toa_net_downward_longwave_flux"                  "W m-2"
@@ -108,5 +108,5 @@ V10MEANER    vasmean   "Mean northward surface wind"                      "north
 VER          va        "Northward wind"                                   "northward_wind"                                         "m s-1"   
 WIND         wspd      "wind speed"                                       "wind_speed"                                             "m s-1"  
 # FAKEs
-SKINTEMPFMAX       tsmax     "Max. surface temperature"                         "surface_temperature"                                    "K"       fake_extreme
-SKINTEMPFMIN       tsmin     "Min. surface temperature"                         "surface_temperature"                                    "K"       fake_extreme
+SKINTEMPFMAX tsmax     "Max. surface temperature"                         "surface_temperature"                                    "K"       fake_extreme
+SKINTEMPFMIN tsmin     "Min. surface temperature"                         "surface_temperature"                                    "K"       fake_extreme
