@@ -120,3 +120,27 @@ def compute_RAINFORWARD(varobj, onc, wnfiles, wntimes):
   copyval = np.where(copyval<0., 0, copyval)
   oncvar = get_oncvar(varobj, incvar, onc)
   return oncvar, copyval
+
+def compute_RLT(varobj, onc, wnfiles, wntimes):
+  incvar = wnfiles.current.variables["ACSWUPB"]
+  rlt = incvar[:] - wnfiles.current.variables["ACSWDNB"][:]
+  if not wnfiles.prv:
+    lastrlt = rlt[0]
+  else:
+    lastrlt = wnfiles.prv.variables["ACSWUPB"][-1] - wnfiles.prv.variables["ACSWDNB"][-1]
+  lastrlt.shape = (1,) + lastrlt.shape
+  copyval = (np.concatenate([lastrlt, rlt[:-1]]) - rlt)/float(wntimes.outstep_s)
+  oncvar = get_oncvar(varobj, incvar, onc)
+  return oncvar, copyval
+
+def compute_RST(varobj, onc, wnfiles, wntimes):
+  incvar = wnfiles.current.variables["ACSWUPT"]
+  rlt = incvar[:] - wnfiles.current.variables["ACSWDNT"][:]
+  if not wnfiles.prv:
+    lastrlt = rlt[0]
+  else:
+    lastrlt = wnfiles.prv.variables["ACSWUPT"][-1] - wnfiles.prv.variables["ACSWDNT"][-1]
+  lastrlt.shape = (1,) + lastrlt.shape
+  copyval = (np.concatenate([lastrlt, rlt[:-1]]) - rlt)/float(wntimes.outstep_s)
+  oncvar = get_oncvar(varobj, incvar, onc)
+  return oncvar, copyval
