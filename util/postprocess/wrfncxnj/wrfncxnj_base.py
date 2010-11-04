@@ -53,8 +53,8 @@ def fake_extreme(varobj, onc, wnfiles, wntimes):
   # Extracts a variable, changes it's name and adds an attribute so extremes must be computed LATER
   # the CDO. It's called "fake extreme" because it is made to replace a extreme that's not computed by CLWRF.
   #
-  incvar = wnfiles.current.variables[varobj.varname[:-3]] #[:-3]removes "MAX" or "MIN"
-  copyval = np.reshape(incvar[:],incvar.shape[:1]+(1,)+incvar.shape[1:])
+  incvar = wnfiles.current.variables[varobj.varname[:-4]] #[:-4]removes "MAX" or "MIN"
+  copyval = incvar
   oncvar = get_oncvar(varobj, incvar, onc)
   oncvar.warning = "This is not a real extreme, extremes still need to be computed." 
   return oncvar, copyval
