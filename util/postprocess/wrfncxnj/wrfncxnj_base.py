@@ -48,6 +48,17 @@ def deaccumulate(varobj, onc, wnfiles, wntimes):
   oncvar = get_oncvar(varobj, incvar, onc)
   return oncvar, copyval
 
+def fake_extreme(varobj, onc, wnfiles, wntimes):
+  #
+  # Extracts a variable, changes it's name and adds an attribute so extremes must be computed LATER
+  # the CDO. It's called "fake extreme" because it is made to replace a extreme that's not computed by CLWRF.
+  #
+  incvar = wnfiles.current.variables[varobj.varname[:-3]] #[:-3]removes "MAX" or "MIN"
+  copyval = np.reshape(incvar[:],incvar.shape[:1]+(1,)+incvar.shape[1:])
+  oncvar = get_oncvar(varobj, incvar, onc)
+  oncvar.warning = "This is not a real extreme, extremes still need to be computed." 
+  return oncvar, copyval
+
 def rotate_uas(varobj, onc, wnfiles, wntimes):
   uvarname = varobj.varname[:-2] # remove the "ER"
   vvarname = "V" + varobj.varname[1:-2] # remove the "U" and the "ER"
