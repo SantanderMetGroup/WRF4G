@@ -94,7 +94,7 @@ RLS          rls       "Net LW surface radiation "                        "surfa
 RLT          rlt       "Net downward flux of LW radiation at top of atmosphere"  "toa_net_downward_longwave_flux"                  "W m-2"
 RSS          rss       "Net SW surface radiation"                         "surface_net_downward_shortwave_flux"                    "W m-2"   
 RST          rst       "Net downward flux of SW radiation at top of atmosphere"  "toa_net_downward_longwave_flux"                  "W m-2"
-SNW          prsn      "Snowfall"                                         "snowfall_flux"                                          "kg m-2 s-1" 
+SNOW          prsn      "Snowfall"                                         "snowfall_flux"                                          "kg m-2 s-1" 
 SMOIS1       mrsos1    "Moisture of soil layer 1"                         "moisture_content_of_soil_layer"                         "kg m-2"   
 TEMP         ta        "Air temperature"                                  "air_temperature"                                        "K"       
 TDPS         tdps      "Dew point temperature at 2M"                      "dew_point_temperature"                                  "K"        screenvar_at_2m
