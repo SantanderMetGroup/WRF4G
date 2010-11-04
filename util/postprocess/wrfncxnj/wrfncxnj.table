@@ -26,7 +26,7 @@ SWDOWN       rsds      "Downward SW surface radiation"                    "surfa
 SWUPT        rsnt      "Net upward shortwave flux at TOA"                 "toa_net_upward_shortwave_flux"                          "W m-2" 
 T2           tas       "Surface air temperature"                          "air_temperature"                                        "K"       screenvar_at_2m
 TSLB         tsos      "Soil temperature"                                 "soil_temperature"                                       "K"
-TSK          ts        "Surface skin temperature"                         "surface_temperature"                                    "K"
+TSK          ts        "Surface temperature"                              "surface_temperature"                                    "K"
 TKE_MYJ      tkemyj    "Specific turbulent kinetic Energy in MYJ scheme"  "specific_turbulent_kinetic_energy_in_myj"               "m 2 s-2" 
 U10          uascurv   "X surface wind"                                   "x_wind"                                                 "m s-1"   
 UDROFF       mrfso     "Subsurface runoff"                                "subsurface_runoff"                                      "kg m-2 s-1"
@@ -57,8 +57,8 @@ VIQI         clivi     "Column ice water content"                         "atmos
 Q2MAX        hursmax   "Max. surface relative humidity"                   "relative_humidity"                                      1         screenvar_at_2m 
 Q2MIN        hursmin   "Min. surface relative humidity"                   "relative_humidity"                                      1         screenvar_at_2m 
 RAINMAX1H    prhmax    "Max. hourly precipitation rate"                   "precipitation_flux"                                     "kg m-2 s-1"
-SKINTEMPMAX  tsosmin   "Max. surface skin temperature"                    "soil_skin_emperature"                                   "K"
-SKINTEMPMIN  tsosmin   "Min. surface skin temperature"                    "soil_skin_temperature"                                  "K"
+SKINTEMPMAX  tsmin     "Max. surface temperature"                         "surface_temperature"                                    "K"
+SKINTEMPMIN  tsmin     "Min. surface temperature"                         "surface_temperature"                                    "K"
 SPDUV10MAX   wssmax    "Max. surface wind speed"                          "air_velocity"                                           "m s-1"   screenvar_at_10m
 SUNSHINE     sund      "Sunshine duration"                                "sunshine_duration"                                      "minutes"
 T2MAX        tasmax    "Max. surface air temperature"                     "air_temperature"                                        "K"       screenvar_at_2m
@@ -94,7 +94,7 @@ RAINFORWARD  pr        "Precipitation"                                    "preci
 RLT          rlt       "Net downward flux of LW radiation at top of atmosphere"  "toa_net_downward_longwave_flux"                  "W m-2"
 RSS          rss       "Net SW surface radiation"                         "surface_net_downward_shortwave_flux"                    "W m-2"   
 RST          rst       "Net downward flux of SW radiation at top of atmosphere"  "toa_net_downward_longwave_flux"                  "W m-2"
-SNW          prsn      "Snowfall"                                         "snowfall_flux"                                          "kg m-2 s-1" 
+SNOW         prsn      "Snowfall"                                         "snowfall_flux"                                          "kg m-2 s-1"  deaccumulate_flux
 SMOIS1       mrsos1    "Moisture of soil layer 1"                         "moisture_content_of_soil_layer"                         "kg m-2"   
 TEMP         ta        "Air temperature"                                  "air_temperature"                                        "K"       
 TDPS         tdps      "Dew point temperature at 2M"                      "dew_point_temperature"                                  "K"       screenvar_at_2m
@@ -107,3 +107,6 @@ V10MAXER     vasmax    "Max. northward surface wind"                      "north
 V10MEANER    vasmean   "Mean northward surface wind"                      "northward_wind"                                         "m s-1"    rotate_vas 
 VER          va        "Northward wind"                                   "northward_wind"                                         "m s-1"   
 WIND         wspd      "wind speed"                                       "wind_speed"                                             "m s-1"   
+# FAKEs
+TSKMAX       tsmax     "Max. surface temperature"                         "surface_temperature"                                    "K"       fake_extreme
+TSKMIN       tsmin     "Min. surface temperature"                         "surface_temperature"                                    "K"       fake_extreme
