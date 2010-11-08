@@ -70,7 +70,7 @@ WINDGUSTMAX  wgsmax    "Max. wind gust"                                   "wind_
 #
 ACLHF        ahfls     "Latent heat flux at surface"                      "surface_upward_latent_heat_flux"                        "W m-2"  deacumulate_flux
 ACHFX        ahfss     "Heat flux at the surface"                         "surface_upward_sensible_heat_flux"                      "W m-2"  deacumulate_flux
-ACRLS        rls       "Net LW surface radiation "                        "surface_net_downward_longwave_flux"                     "W m-2"  deacumulate_flux
+ACRLS        rls       "Net LW surface radiation "                        "surface_net_downward_longwave_flux"                     "W m-2"  
 ACLWUPB      rlus      "Upwelling surface LW radiation"                   "surface_upwelling_longwave_flux_in_air"                 "W m-2"  deacumulate_flux
 ACSNOM       snm       "Snow melt"                                        "surface_snow_melt_flux"                                 "kg m-2 s-1" deacumulate_flux
 ACSNOW       snw       "Accumulated snow"                                 "surface_snow_amount"                                    "kg m-2" deacumulate

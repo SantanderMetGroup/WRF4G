@@ -121,7 +121,7 @@ def compute_RAINFORWARD(varobj, onc, wnfiles, wntimes):
   oncvar = get_oncvar(varobj, incvar, onc)
   return oncvar, copyval
 
-def compute_RLT(varobj, onc, wnfiles, wntimes):
+def compute_ACRLS(varobj, onc, wnfiles, wntimes):
   incvar = wnfiles.current.variables["ACSWUPB"]
   rlt = incvar[:] - wnfiles.current.variables["ACSWDNB"][:]
   if not wnfiles.prv:
@@ -142,5 +142,17 @@ def compute_RST(varobj, onc, wnfiles, wntimes):
     lastrlt = wnfiles.prv.variables["ACSWUPT"][-1] - wnfiles.prv.variables["ACSWDNT"][-1]
   lastrlt.shape = (1,) + lastrlt.shape
   copyval = (np.concatenate([lastrlt, rlt[:-1]]) - rlt)/float(wntimes.outstep_s)
+  oncvar = get_oncvar(varobj, incvar, onc)
+  return oncvar, copyval
+
+def compute_RLT(varobj, onc, wnfiles, wntimes):
+  incvar = wnfiles.current.variables["OLR"]
+  lwdnt = wnfiles.current.variables["ACLWDNT"]
+  if not wnfiles.prv:
+    lastlwdnt = lwdnt[0]
+  else:
+    lastlwdnt = wnfiles.prv.variables["ACLWDNT"][-1]
+  lastlwdnt.shape = (1,) + lastlwdnt.shape
+  copyval = incvar[:] - (np.concatenate([lastlwdnt, lwdnt[:-1]]) - lwdnt)/float(wntimes.outstep_s) # Deaccumulates ACLWDNT
   oncvar = get_oncvar(varobj, incvar, onc)
   return oncvar, copyval
