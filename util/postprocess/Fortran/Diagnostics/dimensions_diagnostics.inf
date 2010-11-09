@@ -79,25 +79,25 @@
   dim_positive             -
   dim_formula              -
 
-*lev*
+*plev*
   dimtype                  V
   dimaxis                  Z
   dim_in_name              -
   num_dimInVarnames        1
-  dim_in_varnames          ZNU
-  dim_method               direct
+  dim_in_varnames          num_metgrid_levels
+  dim_method               -
   dim_constant             0.
-  dim_indimensions         1
+  dim_indimensions         0
   dim_Noptions             0
   dim_options              0
-  standard_name            atmosphere_sigma_coordinate
-  long_name                'atmosphere level in sigma coordinate'
-  units                    NO
-  Ndim_values              0
-  dim_values               0.
+  standard_name            air_pressure
+  long_name                'atmosphere pressure'
+  units                    Pa
+  Ndim_values              12
+  dim_values               1000.0, 975., 925., 850.0, 700., 600., 500.0, 400, 300, 250., 200.0, 100
   dim_coords               '-'
   dim_positive             down
-  dim_formula              'sigma: lev ps: PSFC ptop: P_TOP'
+  dim_formula              '-'
 
 *plev*
   dimtype                  V
