@@ -33,6 +33,7 @@ umask 002
 #
 save_wps=1
 clean_after_run=1
+timestep_dxfactor=6
 #
 #  Load wrf4g.conf, wrf.chunk and wrf.input
 #
@@ -56,54 +57,6 @@ ulimit -a
 ulimit -s unlimited
 echo "After_____________"
 ulimit -a
-function setup_namelist_input(){
-  ln -s ../../WPS/namelist.wps
-  fortnml_set    namelist.input run_days    0
-  fortnml_set    namelist.input run_hours   0
-  fortnml_set    namelist.input run_minutes 0
-  fortnml_set    namelist.input run_seconds 0
-  fortnml_setn    namelist.input start_year  ${max_dom} ${ryy}
-  fortnml_setn    namelist.input start_month ${max_dom} ${rmm}
-  fortnml_setn    namelist.input start_day   ${max_dom} ${rdd}
-  fortnml_setn    namelist.input start_hour  ${max_dom} ${rhh}
-  fortnml_setn    namelist.input end_year    ${max_dom} ${fyy}
-  fortnml_setn    namelist.input end_month   ${max_dom} ${fmm}
-  fortnml_setn    namelist.input end_day     ${max_dom} ${fdd}
-  fortnml_setn    namelist.input end_hour    ${max_dom} ${fhh}
-  fortnml_varcopy namelist.wps   namelist.input parent_grid_ratio
-  fortnml_varcopy namelist.wps   namelist.input parent_grid_ratio parent_time_step_ratio
-  fortnml_varcopy namelist.wps   namelist.input i_parent_start
-  fortnml_varcopy namelist.wps   namelist.input j_parent_start
-  fortnml_varcopy namelist.wps   namelist.input e_we
-  fortnml_varcopy namelist.wps   namelist.input e_sn
-  numml=$(get_num_metgrid_levels)
-  if test -n "${numml}"; then
-    fortnml_set     namelist.input num_metgrid_levels ${numml}
-  fi
-  nummsl=$(get_num_metgrid_soil_levels)
-  if test -n "${nummsl}"; then
-    fortnml_set     namelist.input num_metgrid_soil_levels ${nummsl}
-  fi
-  fortnml_import_record namelist.wps geogrid > to.source
-  source to.source && rm -f to.source
-  alldx=""
-  thisdx=${dx}
-  for i in $(seq $max_dom)
-  do
-    thispgr=$(tuple_item $parent_grid_ratio ${i})
-    thisdx=$(echo "scale=5;${thisdx}/${thispgr}" | bc)
-    alldx="${alldx} ${thisdx}"
-  done
-  fortnml_setm namelist.input dx        $alldx
-  fortnml_setm namelist.input dy        $alldx # This could be an issue for global WRF
-  fortnml_set  namelist.input time_step $(get_timestep $dx ${timestep_dxfactor})
-  fortnml_set  namelist.input max_dom   ${max_dom}
-  fortnml_set  namelist.input restart   ${chunk_is_restart}
-  #
-  # A final sanity check...
-  #
-  fortnml --wrf --trim --overwrite -f namelist.input
-}
 
 test -n "${logdir}" || logdir=${LOCALDIR}/log;
 mkdir -p ${logdir}
@@ -168,7 +121,7 @@ if test "$(exist_wps $(date_wrf2iso ${chunk_start_date}))" -eq "1"; then
     vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || exit ${ERROR_VCP_FAILED}
   cd ${LOCALDIR}
   cd ${LOCALDIR}/WRFV3/run || exit
-    setup_namelist_input 
+    namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${maxdom} ${chunk_is_restart} ${timestep_dxfactor}
     timelog_init "wps get"
       download_file wps $(date_wrf2iso ${chunk_start_date})
     timelog_end
@@ -299,7 +252,7 @@ else
       ln -s ../../WPS/met_em.d??.????-??-??_??:00:00.nc .
       ls -l ########################################################## borrar
       fix_ptop
-      setup_namelist_input
+      namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${maxdom} ${chunk_is_restart} ${timestep_dxfactor}
       ${LAUNCHER_REAL} ${ROOTDIR}/bin/real.exe \
         >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_REAL_FAILED}

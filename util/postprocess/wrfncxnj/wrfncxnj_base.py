@@ -18,6 +18,15 @@ def screenvar_at_2m(varobj, onc, wnfiles, wntimes):
   oncvar = get_oncvar(varobj, incvar, onc, screenvar_at_2m=True)
   return oncvar, copyval
 
+def screenvar_at_10m(varobj, onc, wnfiles, wntimes):
+  #
+  # Works for any variable defined at 2m with no other transformation.
+  #
+  incvar = wnfiles.current.variables[varobj.varname]
+  copyval = np.reshape(incvar[:],incvar.shape[:1]+(1,)+incvar.shape[1:])
+  oncvar = get_oncvar(varobj, incvar, onc, screenvar_at_10m=True)
+  return oncvar, copyval
+
 def deaccumulate_flux(varobj, onc, wnfiles, wntimes):
   #
   # De-accumulates any variable if no other transformation is required
