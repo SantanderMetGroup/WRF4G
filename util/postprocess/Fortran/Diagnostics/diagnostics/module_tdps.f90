@@ -43,10 +43,10 @@ MODULE module_tdps
 
   tempd2=0.
   e=q2*psfc/(epsilon_gamma+q2)
-  c=log10(e/epsilon_gamma)
-!  WHERE (t2-tkelvin <= 3.) tempd2=(c*es_Btetens_ice)/(es_Atetens_ice-c)
-!  WHERE (t2-tkelvin > 3.) tempd2=(c*es_Btetens_vapor)/(es_Atetens_vapor-c)
-  tempd2=(c*es_Btetens_vapor)/(es_Atetens_vapor-c)
+  c=log10(e/es_base_tetens)
+  WHERE (t2-tkelvin <= 3.) tempd2=(c*es_Btetens_ice)/(es_Atetens_ice-c)
+  WHERE (t2-tkelvin > 3.) tempd2=(c*es_Btetens_vapor)/(es_Atetens_vapor-c)
+!  tempd2=(c*es_Btetens_vapor)/(es_Atetens_vapor-c)+tkelvin
   
   IF (debg >= 100) THEN
     PRINT *,'  dim/2 q2: ',q2(halfdim(dx),halfdim(dy),halfdim(dt))

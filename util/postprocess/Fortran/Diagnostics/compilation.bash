@@ -31,7 +31,7 @@ then
 elif [ $HOSTNAME = 'solet' ]
 then
   f90=gfortran
-  options='-L/usr/local/lib -lnetcdf -I/usr/local/include'
+  options='-L/home/lluis/bin/netcdf_4.1.1/lib -lnetcdf -I/home/lluis/bin/netcdf_4.1.1/include'
 fi
 echo "Compilation of netCDF diagnostic computation in '"$HOSTNAME"'...."
 
