@@ -98,7 +98,7 @@
  diagnostic_std_name      'relative_humidity'
  diagnostic_longdesc      'relative humidity at 2 m'
  diagnostic_units         '1'
- diagnostic_method        'its90'
+ diagnostic_method        'Tetens'
  diagnostic_constant      0.
  diagnostic_Noptions      0
  diagnostic_options       0
@@ -413,7 +413,7 @@
  diagnostic_std_name      'dew_point_temperature'
  diagnostic_longdesc      'dew point temperature at 2M'
  diagnostic_units         'K'
- diagnostic_method        'its90'
+ diagnostic_method        'Tetens'
  diagnostic_constant      0.
  diagnostic_Noptions      0
  diagnostic_options       0

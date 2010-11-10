@@ -23,7 +23,7 @@ MODULE module_constants
   REAL, PARAMETER                                          :: epsilon_gamma=0.62197
   CHARACTER(LEN=50)                                        :: errmsg='ERROR - error - ERROR'//   &
     ' - error - ERROR'
-  REAL, PARAMETER                                          :: es_base_tetens=610.78
+  REAL, PARAMETER                                          :: es_base_tetens=6.1078
   REAL, PARAMETER                                          :: es_Atetens_vapor=7.5
   REAL, PARAMETER                                          :: es_Btetens_vapor=237.3
   REAL, PARAMETER                                          :: es_Atetens_ice=9.5

@@ -21,11 +21,11 @@ MODULE module_tdps
   INTEGER, INTENT(IN)                                     :: debg
 
 ! Local
-  INTEGER                                                 :: i,j,it, ijk, nozero
+  INTEGER                                                 :: i,j,k,it, ijk, nozero
   CHARACTER(LEN=50)                                       :: section
   CHARACTER(LEN=250)                                      :: message
   INTEGER                                                 :: halfdim
-  REAL, DIMENSION(dx, dy, dt)                             :: e, c
+  REAL(KIND=Rhigh), DIMENSION(dx, dy, dt)                 :: e, c
   
 !!!!!!!!!!!!!! Variables
 ! dx, dy, dt: dimensions of fields
@@ -42,11 +42,25 @@ MODULE module_tdps
   IF (debg >= 75)  PRINT *,'  Computing tdps....'
 
   tempd2=0.
-  e=q2*psfc/(epsilon_gamma+q2)
+  e=q2*(psfc/100.)/(epsilon_gamma+q2)
   c=log10(e/es_base_tetens)
-  WHERE (t2-tkelvin <= 0.) tempd2=(c*es_Btetens_ice)/(es_Atetens_ice-c)+tkelvin
-  WHERE (t2-tkelvin > 0.) tempd2=(c*es_Btetens_vapor)/(es_Atetens_vapor-c)+tkelvin
+!  WHERE (t2-tkelvin <= 0.) tempd2=(c*es_Btetens_ice)/(es_Atetens_ice-c)
+!  WHERE (t2-tkelvin > 0.) tempd2=(c*es_Btetens_vapor)/(es_Atetens_vapor-c)
+  DO i=1,dx
+    DO j=1,dy
+      DO k=1,dt
+        IF ((t2(i,j,k)-tkelvin) <= 0.) THEN
+!          tempd2(i,j,k)=(c(i,j,k)*es_Btetens_ice)/(es_Atetens_ice-c(i,j,k))
+          tempd2(i,j,k)=(c(i,j,k)*es_Btetens_vapor)/(es_Atetens_vapor-c(i,j,k))
+	ELSE
+          tempd2(i,j,k)=(c(i,j,k)*es_Btetens_vapor)/(es_Atetens_vapor-c(i,j,k))
+	END IF
+      END DO
+    END DO
+  END DO
+
 !  tempd2=(c*es_Btetens_vapor)/(es_Atetens_vapor-c)+tkelvin
+  tempd2=tempd2+tkelvin
   
   IF (debg >= 100) THEN
     PRINT *,'  dim/2 q2: ',q2(halfdim(dx),halfdim(dy),halfdim(dt))
@@ -56,6 +70,16 @@ MODULE module_tdps
     PRINT *,'  dim/2 c: ',c(halfdim(dx),halfdim(dy),halfdim(dt))
   END IF
 
+  IF (debg >= 100) THEN
+    PRINT *,'  162-132 values_____________'
+    PRINT *,'  t2: ',t2(162,132,1) - tkelvin
+    PRINT *,'  q2: ',q2(162,132,1)
+    PRINT *,'  psfc: ',psfc(162,132,1)
+    PRINT *,'  e: ',e(162,132,1)
+    PRINT *,'  c: ',c(162,132,1)
+    PRINT *,'  tempd2: ',tempd2(162,132,1) - tkelvin
+
+  END IF
   IF (debg >= 75) PRINT *,'  tdps at the center dimx/2:', halfdim(dx),' dimy/2:',               &
     halfdim(dy),' dt/2:', halfdim(dt), ' =', tempd2(halfdim(dx),halfdim(dy),halfdim(dt))
 

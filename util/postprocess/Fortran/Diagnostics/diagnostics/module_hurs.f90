@@ -41,28 +41,28 @@ MODULE module_hurs
   IF (debg >= 75) PRINT *,'Section '//TRIM(section)//'... .. .'
   IF (debg >= 100) PRINT *,'  Dimensions: ',dx,CHAR(44), dy,CHAR(44), dt
 
-  e=q2*psfc/(epsilon_gamma+q2)
-  WHERE (t2-tkelvin <= 0. ) es=es_base_tetens*10.**(((t2-tkelvin)*es_Atetens_ice)/((t2-tkelvin)  &
-    +es_Btetens_ice))
-  WHERE (t2-tkelvin > 0.) es=es_base_tetens*10.**(((t2-tkelvin)*es_Atetens_vapor)/((t2-tkelvin)+ &
-    es_Btetens_vapor))
+  e=q2*(psfc/100.)/(epsilon_gamma+q2)
+!  WHERE (t2-tkelvin <= 0. ) es=es_base_tetens*10.**(((t2-tkelvin)*es_Atetens_ice)/((t2-tkelvin)  &
+!    +es_Btetens_ice))
+!  WHERE (t2-tkelvin > 0.) es=es_base_tetens*10.**(((t2-tkelvin)*es_Atetens_vapor)/((t2-tkelvin)+ &
+!    es_Btetens_vapor))
 
-!  DO i=1,dx
-!    DO j=1,dy
-!      DO l=1,dt
-!        IF ((t2(i,j,l)-tkelvin) <= 3.) THEN
-!          es(i,j,l)=es_base_tetens*10.**(((t2(i,j,l)-tkelvin)*es_Atetens_vapor)/((t2(i,j,l)-     &
-!           tkelvin)+es_Btetens_vapor))
-!        ELSE
-!          es(i,j,l)=es_base_tetens*10.**(((t2(i,j,l)-tkelvin)*es_Atetens_ice)/((t2(i,j,l)-       &
-!           tkelvin)+es_Btetens_ice))
-!       END IF
-!      END DO
-!    END DO
-!  END DO
+  DO i=1,dx
+    DO j=1,dy
+      DO l=1,dt
+        IF ((t2(i,j,l)-tkelvin) >= 0.) THEN
+          es(i,j,l)=es_base_tetens*10.**(((t2(i,j,l)-tkelvin)*es_Atetens_vapor)/((t2(i,j,l)-     &
+           tkelvin)+es_Btetens_vapor))
+        ELSE
+          es(i,j,l)=es_base_tetens*10.**(((t2(i,j,l)-tkelvin)*es_Atetens_ice)/((t2(i,j,l)-       &
+           tkelvin)+es_Btetens_ice))
+       END IF
+      END DO
+    END DO
+  END DO
   rh2=e/es
 
-  rh2=MAX(MIN(rh2, 1.0), 0.0)
+!  rh2=MAX(MIN(rh2, 1.0), 0.0)
 
   IF (debg >= 100) THEN
     PRINT *,'  dim/2 values_____________'
@@ -72,6 +72,18 @@ MODULE module_hurs
     PRINT *,'  e: ',e(halfdim(dx),halfdim(dy),halfdim(dt))
     PRINT *,'  es: ',es(halfdim(dx),halfdim(dy),halfdim(dt))
   END IF
+
+  IF (debg >= 100) THEN
+    PRINT *,'  162-132 values_____________'
+    PRINT *,'  t2: ',t2(162,132,1) - tkelvin
+    PRINT *,'  q2: ',q2(162,132,1)
+    PRINT *,'  psfc: ',psfc(162,132,1)
+    PRINT *,'  e: ',e(162,132,1)
+    PRINT *,'  es: ',es(162,132,1)
+    PRINT *,'  rh2: ',rh2(162,132,1)
+
+  END IF
+
 
   IF (debg >= 75) PRINT *,'  rh2 at the center dimx/2:', halfdim(dx),' dimy/2:', halfdim(dy),     &
     ' dt/2:', halfdim(dt), ' =', rh2(halfdim(dx),halfdim(dy),halfdim(dt))
@@ -208,13 +220,13 @@ MODULE module_hurs
   END DO
   
    lnes=0.6112*exp(17.67*(t2-tkelvin)/((t2-tkelvin)+243.5))
-   e=q2*psfc/(0.622+q2)
-!   rh2=e/(exp(lnes))
+   e=q2*(psfc/100.)/(0.622+q2)
+   rh2=e/(lnes*1000.)
 !   rh2=REAL(e2/(exp(lnes)))
 !  lnes=10.*0.6112*exp(17.67*(t2-tkelvin)/(t2-29.65))
 !  rh2=0.622*lnes/(psfc-lnes)
 !  rh2=td2B
-  rh2=e/(lnes*1000.)
+!  rh2=e/exp(lnes)
 
   IF (debg >= 100) THEN
     PRINT *,'  dim/2 q2: ',q2(halfdim(dx),halfdim(dy),halfdim(dt))
