@@ -630,6 +630,24 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
             CALL hurs_its90(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),             &
               rMATinputsA(:,:,:,:,1,1,1), rMATinputsA(:,:,:,:,1,1,2),rMATinputsA(:,:,:,:,1,1,3),&
               Rdiagnostic4D(:,:,1,:))
+
+          CASE ('Bolton')
+! Bolton equation (Bolton, 1980, Mont. Weather Rev.)
+
+            IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
+            ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),       &
+              DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),3), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsA'"
+       
+            DO iinput=1,3
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
+                DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
+            END DO
+
+            CALL hurs_Bolton(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),             &
+              rMATinputsA(:,:,:,:,1,1,1), rMATinputsA(:,:,:,:,1,1,2),rMATinputsA(:,:,:,:,1,1,3),&
+              Rdiagnostic4D(:,:,1,:))
           CASE DEFAULT
 	     messg="Nothing to do with '"//TRIM(diagcom%method)//"' method"
 	     CALL diag_fatal(messg)
@@ -2260,6 +2278,24 @@ SUBROUTINE com_diagnostics(dbg, ifiles, Ninfiles, Diags, Ndiags, deltaX, deltaY,
             END DO
 	  
             CALL tdps_its90(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),       &
+              rMATinputsA(:,:,:,1,1,1,1), rMATinputsA(:,:,:,1,1,1,2),                           &
+	      rMATinputsA(:,:,:,1,1,1,3), Rdiagnostic3D)
+
+          CASE ('Bolton')
+! Bolton equation (Bolton, 1980, Mont. Weather Rev.)
+            IF (ALLOCATED(rMATinputsA)) DEALLOCATE(rMATinputsA)
+              ALLOCATE(rMATinputsA(DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),     &
+                DimMatInputs(1,4), DimMatInputs(1,5), DimMatInputs(1,6),3), STAT=ierr)
+            IF (ierr /= 0) PRINT *,errmsg//'in section '//TRIM(section)//" allocating "//       &
+	      "'rMATinputsA'"
+       
+! Q2, PSFC, T2
+            DO iinput=1,3
+              CALL fill_inputs_real(dbg, ifiles, Ninfiles, foundvariables(iinput,:),            &
+	        DimMatInputs(1,:), rMATinputsA(:,:,:,:,:,:,iinput))
+            END DO
+	  
+            CALL tdps(dbg, DimMatInputs(1,1), DimMatInputs(1,2), DimMatInputs(1,3),             &
               rMATinputsA(:,:,:,1,1,1,1), rMATinputsA(:,:,:,1,1,1,2),                           &
 	      rMATinputsA(:,:,:,1,1,1,3), Rdiagnostic3D)
 

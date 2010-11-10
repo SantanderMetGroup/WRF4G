@@ -43,15 +43,14 @@ MODULE module_tdps
 
   tempd2=0.
   e=q2*(psfc/100.)/(epsilon_gamma+q2)
-  c=log10(e/es_base_tetens)
+  c=LOG10(e/es_base_tetens)
 !  WHERE (t2-tkelvin <= 0.) tempd2=(c*es_Btetens_ice)/(es_Atetens_ice-c)
 !  WHERE (t2-tkelvin > 0.) tempd2=(c*es_Btetens_vapor)/(es_Atetens_vapor-c)
   DO i=1,dx
     DO j=1,dy
       DO k=1,dt
         IF ((t2(i,j,k)-tkelvin) <= 0.) THEN
-!          tempd2(i,j,k)=(c(i,j,k)*es_Btetens_ice)/(es_Atetens_ice-c(i,j,k))
-          tempd2(i,j,k)=(c(i,j,k)*es_Btetens_vapor)/(es_Atetens_vapor-c(i,j,k))
+          tempd2(i,j,k)=(c(i,j,k)*es_Btetens_ice)/(es_Atetens_ice-c(i,j,k))
 	ELSE
           tempd2(i,j,k)=(c(i,j,k)*es_Btetens_vapor)/(es_Atetens_vapor-c(i,j,k))
 	END IF
@@ -63,15 +62,16 @@ MODULE module_tdps
   tempd2=tempd2+tkelvin
   
   IF (debg >= 100) THEN
-    PRINT *,'  dim/2 q2: ',q2(halfdim(dx),halfdim(dy),halfdim(dt))
-    PRINT *,'  dim/2 psfc: ',psfc(halfdim(dx),halfdim(dy),halfdim(dt))
-    PRINT *,'  dim/2 t2: ',t2(halfdim(dx),halfdim(dy),halfdim(dt))    
-    PRINT *,'  dim/2 e: ',e(halfdim(dx),halfdim(dy),halfdim(dt))
-    PRINT *,'  dim/2 c: ',c(halfdim(dx),halfdim(dy),halfdim(dt))
+    PRINT *,'  dim/2 values_____________'
+    PRINT *,'  q2: ',q2(halfdim(dx),halfdim(dy),halfdim(dt))
+    PRINT *,'  psfc: ',psfc(halfdim(dx),halfdim(dy),halfdim(dt))
+    PRINT *,'  t2: ',t2(halfdim(dx),halfdim(dy),halfdim(dt))	
+    PRINT *,'  e: ',e(halfdim(dx),halfdim(dy),halfdim(dt))
+    PRINT *,'  c: ',c(halfdim(dx),halfdim(dy),halfdim(dt))
   END IF
 
   IF (debg >= 100) THEN
-    PRINT *,'  162-132 values_____________'
+    PRINT *,'  162 132  1 values_____________'
     PRINT *,'  t2: ',t2(162,132,1) - tkelvin
     PRINT *,'  q2: ',q2(162,132,1)
     PRINT *,'  psfc: ',psfc(162,132,1)
@@ -205,20 +205,90 @@ MODULE module_tdps
   END DO
   
   IF (debg >= 100) THEN
-    PRINT *,'  dim/2 q2: ',q2(halfdim(dx),halfdim(dy),halfdim(dt))
-    PRINT *,'  dim/2 psfc: ',psfc(halfdim(dx),halfdim(dy),halfdim(dt))
-    PRINT *,'  dim/2 t2: ',t2(halfdim(dx),halfdim(dy),halfdim(dt))    
-    PRINT *,'  dim/2 lnes -1: ',lnes(halfdim(dx)-1,halfdim(dy),halfdim(dt))
-    PRINT *,'  dim/2 lnes: ',lnes(halfdim(dx),halfdim(dy),halfdim(dt))
-    PRINT *,'  dim/2 lnes +1: ',lnes(halfdim(dx)+1,halfdim(dy),halfdim(dt))
-    PRINT *,'  dim/2 tdps -1: ',tempd2(halfdim(dx)-1,halfdim(dy),halfdim(dt))
-    PRINT *,'  dim/2 tdps: ',tempd2(halfdim(dx),halfdim(dy),halfdim(dt))
-    PRINT *,'  dim/2 tdps +1: ',tempd2(halfdim(dx)+1,halfdim(dy),halfdim(dt))
+    PRINT *,'  dim/2 values________'
+    PRINT *,'  q2: ',q2(halfdim(dx),halfdim(dy),halfdim(dt))
+    PRINT *,'  psfc: ',psfc(halfdim(dx),halfdim(dy),halfdim(dt))
+    PRINT *,'  t2: ',t2(halfdim(dx),halfdim(dy),halfdim(dt))	
+    PRINT *,'  es: ',exp(lnes(halfdim(dx),halfdim(dy),halfdim(dt)))
+    PRINT *,'  tdps: ',tempd2(halfdim(dx),halfdim(dy),halfdim(dt))
+  END IF
+
+  IF (debg >= 100) THEN
+    PRINT *,'  162 132 1 values________'
+    PRINT *,'  q2: ',q2(162, 132, 1)
+    PRINT *,'  psfc: ',psfc(162, 132, 1)
+    PRINT *,'  t2: ',t2(162, 132, 1)	
+    PRINT *,'  es: ',exp(lnes(162, 132, 1))
+    PRINT *,'  tdps: ',tempd2(162, 132, 1)
   END IF
 
   IF (debg >= 75) PRINT *,'  tdps at the center dimx/2:', halfdim(dx),' dimy/2:',               &
     halfdim(dy),' dt/2:', halfdim(dt), ' =', tempd2(halfdim(dx),halfdim(dy),halfdim(dt))
 
   END SUBROUTINE tdps_its90
+  
+  SUBROUTINE tdps_Bolton(debg, dx, dy, dt, q2, psfc, t2, tempd2)
+!  Subroutine to compute td2 in K following Bolton
+
+  USE module_constants
+  USE module_gen_tools, ONLY : halfdim, diag_fatal 
+
+  IMPLICIT NONE
+  
+  INCLUDE 'netcdf.inc'
+!    567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
+  INTEGER, INTENT(IN)                                     :: dx, dy, dt
+  REAL, DIMENSION(dx,dy,dt), INTENT(IN)                   :: q2, psfc, t2
+  REAL, DIMENSION(dx,dy,dt), INTENT(OUT)                  :: tempd2
+  INTEGER, INTENT(IN)                                     :: debg
+
+! Local
+  INTEGER                                                 :: i,j,k,l, nozero
+  CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=250)                                      :: message
+  INTEGER                                                 :: halfdim
+  REAL, DIMENSION(dx, dy, dt)                             :: e
+  
+!!!!!!!!!!!!!! Variables
+! dx, dy, dt: dimensions of fields
+! q2: 2m mixing ratio [kg kg-1]
+! psfc: surface prssure (assumed the same at 2m) [Pa]
+! rh2: 2m relative humidity [1]
+! e: vapor pressure in air [Pa]
+
+  section="'tdps_Bolton'"
+  
+  IF (debg >= 75) PRINT *,'Section '//TRIM(section)//'... .. .'
+  IF (debg >= 100) PRINT *,'  Dimensions: ',dx,CHAR(44), dy,CHAR(44), dt
+
+  IF (debg >= 75)  PRINT *,'  Computing tdp2 following Bolton....'
+
+  tempd2=0.
+
+  e=q2*(psfc/1000.)/(Rd/Rv+q2)
+  tempd2=(116.9+237.3*LOG(e))/(16.78-LOG(e))
+  tempd2=tempd2+tkelvin
+
+  IF (debg >= 100) THEN
+    PRINT *,'  dim/2 values________'
+    PRINT *,'  q2: ',q2(halfdim(dx),halfdim(dy),halfdim(dt))
+    PRINT *,'  psfc: ',psfc(halfdim(dx),halfdim(dy),halfdim(dt))
+    PRINT *,'  t2: ',t2(halfdim(dx),halfdim(dy),halfdim(dt))	
+    PRINT *,'  e: ',e(halfdim(dx),halfdim(dy),halfdim(dt))
+    PRINT *,'  tempd2: ',tempd2(halfdim(dx),halfdim(dy),halfdim(dt))
+  END IF
+
+  IF (debg >= 100) THEN
+    PRINT *,'  Values at 162 132 1________'
+    PRINT *,'  q2: ',q2(162, 132, 1)
+    PRINT *,'  psfc: ',psfc(162, 132, 1)
+    PRINT *,'  t2: ',t2(162, 132, 1)	
+    PRINT *,'  e: ',e(162, 132, 1)
+    PRINT *,'  tempd2: ',tempd2(162, 132, 1)
+  END IF
+  IF (debg >= 75) PRINT *,'  rh2 at the center dimx/2:', halfdim(dx),' dimy/2:',               &
+    halfdim(dy),' dt/2:', halfdim(dt), ' =', tempd2(halfdim(dx),halfdim(dy),halfdim(dt))
+
+  END SUBROUTINE tdps_Bolton
 
 END MODULE module_tdps
