@@ -9,6 +9,20 @@ from datetime import datetime
 import sys, time, string, csv
 from wrfncxnj_cli import opt, args
 
+class Constants:
+  Rd = 287.04
+  cp = 7.*Rd/2.
+  epsilon_gamma = 0.62197
+  es_base_tetens = 6.1078
+  es_Atetens_vapor = 7.5
+  es_Btetens_vapor = 237.3
+  es_Atetens_ice = 9.5
+  es_Btetens_ice = 265.5
+  g = 9.81
+  p1000mb = 100000.
+  rcp = Rd/cp
+  tkelvin = 273.15
+
 def screenvar_at_2m(varobj, onc, wnfiles, wntimes):
   #
   # Works for any variable defined at 2m with no other transformation.
@@ -108,14 +122,14 @@ def compute_mslp(p, pb, ph, phb, t , qvapor):
   Strategy borrowed from from_wrf_to_grads.f90 code.
   """
   # Some required physical constants:
-  R=287.04
+  Rd=287.04
   g=9.81
   gamma=0.0065
   # Specific constants for assumptions made in this routine:
   TC=273.16+17.5
   pconst = 10000
-  cp           = 7.*R/2.
-  rcp          = R/cp
+  cp           = 7.*Rd/2.
+  rcp          = Rd/cp
   p1000mb      = 100000.
   # Transpose and get full variables out of perturbations and potential T
   p = transpose(p + pb)
@@ -151,13 +165,13 @@ def compute_mslp(p, pb, ph, phb, t , qvapor):
   t_at_pconst = thi-(thi-tlo)*log(p_at_pconst/phi)*log(plo/phi)
   z_at_pconst = zhi-(zhi-zlo)*log(p_at_pconst/phi)*log(plo/phi)
 
-  t_surf = t_at_pconst*(p[...,0,:]/p_at_pconst)**(gamma*R/g)
+  t_surf = t_at_pconst*(p[...,0,:]/p_at_pconst)**(gamma*Rd/g)
   t_sea_level = t_at_pconst+gamma*z_at_pconst
   # If we follow a traditional computation, there is a correction to the sea level
   # temperature if both the surface and sea level temnperatures are *too* hot.
   t_sea_level = where(t_sea_level>TC and t_surf <= TC, TC, TC - 0.005*(t_surf-TC)**2)
   z_half_lowest = z[:,:,0,:]
-  sea_level_pressure = p[:,:,0,:] * exp((2.*g*z_half_lowest)/ (R*(t_sea_level+t_surf)))
+  sea_level_pressure = p[:,:,0,:] * exp((2.*g*z_half_lowest)/ (Rd*(t_sea_level+t_surf)))
   return transpose(sea_level_pressure)
 
 def charr2str(carr):

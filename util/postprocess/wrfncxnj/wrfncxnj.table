@@ -85,7 +85,7 @@ MRFSO        mrfso     "Soil frozen water content"                        "soil_
 MRSO         mrso      "Total soil moisture content"                      "soil_moisture_content"                                  "kg m-2"   
 PRES         pres      "Air pressure"                                     "air_pressure"                                           "Pa"      
 PRW          prw       "Column water vapour content"                      "atmosphere_water_vapor_content"                         "kg m-2"     
-RH2          hurs      "Relative humidty at 2M"                           "relative_humidity"                                       1         screenvar_at_2m
+RH2          hurs      "Relative humidty at 2M"                           "relative_humidity"                                       1  
 RAINF        pr        "Precipitation flux"                               "precipitation_flux"                                     "Kg m-2 s-1"
 RAIN         pr        "Accumulated precipitation"                        "precipitation_amount"                                   "Kg m-2"
 #TODO: RAINM1H      prhmax    "Max. hourly precipitation rate"                   "precipitation_flux"                              "kg m-2 s-1"
@@ -97,7 +97,7 @@ RST          rst       "Net downward flux of SW radiation at top of atmosphere" 
 SNOW          prsn      "Snowfall"                                         "snowfall_flux"                                          "kg m-2 s-1" 
 SMOIS1       mrsos1    "Moisture of soil layer 1"                         "moisture_content_of_soil_layer"                         "kg m-2"   
 TEMP         ta        "Air temperature"                                  "air_temperature"                                        "K"       
-TDPS         tdps      "Dew point temperature at 2M"                      "dew_point_temperature"                                  "K"        screenvar_at_2m
+TDPS         tdps      "Dew point temperature at 2M"                      "dew_point_temperature"                                  "K"  
 U10ER        uas       "Eastward surface wind"                            "eastward_wind"                                          "m s-1"    rotate_uas 
 U10MAXER     uasmax    "Max. eastward surface wind"                       "eastward_wind"                                          "m s-1"    rotate_uas 
 U10MEANER    uasmean   "Mean eastward surface wind"                       "eastward_wind"                                          "m s-1"    rotate_uas 
