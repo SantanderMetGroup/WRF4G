@@ -24,6 +24,7 @@ MODULE module_gen_tools
 ! give1D_from6D: Subroutine to give a 1D vector from any dimension of a 6D matrix
 ! halfdim: Function to give the half value of a dimension
 ! Int_String: Function to convert an integer to a String
+! Int_String0: Function to convert an integer to a String with zeros
 ! only_number: Function to give a real number from any string with contiguous numbers (point 
 !     included) 
 ! print_6Dhalfdim: Subroutine to print central value of a real 6D matrix
@@ -1049,6 +1050,40 @@ CHARACTER(LEN=8) FUNCTION Int_String(debg, integer)
   IF (debg >= 150) PRINT *,'From integer: ',integer," string '"//TRIM(Int_String)//"' "
 
 END FUNCTION Int_String
+
+CHARACTER(LEN=8) FUNCTION Int_String0(debg, integer)
+! Function to convert an integer to a String with zeros
+
+  IMPLICIT NONE
+  
+  INTEGER, INTENT(IN)                                     :: debg, integer
+  
+! Local
+  INTEGER                                                 :: ipot
+  REAL                                                    :: pot, int_portion
+  CHARACTER(LEN=50)                                       :: section
+  CHARACTER(LEN=32)                                       :: string
+  
+  section="'Int_String'"
+  IF (debg >= 150) PRINT *,'Section '//section//'... .. .'
+
+  Int_String0=''  
+  string=''
+  int_portion=integer*1.
+  DO ipot=1, 8
+    pot=10.**(8.-ipot*1.)
+    IF (pot <= integer) THEN
+      string(ipot:ipot)=CHAR(INT(int_portion/pot)+48)
+      int_portion=int_portion-INT(int_portion/pot)*1.*pot
+    ELSE
+      string(ipot:ipot)='0'
+    END IF
+  END DO
+  Int_String0=string
+  
+  IF (debg >= 150) PRINT *,'From integer: ',integer," string '"//Int_String0//"' "
+
+END FUNCTION Int_String0
 
 REAL FUNCTION only_number(debg, string0in)
 ! Function to give a real number from any string with contiguous numbers (point included)
