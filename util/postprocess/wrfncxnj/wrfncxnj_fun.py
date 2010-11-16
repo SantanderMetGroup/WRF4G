@@ -92,7 +92,7 @@ def compute_TDPS(varobj, onc, wnfiles, wntimes):
     d_tdi0*lnes**0+ d_tdi1*lnes**1+ d_tdi2*lnes**2+ d_tdi3*lnes**3,
     d_tdv0*lnes**0+ d_tdv1*lnes**1+ d_tdv2*lnes**2+ d_tdv3*lnes**3)
  
-  copyval = td2A/td2B+Constants.tkelvin 
+  copyval = td2A/td2B
   copyval.shape=psfc.shape[:1]+(1,)+psfc.shape[1:]
   oncvar = get_oncvar(varobj, psfc, onc, screenvar_at_2m=True)
   return oncvar, copyval
