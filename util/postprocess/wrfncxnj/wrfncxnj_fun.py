@@ -45,14 +45,14 @@ def compute_TDPS(varobj, onc, wnfiles, wntimes):
   t2 =  wnfiles.current.variables["T2"][:]
   q2 =  wnfiles.current.variables["Q2"][:]
   psfc =  wnfiles.current.variables["PSFC"]
-  es = 10.* Constants.es_base_bolton * nc.exp(Constants.es_Abolton*(t2-Constants.tkelvin)
+  es = 10.* Constants.es_base_bolton * np.exp(Constants.es_Abolton*(t2-Constants.tkelvin)
     /(t2-Constants.tkelvin+Constants.es_Bbolton))
   rh = 0.01*psfc[:]/es*(q2/(Constants.RdRv+q2))
-  rh = nc.max(nc.min(rh,1.),0.)
+  rh = np.max(np.min(rh,1.),0.)
 
-  e = rh*Constants.es_base_bolton*nc.exp(Constants.es_Abolton*(t2-Constants.tkelvin)
+  e = rh*Constants.es_base_bolton*np.exp(Constants.es_Abolton*(t2-Constants.tkelvin)
     /(t2-Constants.tkelvin+Constants.es_Bbolton))
-  copyval = (116.9+237.3*nc.log(e))/(16.78-nc.log(e))+Constants.tkelvin
+  copyval = (116.9+237.3*np.log(e))/(16.78-np.log(e))+Constants.tkelvin
   copyval.shape=psfc.shape[:1]+(1,)+psfc.shape[1:]
   oncvar = get_oncvar(varobj, psfc, onc, screenvar_at_2m=True)
   return oncvar, copyval
