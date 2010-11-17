@@ -33,6 +33,31 @@ def compute_RH2(varobj, onc, wnfiles, wntimes):
   return oncvar, copyval
 
 def compute_TDPS(varobj, onc, wnfiles, wntimes):
+  """Computation of relative humidity at 2 m 
+  t2: 2m temperature [K]
+  q2: 2m mixing ratio [kg kg-1]
+  psfc: surface prssure (assumed the same at 2m) [Pa]
+  e: vapor pressure in air [hPa]
+  es: saturation vapor pressure [hPa]
+
+  Some required physical constants: tkelvin, es_base_bolton, es_[A/B]bolton, RdRv
+  """
+  t2 =  wnfiles.current.variables["T2"][:]
+  q2 =  wnfiles.current.variables["Q2"][:]
+  psfc =  wnfiles.current.variables["PSFC"]
+  es = 10.* Constants.es_base_bolton * nc.exp(Constants.es_Abolton*(t2-Constants.tkelvin)
+    /(t2-Constants.tkelvin+Constants.es_Bbolton))
+  rh = 0.01*psfc[:]/es*(q2/(Constants.RdRv+q2))
+  rh = nc.max(nc.min(rh,1.),0.)
+
+  e = rh*Constants.es_base_bolton*nc.exp(Constants.es_Abolton*(t2-Constants.tkelvin)
+    /(t2-Constants.tkelvin+Constants.es_Bbolton))
+  copyval = (116.9+237.3*nc.log(e))/(16.78-nc.log(e))+Constants.tkelvin
+  copyval.shape=psfc.shape[:1]+(1,)+psfc.shape[1:]
+  oncvar = get_oncvar(varobj, psfc, onc, screenvar_at_2m=True)
+  return oncvar, copyval
+
+def compute_TDPS_its90(varobj, onc, wnfiles, wntimes):
   """Computation of dew point temperature at 2 m
   q2: 2m mixing ratio [kg kg-1]
   psfc: surface prssure (assumed the same at 2m) [Pa]

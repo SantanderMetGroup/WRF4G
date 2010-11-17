@@ -11,8 +11,13 @@ from wrfncxnj_cli import opt, args
 
 class Constants:
   Rd = 287.04
+  Rv = 461.5
+  RdRv = Rd / Rv
   cp = 7.*Rd/2.
   epsilon_gamma = 0.62197
+  es_base_bolton = 0.6112
+  es_Abolton = 17.67
+  es_Bbolton = 243.5
   es_base_tetens = 6.1078
   es_Atetens_vapor = 7.5
   es_Btetens_vapor = 237.3
