@@ -48,7 +48,8 @@ def compute_TDPS(varobj, onc, wnfiles, wntimes):
   es = 10.* Constants.es_base_bolton * np.exp(Constants.es_Abolton*(t2-Constants.tkelvin)
     /(t2-Constants.tkelvin+Constants.es_Bbolton))
   rh = 0.01*psfc[:]/es*(q2/(Constants.RdRv+q2))
-  rh = np.max(np.min(rh,1.),0.)
+  rh = np.where(rh > 1., 1., rh)
+  rh = np.where(rh < 0., 0., rh)
 
   e = rh*Constants.es_base_bolton*np.exp(Constants.es_Abolton*(t2-Constants.tkelvin)
     /(t2-Constants.tkelvin+Constants.es_Bbolton))
