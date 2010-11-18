@@ -39,11 +39,45 @@ def screenvar_at_2m(varobj, onc, wnfiles, wntimes):
 
 def screenvar_at_10m(varobj, onc, wnfiles, wntimes):
   #
-  # Works for any variable defined at 2m with no other transformation.
+  # Works for any variable defined at 10m with no other transformation.
   #
   incvar = wnfiles.current.variables[varobj.varname]
   copyval = np.reshape(incvar[:],incvar.shape[:1]+(1,)+incvar.shape[1:])
   oncvar = get_oncvar(varobj, incvar, onc, screenvar_at_10m=True)
+  return oncvar, copyval
+
+def mask_land(varobj, onc, wnfiles, wntimes):
+  #
+  # Sets land points to missing.
+  #
+  incvar = wnfiles.current.variables[varobj.varname]
+  if wnfiles.current.variables.has_key("LANDMASK"):
+    landmask = wnfiles.current.variables["LANDMASK"][:]
+  else:
+    if not wnfiles.geo:
+      print "I need the geo_em file to read the landmask!"
+    else:
+      landmask = wnfiles.geo.variables["LANDMASK"][:]
+  landmask = np.resize(landmask, np.shape(incvar))[:]
+  copyval = np.where( landmask == 1, -9.e+33, incvar[:])[:]
+  oncvar = get_oncvar(varobj, incvar, onc)
+  return oncvar, copyval 
+
+def mask_sea(varobj, onc, wnfiles, wntimes):
+  #
+  # Sets sea points to missing.
+  #
+  incvar = wnfiles.current.variables[varobj.varname]
+  if wnfiles.current.variables.has_key("LANDMASK"):
+    landmask = wnfiles.current.variables["LANDMASK"][:]
+  else:
+    if not wnfiles.geo:
+      print "I need the geo_em file to read the landmask!"
+    else:
+      landmask = wnfiles.geo.variables["LANDMASK"][:]
+  landmask = np.resize(landmask, np.shape(incvar))[:]
+  copyval = np.where( landmask == 0, -9.e+33, incvar[:])[:]
+  oncvar = get_oncvar(varobj, incvar, onc)
   return oncvar, copyval
 
 def deaccumulate_flux(varobj, onc, wnfiles, wntimes):
@@ -81,9 +115,31 @@ def fake_extreme(varobj, onc, wnfiles, wntimes):
   # Extracts a variable, changes it's name and adds an attribute so extremes must be computed LATER
   # the CDO. It's called "fake extreme" because it is made to replace a extreme that's not computed by CLWRF.
   #
-  incvar = wnfiles.current.variables[varobj.varname[:-4]] #[:-4]removes "MAX" or "MIN"
-  copyval = incvar
+  incvar = wnfiles.current.variables[varobj.varname[:-4]] #[:-4]removes "FMAX" or "FMIN"
+  copyval = incvar[:]
   oncvar = get_oncvar(varobj, incvar, onc)
+  oncvar.warning = "This is not a real extreme, extremes still need to be computed." 
+  return oncvar, copyval
+
+def fake_extreme_screenvar_at_2m(varobj, onc, wnfiles, wntimes):
+  #
+  # Extracts a variable, changes it's name and adds an attribute so extremes must be computed LATER
+  # the CDO. It's called "fake extreme" because it is made to replace a extreme that's not computed by CLWRF.
+  #
+  incvar = wnfiles.current.variables[varobj.varname[:-4]] #[:-4]removes "MAX" or "MIN"
+  copyval = np.reshape(incvar[:],incvar.shape[:1]+(1,)+incvar.shape[1:])
+  oncvar = get_oncvar(varobj, incvar, onc, screenvar_at_2m=True)
+  oncvar.warning = "This is not a real extreme, extremes still need to be computed." 
+  return oncvar, copyval
+
+def fake_extreme_screenvar_at_10m(varobj, onc, wnfiles, wntimes):
+  #
+  # Extracts a variable, changes it's name and adds an attribute so extremes must be computed LATER
+  # the CDO. It's called "fake extreme" because it is made to replace a extreme that's not computed by CLWRF.
+  #
+  incvar = wnfiles.current.variables[varobj.varname[:-4]] #[:-4]removes "MAX" or "MIN"
+  copyval = np.reshape(incvar[:],incvar.shape[:1]+(1,)+incvar.shape[1:])
+  oncvar = get_oncvar(varobj, incvar, onc, screenvar_at_10m=True)
   oncvar.warning = "This is not a real extreme, extremes still need to be computed." 
   return oncvar, copyval
 
