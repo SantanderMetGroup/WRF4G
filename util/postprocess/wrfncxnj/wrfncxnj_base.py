@@ -28,6 +28,9 @@ class Constants:
   rcp = Rd/cp
   tkelvin = 273.15
 
+def do_nothing(varobj, onc, wnfiles, wntimes):
+  pass
+
 def screenvar_at_2m(varobj, onc, wnfiles, wntimes):
   #
   # Works for any variable defined at 2m with no other transformation.
