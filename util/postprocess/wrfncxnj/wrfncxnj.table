@@ -7,21 +7,21 @@ LH           hfls      "Upward latent heat flux at surface"               "surfa
 LWUPT        rlnt      "Net upward longwave flux at TOA"                  "toa_net_upward_longwave_flux"                           "W m-2" 
 OLR          rlut      "Outgoing LW radiation at top of atmosphere"       "toa_outgoing_longwave_flux"                             "W m-2" 
 PBLH         zmla      "Atmosphere_boundary_layer_thickness"              "atmosphere_boundary_layer_thickness"                    "m"     
-POTEVP       potevp    "Acummulated potential evaporation"                "water_potential_evaporation_amount"                     "W m-2"   
+POTEVP       potevp    "Acummulated potential evaporation"                "water_potential_evaporation_amount"                     "W m-2"  
 PSFC         ps        "surface pressure"                                 "surface_air_pressure"                                   "Pa"      
 Q2           huss      "Surface specific humidity"                        "specific_humidity"                                      1         screenvar_at_2m
 QCLOUD       clwmr     "Cloud water content"                              "cloud_liquid_water_mixing_ratio"                        1         
 QFX          hufs      "Upward moisture flux at the surface"              "surface_upward_water_vapor_flux_in_air"                 "kg m-2 s-1" 
 QVAPOR       hus       "Specific Humidity"                                "specific_humidity"                                      1         
-RAINNC       prls      "Precipitation large scale"                        "large_scale_precipitation_amount"                       "Kg m-2" deacumulate 
-RAINC        prc       "Precipitation convective"                         "convective_precipitation_amount"                        "Kg m-2" deacumulate 
+RAINNC       prls      "Precipitation large scale"                        "large_scale_precipitation_amount"                       "Kg m-2" deaccumulate 
+RAINC        prc       "Precipitation convective"                         "convective_precipitation_amount"                        "Kg m-2" deaccumulate 
 REGIME       regime    "Stability regime (1=Night/Stable, 2=Mech. Turb., 3=Forced Conv, 4=Free Conv)"  "stability_regime"                       1        
-SFCEVP       evspsbl   "Evaporation"                                      "water_evaporation_flux"                                 "kg m-2 s-1" 
+SFCEVP       evspsbl   "Evaporation"                                      "water_evaporation_flux"                                 "kg m-2 s-1"   deaccumulate_flux
 SFROFF       mrros     "Surface runoff"                                   "surface_runoff_flux"                                    "kg m-2 s-1" 
 SMOIS        mrsos     "Moisture of soil layer"                           "moisture_content_of_soil_layer"                         "kg m-2"   
 SMSTOT       mrso      "Total soil moisture content"                      "soil_moisture_content"                                  "kg m-2"  SMSTOT*1000. 
 SNOWH        snd       "Snow depth"                                       "surface_snow_thickness"                                 "m"
-SST          sst       "sea surface temperature"                          "sea_surface_temperature"                                "K"
+SST          sst       "sea surface temperature"                          "sea_surface_temperature"                                "K"       mask_land
 SWDOWN       rsds      "Downward SW surface radiation"                    "surface_downwelling_shortwave_flux_in_air"              "W m-2" 
 SWUPT        rsnt      "Net upward shortwave flux at TOA"                 "toa_net_upward_shortwave_flux"                          "W m-2" 
 T2           tas       "Surface air temperature"                          "air_temperature"                                        "K"       screenvar_at_2m
@@ -68,15 +68,15 @@ WINDGUSTMAX  wgsmax    "Max. wind gust"                                   "wind_
 #
 # Derived variables
 #
-ACLHF        ahfls     "Latent heat flux at surface"                      "surface_upward_latent_heat_flux"                        "W m-2"  deacumulate_flux
-ACHFX        ahfss     "Heat flux at the surface"                         "surface_upward_sensible_heat_flux"                      "W m-2"  deacumulate_flux
+ACLHF        ahfls     "Latent heat flux at surface"                      "surface_upward_latent_heat_flux"                        "W m-2"  deaccumulate_flux
+ACHFX        ahfss     "Heat flux at the surface"                         "surface_upward_sensible_heat_flux"                      "W m-2"  deaccumulate_flux
 ACRLS        rls       "Net LW surface radiation "                        "surface_net_downward_longwave_flux"                     "W m-2"  
-ACLWUPB      rlus      "Upwelling surface LW radiation"                   "surface_upwelling_longwave_flux_in_air"                 "W m-2"  deacumulate_flux
-ACSNOM       snm       "Snow melt"                                        "surface_snow_melt_flux"                                 "kg m-2 s-1" deacumulate_flux
-ACSNOW       snw       "Accumulated snow"                                 "surface_snow_amount"                                    "kg m-2" deacumulate
-ACSWDNT      rsdt      "incoming/downward SW radiation at top of atmosphere" "toa_incoming_shortwave_flux"                         "W m-2"  deacumulate_flux
-ACSWUPB      rsus      "Upwelling surface SW radiation"                   "surface_upwelling_shortwave_flux_in_air"                "W m-2"  deacumulate_flux
-ACSWUPT      rsut      "Outgoing SW radiation at top of atmosphere"       "toa_outgoing_shortwave_flux"                            "W m-2"  deacumulate_flux
+ACLWUPB      rlus      "Upwelling surface LW radiation"                   "surface_upwelling_longwave_flux_in_air"                 "W m-2"  deaccumulate_flux
+ACSNOM       snm       "Snow melt"                                        "surface_snow_melt_flux"                                 "kg m-2 s-1" deaccumulate_flux
+ACSNOW       snw       "Accumulated snow"                                 "surface_snow_amount"                                    "kg m-2" deaccumulate
+ACSWDNT      rsdt      "incoming/downward SW radiation at top of atmosphere" "toa_incoming_shortwave_flux"                         "W m-2"  deaccumulate_flux
+ACSWUPB      rsus      "Upwelling surface SW radiation"                   "surface_upwelling_shortwave_flux_in_air"                "W m-2"  deaccumulate_flux
+ACSWUPT      rsut      "Outgoing SW radiation at top of atmosphere"       "toa_outgoing_shortwave_flux"                            "W m-2"  deaccumulate_flux
 CLD          clwi      "Total cloud water and ice"                        "cloud_water_and_ice_content"                            "kg m-2"  
 CLISCCP      clisccp   "clouds (1: p<440 hPa, 2: 660<p<440, 3: p>660)     "cloud"                                                   1  
 CLWVI        clwvi     "Column condensed water content"                   "atmosphere_cloud_condensed_water_content"               "kg m-2"
@@ -108,5 +108,12 @@ V10MEANER    vasmean   "Mean northward surface wind"                      "north
 VER          va        "Northward wind"                                   "northward_wind"                                         "m s-1"   
 WIND         wspd      "wind speed"                                       "wind_speed"                                             "m s-1"  
 # FAKEs
+RH2FMAX      hursmax   "Max. surface relative humidity"                   "relative_humidity"                                      1         do_nothing
+RH2FMIN      hursmin   "Min. surface relative humidity"                   "relative_humidity"                                      1         do_nothing 
+RAINFMAX1H   prhmax    "Max. hourly precipitation rate"                   "precipitation_flux"                                     "kg m-2 s-1"   fake_extreme
 SKINTEMPFMAX tsmax     "Max. surface temperature"                         "surface_temperature"                                    "K"       fake_extreme
 SKINTEMPFMIN tsmin     "Min. surface temperature"                         "surface_temperature"                                    "K"       fake_extreme
+SPDUV10FMAX  wssmax    "Max. surface wind speed"                          "air_velocity"                                           "m s-1"   do_nothing
+FSUNSHINE    sund      "Sunshine duration"                                "sunshine_duration"                                      "minutes"
+T2FMAX       tasmax    "Max. surface air temperature"                     "air_temperature"                                        "K"       do_nothing
+T2FMIN       tasmin    "Min. surface air temperature"                     "air_temperature"                                        "K"       do_nothing
