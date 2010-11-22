@@ -28,9 +28,6 @@ class Constants:
   rcp = Rd/cp
   tkelvin = 273.15
 
-def do_nothing(varobj, onc, wnfiles, wntimes):
-  pass
-
 def screenvar_at_2m(varobj, onc, wnfiles, wntimes):
   #
   # Works for any variable defined at 2m with no other transformation.
@@ -61,8 +58,8 @@ def mask_sea(varobj, onc, wnfiles, wntimes):
       print "I need the geo_em file to read the landmask!"
     else:
       landmask = wnfiles.geo.variables["LANDMASK"][:]
-  landmask = np.resize(landmask, np.shape(incvar))[:]
-  copyval = np.where( landmask == 1, -9.e+33, incvar[:])[:]
+  landmask = np.resize(landmask, incvar.shape)
+  copyval = np.where( landmask == 1, -9.e+33, incvar[:])
   oncvar = get_oncvar(varobj, incvar, onc)
   oncvar.missing_value = np.array(-9.e+33).astype(oncvar.typecode())
   return oncvar, copyval 
@@ -79,8 +76,8 @@ def mask_land(varobj, onc, wnfiles, wntimes):
       print "I need the geo_em file to read the landmask!"
     else:
       landmask = wnfiles.geo.variables["LANDMASK"][:]
-  landmask = np.resize(landmask, np.shape(incvar))[:]
-  copyval = np.where( landmask == 0, -9.e+33, incvar[:])[:]
+  landmask = np.resize(landmask, incvar.shape)
+  copyval = np.where( landmask == 0, -9.e+33, incvar[:])
   oncvar = get_oncvar(varobj, incvar, onc)
   oncvar.missing_value = np.array(-9.e+33).astype(oncvar.typecode())
   return oncvar, copyval
@@ -578,6 +575,8 @@ def stdvars(vars, vtable):
   rval = {}
   for line in csv.reader(open(vtable, "r"), delimiter=" ", skipinitialspace=True):
     if line[0][0] == "#":
+      continue
+    if len(line) > 5 and line[5] == "do_nothing":
       continue
     varwrf = line[0]
     if varwrf in vars:
