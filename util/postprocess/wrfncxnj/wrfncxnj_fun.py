@@ -5,6 +5,23 @@ def compute_temperature(p, t):
   # Some required physical constants:
   return (t+300.)*(p/Constants.p1000mb)**Constants.rcp
 
+def compute_CLTFR(varobj, onc, wnfiles, wntimes):
+  """Computation of total cloud fraction
+  cldfra: partial cloud fraction [1]
+
+  Following Sundqvist, 1989, Mont. Weather Rev.
+  """
+  cldfra =  wnfiles.current.variables["CLDFRA"]
+  dimz = cldfra[1,:,1,1]
+  cldfrap = cldfra[:,:,0:dimz-1,:]
+  cldfran = cldfra[:,:,1:dimz,:]
+  cldfrmax = np.maximum(cldfrap,cldfran)
+  cldframax = 1. - cldframax
+  cldfradiv = cldframax/(1.-cldfrap)
+  copyval= np.multiply.reduce(cldfradiv, 2)
+  oncvar = get_oncvar(varobj, cldfra, onc)
+  return oncvar, copyval
+
 def compute_RH2(varobj, onc, wnfiles, wntimes):
   """Computation of relative humidity at 2 m 
   t2: 2m temperature [K]
