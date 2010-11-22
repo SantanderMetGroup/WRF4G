@@ -576,7 +576,8 @@ rcode = nf_enddef(mcid)
          allocate (data2(iweg-1, isng-1, ibtg-1, times_in_file ))
          data1 = 10.*0.6112*exp(17.67*(tk-273.16)/(TK-29.65))
          data2 = 0.622*data1/(0.01 * pres_field -  (1.-0.622)*data1)
-         rh    = 100.*AMAX1(AMIN1(qv/data2,1.0),0.0)
+         rh = 100.*qv/data2
+!         rh    = 100.*AMAX1(AMIN1(qv/data2,1.0),0.0)
          deallocate (data1)
          deallocate (data2)
 
@@ -1333,7 +1334,7 @@ END SUBROUTINE extract_from_geogrid
   INTEGER                                                 :: rcode, idcldfra
   CHARACTER(LEN=50)                                       :: section
   CHARACTER(LEN=250)                                      :: message
-  REAL, DIMENSION(dx,dy,dz,dt)                            :: cldfra
+  REAL, DIMENSION(dx,dy,dz,dt)                            :: cldfra, cldfram1, cldmax
   REAL, DIMENSION(dx,dy,dt)                               :: totcfr
   INTEGER                                                 :: halfdim
   
@@ -1355,28 +1356,37 @@ END SUBROUTINE extract_from_geogrid
   ijk=0
 
   IF (debg)  PRINT *,'Computing total cloud fraction....'
-  DO i=1,dx
-    DO j=1,dy
-      DO it=1,dt
-        IF (ALL(cldfra(i,j,:,it) /= 1.)) THEN
-          vertical_levels: DO k=1, dz-1
-            totcfr(i,j,it)=totcfr(i,j,it)*((1-MAX(cldfra(i,j,k,it),cldfra(i,j,k+1,it)))/        &
-              (1.-cldfra(i,j,k,it)))
-          END DO vertical_levels
-	ELSE
-	  totcfr(i,j,it)=0.
-	END IF
-      END DO
-    END DO
-  END DO
+  cldfram1(:,:,2:dz,:)=cldfra(:,:,1:dz-1,:)
+  cldfram1(:,:,1,:)=0.
+  
+  cldmax=MAX(cldfram1,cldfra)
+  
+  vertical_levels: DO k=1, dz 
+    totcfr=totcfr*((1.-cldmax(:,:,k,:))/(1.-cldfram1(:,:,k,:)))
+  END DO vertical_levels
+  
+!  DO i=1,dx
+!    DO j=1,dy
+!      DO it=1,dt
+!        IF (ALL(cldfra(i,j,:,it) /= 1.)) THEN
+!          vertical_levels: DO k=1, dz-1
+!            totcfr(i,j,it)=totcfr(i,j,it)*((1.-MAX(cldfra(i,j,k,it),cldfra(i,j,k+1,it)))/        &
+!              (1.-cldfra(i,j,k,it)))
+!          END DO vertical_levels
+!	ELSE
+!	  totcfr(i,j,it)=0.
+!	END IF
+!      END DO
+!    END DO
+!  END DO
 
   totcfr=1.-totcfr
-  WHERE (totcfr > 1.) totcfr=1.
+!  WHERE (totcfr > 1.) totcfr=1.
 
   IF (debg) THEN
     DO k=1,dz
       PRINT *,'dim/2 cloud fraction values at ',k, 'level: ', cldfra(halfdim(dx), halfdim(dy),  &
-        k, halfdim(dt))
+        k, halfdim(dt)),' cldframax: ',cldmax(halfdim(dx), halfdim(dy),k, halfdim(dt))
     END DO
   END IF
 
