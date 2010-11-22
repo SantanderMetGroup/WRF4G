@@ -21,7 +21,7 @@ SFROFF       mrros     "Surface runoff"                                   "surfa
 SMOIS        mrsos     "Moisture of soil layer"                           "moisture_content_of_soil_layer"                         "kg m-2"   
 SMSTOT       mrso      "Total soil moisture content"                      "soil_moisture_content"                                  "kg m-2"  SMSTOT*1000. 
 SNOWH        snd       "Snow depth"                                       "surface_snow_thickness"                                 "m"
-SST          sst       "sea surface temperature"                          "sea_surface_temperature"                                "K"       mask_land
+SST          sst       "sea surface temperature"                          "sea_surface_temperature"                                "K"       mask_sea
 SWDOWN       rsds      "Downward SW surface radiation"                    "surface_downwelling_shortwave_flux_in_air"              "W m-2" 
 SWUPT        rsnt      "Net upward shortwave flux at TOA"                 "toa_net_upward_shortwave_flux"                          "W m-2" 
 T2           tas       "Surface air temperature"                          "air_temperature"                                        "K"       screenvar_at_2m
@@ -79,6 +79,7 @@ ACSWUPB      rsus      "Upwelling surface SW radiation"                   "surfa
 ACSWUPT      rsut      "Outgoing SW radiation at top of atmosphere"       "toa_outgoing_shortwave_flux"                            "W m-2"  deaccumulate_flux
 CLD          clwi      "Total cloud water and ice"                        "cloud_water_and_ice_content"                            "kg m-2"  
 CLISCCP      clisccp   "clouds (1: p<440 hPa, 2: 660<p<440, 3: p>660)     "cloud"                                                   1  
+CLTFR        clt       "Total cloud area(fraction)"                       "cloud_area_fraction"                                    1        
 CLWVI        clwvi     "Column condensed water content"                   "atmosphere_cloud_condensed_water_content"               "kg m-2"
 GEOP         geop      "Geopotential"                                     "geopotential"                                           "m 2 s-2"  
 MRFSO        mrfso     "Soil frozen water content"                        "soil_frozen_water_content"                              "kg m-2"

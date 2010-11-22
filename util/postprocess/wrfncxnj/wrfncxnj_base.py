@@ -49,7 +49,7 @@ def screenvar_at_10m(varobj, onc, wnfiles, wntimes):
   oncvar = get_oncvar(varobj, incvar, onc, screenvar_at_10m=True)
   return oncvar, copyval
 
-def mask_land(varobj, onc, wnfiles, wntimes):
+def mask_sea(varobj, onc, wnfiles, wntimes):
   #
   # Sets land points to missing.
   #
@@ -64,9 +64,10 @@ def mask_land(varobj, onc, wnfiles, wntimes):
   landmask = np.resize(landmask, np.shape(incvar))[:]
   copyval = np.where( landmask == 1, -9.e+33, incvar[:])[:]
   oncvar = get_oncvar(varobj, incvar, onc)
+  oncvar.missing_value = np.array(-9.e+33).as_type(oncvar.typecode())
   return oncvar, copyval 
 
-def mask_sea(varobj, onc, wnfiles, wntimes):
+def mask_land(varobj, onc, wnfiles, wntimes):
   #
   # Sets sea points to missing.
   #
@@ -81,6 +82,7 @@ def mask_sea(varobj, onc, wnfiles, wntimes):
   landmask = np.resize(landmask, np.shape(incvar))[:]
   copyval = np.where( landmask == 0, -9.e+33, incvar[:])[:]
   oncvar = get_oncvar(varobj, incvar, onc)
+  oncvar.missing_value = np.array(-9.e+33).as_type(oncvar.typecode())
   return oncvar, copyval
 
 def deaccumulate_flux(varobj, onc, wnfiles, wntimes):

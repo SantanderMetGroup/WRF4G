@@ -6,20 +6,27 @@ def compute_temperature(p, t):
   return (t+300.)*(p/Constants.p1000mb)**Constants.rcp
 
 def compute_CLTFR(varobj, onc, wnfiles, wntimes):
-  """Computation of total cloud fraction
+  """Computation of total cloud fraction in case CLT  (from p_interp) is not available
   cldfra: partial cloud fraction [1]
 
   Following Sundqvist, 1989, Mont. Weather Rev.
+  NOTE: This computation is not really comparable to CLT, since is
+  computed from pressure levels instead of the native sigma levels
   """
-  cldfra =  wnfiles.current.variables["CLDFRA"]
-  dimz = cldfra[1,:,1,1]
-  cldfrap = cldfra[:,:,0:dimz-1,:]
-  cldfran = cldfra[:,:,1:dimz,:]
-  cldfrmax = np.maximum(cldfrap,cldfran)
-  cldframax = 1. - cldframax
-  cldfradiv = cldframax/(1.-cldfrap)
-  copyval= np.multiply.reduce(cldfradiv, 2)
-  oncvar = get_oncvar(varobj, cldfra, onc)
+  if wnfiles.current.variables.has_key("CLT"): # The file was correctly processed by p_interp
+    var = wnfiles.current.variables["CLT"]
+    copyval = var[:]
+    oncvar = get_oncvar(varobj, var, onc)
+  else:
+    # We need to compute it using Sundqvist (1989) MWR, eq 5.1
+    print "Computing total cloud cover in Python!"
+    cldfra =  wnfiles.current.variables["CLDFRA"]
+    bj = cldfra[:]
+    ceros = np.zeros(cldfra.shape[:1]+(1,)+cldfra.shape[2:],cldfra.typecode())
+    bjm1 = np.concatenate([ceros, cldfra[:,:-1,:,:]], axis=1)
+    bjmax = np.maximum(bjm1,bj)
+    copyval = 1. - np.multiply.reduce((1-bjmax)/(1-bjm1), axis=1)
+    oncvar = get_oncvar(varobj, cldfra, onc, out_is_2D_but_in_3D=True)
   return oncvar, copyval
 
 def compute_RH2(varobj, onc, wnfiles, wntimes):
