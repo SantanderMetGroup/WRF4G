@@ -1361,6 +1361,8 @@ END SUBROUTINE extract_from_geogrid
   
   cldmax=MAX(cldfram1,cldfra)
   
+  WHERE (cldfram1 == 1) cldfram1 = 0.
+
   vertical_levels: DO k=1, dz 
     totcfr=totcfr*((1.-cldmax(:,:,k,:))/(1.-cldfram1(:,:,k,:)))
   END DO vertical_levels
