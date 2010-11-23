@@ -1361,27 +1361,12 @@ END SUBROUTINE extract_from_geogrid
   
   cldmax=MAX(cldfram1,cldfra)
   
-  WHERE (cldfram1 == 1) cldfram1 = 0.
+  WHERE (cldfram1 == 1.) cldfram1 = 0.
 
   vertical_levels: DO k=1, dz 
     totcfr=totcfr*((1.-cldmax(:,:,k,:))/(1.-cldfram1(:,:,k,:)))
   END DO vertical_levels
-  
-!  DO i=1,dx
-!    DO j=1,dy
-!      DO it=1,dt
-!        IF (ALL(cldfra(i,j,:,it) /= 1.)) THEN
-!          vertical_levels: DO k=1, dz-1
-!            totcfr(i,j,it)=totcfr(i,j,it)*((1.-MAX(cldfra(i,j,k,it),cldfra(i,j,k+1,it)))/        &
-!              (1.-cldfra(i,j,k,it)))
-!          END DO vertical_levels
-!	ELSE
-!	  totcfr(i,j,it)=0.
-!	END IF
-!      END DO
-!    END DO
-!  END DO
-
+ 
   totcfr=1.-totcfr
 !  WHERE (totcfr > 1.) totcfr=1.
 
@@ -1394,6 +1379,7 @@ END SUBROUTINE extract_from_geogrid
 
   IF (debg) PRINT *,'Total cloud fraction at the center dimx/2:', halfdim(dx),' dimy/2:',       &
     halfdim(dy),' dt/2:', halfdim(dt), ' =', totcfr(halfdim(dx),halfdim(dy),halfdim(dt))
+
   totcloudfr(:,:,:,1,1)=totcfr
 
   END SUBROUTINE clt
