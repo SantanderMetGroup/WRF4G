@@ -25,7 +25,9 @@ def compute_CLTFR(varobj, onc, wnfiles, wntimes):
     ceros = np.zeros(cldfra.shape[:1]+(1,)+cldfra.shape[2:],cldfra.typecode())
     bjm1 = np.concatenate([ceros, cldfra[:,:-1,:,:]], axis=1)
     bjmax = np.maximum(bjm1,bj)
-    copyval = 1. - np.multiply.reduce((1-bjmax)/(1-bjm1), axis=1)
+    denom = 1.-bjm1
+    denom = np.where(denom == 0., 1., denom) # Avoid singularities
+    copyval = 1. - np.multiply.reduce((1.-bjmax)/denom, axis=1)
     oncvar = get_oncvar(varobj, cldfra, onc, out_is_2D_but_in_3D=True)
   return oncvar, copyval
 
