@@ -268,11 +268,17 @@ if test "${is_multiphysics}" -ne "0"; then
     if_not_dry cp namelist.input.base namelist.input
     iphys=1
     for var in $(echo ${multiphysics_variables} | tr ',' ' '); do
-      nitems=$(tuple_item ${multiphysics_nitems} ${iphys})
-      if_not_dry fortnml_setn namelist.input $var ${nitems} $(tuple_item ${mpid} ${iphys})
+      thisphys=$(tuple_item ${mpid} ${iphys})
+      if echo ${thisphys} | grep -q ':' ; then
+        if_not_dry fortnml_setm namelist.input $var ${thisphys//:/ } 
+      else
+        nitems=$(tuple_item ${multiphysics_nitems} ${iphys})
+        if_not_dry fortnml_setn namelist.input $var ${nitems} ${thisphys}
+      fi
       let iphys++
     done
-    cycle_time "${experiment_name}__${mpid//,/_}" ${start_date} ${end_date}
+    stripmpid=${mpid//:/}
+    cycle_time "${experiment_name}__${stripmpid//,/_}" ${start_date} ${end_date}
   done
 else
   echo "---> Single physics run"
