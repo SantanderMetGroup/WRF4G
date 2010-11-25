@@ -16,7 +16,7 @@ QVAPOR       hus       "Specific Humidity"                                "speci
 RAINNC       prls      "Precipitation large scale"                        "large_scale_precipitation_amount"                       "Kg m-2" deaccumulate 
 RAINC        prc       "Precipitation convective"                         "convective_precipitation_amount"                        "Kg m-2" deaccumulate_flux 
 REGIME       regime    "Stability regime (1=Night/Stable, 2=Mech. Turb., 3=Forced Conv, 4=Free Conv)"  "stability_regime"                       1        
-SFCEVP       evspsbl   "Evaporation"                                      "water_evaporation_flux"                                 "kg m-2 s-1"   deaccumulate_flux
+POTEVP       evspsbl   "Evaporation"                                      "water_evaporation_flux"                                 "kg m-2 s-1"   deaccumulate_flux
 SFROFF       mrros     "Surface runoff"                                   "surface_runoff_flux"                                    "kg m-2 s-1"   deaccumulate_flux
 SMOIS        mrsos     "Moisture of soil layer"                           "moisture_content_of_soil_layer"                         "kg m-2"       
 SMSTOT       mrso      "Total soil moisture content"                      "soil_moisture_content"                                  "kg m-2"  SMSTOT
@@ -68,8 +68,8 @@ WINDGUSTMAX  wgsmax    "Max. wind gust"                                   "wind_
 #
 # Derived variables
 #
-ACLHF        ahfls     "Latent heat flux at surface"                      "surface_upward_latent_heat_flux"                        "W m-2"  deaccumulate_flux
-ACHFX        ahfss     "Heat flux at the surface"                         "surface_upward_sensible_heat_flux"                      "W m-2"  deaccumulate_flux
+ACLHF        hfls      "Latent heat flux at surface"                      "surface_upward_latent_heat_flux"                        "W m-2"  deaccumulate_flux
+ACHFX        hfss      "Heat flux at the surface"                         "surface_upward_sensible_heat_flux"                      "W m-2"  deaccumulate_flux
 ACRLS        rls       "Net LW surface radiation "                        "surface_net_downward_longwave_flux"                     "W m-2"  
 ACLWDNB      rlds      "Downward LW surface radiation"                    "surface_downwelling_longwave_flux_in_air"               "W m-2"  deaccumulate_flux
 ACLWUPB      rlus      "Upwelling surface LW radiation"                   "surface_upwelling_longwave_flux_in_air"                 "W m-2"  deaccumulate_flux
