@@ -39,7 +39,7 @@ class fake_strptime:
 start_date = sys.argv[1]
 end_date = sys.argv[2]
 maxdom = int(sys.argv[3])
-chunk_is_restart = int(sys.argv[4])
+chunk_is_restart = sys.argv[4]
 timestep_dxfactor = sys.argv[5]
 
 namelistwps = "../../WPS/namelist.wps"
@@ -94,8 +94,13 @@ else:
   )
 nmli.setValue("restart", chunk_is_restart)
 #
+#  Currently, sibling domains only work with this on (?)
+#
+nmli.setValue("debug_level", 300)
+#
 #  Trim, check, overwrite the file and ... we are done!
 #
 nmli.trimMaxDom()
 nmli.wrfCheck()
+nmli.extendMaxDomVariables()
 nmli.overWriteNamelist()

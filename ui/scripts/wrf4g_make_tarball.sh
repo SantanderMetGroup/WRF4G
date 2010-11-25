@@ -28,13 +28,7 @@ if test -z "${destdir}"; then
   destdir="${thisdir}"
 fi
 
-tardir="tarball${RANDOM}"
-
-mkdir ${tardir}
-cd ${tardir}
-  ln -s ${basedir}/wn/* .
-  tar czhv --exclude=".svn" \
+cd ${basedir}/wn
+ tar czv --exclude=".svn" \
     --exclude="WPS" --exclude="WRFV3" --exclude="openmpi" \
     -f ${destdir}/WRF4G-${version}${tag}.tar.gz *
-cd ..
-rm -rf ${tardir}

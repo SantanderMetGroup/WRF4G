@@ -215,6 +215,8 @@ class FortranNamelist:
 class WrfNamelist(FortranNamelist):
   # Get an updated list for your WRF version with:
   # grep '^rconfig' Registry |awk '$5=="max_domains"{printf "  %s,\n", tolower($8)}' | sort | uniq
+  # "feedback" wrongly appears as max_dom var (how can this be posible?)
+  # was removed by hand
   MAX_DOM_VARIABLES = [
     "allowed", "bdyfrq", "bldt", "bl_pbl_physics", "cen_lat",
     "cen_lon", "chem_opt", "c_k", "coriolis2d", "c_s", "cudt",
@@ -222,7 +224,7 @@ class WrfNamelist(FortranNamelist):
     "diff_6th_opt", "do_coriolis", "do_curvature", "do_gradp", "dt",
     "dx", "dy", "emdiv", "end_day", "end_hour", "end_minute",
     "end_month", "end_second", "end_year", "epssm", "e_sn", "e_vert",
-    "e_we", "fdda_end", "fdda_start", "feedback", "fgdt", "fine_input_stream",
+    "e_we", "fdda_end", "fdda_start", "fgdt", "fine_input_stream",
     "gmt", "grid_fdda", "gsmdt", "h_mom_adv_order", "h_sca_adv_order",
     "id", "input_from_file", "input_from_hires", "i_parent_start", "isice",
     "isoilwater", "isurban", "iswater", "j_parent_start", "julday", "julyr",
@@ -322,7 +324,17 @@ class WrfNamelist(FortranNamelist):
     if self.getValue('sf_surface_physics')[0] == 1 and self.getValue('num_soil_layers')[0] != 5:
       self.printWrfWarning('Simple soil selected but the soil levels are not 5. Fixing...')
       self['physics'].setValue('num_soil_layers', 5)
-
+  def extendMaxDomVariables(self):
+    #
+    # Provide enough columns in max_dom variables. Risky stuff..
+    #
+    for var in self.MAX_DOM_VARIABLES:
+      if self.hasVariable(var):
+        theval = self.getValue(var)
+        if len(theval) < self.getValue("max_dom")[0]:
+          self.printWrfWarning('Variable %s = %s requires as many entries as domains.' % (var, theval))
+          self.setValue(var, theval + (self.getValue("max_dom")[0]-len(theval))*[theval[-1],])
+          self.printWrfWarning('Filling with last domain entry!! -> %s = %s' % (var, self.getValue(var)))
 
 if __name__ == "__main__":
   from optparse import OptionParser

@@ -121,7 +121,7 @@ if test "$(exist_wps $(date_wrf2iso ${chunk_start_date}))" -eq "1"; then
     vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || exit ${ERROR_VCP_FAILED}
   cd ${LOCALDIR}
   cd ${LOCALDIR}/WRFV3/run || exit
-    namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${maxdom} ${chunk_is_restart} ${timestep_dxfactor}
+    namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_is_restart} ${timestep_dxfactor}
     timelog_init "wps get"
       download_file wps $(date_wrf2iso ${chunk_start_date})
     timelog_end
@@ -252,7 +252,7 @@ else
       ln -s ../../WPS/met_em.d??.????-??-??_??:00:00.nc .
       ls -l ########################################################## borrar
       fix_ptop
-      namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${maxdom} ${chunk_is_restart} ${timestep_dxfactor}
+      namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_is_restart} ${timestep_dxfactor}
       ${LAUNCHER_REAL} ${ROOTDIR}/bin/real.exe \
         >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_REAL_FAILED}
@@ -303,6 +303,7 @@ cd ${LOCALDIR}/WRFV3/run || exit
     ls -la ${LAUNCHER_WRF}
     ls -la ${ROOTDIR}/bin/wrf_wrapper.exe
     ls -la ${logdir}
+    fortnml -o -f namelist.input -s debug_level 0
     export OPAL_PREFIX="${ROOTDIR}/openmpi"
     ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
