@@ -14,12 +14,12 @@ QCLOUD       clwmr     "Cloud water content"                              "cloud
 QFX          hufs      "Upward moisture flux at the surface"              "surface_upward_water_vapor_flux_in_air"                 "kg m-2 s-1" 
 QVAPOR       hus       "Specific Humidity"                                "specific_humidity"                                      1         
 RAINNC       prls      "Precipitation large scale"                        "large_scale_precipitation_amount"                       "Kg m-2" deaccumulate 
-RAINC        prc       "Precipitation convective"                         "convective_precipitation_amount"                        "Kg m-2" deaccumulate 
+RAINC        prc       "Precipitation convective"                         "convective_precipitation_amount"                        "Kg m-2" deaccumulate_flux 
 REGIME       regime    "Stability regime (1=Night/Stable, 2=Mech. Turb., 3=Forced Conv, 4=Free Conv)"  "stability_regime"                       1        
 SFCEVP       evspsbl   "Evaporation"                                      "water_evaporation_flux"                                 "kg m-2 s-1"   deaccumulate_flux
-SFROFF       mrros     "Surface runoff"                                   "surface_runoff_flux"                                    "kg m-2 s-1" 
-SMOIS        mrsos     "Moisture of soil layer"                           "moisture_content_of_soil_layer"                         "kg m-2"   
-SMSTOT       mrso      "Total soil moisture content"                      "soil_moisture_content"                                  "kg m-2"  SMSTOT*1000. 
+SFROFF       mrros     "Surface runoff"                                   "surface_runoff_flux"                                    "kg m-2 s-1"   deaccumulate_flux
+SMOIS        mrsos     "Moisture of soil layer"                           "moisture_content_of_soil_layer"                         "kg m-2"       
+SMSTOT       mrso      "Total soil moisture content"                      "soil_moisture_content"                                  "kg m-2"  SMSTOT
 SNOWH        snd       "Snow depth"                                       "surface_snow_thickness"                                 "m"
 SST          sst       "sea surface temperature"                          "sea_surface_temperature"                                "K"       mask_sea
 SWDOWN       rsds      "Downward SW surface radiation"                    "surface_downwelling_shortwave_flux_in_air"              "W m-2" 
@@ -29,7 +29,7 @@ TSLB         tsos      "Soil temperature"                                 "soil_
 SKINTEMP     ts        "Surface skin temperature"                         "surface_temperature"                                    "K"
 TKE_MYJ      tkemyj    "Specific turbulent kinetic Energy in MYJ scheme"  "specific_turbulent_kinetic_energy_in_myj"               "m 2 s-2" 
 U10          uascurv   "X surface wind"                                   "x_wind"                                                 "m s-1"   
-UDROFF       mrfso     "Subsurface runoff"                                "subsurface_runoff"                                      "kg m-2 s-1"
+UDROFF       mross     "Subsurface runoff"                                "subsurface_runoff"                                      "kg m-2 s-1"   deaccumulate_flux
 V10          vascurv   "Y surface wind"                                   "y_wind"                                                 "m s-1"  
 UST          ustar     "Frictional velocity in similarity theory"         "frictional_velocity_in_similarity_theory"               "m s-1"   
 W            wa        "Upward air velocity"                              "upward_air_velocity"                                    "m s-1"     
@@ -73,6 +73,7 @@ ACHFX        ahfss     "Heat flux at the surface"                         "surfa
 ACRLS        rls       "Net LW surface radiation "                        "surface_net_downward_longwave_flux"                     "W m-2"  
 ACLWDNB      rlds      "Downward LW surface radiation"                    "surface_downwelling_longwave_flux_in_air"               "W m-2"  deaccumulate_flux
 ACLWUPB      rlus      "Upwelling surface LW radiation"                   "surface_upwelling_longwave_flux_in_air"                 "W m-2"  deaccumulate_flux
+ACLWUPT      rlut      "Outgoing LW radiation at top of atmosphere"       "toa_outgoing_longwave_flux"                             "W m-2"  deaccumulate_flux
 ACSNOM       snm       "Snow melt"                                        "surface_snow_melt_flux"                                 "kg m-2 s-1" deaccumulate_flux
 ACSNOW       snw       "Accumulated snow"                                 "surface_snow_amount"                                    "kg m-2" deaccumulate
 ACSWDNB      rsds      "Downward SW surface radiation"                    "surface_downwelling_shortwave_flux_in_air"              "W m-2"  deaccumulate_flux
@@ -80,7 +81,10 @@ ACSWDNT      rsdt      "incoming/downward SW radiation at top of atmosphere" "to
 ACSWUPB      rsus      "Upwelling surface SW radiation"                   "surface_upwelling_shortwave_flux_in_air"                "W m-2"  deaccumulate_flux
 ACSWUPT      rsut      "Outgoing SW radiation at top of atmosphere"       "toa_outgoing_shortwave_flux"                            "W m-2"  deaccumulate_flux
 CLD          clwi      "Total cloud water and ice"                        "cloud_water_and_ice_content"                            "kg m-2"  
-CLISCCP      clisccp   "clouds (1: p<440 hPa, 2: 660<p<440, 3: p>660)     "cloud"                                                   1  
+CLISCCP      clisccp   "clouds (1: p<440 hPa, 2: 660<p<440, 3: p>660)"    "cloud"                                                   1  
+CLISCCH      clisccpH  "high clouds (p<440 hPa)"                          "cloud"                                                   1  
+CLISCCP      clisccpM  "medium clouds (660<p<440)"                        "cloud"                                                   1  
+CLISCCP      clisccpL  "low clouds (p>660)"                               "cloud"                                                   1  
 CLTFR        clt       "Total cloud area(fraction)"                       "cloud_area_fraction"                                    1        
 CLWVI        clwvi     "Column condensed water content"                   "atmosphere_cloud_condensed_water_content"               "kg m-2"
 GEOP         geop      "Geopotential"                                     "geopotential"                                           "m 2 s-2"  
@@ -97,8 +101,9 @@ RLS          rls       "Net LW surface radiation "                        "surfa
 RLT          rlt       "Net downward flux of LW radiation at top of atmosphere"  "toa_net_downward_longwave_flux"                  "W m-2"
 RSS          rss       "Net SW surface radiation"                         "surface_net_downward_shortwave_flux"                    "W m-2"   
 RST          rst       "Net downward flux of SW radiation at top of atmosphere"  "toa_net_downward_longwave_flux"                  "W m-2"
-SNOW          prsn      "Snowfall"                                         "snowfall_flux"                                          "kg m-2 s-1" 
 SMOIS1       mrsos1    "Moisture of soil layer 1"                         "moisture_content_of_soil_layer"                         "kg m-2"   
+SNOW         prsn      "Snowfall"                                         "snowfall_flux"                                          "kg m-2 s-1" 
+SPDUV10      wss       "Surface wind speed"                               "air_velocity"                                           "m s-1"  
 TEMP         ta        "Air temperature"                                  "air_temperature"                                        "K"       
 TDPS         tdps      "Dew point temperature at 2M"                      "dew_point_temperature"                                  "K"  
 U10ER        uas       "Eastward surface wind"                            "eastward_wind"                                          "m s-1"    rotate_uas 
