@@ -19,9 +19,9 @@ INPUT_FILES   = sandbox.tar.gz, ${jobfile}
 RANK = (CPU_MHZ * 2) + FREE_MEM_MB 
 #MONITOR=/usr/local/gw/libexec/gw_monitor.sh
 #REQUIREMENTS = HOSTNAME = "*.unican.es";
-#REQUIREMENTS = HOSTNAME = "*.ciemat.es";
+REQUIREMENTS = HOSTNAME = "*nl";
 #REQUIREMENTS = HOSTNAME = "ce01.afroditi.hellasgrid.gr";
-REQUIREMENTS = QUEUE_ACCESS = "*:esr:*"
+#REQUIREMENTS = QUEUE_ACCESS = "*:esr:*"
 #REQUIREMENTS = QUEUE_NAME = "hmem"
 #ENVIRONMENT = X509_USER_PROXY=/oceano/gmeteo/users/valva/x509up_u15104
 

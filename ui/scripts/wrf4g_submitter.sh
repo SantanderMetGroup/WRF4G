@@ -43,10 +43,10 @@ export PATH="${wrf4g_root}/wn/bin:${PATH}"
 #
 #  Load wrf.input et al.
 #
-sed -e 's/\ *=\ */=/' wrf4g.conf > source.txt       || exit ${ERROR_MISSING_WRF4GCNF}
-source source.txt && rm source.txt
-sed -e 's/\ *=\ */=/' wrf.input > source.txt        || exit ${ERROR_MISSING_WRFINPUT}
-source source.txt && rm source.txt
+sed -e 's/\ *=\ */=/' wrf4g.conf > source.it       || exit ${ERROR_MISSING_WRF4GCNF}
+source source.it && rm source.it
+sed -e 's/\ *=\ */=/' wrf.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
+source source.it && rm source.it
 echo "is_multiphysics -> $is_multiphysics"
 source ${wrf4g_root}/wn/lib/bash/wrf_util.sh       || exit ${ERROR_MISSING_WRFUTIL}
 #

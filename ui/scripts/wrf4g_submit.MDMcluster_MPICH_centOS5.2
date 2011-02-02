@@ -21,7 +21,7 @@ mpiexec="mpirun ${WRF4G_MPI_FLAGS}"
 slots=`expr ${NUMBER_OF_NODES} '*' ${PROCESSES_PER_NODE}`
 
 if test "${NUMBER_OF_NODES}" -gt 1 -o "${PROCESSES_PER_NODE}" -gt 1; then
-  nodflag="-l nodes=${NUMBER_OF_NODES}:ppn=${PROCESSES_PER_NODE}"
+  nodflag="-l nodes=${PROCESSES_PER_NODE}"
   echo "LAUNCHER_METGRID=\"\""                 >> wrf.chunk
   echo "LAUNCHER_REAL=\"\""                    >> wrf.chunk
   echo "LAUNCHER_WRF=\"$mpiexec -np ${slots}\"" >> wrf.chunk

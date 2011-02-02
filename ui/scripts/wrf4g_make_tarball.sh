@@ -1,6 +1,6 @@
 #! /bin/bash
 
-version="0.1"
+version="1.0beta"
 
 thisdir=$(pwd)
 scriptdir=$( (cd `dirname $0` && echo $PWD) )
