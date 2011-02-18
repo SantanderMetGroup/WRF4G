@@ -2,31 +2,31 @@
 #
 # WRF4G.sh
 #
-test -n "${ROOTDIR}"  || ROOTDIR=$(pwd)
-test -n "${LOCALDIR}" || LOCALDIR=${ROOTDIR}
+test -n "${RUNDIR}"  || RUNDIR=$(pwd)
+test -n "${LOCALDIR}" || LOCALDIR=${RUNDIR}
 #
 #  Load functions and set the PATH
 #
-source ${ROOTDIR}/lib/bash/wrf_util.sh
-source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
-export PATH="${ROOTDIR}/bin:${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
-export LD_LIBRARY_PATH="${ROOTDIR}/lib/shared_libs:${LD_LIBRARY_PATH}"
+source ${RUNDIR}/lib/bash/wrf_util.sh
+source ${RUNDIR}/lib/bash/wrf4g_exit_codes.sh
+export PATH="${RUNDIR}/bin:${RUNDIR}/WRFGEL:${RUNDIR}/lib/bash:$PATH"
+export LD_LIBRARY_PATH="${RUNDIR}/lib/shared_libs:${LD_LIBRARY_PATH}"
 # MPI
-export PATH="${ROOTDIR}/openmpi/bin:${ROOTDIR}/lib/bash:$PATH"
-export LD_LIBRARY_PATH="${ROOTDIR}/openmpi/lib:${LD_LIBRARY_PATH}"
+export PATH="${RUNDIR}/openmpi/bin:${RUNDIR}/lib/bash:$PATH"
+export LD_LIBRARY_PATH="${RUNDIR}/openmpi/lib:${LD_LIBRARY_PATH}"
 #
 #  Move all executables out of LOCALDIR
 #
-mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
-mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
-mv ${LOCALDIR}/WPS/preprocessor.*      ${ROOTDIR}/bin/
-mv ${LOCALDIR}/WRFV3/run/real.exe      ${ROOTDIR}/bin/
-mv ${LOCALDIR}/WRFV3/run/wrf.exe       ${ROOTDIR}/bin/
-mv ${LOCALDIR}/WRFV3/run/icbcprocessor.*  ${ROOTDIR}/bin/
-mv ${LOCALDIR}/WRFV3/run/postprocessor.*  ${ROOTDIR}/bin/
-test "${LOCALDIR}" != ${ROOTDIR} && mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
-chmod +x ${ROOTDIR}/bin/*
-chmod +x ${ROOTDIR}/WRFGEL/*
+mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${RUNDIR}/bin/
+mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${RUNDIR}/bin/
+mv ${LOCALDIR}/WPS/preprocessor.*      ${RUNDIR}/bin/
+mv ${LOCALDIR}/WRFV3/run/real.exe      ${RUNDIR}/bin/
+mv ${LOCALDIR}/WRFV3/run/wrf.exe       ${RUNDIR}/bin/
+mv ${LOCALDIR}/WRFV3/run/icbcprocessor.*  ${RUNDIR}/bin/
+mv ${LOCALDIR}/WRFV3/run/postprocessor.*  ${RUNDIR}/bin/
+test "${LOCALDIR}" != ${RUNDIR} && mv ${LOCALDIR}/openmpi  ${RUNDIR}/
+chmod +x ${RUNDIR}/bin/*
+chmod +x ${RUNDIR}/WRFGEL/*
 umask 002
 #
 #  Some default values
@@ -37,15 +37,15 @@ timestep_dxfactor=6
 #
 #  Load wrf4g.conf, wrf.chunk and wrf.input
 #
-source ${ROOTDIR}/wrf4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
-sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.chunk > source.it || exit ${ERROR_MISSING_WRFCHUNK}
+source ${RUNDIR}/wrf4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
+sed -e 's/\ *=\ */=/' ${RUNDIR}/wrf.chunk > source.it || exit ${ERROR_MISSING_WRFCHUNK}
 source source.it && rm source.it
-sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.input > source.it || exit ${ERROR_MISSING_WRFINPUT}
+sed -e 's/\ *=\ */=/' ${RUNDIR}/wrf.input > source.it || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
 #
 #  Export variables
 #
-export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
+export WRF4G_CONF_FILE="${RUNDIR}/wrf4g.conf"
 export WRF4G_EXPERIMENT="${experiment_name}"
 export WRF4G_REALIZATION="${realization_name}"
 export WRFGEL_SCRIPT="echo"
@@ -100,7 +100,7 @@ function wrf4g_exit(){
   create_output_structure
   test -f namelist.input && cp namelist.input ${logdir}/
   tar czf log.tar.gz ${logdir} && vcp log.tar.gz ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
-  test "${LOCALDIR}" != "${ROOTDIR}" && mv ${logdir} ${ROOTDIR}/
+  test "${LOCALDIR}" != "${RUNDIR}" && mv ${logdir} ${RUNDIR}/
   exit ${excode}
 }
 
@@ -163,7 +163,7 @@ else
     timelog_end
     timelog_init "ungrib"
       ln -sf ungrib/Variable_Tables/Vtable.${global_name} Vtable
-      ${ROOTDIR}/bin/ungrib.exe \
+      ${RUNDIR}/bin/ungrib.exe \
         >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_UNGRIB_FAILED}
       cat ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
@@ -193,7 +193,7 @@ else
       fi
       cdo setdate,${iyy}-${imm}-${idd} FAKESOIL.grb grbData/FAKESOIL.grb
       ./link_grib.csh grbData/*.grb
-      ${ROOTDIR}/bin/ungrib.exe >& ${logdir}/ungrib_${vtname}_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
+      ${RUNDIR}/bin/ungrib.exe >& ${logdir}/ungrib_${vtname}_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
       cat ${logdir}/ungrib_${vtname}_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'Successful completion of ungrib' \
         || wrf4g_exit ${ERROR_UNGRIB_FAILED}
@@ -230,7 +230,7 @@ else
       fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
       fortnml -o -f namelist.wps -s fg_name ${global_name}
       set -v
-      ${LAUNCHER_METGRID} ${ROOTDIR}/bin/metgrid.exe \
+      ${LAUNCHER_METGRID} ${RUNDIR}/bin/metgrid.exe \
         >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_METGRID_FAILED}
       cat ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
@@ -253,7 +253,7 @@ else
       ls -l ########################################################## borrar
       fix_ptop
       namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_is_restart} ${timestep_dxfactor}
-      ${LAUNCHER_REAL} ${ROOTDIR}/bin/real.exe \
+      ${LAUNCHER_REAL} ${RUNDIR}/bin/real.exe \
         >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_REAL_FAILED}
       cat ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
@@ -281,7 +281,7 @@ else
     if test "${save_wps}" -eq 1; then
       timelog_init "wps put"
         create_output_structure
-        ${ROOTDIR}/WRFGEL/post_and_register --no-bg wps "${chunk_start_date}"
+        ${RUNDIR}/WRFGEL/post_and_register --no-bg wps "${chunk_start_date}"
       timelog_end
     fi
   cd ${LOCALDIR} || exit
@@ -299,25 +299,24 @@ cd ${LOCALDIR}/WRFV3/run || exit
   timelog_init "wrf"
     ls -l ########################################################## borrar
     sleep 1
-    echo "${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out"
-    ls -la ${LAUNCHER_WRF}
-    ls -la ${ROOTDIR}/bin/wrf_wrapper.exe
+    echo "${LAUNCHER_WRF} ${RUNDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out"
+    ls -la ${RUNDIR}/bin/wrf_wrapper.exe
     ls -la ${logdir}
     fortnml -o -f namelist.input -s debug_level 0
-    export OPAL_PREFIX="${ROOTDIR}/openmpi"
-    ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
+    export OPAL_PREFIX="${RUNDIR}/openmpi"
+    ${LAUNCHER_WRF} ${RUNDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
     # This time is also useful to  to copy the wpsout data
     sleep 10 
     ps -ef | grep wrf.exe
-    ${ROOTDIR}/WRFGEL/wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
+    ${RUNDIR}/WRFGEL/wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   
     wait $(cat monitor.pid)
   timelog_end
   # Clean the heavy stuff
   if test "${clean_after_run}" -eq 1; then
-    rm -f CAM_ABS_DATA wrf[bli]* ${ROOTDIR}/bin/real.exe ${ROOTDIR}/bin/wrf.exe \
-        ${ROOTDIR}/bin/metgrid.exe ${ROOTDIR}/bin/ungrib.exe
+    rm -f CAM_ABS_DATA wrf[bli]* ${RUNDIR}/bin/real.exe ${RUNDIR}/bin/wrf.exe \
+        ${RUNDIR}/bin/metgrid.exe ${RUNDIR}/bin/ungrib.exe
   fi
   wrf4g_exit 0
 cd ${LOCALDIR}
