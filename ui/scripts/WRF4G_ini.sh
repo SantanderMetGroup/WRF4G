@@ -64,16 +64,7 @@ function w4gini_exit(){
   esac
   exit ${excode}
 }
-#
-#   Should we unpack here or there is a local filesystem for us to run?
-#
-if test -n "${WRF4G_RUN_LOCAL}"; then
-  if test "${WRF4G_RUN_LOCAL:0:4}" = "var:" ; then
-    eval "WRF4G_RUN_LOCAL=\$$(echo ${WRF4G_RUN_LOCAL} | sed -e 's/var://')"
-  fi
-  LOCALDIR="${WRF4G_RUN_LOCAL}/wrf4g.$(date +%Y%m%d%H%M%S%N)"
-  mkdir ${LOCALDIR} || exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
-fi
+
 #
 #  Should this chunk REALLY run?
 #
@@ -129,6 +120,23 @@ else
   fi
   echo "chunk_restart_date=\"$(date_iso2wrf ${restart_date})\"" >> wrf.chunk
 fi
+
+
+#
+#   Should we unpack here or there is a local filesystem for us to run?
+#
+if test -n "${WRF4G_RUN_LOCAL}"; then
+  if test "${WRF4G_RUN_LOCAL:0:4}" = "var:" ; then
+    eval "WRF4G_RUN_LOCAL=\$$(echo ${WRF4G_RUN_LOCAL} | sed -e 's/var://')"
+  fi
+  LOCALDIR="${WRF4G_RUN_LOCAL}/wrf4g.$(date +%Y%m%d%H%M%S%N)"
+  mkdir ${LOCALDIR} || exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
+  cd ${LOCALDIR}
+else
+  LOCALDIR=${ROOTDIR}
+fi
+
+
 #######################################################################
 #
 #  IF YOU GOT HERE, WE ARE RUNNING THIS CHUNK
@@ -137,42 +145,27 @@ fi
 #
 #  Reload the modified wrf.chunk and copy it to the local directory if necessary
 #
-sed -e 's/\ *=\ */=/' wrf.chunk > source.it  || exit ${ERROR_MISSING_WRFCHUNK}
+sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.chunk > source.it  || exit ${ERROR_MISSING_WRFCHUNK}
 source source.it && rm source.it
-test -n "${LOCALDIR}" && cp wrf.chunk ${LOCALDIR}/
+
 #
 #  Get the restart files, if this is a restart
 #
 if test ${chunk_is_restart} = ".T."; then
-  test -n "${LOCALDIR}" && cd ${LOCALDIR}
     download_file rst ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
-  test -n "${LOCALDIR}" && cd ${ROOTDIR}
 fi
+
 #
 #  Create WRF4G framework structure
 #
-test -n "${LOCALDIR}" && cd ${LOCALDIR}
-mkdir -p log
+mkdir log
 vcp ${WRF4G_APPS}/WRF4Gbin-${WRF_VERSION}.tar.gz .
 tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz || w4gini_exit ${ERROR_MISSING_WRF4GBIN}
-if test -n "${LOCALDIR}"; then
-  for node in $(cat $PBS_NODEFILE | sort | uniq)
-  do
-    if test "${node}" != "$(hostname)"; then
-      echo "Creating WRF4G structure in ${node}:${LOCALDIR}"
-      ssh ${node} mkdir -p ${LOCALDIR}
-      cat WRF4Gbin-${WRF_VERSION}.tar.gz | ssh ${node} "tar xz -C ${LOCALDIR} -f -"
-      if test -f ${ROOTDIR}/wrf4g_files.tar.gz ; then
-        cat ${ROOTDIR}/wrf4g_files.tar.gz | ssh ${node} "tar xz -C ${LOCALDIR} -f -"
-      fi
-    fi
-  done
-fi
-rm -f WRF4Gbin-${WRF_VERSION}.tar.gz
 tar xzf ${ROOTDIR}/sandbox.tar.gz WRFV3/run/namelist.input # La namelist buena esta aqui!
-mv wrfrst* WRFV3/run >& /dev/null || :
 rm -f ${ROOTDIR}/sandbox.tar.gz 
-echo "${HOSTNAME}:${PWD}" > ${ROOTDIR}/localdir
+mv ${ROOTDIR}/wrfrst* WRFV3/run >& /dev/null || :
+
+echo "${HOSTNAME}:${PWD}" > ${ROOTDIR}/localdir  #VALVA: ¿¿¿¿¿¿¿¿¿????????????
 #
 #  If there are additional files, expand'em
 #
@@ -182,5 +175,6 @@ fi
 #
 #   Now run the WRF4G...
 #
-echo "Running WRF4G.sh"
+echo "Running WRF4G.sh
+sleep 100000
 source ${ROOTDIR}/WRF4G.sh >& log/WRF4G.log 
