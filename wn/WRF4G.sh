@@ -2,65 +2,81 @@
 #
 # WRF4G.sh
 #
-test -n "${ROOTDIR}"  || ROOTDIR=$(pwd)
-test -n "${LOCALDIR}" || LOCALDIR=${ROOTDIR}
-#
-#  Load functions and set the PATH
-#
-source ${ROOTDIR}/lib/bash/wrf_util.sh
-source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
-export PATH="${ROOTDIR}/bin:${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
-export LD_LIBRARY_PATH="${ROOTDIR}/lib/shared_libs:${LD_LIBRARY_PATH}"
-# MPI
-export PATH="${ROOTDIR}/openmpi/bin:${ROOTDIR}/lib/bash:$PATH"
-export LD_LIBRARY_PATH="${ROOTDIR}/openmpi/lib:${LD_LIBRARY_PATH}"
-#
-#  Move all executables out of LOCALDIR
-#
-mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
-mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
-mv ${LOCALDIR}/WPS/preprocessor.*      ${ROOTDIR}/bin/
-mv ${LOCALDIR}/WRFV3/run/real.exe      ${ROOTDIR}/bin/
-mv ${LOCALDIR}/WRFV3/run/wrf.exe       ${ROOTDIR}/bin/
-mv ${LOCALDIR}/WRFV3/run/icbcprocessor.*  ${ROOTDIR}/bin/
-mv ${LOCALDIR}/WRFV3/run/postprocessor.*  ${ROOTDIR}/bin/
-test "${LOCALDIR}" != ${ROOTDIR} && mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
-chmod +x ${ROOTDIR}/bin/*
-chmod +x ${ROOTDIR}/WRFGEL/*
-umask 002
-#
-#  Some default values
-#
-save_wps=1
-clean_after_run=1
-timestep_dxfactor=6
-#
-#  Load wrf4g.conf, wrf.chunk and wrf.input
-#
-source ${ROOTDIR}/wrf4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
-sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.chunk > source.it || exit ${ERROR_MISSING_WRFCHUNK}
-source source.it && rm source.it
-sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.input > source.it || exit ${ERROR_MISSING_WRFINPUT}
-source source.it && rm source.it
-#
-#  Export variables
-#
-export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
-export WRF4G_EXPERIMENT="${experiment_name}"
-export WRF4G_REALIZATION="${realization_name}"
-export WRFGEL_SCRIPT="echo"
-#
-# Running WRF
-#
-echo "Previous__________"
-ulimit -a
-ulimit -s unlimited
-echo "After_____________"
-ulimit -a
+# 
 
-test -n "${logdir}" || logdir=${LOCALDIR}/log;
-mkdir -p ${logdir}
+set -v
 VCPDEBUG="-v"
+
+function load_default_config (){
+ #
+ #  Some default values
+ #
+ save_wps=1
+ clean_after_run=1
+ timestep_dxfactor=6
+ metgrid_parallel=0
+ ungrib_parallel=0
+ real_parallel=0
+ wrf_parallel=1
+}
+
+
+function WRF4G_prepare (){
+  #
+  #  Move all executables out of LOCALDIR
+  #
+  mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
+  mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
+  mv ${LOCALDIR}/WPS/preprocessor.*      ${ROOTDIR}/bin/
+  mv ${LOCALDIR}/WRFV3/run/real.exe      ${ROOTDIR}/bin/
+  mv ${LOCALDIR}/WRFV3/run/wrf.exe       ${ROOTDIR}/bin/
+  mv ${LOCALDIR}/WRFV3/run/icbcprocessor.*  ${ROOTDIR}/bin/
+  mv ${LOCALDIR}/WRFV3/run/postprocessor.*  ${ROOTDIR}/bin/
+  umask 002
+
+  test -n "${logdir}" || logdir=${LOCALDIR}/log;
+  mkdir -p ${logdir}
+}
+
+function prepare_runtime_environment(){
+    # Does any component run in parallel?
+    prepare_openmpi=0
+    local_openmpi=0
+    LAUNCHER_METGRID="";LAUNCHER_UNGRIB="";LAUNCHER_REAL="";LAUNCHER_WRF=""
+    MPI_LAUNCHER="mpirun $MPI_ENV"
+
+    if [ $real_parallel -eq 1 ]; then
+       prepare_openmpi=1
+       LAUNCHER_REAL=${MPI_LAUNCHER}
+    fi
+
+    if [ $wrf_parallel -eq 1 ]; then
+       prepare_openmpi=1
+       LAUNCHER_WRF=${MPI_LAUNCHER}
+    fi
+
+    # If WRF4G is going to run in a shared folder do not copy the
+    # binary and input files. Otherwise copy them.
+    if [ $prepare_openmpi -eq 1 ]; then
+       if test -n "${WRF4G_RUN_LOCAL}"; then    
+          local_openmpi=1	   
+          mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
+       fi
+    fi
+    export OPAL_PREFIX=${ROOTDIR}/openmpi
+    export PATH=$OPAL_PREFIX/bin:$PATH
+    export LD_LIBRARY_PATH=$OPAL_PREFIX/lib:$LD_LIBRARY_PATH
+}
+
+function prepare_local_environment (){
+  cp ${LOCALDIR}/WRF4Gbin-${WRF_VERSION}.tar.gz ${ROOTDIR}
+  $MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/WRFGEL/load_wrfbin.sh	
+  rm ${ROOTDIR}/WRF4Gbin-${WRF_VERSION}.tar.gz
+  rm {LOCALDIR}/WRF4Gbin-${WRF_VERSION}.tar.gz
+  prepare_openmpi=0
+  #mpiexec -mca btl self,sm,tcp --wdir /localtmp --preload-files-dest-dir /localtmp --preload-files /localtmp/WRF4Gbin-3.1.1_r484INTEL_OMPI.tar.gz --preload-binary /localtmp/wrf.sh /localtmp/wrf.sh
+}
+
 
 function timelog_clean(){
   rm -f ${logdir}/time.log
@@ -103,6 +119,12 @@ function wrf4g_exit(){
   test "${LOCALDIR}" != "${ROOTDIR}" && mv ${logdir} ${ROOTDIR}/
   exit ${excode}
 }
+
+WRF4G_prepare
+
+load_default_config
+
+prepare_runtime_environment
 
 timelog_clean
 #
@@ -253,6 +275,12 @@ else
       ls -l ########################################################## borrar
       fix_ptop
       namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_is_restart} ${timestep_dxfactor}
+      
+      # If real is run in parallel, prepare the environment.  	 
+      if [ ${local_openmpi} -eq 1 -a ${real_parallel} -eq 1 ]; then
+          prepare_local_environment
+      fi
+	 
       ${LAUNCHER_REAL} ${ROOTDIR}/bin/real.exe \
         >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_REAL_FAILED}
@@ -297,19 +325,21 @@ cd ${LOCALDIR}/WRFV3/run || exit
     timelog_end
   fi
   timelog_init "wrf"
-    ls -l ########################################################## borrar
-    sleep 1
+    
+    # If wrf is run in parallel and the environment is not prepared, prepare it.  	 
+    if [ ${local_openmpi} -eq 1 -a ${wrf_parallel} -eq 1  ]; then
+        prepare_local_environment
+    fi
+	
     echo "${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out"
-    ls -la ${ROOTDIR}/bin/wrf_wrapper.exe
-    ls -la ${logdir}
     fortnml -o -f namelist.input -s debug_level 0
-    export OPAL_PREFIX="${ROOTDIR}/openmpi"
     ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
     # This time is also useful to  to copy the wpsout data
     sleep 10 
     ps -ef | grep wrf.exe
-    ${ROOTDIR}/WRFGEL/wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
+  #  ${ROOTDIR}/WRFGEL/wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
+    sleep 400
     echo $! > monitor.pid   
     wait $(cat monitor.pid)
   timelog_end

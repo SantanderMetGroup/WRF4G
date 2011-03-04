@@ -11,12 +11,12 @@ tar xzf sandbox.tar.gz wrf4g.conf
 source wrf4g.conf                            || exit ${ERROR_MISSING_WRF4GCNF}
 rm wrf4g.conf
 
+ROOTDIR=$(pwd)
 if test -n "${WRF4G_RUN_SHARED}"; then
   cd ${WRF4G_RUN_SHARED}
   mv ${ROOTDIR}/sandbox.tar.gz .
 fi 
 ROOTDIR=$(pwd)
-echo $ROOTDIR >rootdir
 #
 #  Expand the sandbox files
 #
@@ -96,7 +96,6 @@ if test "$(date2int ${current_date})" -ge "$(date2int ${chunk_end_date})"; then
     echo "Pitifully repeating this finished chunk (restart file missing at the end)"
     echo "chunk_restart_date=\"$(date_iso2wrf ${restart_date})\"" >> wrf.chunk
   elif test "${is_restart}" -eq 0; then
-    test -n "${LOCALDIR}" && rmdir ${LOCALDIR}
     w4gini_exit ${EXIT_CHUNK_ALREADY_FINISHED}
   else # Chapuza! esto no valdria para el primer chunk, hay que desenredar todos estos estados
     echo "Restarting this chunk even though it was already simulated!!"
@@ -104,12 +103,10 @@ if test "$(date2int ${current_date})" -ge "$(date2int ${chunk_end_date})"; then
   fi
 elif test "${restart_date}" = "-1"; then
   if test "${chunk_is_restart}" = ".T."; then
-    test -n "${LOCALDIR}" && rmdir ${LOCALDIR}
     w4gini_exit ${EXIT_RESTART_MISMATCH}
   fi
   echo "chunk_restart_date=\"${chunk_start_date}\"" >> wrf.chunk
 elif test "$(date2int ${restart_date})" -lt "$(date2int ${chunk_start_date})"; then
-  test -n "${LOCALDIR}" && rmdir ${LOCALDIR}
   w4gini_exit ${EXIT_CHUNK_SHOULD_NOT_RUN}
 else
   #
@@ -135,6 +132,7 @@ if test -n "${WRF4G_RUN_LOCAL}"; then
 else
   LOCALDIR=${ROOTDIR}
 fi
+echo ${ROOTDIR} > rootdir
 
 
 #######################################################################
@@ -149,13 +147,6 @@ sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.chunk > source.it  || exit ${ERROR_MISSING_
 source source.it && rm source.it
 
 #
-#  Get the restart files, if this is a restart
-#
-if test ${chunk_is_restart} = ".T."; then
-    download_file rst ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
-fi
-
-#
 #  Create WRF4G framework structure
 #
 mkdir log
@@ -163,9 +154,14 @@ vcp ${WRF4G_APPS}/WRF4Gbin-${WRF_VERSION}.tar.gz .
 tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz || w4gini_exit ${ERROR_MISSING_WRF4GBIN}
 tar xzf ${ROOTDIR}/sandbox.tar.gz WRFV3/run/namelist.input # La namelist buena esta aqui!
 rm -f ${ROOTDIR}/sandbox.tar.gz 
-mv ${ROOTDIR}/wrfrst* WRFV3/run >& /dev/null || :
-
-echo "${HOSTNAME}:${PWD}" > ${ROOTDIR}/localdir  #VALVA: ¿¿¿¿¿¿¿¿¿????????????
+#
+#  Get the restart files, if this is a restart
+#
+if test ${chunk_is_restart} = ".T."; then
+    download_file rst ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
+    mv ${ROOTDIR}/wrfrst* WRFV3/run >& /dev/null 
+fi
+echo "${PWD}" > ${ROOTDIR}/localdir
 #
 #  If there are additional files, expand'em
 #
@@ -175,6 +171,5 @@ fi
 #
 #   Now run the WRF4G...
 #
-echo "Running WRF4G.sh
-sleep 100000
+echo "Running WRF4G.sh"
 source ${ROOTDIR}/WRF4G.sh >& log/WRF4G.log 
