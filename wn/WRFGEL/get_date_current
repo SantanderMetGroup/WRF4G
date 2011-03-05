@@ -47,7 +47,12 @@ if not 'WRF4G_BASEPATH' in dir():
 repo="%s/experiments/%s/%s/output" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"])
 if verbose: stderr.write("Repository: " + repo + "\n")
 
-output=copy_file("%s/current_date.txt" % repo , "current_date.txt", verbose=verbose)
+list=VCPURL(repo)
+cdf=list.ls("current_date.txt")
+
+if len(cdf) != 0 :
+  # There are no output files
+  output=copy_file("%s/current_date.txt" % repo , "current_date.txt", verbose=verbose)
 
 if isfile("current_date.txt") :
   date=open("current_date.txt","r").read().strip()

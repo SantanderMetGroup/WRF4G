@@ -60,7 +60,6 @@ function prepare_runtime_environment(){
     if [ $prepare_openmpi -eq 1 ]; then
        if test -n "${WRF4G_RUN_LOCAL}"; then    
           local_openmpi=1	   
-          mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
        fi
     fi
     export OPAL_PREFIX=${ROOTDIR}/openmpi
@@ -69,10 +68,11 @@ function prepare_runtime_environment(){
 }
 
 function prepare_local_environment (){
-  cp ${LOCALDIR}/WRF4Gbin-${WRF_VERSION}.tar.gz ${ROOTDIR}
+  #cp ${LOCALDIR}/WRF4Gbin-${WRF_VERSION}.tar.gz ${ROOTDIR}
+  mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
   $MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/WRFGEL/load_wrfbin.sh	
-  rm ${ROOTDIR}/WRF4Gbin-${WRF_VERSION}.tar.gz
-  rm {LOCALDIR}/WRF4Gbin-${WRF_VERSION}.tar.gz
+  #rm ${ROOTDIR}/WRF4Gbin-${WRF_VERSION}.tar.gz
+  #rm {LOCALDIR}/WRF4Gbin-${WRF_VERSION}.tar.gz
   prepare_openmpi=0
   #mpiexec -mca btl self,sm,tcp --wdir /localtmp --preload-files-dest-dir /localtmp --preload-files /localtmp/WRF4Gbin-3.1.1_r484INTEL_OMPI.tar.gz --preload-binary /localtmp/wrf.sh /localtmp/wrf.sh
 }
@@ -141,7 +141,6 @@ if test "$(exist_wps $(date_wrf2iso ${chunk_start_date}))" -eq "1"; then
   wps_ran=0
   cd ${LOCALDIR}/WPS || exit
     vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || exit ${ERROR_VCP_FAILED}
-  cd ${LOCALDIR}
   cd ${LOCALDIR}/WRFV3/run || exit
     namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_is_restart} ${timestep_dxfactor}
     timelog_init "wps get"
@@ -272,7 +271,6 @@ else
     timelog_init "real"
       clean_real
       ln -s ../../WPS/met_em.d??.????-??-??_??:00:00.nc .
-      ls -l ########################################################## borrar
       fix_ptop
       namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_is_restart} ${timestep_dxfactor}
       
@@ -309,7 +307,7 @@ else
     if test "${save_wps}" -eq 1; then
       timelog_init "wps put"
         create_output_structure
-        ${ROOTDIR}/WRFGEL/post_and_register --no-bg wps "${chunk_start_date}"
+        post_and_register --no-bg wps "${chunk_start_date}"
       timelog_end
     fi
   cd ${LOCALDIR} || exit
@@ -338,8 +336,7 @@ cd ${LOCALDIR}/WRFV3/run || exit
     # This time is also useful to  to copy the wpsout data
     sleep 10 
     ps -ef | grep wrf.exe
-  #  ${ROOTDIR}/WRFGEL/wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
-    sleep 400
+    wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   
     wait $(cat monitor.pid)
   timelog_end

@@ -40,7 +40,7 @@ tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz
 #
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
-export PATH="${ROOTDIR}/WRFGEL:$PATH"
+export PATH="${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
 chmod +x ${ROOTDIR}/WRFGEL/*
 
 function w4gini_exit(){
@@ -79,7 +79,7 @@ else
   restart_date=$(get_date_restart -v || w4gini_exit ${ERROR_GETDATERST_FAILED})
   echo "Last restart date for this realization is ${restart_date}" >> WRF4G_ini.out
 fi
-current_date=$(get_date_current)
+current_date=$(get_date_current -v)
 echo "Current date for this realization is ${current_date}" >> WRF4G_ini.out
 if test "$(date2int ${current_date})" -ge "$(date2int ${chunk_end_date})"; then
   if test ${is_continuous} -eq 1 \
@@ -133,6 +133,7 @@ else
   LOCALDIR=${ROOTDIR}
 fi
 echo ${ROOTDIR} > rootdir
+echo ${PWD} > ${ROOTDIR}/localdir
 
 
 #######################################################################
@@ -152,6 +153,7 @@ source source.it && rm source.it
 mkdir log
 vcp ${WRF4G_APPS}/WRF4Gbin-${WRF_VERSION}.tar.gz .
 tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz || w4gini_exit ${ERROR_MISSING_WRF4GBIN}
+rm WRF4Gbin-${WRF_VERSION}.tar.gz
 tar xzf ${ROOTDIR}/sandbox.tar.gz WRFV3/run/namelist.input # La namelist buena esta aqui!
 rm -f ${ROOTDIR}/sandbox.tar.gz 
 #
@@ -161,7 +163,6 @@ if test ${chunk_is_restart} = ".T."; then
     download_file rst ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
     mv ${ROOTDIR}/wrfrst* WRFV3/run >& /dev/null 
 fi
-echo "${PWD}" > ${ROOTDIR}/localdir
 #
 #  If there are additional files, expand'em
 #
