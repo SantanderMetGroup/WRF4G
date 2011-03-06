@@ -7,20 +7,6 @@
 set -v
 VCPDEBUG="-v"
 
-function load_default_config (){
- #
- #  Some default values
- #
- save_wps=1
- clean_after_run=1
- timestep_dxfactor=6
- metgrid_parallel=0
- ungrib_parallel=0
- real_parallel=0
- wrf_parallel=1
-}
-
-
 function WRF4G_prepare (){
   #
   #  Move all executables out of LOCALDIR
@@ -42,7 +28,7 @@ function prepare_runtime_environment(){
     # Does any component run in parallel?
     prepare_openmpi=0
     local_openmpi=0
-    LAUNCHER_METGRID="";LAUNCHER_UNGRIB="";LAUNCHER_REAL="";LAUNCHER_WRF=""
+    LAUNCHER_REAL="";LAUNCHER_WRF=""
     MPI_LAUNCHER="mpirun $MPI_ENV"
 
     if [ $real_parallel -eq 1 ]; then
@@ -251,7 +237,7 @@ else
       fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
       fortnml -o -f namelist.wps -s fg_name ${global_name}
       set -v
-      ${LAUNCHER_METGRID} ${ROOTDIR}/bin/metgrid.exe \
+      ${ROOTDIR}/bin/metgrid.exe \
         >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_METGRID_FAILED}
       cat ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \

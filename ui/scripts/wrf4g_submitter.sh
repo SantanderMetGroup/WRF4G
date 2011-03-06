@@ -9,6 +9,8 @@
 # function cycle_hindcasts(realization_name, start_date, end_date)
 # function cycle_time(realization_name, start_date, end_date)
 #
+
+
 isdry="no"
 justone="no"
 owforce="no"
@@ -128,6 +130,7 @@ function cycle_chunks(){
   read eyy emm edd ehh trash <<< $(echo ${realization_end_date} | tr '_:T-' '    ')
   chunkno=1
   chunkjid=""
+  create_job_template  
   while test ${cyy}${cmm}${cdd}${chh} -lt ${eyy}${emm}${edd}${ehh}
   do
     export WRF4G_CHUNK="$(printf '%04d' ${chunkno})"
@@ -147,16 +150,7 @@ function cycle_chunks(){
         mkdir -p ${chunkdir} || cannot_mkdir ${chunkdir}
         echo "  ---> chunk: ${chunkno} - ${current_date} -> ${final_date}"
         test ${chunkno} -eq 1 && restart_flag=".F." || restart_flag=".T."
-        #
-        #  Create the sandbox file
-        #
-        cat << EOF > ${chunkdir}/wrf.chunk
-realization_name="${realization_name}"
-chunk_name="$(printf "%04d" ${chunkno})"
-chunk_start_date="${current_date}"
-chunk_end_date="${final_date}"
-chunk_is_restart="${restart_flag}"
-EOF
+        create_sandbox_file
         mkdir -p ${chunkdir}/WRFV3/run
         cp ${userdir}/namelist.input ${chunkdir}/WRFV3/run/namelist.input
         cp ${userdir}/wrf.input      ${chunkdir}/wrf.input
@@ -174,7 +168,7 @@ EOF
           #
           #   Submit the job
           #
-          chunkjid=$(${wrf4g_root}/ui/scripts/wrf4g_submit.${JOB_TYPE} WRF4G_ini.sh $(test ${is_restart} -eq 0 && echo ${chunkjid}))
+          chunkjid=submit_job $(test ${is_restart} -eq 0 && echo ${chunkjid})
         cd ${userdir}
         printf '%6d %04d %s %s %s\n' "${chunkjid}" "${chunkno}" "${current_date}" "${final_date}" "${realization_name}" >> pids.${experiment_name}
       fi
@@ -237,6 +231,59 @@ function cycle_time(){
       cycle_chunks ${realization_name} ${start_date} ${end_date}
       ;;
   esac
+}
+
+
+
+function create_sandbox_file () {
+#
+#  Create the sandbox file
+#
+cat << EOF > ${chunkdir}/wrf.chunk
+realization_name="${realization_name}"
+chunk_name="$(printf "%04d" ${chunkno})"
+chunk_start_date="${current_date}"
+chunk_end_date="${final_date}"
+chunk_is_restart="${restart_flag}"
+EOF
+}
+
+function create_job_template () {
+#
+#  Create Gridway job template
+#
+cat << EOF > job.gw
+NAME = ${WRF4G_CHUNK}${WRF4G_REALIZATION}
+EXECUTABLE = /bin/bash 
+ARGUMENTS = "./WRF4G_ini.sh"
+INPUT_FILES   = sandbox.tar.gz, WRF4G_ini.sh
+RANK = (CPU_MHZ * 2) + FREE_MEM_MB 
+REQUIREMENTS = HOSTNAME = "local*" & QUEUE_NAME= "dinamica";
+NP=10
+#MONITOR=/usr/local/gw/libexec/gw_monitor.sh
+#REQUIREMENTS = HOSTNAME = "*.unican.es";
+#REQUIREMENTS = HOSTNAME = "ce01.afroditi.hellasgrid.gr";
+#REQUIREMENTS = QUEUE_ACCESS = "*:esr:*"
+#REQUIREMENTS = QUEUE_NAME = "hmem"
+#ENVIRONMENT = X509_USER_PROXY=/oceano/gmeteo/users/valva/x509up_u15104
+EOF
+}
+
+function submit_job () {
+  depid=$1
+  create_job_template
+  if test -n "${depid}"; then
+    depflag="-d ${depid}"
+  else
+    depflag=""
+  fi
+  #
+  #   Pack the sandbox
+  #
+  tar czh --exclude WRF4G_ini.sh -f sandbox.tar.gz *
+  gwsubmit -v ${depflag} -t job.gw | awk -F: '/JOB ID/ {print $2}'
+  rm job.gw
+
 }
 
 rm -f pids.${experiment_name}

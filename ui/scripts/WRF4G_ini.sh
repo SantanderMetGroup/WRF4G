@@ -2,6 +2,19 @@
 
 # WRF4G_ini.sh
 #
+
+function load_default_config (){
+ #
+ #  Some default values
+ #
+ save_wps=1
+ clean_after_run=1
+ timestep_dxfactor=6
+ real_parallel=0
+ wrf_parallel=1
+}
+
+#
 # WRF4G initializer
 #
 #
@@ -24,6 +37,7 @@ tar xzf sandbox.tar.gz
 #
 #  Load wrf.input and wrf.chunk
 #
+load_default_config
 sed -e 's/\ *=\ */=/' wrf.input > source.it  || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
 sed -e 's/\ *=\ */=/' wrf.chunk > source.it  || exit ${ERROR_MISSING_WRFCHUNK}
