@@ -315,12 +315,11 @@ cd ${LOCALDIR}/WRFV3/run || exit
         prepare_local_environment
     fi
 	
-    echo "${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out"
     fortnml -o -f namelist.input -s debug_level 0
     ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
-    # This time is also useful to  to copy the wpsout data
-    sleep 10 
+    # This time is also useful to copy the wpsout data
+    sleep 30
     ps -ef | grep wrf.exe
     wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   

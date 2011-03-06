@@ -1,9 +1,5 @@
 #! /bin/bash
 ulimit -s unlimited
-export MPICH_PROCESS_GROUP="no"
-#test -d "$TMPDIR" && cd $TMPDIR
-#test -d "$WRF4G_RUN_LOCAL" && cd $WRF4G_RUN_LOCAL
-#echo "I'm at $(pwd) in $(hostname)"
 ${0/_wrapper/} $* &
 test -f wrf.pid || echo "$!" > wrf.pid
 wait
