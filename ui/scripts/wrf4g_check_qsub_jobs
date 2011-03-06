@@ -1,6 +1,0 @@
-#! /bin/bash
-basedir=$(dirname $(dirname $(dirname $0)))
-
-cat $1 | awk '{printf "%s ", $1}' | xargs qstat -f | grep -iE '(Job Id|depend =|Job_Name|job_state|exit_status)'
-
-cat ${basedir}/wn/lib/bash/wrf4g_exit_codes.sh | awk -F= '{print $2, $1}' | sort
