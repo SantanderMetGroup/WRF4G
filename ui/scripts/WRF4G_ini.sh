@@ -20,13 +20,30 @@ function load_default_config (){
 #
 #  Change working directory to WRF4G_RUN_SHARED if needed 
 #
-tar xzf sandbox.tar.gz wrf4g.conf
+tar xzf sandbox.tar.gz wrf4g.conf wrf.input wrf.chunk
+
+load_default_config
+
+#
+#  Load wrf.input and wrf.chunk
+#
 source wrf4g.conf                            || exit ${ERROR_MISSING_WRF4GCNF}
-rm wrf4g.conf
+sed -e 's/\ *=\ */=/' wrf.input > source.it  || exit ${ERROR_MISSING_WRFINPUT}
+source source.it && rm source.it
+sed -e 's/\ *=\ */=/' wrf.chunk > source.it  || exit ${ERROR_MISSING_WRFCHUNK}
+source source.it && rm source.it
+
+rm wrf4g.conf wrf.input wrf.chunk
+
+
+export WRF4G_EXPERIMENT="${experiment_name}"
+export WRF4G_REALIZATION="${realization_name}"
+export WRF4G_CHUNK="${chunk_name}"
 
 ROOTDIR=$(pwd)
 if test -n "${WRF4G_RUN_SHARED}"; then
-  cd ${WRF4G_RUN_SHARED}
+  mkdir -p ${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
+  cd ${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
   mv ${ROOTDIR}/sandbox.tar.gz .
 fi 
 ROOTDIR=$(pwd)
@@ -35,16 +52,9 @@ ROOTDIR=$(pwd)
 #
 tar xzf sandbox.tar.gz 
 #
-#  Load wrf.input and wrf.chunk
-#
-load_default_config
-sed -e 's/\ *=\ */=/' wrf.input > source.it  || exit ${ERROR_MISSING_WRFINPUT}
-source source.it && rm source.it
-sed -e 's/\ *=\ */=/' wrf.chunk > source.it  || exit ${ERROR_MISSING_WRFCHUNK}
-source source.it && rm source.it
-#
 #   Expand the WRF4G scripts
 #
+export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
 export PATH="${ROOTDIR}/bin:$PATH"
 chmod +x ${ROOTDIR}/bin/*
 vcp ${WRF4G_APPS}/WRF4G-${WRF4G_VERSION}.tar.gz . || exit ${ERROR_MISSING_WRF4GSRC}
@@ -82,9 +92,6 @@ function w4gini_exit(){
 #
 #  Should this chunk REALLY run?
 #
-export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
-export WRF4G_EXPERIMENT="${experiment_name}"
-export WRF4G_REALIZATION="${realization_name}"
 if test ${is_restart} -eq 1; then
   echo "This is a forced-restart run" >> WRF4G_ini.out
   # This will make the trick...

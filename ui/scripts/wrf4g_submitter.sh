@@ -168,7 +168,7 @@ function cycle_chunks(){
           #
           #   Submit the job
           #
-          chunkjid=submit_job $(test ${is_restart} -eq 0 && echo ${chunkjid})
+          chunkjid=$(submit_job $(test ${is_restart} -eq 0 && echo ${chunkjid}))
         cd ${userdir}
         printf '%6d %04d %s %s %s\n' "${chunkjid}" "${chunkno}" "${current_date}" "${final_date}" "${realization_name}" >> pids.${experiment_name}
       fi
@@ -253,13 +253,13 @@ function create_job_template () {
 #  Create Gridway job template
 #
 cat << EOF > job.gw
-NAME = ${WRF4G_CHUNK}${WRF4G_REALIZATION}
+NAME = ${WRF4G_REALIZATION}
 EXECUTABLE = /bin/bash 
 ARGUMENTS = "./WRF4G_ini.sh"
 INPUT_FILES   = sandbox.tar.gz, WRF4G_ini.sh
 RANK = (CPU_MHZ * 2) + FREE_MEM_MB 
 REQUIREMENTS = HOSTNAME = "local*" & QUEUE_NAME= "dinamica";
-NP=10
+NP=2
 #MONITOR=/usr/local/gw/libexec/gw_monitor.sh
 #REQUIREMENTS = HOSTNAME = "*.unican.es";
 #REQUIREMENTS = HOSTNAME = "ce01.afroditi.hellasgrid.gr";
@@ -283,7 +283,6 @@ function submit_job () {
   tar czh --exclude WRF4G_ini.sh -f sandbox.tar.gz *
   gwsubmit -v ${depflag} -t job.gw | awk -F: '/JOB ID/ {print $2}'
   rm job.gw
-
 }
 
 rm -f pids.${experiment_name}
