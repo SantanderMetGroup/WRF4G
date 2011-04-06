@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/bash 
 #
 # wrf4g_submitter
 #
@@ -167,8 +167,8 @@ function cycle_chunks(){
         cd ${userdir}
         printf '%6d %04d %s %s %s\n' "${chunkjid}" "${chunkno}" "${current_date}" "${final_date}" "${realization_name}" >> pids.${experiment_name}
       fi
-      echo "create_wrf4g_chunk(id_rea,name,sdate,edate,wps,status)"
-      echo "CHUNK: id_rea,${chunkno},$current_date,$final_date,0, 0"
+      id_chunk=$(insert_vdb.py chunk id_rea=${id_rea},id_chunk=${chunkno},sdate=${current_date},edate=${final_date},wps=0,status=0)
+      echo $id_chunk
     fi
     #
     #  Cycle dates and jobids
@@ -202,10 +202,10 @@ function cycle_hindcasts(){
       final_date=${end_date}
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
-    echo "create_wrf4g_realization(id_exp,name,sdate,edate,status,cdate)"
-    echo "REA: id_exp,$realization_name,$current_date,$final_date,0, $current_date"
+    rea_name="${realization_name}__${cyy}${cmm}${cdd}${chh}_${fyy}${fmm}${fdd}${fhh}"
+    id_rea=$(insert_vdb.py rea id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date})
     #create_wrf4g_realization(id_exp,name,sdate,edate,status,cdate)
-    cycle_chunks ${realization_name}__${cyy}${cmm}${cdd}${chh}_${fyy}${fmm}${fdd}${fhh} ${current_date} ${final_date}
+    cycle_chunks ${realization_name} ${current_date} ${final_date}
     #
     #  Cycle dates
     #
@@ -229,8 +229,7 @@ function cycle_time(){
       ;;
     1)
       echo "---> Continuous run"
-      echo "create_wrf4g_realization(id_exp,name,sdate,edate,status,cdate)"
-      echo "REA: id_exp,$realization_name,$start_date,$end_date,0, $start_date"
+      id_rea=$(insert_vdb.py rea id_exp=${id_exp},name=${realization_name},sdate=${start_date},edate=${end_date},status=0,cdate=${start_date})
       #create_wrf4g_realization(id_exp,name,sdate,edate,status,cdate)
       cycle_chunks ${realization_name} ${start_date} ${end_date}
       ;;
@@ -314,9 +313,8 @@ fi
 #  Multiphysics support. Physical parameters overwritten!
 #
 
-echo "create_wrf4g_experiment(name,sdate,edate,mphysics,cont,basepath)"
-echo "${experiment_name}, ${start_date},${end_date},${is_multiphysics},${is_continuous},${WRF4G_BASEPATH}"
-
+id_exp=$(insert_vdb.py exp name=${experiment_name},sdate=${start_date},edate=${end_date},mphysics=${is_multiphysics},cont=${is_continuous},basepath=${WRF4G_BASEPATH})
+echo $id_exp
 if test "${is_multiphysics}" -ne "0"; then
   echo "---> Multi-physics run"
   for mpid in $(echo ${multiphysics_combinations} | tr '/' ' '); do
