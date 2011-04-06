@@ -9,8 +9,8 @@
 # function cycle_hindcasts(realization_name, start_date, end_date)
 # function cycle_time(realization_name, start_date, end_date)
 #
-
-
+usedb="no"
+rerun="no"
 isdry="no"
 justone="no"
 owforce="no"
@@ -56,6 +56,7 @@ source ${wrf4g_root}/wn/lib/bash/wrf_util.sh       || exit ${ERROR_MISSING_WRFUT
 #
 export WRF4G_CONF_FILE="${userdir}/wrf4g.conf"
 export WRF4G_EXPERIMENT="${experiment_name}"
+
 
 function get_ni_vars(){
   set | grep '^NI_' | sed -e 's/^NI_\(.*\)=.*$/\1/'
@@ -109,28 +110,19 @@ function cycle_chunks(){
   export WRF4G_REALIZATION="${realization_name}"
   realization_start_date=$2
   realization_end_date=$3
-  if_not_dry echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}"
-  #
-  if test -d realizations/${realization_name}; then
-    if test ${owforce} = "yes"; then
-      yon="y"
-    else
-      echo ""
-      echo "    >>>   THE REALIZATION ALREADY EXISTS!!   <<<"
-      echo ""
-      echo -n "Are you sure you want to send this experiment again? [y/N] "
-      read yon
-    fi
-    test "${yon}" = "y" || exit
-    tag=$(stat -c %y realizations | cut -c-19 | tr -d ': -')
-    mv realizations realizations.${tag}
+
+  if ! is_dry_run; then 
+   echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}"
+   #if test usedb = "yes" ;then 
+   #   create_wrf4g_experiment(name,status,start_date,end_date,multiphysics,hindcast)
+   #fi
   fi
+  
   current_date=${realization_start_date}
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
   read eyy emm edd ehh trash <<< $(echo ${realization_end_date} | tr '_:T-' '    ')
   chunkno=1
   chunkjid=""
-  create_job_template  
   while test ${cyy}${cmm}${cdd}${chh} -lt ${eyy}${emm}${edd}${ehh}
   do
     export WRF4G_CHUNK="$(printf '%04d' ${chunkno})"
@@ -143,32 +135,40 @@ function cycle_chunks(){
     fi
     if test ${is_restart} -eq 0 || 
       (test ${is_restart} -eq 1 && rematch "${rst_realization}" "${realization_name}" && rematch "${rst_chunk}" "${chunkno}" ; ) ; then
-      if is_dry_run ; then
+      if test is_dry_run -a $rerun = "no" ; then
         echo "  ${realization_name}  $(printf "%4d" ${chunkno})  ${current_date}  ${final_date}"
       else
         chunkdir="${userdir}/realizations/${realization_name}/$(printf '%04d' ${chunkno})"
-        mkdir -p ${chunkdir} || cannot_mkdir ${chunkdir}
         echo "  ---> chunk: ${chunkno} - ${current_date} -> ${final_date}"
-        test ${chunkno} -eq 1 && restart_flag=".F." || restart_flag=".T."
-        create_sandbox_file
-        mkdir -p ${chunkdir}/WRFV3/run
-        cp ${userdir}/namelist.input ${chunkdir}/WRFV3/run/namelist.input
-        cp ${userdir}/wrf.input      ${chunkdir}/wrf.input
-        cp ${userdir}/wrf4g.conf     ${chunkdir}/wrf4g.conf
-        mkdir ${chunkdir}/bin
-        cp ${wrf4g_root}/wn/bin/vcp  ${chunkdir}/bin/vcp
-        cp ${wrf4g_root}/wn/WRF4G.sh ${chunkdir}/WRF4G.sh
-        cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh ${chunkdir}/WRF4G_ini.sh
-        if test -d "wrf4g_files"; then
-          cd wrf4g_files/
-            tar czhf ${chunkdir}/wrf4g_files.tar.gz *
-          cd ..
+        if test rerun = "no" ;then 
+            #create_wrf4g_chunk(name,status,start_date,end_date,multiphysics,hindcast)
+            mkdir -p ${chunkdir} || cannot_mkdir ${chunkdir}            
+            test ${chunkno} -eq 1 && restart_flag=".F." || restart_flag=".T."
+            create_wrf_chunk
+            mkdir -p ${chunkdir}/WRFV3/run
+            cp ${userdir}/namelist.input ${chunkdir}/WRFV3/run/namelist.input
+            cp ${userdir}/wrf.input      ${chunkdir}/wrf.input
+            cp ${userdir}/wrf4g.conf     ${chunkdir}/wrf4g.conf
+            mkdir ${chunkdir}/bin
+            cp ${wrf4g_root}/wn/bin/vcp  ${chunkdir}/bin/vcp
+            cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh ${chunkdir}/WRF4G_ini.sh
+            if test -d "wrf4g_files"; then
+               cd wrf4g_files/
+               tar czhf ${chunkdir}/wrf4g_files.tar.gz *
+               cd ..
+            fi
+            #
+            #   Pack the sandbox
+            #
+            tar czh --exclude WRF4G_ini.sh -f sandbox.tar.gz *
+            rm -rf wrf4g.conf wrf.input WRFV3 bin wrf.chunk
+            create_job_template
         fi
-        cd ${chunkdir}
+        cd ${chunkdir}      
           #
           #   Submit the job
           #
-          chunkjid=$(submit_job $(test ${is_restart} -eq 0 && echo ${chunkjid}))
+          chunkjid=submit_job $(test ${is_restart} -eq 0 && echo ${chunkjid})
         cd ${userdir}
         printf '%6d %04d %s %s %s\n' "${chunkjid}" "${chunkno}" "${current_date}" "${final_date}" "${realization_name}" >> pids.${experiment_name}
       fi
@@ -235,7 +235,7 @@ function cycle_time(){
 
 
 
-function create_sandbox_file () {
+function create_wrf_chunk () {
 #
 #  Create the sandbox file
 #
@@ -253,13 +253,13 @@ function create_job_template () {
 #  Create Gridway job template
 #
 cat << EOF > job.gw
-NAME = ${WRF4G_REALIZATION}
+NAME = ${WRF4G_CHUNK}${WRF4G_REALIZATION}
 EXECUTABLE = /bin/bash 
 ARGUMENTS = "./WRF4G_ini.sh"
 INPUT_FILES   = sandbox.tar.gz, WRF4G_ini.sh
 RANK = (CPU_MHZ * 2) + FREE_MEM_MB 
 REQUIREMENTS = HOSTNAME = "local*" & QUEUE_NAME= "dinamica";
-NP=2
+NP=10
 #MONITOR=/usr/local/gw/libexec/gw_monitor.sh
 #REQUIREMENTS = HOSTNAME = "*.unican.es";
 #REQUIREMENTS = HOSTNAME = "ce01.afroditi.hellasgrid.gr";
@@ -271,25 +271,27 @@ EOF
 
 function submit_job () {
   depid=$1
-  create_job_template
+
   if test -n "${depid}"; then
     depflag="-d ${depid}"
   else
     depflag=""
   fi
-  #
-  #   Pack the sandbox
-  #
-  tar czh --exclude WRF4G_ini.sh -f sandbox.tar.gz *
+
   gwsubmit -v ${depflag} -t job.gw | awk -F: '/JOB ID/ {print $2}'
-  rm job.gw
 }
 
 rm -f pids.${experiment_name}
 #
 #  Initial override of namelist values
 #
+if test -d realizations; then
+   rerun="yes"
+   isdry="yes"
+fi
+
 if ! is_dry_run; then 
+  #create_wrf4g_experiment(name,status,start_date,end_date,multiphysics,hindcast)
   cp ${wrf4g_root}/wn/WRFV3/test/em_real/namelist.input ${userdir}/namelist.input.base
   fortnml -wof namelist.input.base -s max_dom ${max_dom}
   for var in $(get_ni_vars); do
