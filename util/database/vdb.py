@@ -6,6 +6,7 @@ import os
 import rlcompleter
 import readline
 from re import search
+from optparse import OptionParser
 readline.parse_and_bind("tab: complete")
 #sys.path.append("/oceano/gmeteo/users/valva/python/MySQL-python/") 
 
@@ -18,14 +19,14 @@ class vdb:
    def __init__(self,host="ui01.macc.unican.es",user="gridway",db="cam",port=13306,passwd="ui01"):
    # connect
      try:
-       self.con = MySQLdb.connect(host="ui01.macc.unican.es", user="root",db="WRF4GDB",port=13306,passwd="anjanas")
+       self.con = MySQLdb.connect(host="ui01.macc.unican.es", user="gridway",db="WRF4GDB",port=13306,passwd="ui01")
       # db = MySQLdb.connect('host'=host, 'user'=user,'db'=db,'port'=port,'passwd'=passwd)
      except MySQLdb.Error, e:
        print "Error %d: %s" % (e.args[0], e.args[1])
        exit(9)
      
 
-   def insert(self,table,data,verbose=False):
+   def insert(self,table,data,condition,verbose=False):
       """ INSERT INTO table (data(keys)) VALUES(data(values))
       Insert in "table" the values from the "data" dictionary
       c=vdb()
@@ -55,7 +56,7 @@ class vdb:
       id=list_query().one_field(result)
       return id
 
-   def select(self,fields,table,condition='1=1',verbose=False):
+   def select(self,table,data,condition='1=1',verbose=False):
       """ SELECT fields FROM table WHERE condition
       Returns a dictionary with the name of the fields and their contents. 
       
@@ -72,7 +73,7 @@ class vdb:
       
       # execute SQL INSERT statement
       try:
-        query="SELECT %s FROM %s WHERE %s" % (fields, table, condition)
+        query="SELECT %s FROM %s WHERE %s" % (data, table, condition)
         if verbose:
            stderr.write(query + "\n")
         cursor.execute(query)
@@ -121,7 +122,8 @@ class vdb:
         exit(10)
      
       self.con.commit()
-      self.con.close()           
+      self.con.close()      
+      return 0
 
 class list_query:
    """This class receive a list from a select query and format it. 
@@ -179,22 +181,43 @@ class list_query:
 
 if __name__ == "__main__":
    usage="""%prog [OPTIONS] SOURCE DEST
-   
-   Example: %prog -r -p 10 /tmp/prueba gsiftp://se01.macc.unican.es/tmp/valva
-   
-   URL examples:
-   LFC              lfn://vo.prod.eela-eu.eu@computer:/grid/valva
-   GRIDTP           gridftp://computer:2812/grid/valva
-   RSYNC            rsync://valva@computer:34/grid/valva
-   SIMBOLIC LINK    ln:///valva or ln:valva
-   FILE             valva
+   Example: %prog insert -v experiment id_experiment=nino97,UI_experiment=mon01.macc.unican.es
+            %prog update -v experiment id_experiment=exp01 id>8
+            %prog select -v experiment id_experiment,UI_experiment id_experiment=\'prueba4\'
+         INSERT INTO experiment (UI_experiment,id_experiment) VALUES ('mon01.macc.unican.es', 'nino99')
    """
    
+   parser = OptionParser(usage,version="%prog 1.0")
+   parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
+   
+   (options, args) = parser.parse_args()
+   
 
    
-   a=vdb()
-
-   data={'id_experiment': 'prueba4', 'n_realization_experiment':'2'} 
-   output = a.select("url","files","vfn=\'dir_cam_out\'",verbose=False )
-   print output
-   print list_query().random(output,'p',tries=1)
+   if len(args) == 3:
+     condition='1=1'
+   elif len(args) == 4:	    
+     condition=args[3]
+   else:
+     parser.error("Incorrect number of arguments")
+     exit(1)
+ 
+   statement=args[0]
+   table=args[1]
+   if statement == "select":
+     pairs=args[2]  
+   else:
+     pairs={}
+     for pair in args[2].split(',') :
+       if options.verbose:   stderr.write("FIELDS:" + pair + "\n") 
+       [field,value]=pair.split('=')
+       pairs[field]=value
+    
+     
+   con=vdb()
+   o=getattr(con,statement)(table=table,data=pairs,condition=condition,verbose=options.verbose)
+   
+   if statement == "select":
+      o=list_query().one_field(o)
+   print o
+   
