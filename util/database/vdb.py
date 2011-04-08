@@ -1,4 +1,4 @@
-#!/usr/bin/python -i
+#!/usr/bin/python
 
 from sys import stderr,exit
 import MySQLdb
@@ -26,14 +26,14 @@ class vdb:
        exit(9)
      
 
-   def insert(self,table,data,condition,verbose=False):
+   def insert(self,table,data,condition='1=1',verbose=False):
       """ INSERT INTO table (data(keys)) VALUES(data(values))
       Insert in "table" the values from the "data" dictionary
       c=vdb()
       c.insert("experiments",{'id_experiment': 'prueba1', 'n_realization_experiment':'2'} )
       INSERT INTO experiment (id_experiment,n_realization_experiment) VALUES('prueba1','2')
       """
-
+      print data
       # create a cursor
       cursor = self.con.cursor (MySQLdb.cursors.DictCursor)
       
@@ -62,7 +62,7 @@ class vdb:
       
       Example:
       c=vdb()
-      output = c.select("n_realization_experiment,UI_experiment","realization","id_experiment='prueba1'" )
+      output = c.select("realization","n_realization_experiment,UI_experiment","id_experiment='prueba1'" )
             
       SELECT n_realization_experiment FROM experiment WHERE id_experiment='prueba1'     
  
@@ -220,4 +220,6 @@ if __name__ == "__main__":
    if statement == "select":
       o=list_query().one_field(o)
    print o
+
+
    
