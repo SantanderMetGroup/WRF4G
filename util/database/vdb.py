@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from sys import stderr,exit
+from sys import stderr, exit
 import MySQLdb
 import os
 import rlcompleter
@@ -16,17 +16,17 @@ class vdb:
    """
        
 
-   def __init__(self,host="ui01.macc.unican.es",user="gridway",db="cam",port=13306,passwd="ui01"):
+   def __init__(self, host="ui01.macc.unican.es", user="gridway", db="cam", port=13306, passwd="ui01"):
    # connect
      try:
-       self.con = MySQLdb.connect(host="ui01.macc.unican.es", user="gridway",db="WRF4GDB",port=13306,passwd="ui01")
+       self.con = MySQLdb.connect(host="ui01.macc.unican.es", user="gridway", db="WRF4GDB", port=13306, passwd="ui01")
       # db = MySQLdb.connect('host'=host, 'user'=user,'db'=db,'port'=port,'passwd'=passwd)
      except MySQLdb.Error, e:
        print "Error %d: %s" % (e.args[0], e.args[1])
        exit(9)
      
 
-   def insert(self,table,data,condition='1=1',verbose=False):
+   def insert(self, table, data, condition='1=1', verbose=False):
       """ INSERT INTO table (data(keys)) VALUES(data(values))
       Insert in "table" the values from the "data" dictionary
       c=vdb()
@@ -39,8 +39,8 @@ class vdb:
       
       # execute SQL INSERT statement
       try:
-        v=str(data.values())[1:-1]
-        query="INSERT INTO %s (%s) VALUES (%s)" % (table, ','.join(data.keys()), v)
+        v = str(data.values())[1:-1]
+        query = "INSERT INTO %s (%s) VALUES (%s)" % (table, ','.join(data.keys()), v)
         if verbose:
            stderr.write(query + "\n")
         cursor.execute(query)
@@ -53,10 +53,10 @@ class vdb:
 
       self.con.commit()
       self.con.close()  
-      id=list_query().one_field(result)
+      id = list_query().one_field(result)
       return id
 
-   def select(self,table,data,condition='1=1',verbose=False):
+   def select(self, table, data, condition='1=1', verbose=False):
       """ SELECT fields FROM table WHERE condition
       Returns a dictionary with the name of the fields and their contents. 
       
@@ -73,7 +73,7 @@ class vdb:
       
       # execute SQL INSERT statement
       try:
-        query="SELECT %s FROM %s WHERE %s" % (data, table, condition)
+        query = "SELECT %s FROM %s WHERE %s" % (data, table, condition)
         if verbose:
            stderr.write(query + "\n")
         cursor.execute(query)
@@ -89,7 +89,7 @@ class vdb:
       # return an array with a dictionary for each entry
       return result
 
-   def update(self,table,data,condition='1=1',verbose=False):
+   def update(self, table, data, condition='1=1', verbose=False):
       """ UPDATE table SET data WHERE condition
       UPDATE "table" with the values of the "data" dictionary
       Returns a dictionary with the name of the fields and their contents. 
@@ -103,16 +103,16 @@ class vdb:
       cursor = self.con.cursor (MySQLdb.cursors.DictCursor)
 
       # Conversion of the dictionary into a string with the pairs separated by commas.
-      val=""
+      val = ""
       for field in data.keys():
-         val+="%s='%s'," % (field,data[field])
+         val += "%s='%s'," % (field, data[field])
   
       # "val" is a string with comma separated pairs: UI_experiment='sipc18',end_experiment='1998-08-01_00:00:00', 
       # Here, we remove the last comma character
  
       # execute SQL INSERT statement
       try:
-        query="UPDATE %s SET %s WHERE %s" % (table, val[:-1], condition)
+        query = "UPDATE %s SET %s WHERE %s" % (table, val[:-1], condition)
         if verbose:
            stderr.write(query + "\n")
         cursor.execute(query)
@@ -131,48 +131,48 @@ class list_query:
       Example: val=list().single(out)
    """
 
-   def one_field(self,result,interpreter='bash'):
+   def one_field(self, result, interpreter='bash'):
       """From the result of a query in list format, get the value of the
       first column and format it for bash or python
       """
       if interpreter == 'bash':
-        lista=""
+        lista = ""
         for dicti in result:
-            if len(lista)== 0 : lista=str(dicti.values()[0]) 
-            else:               lista=str(dicti.values()[0]) + " " + lista
+            if len(lista) == 0 : lista = str(dicti.values()[0]) 
+            else:               lista = str(dicti.values()[0]) + " " + lista
       else:
-        lista=[]
+        lista = []
         for dicti in result:
             lista.append(dicti.values()[0])
       return lista  
 
-   def random(self,result,interpreter='bash',tries=3):
+   def random(self, result, interpreter='bash', tries=3):
       """From the result of a query in list format, get the value of the
       first column and give it back in random order and with the number
       of elements indicated in tries
       """
       from random import choice
-      lista=[]
+      lista = []
       for dicti in result:
           lista.append(dicti.values()[0])
-      i=0
-      rlista=[]
+      i = 0
+      rlista = []
 
       # Find if there is a replica in the same site. It there is not 
       # download aleatory.
 
       for e in lista:
          ce = os.getenv("GW_HOSTNAME")
-         if ce is not None and search("%s/" %ce[-4:], e):
+         if ce is not None and search("%s/" % ce[-4:], e):
 	     lista.remove(e)
-             lista.insert(0,e)
+             lista.insert(0, e)
              rlista.append(e)
-             tries=tries-1
+             tries = tries - 1
 
-      while lista != [] and i<tries:
+      while lista != [] and i < tries:
          elem = choice(lista)
          lista.remove(elem)
-         i=i+1
+         i = i + 1
          rlista.append(elem)
       return rlista  
 
@@ -180,46 +180,47 @@ class list_query:
 
 
 if __name__ == "__main__":
-   usage="""%prog [OPTIONS] SOURCE DEST
+   usage = """%prog [OPTIONS] SOURCE DEST
    Example: %prog insert -v experiment id_experiment=nino97,UI_experiment=mon01.macc.unican.es
             %prog update -v experiment id_experiment=exp01 id>8
             %prog select -v experiment id_experiment,UI_experiment id_experiment=\'prueba4\'
          INSERT INTO experiment (UI_experiment,id_experiment) VALUES ('mon01.macc.unican.es', 'nino99')
    """
    
-   parser = OptionParser(usage,version="%prog 1.0")
-   parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
+   parser = OptionParser(usage, version="%prog 1.0")
+   parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Verbose mode. Explain what is being done")
    
    (options, args) = parser.parse_args()
    
 
    
    if len(args) == 3:
-     condition='1=1'
+     condition = '1=1'
    elif len(args) == 4:	    
-     condition=args[3]
+     condition = args[3]
    else:
      parser.error("Incorrect number of arguments")
      exit(1)
  
-   statement=args[0]
-   table=args[1]
+   statement = args[0]
+   table = args[1]
    if statement == "select":
-     pairs=args[2]  
+     pairs = args[2]  
    else:
-     pairs={}
+     pairs = {}
      for pair in args[2].split(',') :
        if options.verbose:   stderr.write("FIELDS:" + pair + "\n") 
-       [field,value]=pair.split('=')
-       pairs[field]=value
+       [field, value] = pair.split('=')
+       pairs[field] = value
     
      
-   con=vdb()
-   o=getattr(con,statement)(table=table,data=pairs,condition=condition,verbose=options.verbose)
+   con = vdb()
+   o = getattr(con, statement)(table=table, data=pairs, condition=condition, verbose=options.verbose)
    
    if statement == "select":
-      o=list_query().one_field(o)
+      o = list_query().one_field(o)
    print o
+
 
 
    

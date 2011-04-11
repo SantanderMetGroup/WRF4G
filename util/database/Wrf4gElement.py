@@ -12,20 +12,19 @@ readline.parse_and_bind("tab: complete")
 
 
 
-class experiment:
-    """ experiment CLASS
+class Wrf4gElement:
+    """  Wrf4gElement CLASS
     """
        
-    def __init__(self,name,sdate='',edate='',mphysics='',cont='',basepath=''):
-        self.name=name
-        self.sdate=sdate
-        self.edate=edate
-        self.mphysics=mphysics
-        self.cont=cont
-        self.basepath=basepath
-    
+    def __init__(self,data,verbose='no'):
+        self.verbose=verbose
+        self.element=self.__class__.__name__
+        for field in keys(data):            
+            setattr(self,field,data['field'])
+            
+            output=getattr(exp,function)(*fvalues)
    
-    def get_id(self, verbose='no'):
+    def get_id(self,fields):
         """    
         Query database to check if the experiment exists
         Returns:
@@ -34,11 +33,12 @@ class experiment:
         """
         dbc=vdb.vdb()
         wheresta="name='%s'" %self.name
-        id=dbc.select('exp','id', wheresta, verbose=1 )
+        idp=dbc.select('exp','id', wheresta, verbose=1 )
+        id = vdb.list_query().one_field(idp)
         if id>0: return id
         else: return -1
 
-    def  compare_all(self, verbose='no'):
+    def  matches(self,fields):
         """    
         Query database to check in the experiment exists
         Returns:
@@ -47,27 +47,16 @@ class experiment:
         2 --> mutliphysics or edate are differents
         3 --> exists another experiment with this name    
         """
-        
         dbc=vdb.vdb()
-        wheresta=''
-        fi=''
-
-        for field,value in self.__dict__.items():        
-            #wheresta=wheresta+'%s=%s,'%(field,value)
-            wheresta=",name='%s'" %self.name
-            fi=fi +','+ field 
+        wheresta="name='%s' AND sdate='%s' AND edate='%s'" %(self.name,self.sdate,self.edate)      
         
-        # Remove the last comma in both strings
-        fi=fi[1:]
-        wheresta=wheresta[1:]
-        
-        dic=dbc.select('exp',fi, wheresta, verbose=1 )
-        print dic
+        dic=dbc.select('exp','id', wheresta, verbose=1 )
+        id = vdb.list_query().one_field(dic)
         if id>0: return id
         else: return -1
+          
     
-    
-    def  loadfromDB(self, verbose='no'):
+    def  loadfromDB(self,fields):
      """    
      Given the experiment name, this function loads into the class all the experiment values.
      Returns:
@@ -102,9 +91,9 @@ class experiment:
 def pairs2dict(pairs):
     d={}
     for p in pairs.split(','):
-       s=p.split('=')
-       d[s[0]]=s[1]
-       return d
+        s=p.split('=')
+        d[s[0]]=s[1]
+    return d
 
 """def dict2pairs(dicti):
     fi=''
@@ -114,30 +103,29 @@ def pairs2dict(pairs):
 """    
 
 if __name__ == "__main__":
-   usage="""%prog [OPTIONS] exp_values function fvalues 
-            Example: %prog 
-   """
-
-       
-   parser = OptionParser(usage,version="%prog 1.0")
-   parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
-   
-   (options, args) = parser.parse_args()
-   
-   if len(args) < 2:
-     parser.error("Incorrect number of arguments")
-     exit(1)
+    usage="""%prog [OPTIONS] exp_values function fvalues 
+             Example: %prog 
+    """
     
-   function=args[0]
-   exp_values=args[1]
-   fvalues=[]
-   if len(args)>2:   fvalues=args[2:]
-   exp=experiment(**pairs2dict(exp_values))
-   
-   
-   
-   output=getattr(exp,function)(*fvalues)
-   print output
+        
+    parser = OptionParser(usage,version="%prog 1.0")
+    parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
+     
+    (options, args) = parser.parse_args()
+    
+    if len(args) < 2:
+        parser.error("Incorrect number of arguments")
+        exit(1)
+      
+    function=args[0]
+    exp_values=args[1]
+    fvalues=[]
+    if len(args)>2:   fvalues=args[2:]
+    exp=experiment(**pairs2dict(exp_values))
+    
+     
+    output=getattr(exp,function)(*fvalues)
+    print output
 
 
 
