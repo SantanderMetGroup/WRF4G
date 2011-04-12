@@ -26,14 +26,14 @@ class vdb:
        exit(9)
      
 
-   def insert(self, table, data, condition='1=1', verbose=False):
+   def insert(self, table, data, verbose=False):
       """ INSERT INTO table (data(keys)) VALUES(data(values))
       Insert in "table" the values from the "data" dictionary
       c=vdb()
       c.insert("experiments",{'id_experiment': 'prueba1', 'n_realization_experiment':'2'} )
       INSERT INTO experiment (id_experiment,n_realization_experiment) VALUES('prueba1','2')
       """
-      print data
+      
       # create a cursor
       cursor = self.con.cursor (MySQLdb.cursors.DictCursor)
       
@@ -124,6 +124,29 @@ class vdb:
       self.con.commit()
       self.con.close()      
       return 0
+  
+   def describe(self,table,verbose=False):
+       cursor = self.con.cursor (MySQLdb.cursors.DictCursor)
+       
+      # execute SQL INSERT statement
+       try:
+        query = "DESCRIBE %s" % table
+        if verbose:
+           stderr.write(query + "\n")
+        cursor.execute(query)
+        result = cursor.fetchall()
+ 
+       except MySQLdb.Error, e:
+        print "Error %d: %s" % (e.args[0], e.args[1])
+        exit(8)
+
+       self.con.commit()
+       self.con.close()
+       fields=[]
+       for i in result:
+           fields.append(i['Field'])
+       return fields
+      
 
 class list_query:
    """This class receive a list from a select query and format it. 
@@ -184,6 +207,7 @@ if __name__ == "__main__":
    Example: %prog insert -v experiment id_experiment=nino97,UI_experiment=mon01.macc.unican.es
             %prog update -v experiment id_experiment=exp01 id>8
             %prog select -v experiment id_experiment,UI_experiment id_experiment=\'prueba4\'
+            %prog describe -v experiment
          INSERT INTO experiment (UI_experiment,id_experiment) VALUES ('mon01.macc.unican.es', 'nino99')
    """
    
@@ -193,29 +217,30 @@ if __name__ == "__main__":
    (options, args) = parser.parse_args()
    
 
+   if len(args) < 2:
+    parser.error("Incorrect number of arguments")
+    exit(1)
    
-   if len(args) == 3:
-     condition = '1=1'
-   elif len(args) == 4:	    
-     condition = args[3]
-   else:
-     parser.error("Incorrect number of arguments")
-     exit(1)
- 
+   dict={} 
    statement = args[0]
-   table = args[1]
+   dict['table'] = args[1]
+   dict['verbose']=options.verbose
+   
    if statement == "select":
-     pairs = args[2]  
-   else:
+     dict['data'] = args[2]       
+   elif statement == "insert" or statement == "update":
      pairs = {}
      for pair in args[2].split(',') :
        if options.verbose:   stderr.write("FIELDS:" + pair + "\n") 
        [field, value] = pair.split('=')
        pairs[field] = value
+     dict['data']=pairs
     
+   if len(args) >= 4:
+       dict['condition']=' '.join(args[3:])
      
    con = vdb()
-   o = getattr(con, statement)(table=table, data=pairs, condition=condition, verbose=options.verbose)
+   o = getattr(con, statement)(**dict)
    
    if statement == "select":
       o = list_query().one_field(o)

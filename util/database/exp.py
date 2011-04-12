@@ -11,7 +11,6 @@ from optparse import OptionParser
 readline.parse_and_bind("tab: complete")
 
 
-
 class Wrf4gElement:
     """  Wrf4gElement CLASS
     """
@@ -87,8 +86,7 @@ class Wrf4gElement:
         id=dbc.insert(self.element,self.data,verbose=self.verbose)
         if id>0: return id
         else: return -1
-       
-
+      
     
 def pairs2dict(pairs):
     d={}
@@ -105,12 +103,13 @@ def list2fields(arr):
     return fields
 
 
-"""def dict2pairs(dicti):
-    fi=''
-    for field,value in dicti.items():        
-        fi= ",%s=%s"%(fi, field)
-    return fi[1:]
-"""    
+class exp(Wrf4gElement):
+    
+    """  Wrf4gElement CLASS
+    """
+    def print_hola(self):
+        print "hola"
+ 
 
 if __name__ == "__main__":
     usage="""%prog [OPTIONS] exp_values function fvalues 
@@ -132,15 +131,17 @@ if __name__ == "__main__":
     elif len(args) > 2:   fvalues=args[2:]
         
     if len(args) == 1 and function == "get_all_fields":
-        exp=Wrf4gElement(data='',verbose=options.verbose)
+        exp=exp(data='',verbose=options.verbose)
         output=getattr(exp,function)()
         print ','.join(output)
+        exp.print_hola()
 
         
     else:
-        exp=Wrf4gElement(pairs2dict(exp_values),options.verbose)
+        exp=exp(pairs2dict(exp_values),options.verbose)
         output=getattr(exp,function)(fvalues)   
         print output
+
 
 
 
