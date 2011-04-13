@@ -114,7 +114,13 @@ class Component:
         -1--> Creation Failed
         """
         dbc=vdb.vdb()
-        id=dbc.update(self.element,self.data,verbose=self.verbose)
+        
+        ddata={}
+        for field in self.get_reconfigurable_fields():
+            ddata[field]=self.data[field]
+        
+        condition='id=%s'%self.data['id']
+        id=dbc.update(self.element,ddata,condition,verbose=self.verbose)
         if id>0: return id
         else: return -1   
      
@@ -131,30 +137,30 @@ class Component:
         2--> Error. Experiment configuration not suitable with database
         """       
         change=0
-        print self.get_distinct_fields()
         id=self.get_id(self.get_distinct_fields())
+        if id != -1: self.data['id']=id
         # Experiment exists in database
         if id > 0:
-            id=self.get_id(self.__get_configuration_fields())
+            id=self.get_id(self.get_configuration_fields())
             # Experiment is different that the one found in the database
             if id == -1:
-                if reconfigure == "no":
-                    stderr.write("""Error: %s %s with the same name and different
-                    configuation already exists"""%self.element) 
+                if self.reconfigure == False:
+                    stderr.write("""Error: %s with the same name and different
+                    configuation already exists\n""" %self.element) 
                     change=-1
                 else: 
-                    id=self.get_id(self.__get_no_reconfigurable_fields())
+                    id=self.get_id(self.get__no_reconfigurable_fields())
                     if id == -1:
                         stderr.write("""Error: %s with the same name and different
-                        configuation already exists"""%self.element) 
+                        configuation already exists\n"""%self.element) 
                         exit(9)
                     else: 
                         self.update()
                         change=1
             else:
-                if self.verbose: stderr.writte('%s already exists.'%self.element)
+                if self.verbose: stderr.write('%s already exists.\n'%self.element)
         else:
-            if self.verbose: stderr.writte('Creating %s'%self.element)
+            if self.verbose: stderr.write('Creating %s\n'%self.element)
             self.create()
             change=1
             
@@ -166,14 +172,17 @@ class Experiment(Component):
     
     """  Experiment CLASS
     """
-    def __get__no_reconfigurable_fields(self):
-        return ['sdate','edate']
+    def get__no_reconfigurable_fields(self):
+        return ['id','cont','basepath']
     
-    def __get_configuration_fields(self):
-        return ['sdate','edate','basepath','cont']
+    def get_configuration_fields(self):
+        return ['id','sdate','edate','basepath','cont']
     
     def get_distinct_fields(self):
         return['name']
+        
+    def get_reconfigurable_fields(self):
+        return['sdate','edate']
     
    
       
@@ -199,7 +208,7 @@ if __name__ == "__main__":
         
     class_name=args[0]
     function=args[1]
-    
+
     data=''
     if len(args) > 2:   data=pairs2dict(args[2])         
     inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure)"%(class_name,data)
