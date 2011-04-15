@@ -1,4 +1,4 @@
-#! /bin/bash 
+#! /bin/bash -x
 #
 # wrf4g_submitter
 #
@@ -29,6 +29,10 @@ if test ${#} -ge 1; then
         ;;
       --wait)
           waitsec=$2; shift
+        ;;
+      --reconfigure)
+      	  reconfigure="yes"
+          WRF4G_FLAGS="-r"
         ;;
       *)
         echo "Unknown argument: $1"
@@ -74,6 +78,11 @@ function is_dry_run(){
   test "${isdry}" = "yes"
 }
 
+function is_reconfigure(){
+  test "${reconfigure}" = "yes"
+}
+
+
 function should_not_run_this_chunk(){
   test "$(date2int ${current_date}) -gt $(date2int ${queue_end_date})" -o "$(date2int ${final_date}) -lt $(date2int ${queue_start_date})"
 }
@@ -107,9 +116,10 @@ function cycle_chunks(){
   local cyy cmm cdd chh current_date
   local fyy fmm fdd fhh final_date
   realization_name=$1
+  id_rea=$2
   export WRF4G_REALIZATION="${realization_name}"
-  realization_start_date=$2
-  realization_end_date=$3
+  realization_start_date=$3
+  realization_end_date=$4
 
   if ! is_dry_run; then 
    echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}"   
@@ -130,6 +140,7 @@ function cycle_chunks(){
       final_date=${realization_end_date}
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
+    
     if test ${is_restart} -eq 0 || 
       (test ${is_restart} -eq 1 && rematch "${rst_realization}" "${realization_name}" && rematch "${rst_chunk}" "${chunkno}" ; ) ; then
       if is_dry_run; then
@@ -167,7 +178,8 @@ function cycle_chunks(){
         cd ${userdir}
         printf '%6d %04d %s %s %s\n' "${chunkjid}" "${chunkno}" "${current_date}" "${final_date}" "${realization_name}" >> pids.${experiment_name}
       fi
-      id_chunk=$(insert_vdb.py chunk id_rea=${id_rea},id_chunk=${chunkno},sdate=${current_date},edate=${final_date},wps=0,status=0)
+      
+      id_chunk=$(WRF4G.py -v -r Chunk prepare id_rea=${id_rea},id_chunk=${chunkno},sdate=${current_date},edate=${final_date},wps=0,status=0)
       echo $id_chunk
     fi
     #
@@ -183,8 +195,11 @@ function cycle_chunks(){
 
 function cycle_hindcasts(){
   realization_name=$1
-  start_date=$2
-  end_date=$3
+  id_exp=$2
+  start_date=$3
+  end_date=$4
+  mphysics_label=$5
+  
   echo "---> cycle_hindcasts: $1 $2 $3"
   current_date=${start_date}
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
@@ -203,9 +218,10 @@ function cycle_hindcasts(){
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
     rea_name="${realization_name}__${cyy}${cmm}${cdd}${chh}_${fyy}${fmm}${fdd}${fhh}"
-    id_rea=$(insert_vdb.py rea id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date})
+    id_rea=$(WRF4G.py -r -v Realization prepare rea id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},mphysics_label=${mphysics_label})
+
     #create_wrf4g_realization(id_exp,name,sdate,edate,status,cdate)
-    cycle_chunks ${realization_name} ${current_date} ${final_date}
+    cycle_chunks ${id_rea} ${realization_name} ${current_date} ${final_date}
     #
     #  Cycle dates
     #
@@ -217,21 +233,24 @@ function cycle_hindcasts(){
 
 function cycle_time(){
   realization_name=$1
-  start_date=$2
-  end_date=$3
+  id_exp=$2
+  start_date=$3
+  end_date=$4
+  mphysics_label=$5
+  
    
   case ${is_continuous} in
     0)
       echo "---> Hindcast run"
       test -n "${simulation_length_h}" || exit
       test -n "${simulation_interval_h}" || exit
-      cycle_hindcasts ${realization_name} ${start_date} ${end_date}
+      cycle_hindcasts ${id_exp} ${realization_name} ${start_date} ${end_date} ${mphysics_label}
       ;;
     1)
       echo "---> Continuous run"
-      id_rea=$(insert_vdb.py rea id_exp=${id_exp},name=${realization_name},sdate=${start_date},edate=${end_date},status=0,cdate=${start_date})
+      id_rea=$(WRF4G.py -r -v Realization prepare rea id_exp=${id_exp},name=${realization_name},sdate=${start_date},edate=${end_date},status=0,cdate=${start_date},mphysics_label=${mphysics_label})
       #create_wrf4g_realization(id_exp,name,sdate,edate,status,cdate)
-      cycle_chunks ${realization_name} ${start_date} ${end_date}
+      cycle_chunks ${id_rea} ${realization_name} ${start_date} ${end_date}
       ;;
   esac
 }
@@ -284,57 +303,83 @@ function submit_job () {
   gwsubmit -v ${depflag} -t job.gw | awk -F: '/JOB ID/ {print $2}'
 }
 
+
 rm -f pids.${experiment_name}
+skip=0
 #
 #  Initial override of namelist values
 #
-if test -d realizations; then
-   rerun="yes"
-   isdry="yes"
-fi
-
-if ! is_dry_run; then 
-  cp ${wrf4g_root}/wn/WRFV3/test/em_real/namelist.input ${userdir}/namelist.input.base
-  fortnml -wof namelist.input.base -s max_dom ${max_dom}
-  for var in $(get_ni_vars); do
-    fnvar=${var/__/@}
-    fortnml -wof namelist.input.base -s $fnvar -- $(eval echo \$NI_${var})
-  done
-  for var in $(get_nim_vars); do
-    fnvar=${var/__/@}
-    fortnml -wof namelist.input.base -s $fnvar -- $(eval "echo \$NIM_${var} | tr ',' ' '")
-  done
-  for var in $(get_nin_vars); do
-    fnvar=${var/__/@}
-    fortnml -wof namelist.input.base -m $fnvar -- $(eval echo \$NIN_${var})
-  done
-fi
-#
-#  Multiphysics support. Physical parameters overwritten!
-#
-
-id_exp=$(insert_vdb.py exp name=${experiment_name},sdate=${start_date},edate=${end_date},mphysics=${is_multiphysics},cont=${is_continuous},basepath=${WRF4G_BASEPATH})
-echo $id_exp
-if test "${is_multiphysics}" -ne "0"; then
-  echo "---> Multi-physics run"
-  for mpid in $(echo ${multiphysics_combinations} | tr '/' ' '); do
-    if_not_dry cp namelist.input.base namelist.input
-    iphys=1
-    for var in $(echo ${multiphysics_variables} | tr ',' ' '); do
-      thisphys=$(tuple_item ${mpid} ${iphys})
-      if echo ${thisphys} | grep -q ':' ; then
-        if_not_dry fortnml_setm namelist.input $var ${thisphys//:/ } 
-      else
-        nitems=$(tuple_item ${multiphysics_nitems} ${iphys})
-        if_not_dry fortnml_setn namelist.input $var ${nitems} ${thisphys}
-      fi
-      let iphys++
-    done
-    stripmpid=${mpid//:/}
-    cycle_time "${experiment_name}__${stripmpid//,/_}" ${start_date} ${end_date}
-  done
+if [ -z ${multiphysics_labels// /} ]; then
+    mlabel=${multiphysics_combinations// /}
 else
-  echo "---> Single physics run"
-  if_not_dry cp namelist.input.base namelist.input
-  cycle_time "${experiment_name}" ${start_date} ${end_date}
+    mlabel=${multiphysics_labels// /}
 fi
+
+data="name=${experiment_name},sdate=${start_date},edate=${end_date},mphysics=${is_multiphysics},cont=${is_continuous},basepath=${WRF4G_BASEPATH},mphysics_labels=$(py_sort_mlabels ${mlabel})"
+id=$(WRF4G.py -v -r $WRF4G_FLAGS Experiment  prepare $data )
+if test $?  -ne 0; then
+   exit
+fi
+
+echo id:$id
+if test ${id} -ge 0; then
+	if ! is_dry_run; then 
+	  cp ${wrf4g_root}/wn/WRFV3/test/em_real/namelist.input ${userdir}/namelist.input.base
+	  fortnml -wof namelist.input.base -s max_dom ${max_dom}
+	  for var in $(get_ni_vars); do
+	    fnvar=${var/__/@}
+	    fortnml -wof namelist.input.base -s $fnvar -- $(eval echo \$NI_${var})
+	  done
+	  for var in $(get_nim_vars); do
+	    fnvar=${var/__/@}
+	    fortnml -wof namelist.input.base -s $fnvar -- $(eval "echo \$NIM_${var} | tr ',' ' '")
+	  done
+	  for var in $(get_nin_vars); do
+	    fnvar=${var/__/@}
+	    fortnml -wof namelist.input.base -m $fnvar -- $(eval echo \$NIN_${var})
+	  done
+	fi
+    
+    if_not_dry cp namelist.input.base namelist.input
+	#
+	#  Multiphysics support. Physical parameters overwritten!
+	#
+    mlabels=${multiphysics_labels}
+	if test "${is_multiphysics}" -ne "0"; then
+    
+      echo "---> Multi-physics run"
+    icomb=1
+    for mpid in $(echo ${multiphysics_combinations} | tr '/' ' '); do
+        if_not_dry cp namelist.input.base namelist.input
+        iphys=1
+        for var in $(echo ${multiphysics_variables} | tr ',' ' '); do
+          thisphys=$(tuple_item ${mpid} ${iphys})
+          if echo ${thisphys} | grep -q ':' ; then
+            if_not_dry fortnml_setm namelist.input $var ${thisphys//:/ }
+          else
+            nitems=$(tuple_item ${multiphysics_nitems} ${iphys})
+            if_not_dry fortnml_setn namelist.input $var ${nitems} ${thisphys}
+          fi
+          let iphys++
+        done
+        if test -n "${multiphysics_labels}"; then
+          realabel=$(tuple_item ${multiphysics_labels//\//,} ${icomb})
+        else
+          stripmpid=${mpid//:/}
+          realabel="${stripmpid//,/_}"
+        fi
+        
+        echo ${experiment_name}__${realabel}" ${id} ${start_date} ${end_date} ${realabel}
+        exit
+	    cycle_time "${experiment_name}__${realabel}" ${id} ${start_date} ${end_date} ${realabel}
+        let icomb++
+    done 
+
+
+else
+	  echo "---> Single physics run"
+	  cycle_time "${experiment_name}" ${id} ${start_date} ${end_date} ${}
+	fi
+fi
+# The experiment already exists. 
+

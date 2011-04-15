@@ -202,6 +202,21 @@ print "-R%f/%f/%f/%f" % (
 End_of_Python
 }
 
+function py_sort_mlabels(){
+  #multiphysics_labels="1/5/311/355"
+  #multiphysics_labels="normal/burrada/prueba"
+  
+  mlabels=$1
+  python << End_of_Python
+ml="$mlabels"
+ml=ml.replace(' ','')
+ml=ml.replace(',','_')
+arr=ml.split('/')
+arr.sort()
+print "/".join(arr)
+End_of_Python
+}
+
 function py_getRcorners(){
   wrfnc=$1
   python << End_of_Python

@@ -21,21 +21,6 @@ def list2fields(arr):
        fields=fields[2:]
     return fields
 
-def instantiate(fqcn):
-    """Given foo.bar.Zoo.ZapClass, return an instance of ZapClass."""
-    paths = fqcn.split('.')
-    modulename = '.'.join(paths[:-1])
-    classname = paths[-1]
-    __import__(modulename)
-    return getattr(sys.modules[modulename], classname)()
-
-def get_classes():
-    clsmembers = inspect.getmembers(sys.modules[__name__], inspect.isclass)
-    cl=[]   
-    for tup in clsmembers:
-        cl.append(tup[0])
-    return cl 
-
 class Component:
     """  Component CLASS
     """
@@ -50,17 +35,21 @@ class Component:
         #    setattr(self,field,data[field])
             
     def get_all_fields(self):
+        """    
+        Returns a list with all the Component fields.
+        """
         dbc=vdb.vdb()
         salida=dbc.describe(self.element)
         return salida
     
     def get_id(self,fields):
         """    
-        Query database to check if the experiment exists.
-        fields is a list with the fields to check in the query.
+        Query database and Returns the id of the Component 
+        whose fields match the Components one.
+        
         Returns:
         -1 --> not exists
-        exp.id --> exists with the same parameters 
+        Component.id  
         """
         wheresta=''
         dbc=vdb.vdb()
@@ -136,18 +125,20 @@ class Component:
         1--> Change DataBase
         2--> Error. Experiment configuration not suitable with database
         """       
-        change=0
+        
+
         id=self.get_id(self.get_distinct_fields())
-        if id != -1: self.data['id']=id
+        if self.verbose == 1: stderr.write("exp_id= %s\n"%id)
         # Experiment exists in database
         if id > 0:
+            self.data['id']=id
             id=self.get_id(self.get_configuration_fields())
             # Experiment is different that the one found in the database
             if id == -1:
                 if self.reconfigure == False:
                     stderr.write("""Error: %s with the same name and different
                     configuation already exists\n""" %self.element) 
-                    change=-1
+                    exit(9)
                 else: 
                     id=self.get_id(self.get__no_reconfigurable_fields())
                     if id == -1:
@@ -156,15 +147,16 @@ class Component:
                         exit(9)
                     else: 
                         self.update()
-                        change=1
             else:
                 if self.verbose: stderr.write('%s already exists.\n'%self.element)
+                self.data['id']=-1
         else:
             if self.verbose: stderr.write('Creating %s\n'%self.element)
-            self.create()
-            change=1
+            self.data['id']=self.create()
             
-        return change
+        
+        
+        return self.data['id']
        
     
       
@@ -176,6 +168,24 @@ class Experiment(Component):
         return ['id','cont','basepath']
     
     def get_configuration_fields(self):
+        return ['id','sdate','edate','basepath','cont','mphysics_labels']
+    
+    def get_distinct_fields(self):
+        return['name']
+        
+    def get_reconfigurable_fields(self):
+        return['sdate','edate','mphysics_labels']
+    
+   
+      
+class Realization(Component):
+    """ Realization CLASS
+    """
+
+    def get__no_reconfigurable_fields(self):
+        return ['id','cont','basepath']
+    
+    def get_configuration_fields(self):
         return ['id','sdate','edate','basepath','cont']
     
     def get_distinct_fields(self):
@@ -183,13 +193,6 @@ class Experiment(Component):
         
     def get_reconfigurable_fields(self):
         return['sdate','edate']
-    
-   
-      
-class Realization(Component):
-    """ Realization CLASS
-    """
-    pass    
  
 if __name__ == "__main__":
     usage="""%prog [OPTIONS] exp_values function fvalues 
