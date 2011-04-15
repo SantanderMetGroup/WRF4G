@@ -128,7 +128,7 @@ class Component:
         
 
         id=self.get_id(self.get_distinct_fields())
-        if self.verbose == 1: stderr.write("exp_id= %s\n"%id)
+        if self.verbose == 1: stderr.write("FLAG Reconfigure=%d\nexp_id= %s\n"%(self.reconfigure,id))
         # Experiment exists in database
         if id > 0:
             self.data['id']=id
@@ -136,26 +136,22 @@ class Component:
             # Experiment is different that the one found in the database
             if id == -1:
                 if self.reconfigure == False:
-                    stderr.write("""Error: %s with the same name and different
-                    configuation already exists\n""" %self.element) 
+                    stderr.write("Error: %s with the same name and different parameters already exists. If you want to overwrite some paramenters, try the reconfigure option\n." %self.element) 
                     exit(9)
                 else: 
-                    id=self.get_id(self.get__no_reconfigurable_fields())
+                    id=self.get_id(self.get_no_reconfigurable_fields())
                     if id == -1:
-                        stderr.write("""Error: %s with the same name and different
-                        configuation already exists\n"""%self.element) 
+                        stderr.write("Error: %s with the same name and different configuration already exists\n"%self.element) 
                         exit(9)
                     else: 
                         self.update()
             else:
-                if self.verbose: stderr.write('%s already exists.\n'%self.element)
+                if self.verbose: stderr.write('%s already exists. Submitting...\n'%self.element)
                 self.data['id']=-1
         else:
             if self.verbose: stderr.write('Creating %s\n'%self.element)
             self.data['id']=self.create()
-            
-        
-        
+                  
         return self.data['id']
        
     
@@ -164,35 +160,51 @@ class Experiment(Component):
     
     """  Experiment CLASS
     """
-    def get__no_reconfigurable_fields(self):
-        return ['id','cont','basepath']
+    def get_no_reconfigurable_fields(self):
+        return ['id','cont','mphysics','basepath']
     
     def get_configuration_fields(self):
-        return ['id','sdate','edate','basepath','cont','mphysics_labels']
+        return ['id','sdate','edate','basepath','cont','mphysics','mphysics_labels']
     
     def get_distinct_fields(self):
         return['name']
         
     def get_reconfigurable_fields(self):
         return['sdate','edate','mphysics_labels']
-    
-   
+ 
       
 class Realization(Component):
     """ Realization CLASS
     """
 
-    def get__no_reconfigurable_fields(self):
-        return ['id','cont','basepath']
+    def get_no_reconfigurable_fields(self):
+        return ['id','id_exp','sdate','mphysics_label']
     
     def get_configuration_fields(self):
-        return ['id','sdate','edate','basepath','cont']
+        return ['id','id_exp','sdate','edate','mphysics_label']
     
     def get_distinct_fields(self):
-        return['name']
+        return['id_exp','sdate','mphysics_label']
         
     def get_reconfigurable_fields(self):
-        return['sdate','edate']
+        return['edate']
+        
+        
+class Chunk(Component):
+    """ Chunk CLASS
+    """
+
+    def get_no_reconfigurable_fields(self):
+        return ['id','id_rea','id_chunk','sdate']
+    
+    def get_configuration_fields(self):
+        return ['id','id_rea','id_chunk','sdate','edate']
+    
+    def get_distinct_fields(self):
+        return['id_rea','id_chunk']
+        
+    def get_reconfigurable_fields(self):
+        return['edate']
  
 if __name__ == "__main__":
     usage="""%prog [OPTIONS] exp_values function fvalues 

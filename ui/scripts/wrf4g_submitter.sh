@@ -1,4 +1,4 @@
-#! /bin/bash -x
+#! /bin/bash
 #
 # wrf4g_submitter
 #
@@ -15,6 +15,7 @@ isdry="no"
 justone="no"
 owforce="no"
 waitsec=0
+ 
 if test ${#} -ge 1; then
   while test "$*"; do
     case $1 in
@@ -32,7 +33,11 @@ if test ${#} -ge 1; then
         ;;
       --reconfigure)
       	  reconfigure="yes"
-          WRF4G_FLAGS="-r"
+          WRF4G_FLAGS="$WRF4G_FLAGS -r"
+        ;;
+      --verbose)
+          verbose="yes"
+          WRF4G_FLAGS="$WRF4G_FLAGS -v" 
         ;;
       *)
         echo "Unknown argument: $1"
@@ -141,6 +146,8 @@ function cycle_chunks(){
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
     
+    id_chunk=$(WRF4G.py $WRF4G_FLAGS Chunk prepare id_rea=${id_rea},id_chunk=${chunkno},sdate=${current_date},edate=${final_date},wps=0,status=0)
+    
     if test ${is_restart} -eq 0 || 
       (test ${is_restart} -eq 1 && rematch "${rst_realization}" "${realization_name}" && rematch "${rst_chunk}" "${chunkno}" ; ) ; then
       if is_dry_run; then
@@ -171,17 +178,19 @@ function cycle_chunks(){
         rm -rf wrf4g.conf wrf.input WRFV3 bin wrf.chunk
         create_job_template
         cd ${chunkdir}      
+        
         #
         #   Submit the job
         #
         chunkjid=submit_job $(test ${is_restart} -eq 0 && echo ${chunkjid})
         cd ${userdir}
         printf '%6d %04d %s %s %s\n' "${chunkjid}" "${chunkno}" "${current_date}" "${final_date}" "${realization_name}" >> pids.${experiment_name}
+        fi
       fi
       
-      id_chunk=$(WRF4G.py -v -r Chunk prepare id_rea=${id_rea},id_chunk=${chunkno},sdate=${current_date},edate=${final_date},wps=0,status=0)
-      echo $id_chunk
-    fi
+
+      
+
     #
     #  Cycle dates and jobids
     #
@@ -200,7 +209,7 @@ function cycle_hindcasts(){
   end_date=$4
   mphysics_label=$5
   
-  echo "---> cycle_hindcasts: $1 $2 $3"
+  echo "---> cycle_hindcasts: $1 $2 $3 $4 $5"
   current_date=${start_date}
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
   read eyy emm edd ehh trash <<< $(echo ${end_date} | tr '_:T-' '    ')
@@ -218,10 +227,15 @@ function cycle_hindcasts(){
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
     rea_name="${realization_name}__${cyy}${cmm}${cdd}${chh}_${fyy}${fmm}${fdd}${fhh}"
-    id_rea=$(WRF4G.py -r -v Realization prepare rea id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},mphysics_label=${mphysics_label})
+    id_rea=$(WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},mphysics_label=${mphysics_label})
+    if test $?  -ne 0; then
+           exit
+    fi
 
-    #create_wrf4g_realization(id_exp,name,sdate,edate,status,cdate)
-    cycle_chunks ${id_rea} ${realization_name} ${current_date} ${final_date}
+    if test ${id_rea} -ge 0; then
+        #create_wrf4g_realization(id_exp,name,sdate,edate,status,cdate)
+        cycle_chunks  ${realization_name} ${id_rea} ${current_date} ${final_date}
+    fi
     #
     #  Cycle dates
     #
@@ -244,13 +258,18 @@ function cycle_time(){
       echo "---> Hindcast run"
       test -n "${simulation_length_h}" || exit
       test -n "${simulation_interval_h}" || exit
-      cycle_hindcasts ${id_exp} ${realization_name} ${start_date} ${end_date} ${mphysics_label}
+      cycle_hindcasts  ${realization_name} ${id_exp} ${start_date} ${end_date} ${mphysics_label}
       ;;
     1)
       echo "---> Continuous run"
-      id_rea=$(WRF4G.py -r -v Realization prepare rea id_exp=${id_exp},name=${realization_name},sdate=${start_date},edate=${end_date},status=0,cdate=${start_date},mphysics_label=${mphysics_label})
-      #create_wrf4g_realization(id_exp,name,sdate,edate,status,cdate)
-      cycle_chunks ${id_rea} ${realization_name} ${start_date} ${end_date}
+      id_rea=$(WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${realization_name},sdate=${start_date},edate=${end_date},status=0,cdate=${start_date},mphysics_label=${mphysics_label})
+      if test $?  -ne 0; then
+           exit
+      fi
+
+      if test ${id_rea} -ge 0; then
+            cycle_chunks  ${realization_name} ${id_rea} ${start_date} ${end_date}
+      fi
       ;;
   esac
 }
@@ -316,7 +335,7 @@ else
 fi
 
 data="name=${experiment_name},sdate=${start_date},edate=${end_date},mphysics=${is_multiphysics},cont=${is_continuous},basepath=${WRF4G_BASEPATH},mphysics_labels=$(py_sort_mlabels ${mlabel})"
-id=$(WRF4G.py -v -r $WRF4G_FLAGS Experiment  prepare $data )
+id=$(WRF4G.py $WRF4G_FLAGS Experiment  prepare $data )
 if test $?  -ne 0; then
    exit
 fi
@@ -369,8 +388,6 @@ if test ${id} -ge 0; then
           realabel="${stripmpid//,/_}"
         fi
         
-        echo ${experiment_name}__${realabel}" ${id} ${start_date} ${end_date} ${realabel}
-        exit
 	    cycle_time "${experiment_name}__${realabel}" ${id} ${start_date} ${end_date} ${realabel}
         let icomb++
     done 
@@ -378,7 +395,7 @@ if test ${id} -ge 0; then
 
 else
 	  echo "---> Single physics run"
-	  cycle_time "${experiment_name}" ${id} ${start_date} ${end_date} ${}
+	  cycle_time "${experiment_name}" ${id} ${start_date} ${end_date}
 	fi
 fi
 # The experiment already exists. 
