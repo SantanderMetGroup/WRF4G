@@ -328,13 +328,20 @@ skip=0
 #
 #  Initial override of namelist values
 #
-if [ -z ${multiphysics_labels// /} ]; then
-    mlabel=${multiphysics_combinations// /}
+if test "${is_multiphysics}" -ne "0"; then
+    if [ -z ${multiphysics_labels// /} ]; then
+        mlabel=${multiphysics_combinations// /}
+        mphysics_labels=$(py_sort_mlabels ${mlabel})        
+    else
+        mlabel=${multiphysics_labels// /}
+        mphysics_labels=$(py_sort_mlabels ${mlabel})
+    fi
 else
-    mlabel=${multiphysics_labels// /}
+   mphysics_labels=''
+   
 fi
 
-data="name=${experiment_name},sdate=${start_date},edate=${end_date},mphysics=${is_multiphysics},cont=${is_continuous},basepath=${WRF4G_BASEPATH},mphysics_labels=$(py_sort_mlabels ${mlabel})"
+data="name=${experiment_name},sdate=${start_date},edate=${end_date},mphysics=${is_multiphysics},cont=${is_continuous},basepath=${WRF4G_BASEPATH},mphysics_labels=${mphysics_labels}"
 id=$(WRF4G.py $WRF4G_FLAGS Experiment  prepare $data )
 if test $?  -ne 0; then
    exit
