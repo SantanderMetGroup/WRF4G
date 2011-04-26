@@ -5,6 +5,7 @@ from optparse import OptionParser
 from sys import exit   
 from sys import stderr  
 from os.path import basename
+import WRF4G
 
 
 WRF4G_CONF_FILE_NOT_DEFINED=1
@@ -94,6 +95,11 @@ if type in type_list.keys() :
       cmdstat, cmdout = getstatusoutput(cmdstr)
       print cmdstat, cmdout
       copy_file("current_date.txt", "%s/current_date.txt" % dest_folder, verbose=verbose)
+    else:              # It is a restart file.
+    	data={'name': env_var["WRF4G_REALIZATION"]}
+        r=WRF4G.Realization(data)
+        r.set_restart(date)   
+
     input=VCPURL(file)
     # Delete the file from local disk 
     if verbose: stderr.write("Deleting file %s\n" %file)

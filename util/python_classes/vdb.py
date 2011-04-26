@@ -122,7 +122,8 @@ class vdb:
         exit(10)
      
       self.con.commit()
-      self.con.close()      
+      self.con.close()  
+          
       return 0
   
    def describe(self,table,verbose=False):

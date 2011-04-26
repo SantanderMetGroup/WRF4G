@@ -61,28 +61,28 @@ class Component:
         id = vdb.list_query().one_field(idp)
         if id !='': return id
         else: return -1
-            
-    def loadfromDB(self,fields):
-     """    
-     Given an array with the fields to check in the query, this function loads into 
-     self.data the Wrf4gElement values.
-     Returns:
-     0-->OK
-     1-->ERROR
-     """
-
-     wheresta=''
-     dbc=vdb.vdb()
-     for field in fields:
-         wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
-     wheresta=wheresta[4:]     
-     #dic=dbc.select(self.element,list2fields(fields), wheresta, verbose=1 )
-     dic=dbc.select(self.element,WRF4G.utils.list2fields(fields),wheresta, verbose=1 )
-     self.__init__(dic[0])
-     print self.sdate
-     if id>0: return id
-     else: return -1
-      
+    
+#    def loadfromDB(self,fields):
+#     """    
+#     Given an array with the fields to check in the query, this function loads into 
+#     self.data the Wrf4gElement values.
+#     Returns:
+#     0-->OK
+#     1-->ERROR
+#     """
+#
+#     wheresta=''
+#     dbc=vdb.vdb()
+#     for field in fields:
+#         wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
+#     wheresta=wheresta[4:]     
+#     #dic=dbc.select(self.element,list2fields(fields), wheresta, verbose=1 )
+#     dic=dbc.select(self.element,WRF4G.utils.list2fields(fields),wheresta, verbose=1 )
+#     self.__init__(dic[0])
+#     if id>0: return id
+#     else: return -1
+     
+     
     def create(self):
         """
         Create experiment
@@ -109,9 +109,36 @@ class Component:
             ddata[field]=self.data[field]
         
         condition='id=%s'%self.data['id']
-        id=dbc.update(self.element,ddata,condition,verbose=self.verbose)
-        if id>0: return id
-        else: return -1   
+        oc=dbc.update(self.element,ddata,condition,verbose=self.verbose)
+        return oc
+
+    
+    def get_one_field(self,val,cond):
+        dbc=vdb.vdb()
+        
+        condition=''
+        for field in cond:
+          condition="%s AND %s='%s'" %(condition,field,self.data[field])
+        condition=condition[4:]   
+        
+        dic=dbc.select(self.element,list2fields(val),condition, verbose=1 )
+        return dic[0][val[0]]
+
+    def update_fields(self,val,cond):
+        dbc=vdb.vdb()
+        
+        ddata={}
+        for field in val:
+            ddata[field]=self.data[field]
+        
+        condition=''
+        for field in cond:
+          condition="%s AND %s='%s'" %(condition,field,self.data[field])
+        condition=condition[4:]
+        
+        oc=dbc.update(self.element,ddata,condition,verbose=self.verbose)
+        return oc
+
      
     def prepare(self):
         """
@@ -188,7 +215,15 @@ class Realization(Component):
         
     def get_reconfigurable_fields(self):
         return['edate']
-        
+ 
+    def get_restart(self):
+        restart=self.get_one_field(['restart'], ['name'])
+        return restart
+   
+    def set_restart(self,restart_date):
+        self.data['restart']=restart_date
+        oc=self.update_fields(['restart'], ['name'])    
+        return oc   
         
 class Chunk(Component):
     """ Chunk CLASS
@@ -205,7 +240,21 @@ class Chunk(Component):
         
     def get_reconfigurable_fields(self):
         return['edate']
- 
+
+    def get_wps(self):
+        wps=self.get_one_field(['wps'], ['id'])
+        return wps     
+   
+    def set_wps(self):
+        self.data['wps']=1
+        oc=self.update_fields(['wps'], ['id'])
+        return oc     
+   
+    def set_status(self,st):
+        self.data['status']=st
+        oc=self.update_fields(['wps'], ['id'])
+        return oc   
+   
 if __name__ == "__main__":
     usage="""%prog [OPTIONS] exp_values function fvalues 
              Example: %prog 
@@ -227,9 +276,13 @@ if __name__ == "__main__":
     data=''
     if len(args) > 2:   data=pairs2dict(args[2])         
     inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure)"%(class_name,data)
+    # Instantiate the Component Class:
+    # comp=Chunk(data={'id': '23'},verbose=options.verbose,reconfigure=options.reconfigure)
     comp=eval(inst)
     if len(args) > 3:     
-        fvalues=args[3:]
+        fvalues=args[3]
+        #fvalues=args[3].split(',')
+        # Call the Class method.
         output=getattr(comp,function)(fvalues)
     else:                  
         output=getattr(comp,function)()

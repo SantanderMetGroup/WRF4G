@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/bash -x
 #
 # wrf4g_submitter
 #
@@ -148,6 +148,7 @@ function cycle_chunks(){
     
     id_chunk=$(WRF4G.py $WRF4G_FLAGS Chunk prepare id_rea=${id_rea},id_chunk=${chunkno},sdate=${current_date},edate=${final_date},wps=0,status=0)
     
+    
     if test ${is_restart} -eq 0 || 
       (test ${is_restart} -eq 1 && rematch "${rst_realization}" "${realization_name}" && rematch "${rst_chunk}" "${chunkno}" ; ) ; then
       if is_dry_run; then
@@ -182,7 +183,7 @@ function cycle_chunks(){
         #
         #   Submit the job
         #
-        chunkjid=submit_job $(test ${is_restart} -eq 0 && echo ${chunkjid})
+        #chunkjid=submit_job $(test ${is_restart} -eq 0 && echo ${chunkjid})
         cd ${userdir}
         printf '%6d %04d %s %s %s\n' "${chunkjid}" "${chunkno}" "${current_date}" "${final_date}" "${realization_name}" >> pids.${experiment_name}
         fi
