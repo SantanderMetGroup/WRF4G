@@ -7,8 +7,6 @@ ROOTDIR=$(cat ../../rootdir)
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 source ${ROOTDIR}/wrf4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
-sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.chunk > source.it      || exit ${ERROR_MISSING_WRFCHUNK}
-source source.it && rm source.it
 sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.input > source.it || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
 

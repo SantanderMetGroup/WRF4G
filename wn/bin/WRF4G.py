@@ -17,8 +17,8 @@ def pairs2dict(pairs):
 def list2fields(arr):
     fields=''
     for i in arr:
-       fields=",%s,%s" %(fields,i)
-       fields=fields[2:]
+       fields="%s,%s" %(fields,i)
+    fields=fields[1:]
     return fields
 
 class Component:
@@ -34,7 +34,7 @@ class Component:
         #for field in data.keys():            
         #    setattr(self,field,data[field])
             
-    def get_all_fields(self):
+    def describeDB(self):
         """    
         Returns a list with all the Component fields.
         """
@@ -62,25 +62,25 @@ class Component:
         if id !='': return id
         else: return -1
     
-#    def loadfromDB(self,fields):
-#     """    
-#     Given an array with the fields to check in the query, this function loads into 
-#     self.data the Wrf4gElement values.
-#     Returns:
-#     0-->OK
-#     1-->ERROR
-#     """
-#
-#     wheresta=''
-#     dbc=vdb.vdb()
-#     for field in fields:
-#         wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
-#     wheresta=wheresta[4:]     
-#     #dic=dbc.select(self.element,list2fields(fields), wheresta, verbose=1 )
-#     dic=dbc.select(self.element,WRF4G.utils.list2fields(fields),wheresta, verbose=1 )
-#     self.__init__(dic[0])
-#     if id>0: return id
-#     else: return -1
+    def loadfromDB(self,list_query,fields):
+     """    
+     Given an array with the fields to check in the query, this function loads into 
+     self.data the Wrf4gElement values.
+     Returns:
+     0-->OK
+     1-->ERROR
+     """
+
+     wheresta=''
+     dbc=vdb.vdb()
+     for field in list_query:
+         wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
+     wheresta=wheresta[4:]     
+     #dic=dbc.select(self.element,list2fields(fields), wheresta, verbose=1 )
+     dic=dbc.select(self.element,list2fields(fields),wheresta, verbose=1 )
+     self.__init__(dic[0])
+     if id>0: return id
+     else: return -1
      
      
     def create(self):
@@ -198,6 +198,24 @@ class Experiment(Component):
         
     def get_reconfigurable_fields(self):
         return['sdate','edate','mphysics_labels']
+        
+    def run(self):
+        for id_rea in get_realizations_id():
+            rea=Realization(data={'id': str(id_rea)},verbose=self.verbose)
+            
+    
+    def get_realizations_id(self):
+        """    
+        Query database and Returns a list with the realization
+        ids of an experiment"""
+        
+        id_exp=self.get_id(['name'])
+        dbc=vdb.vdb()
+        idp=dbc.select('Realization','id','id_exp=%s'%id_exp,verbose=self.verbose)
+        ids_rea = vdb.list_query().one_field(idp,'python')
+        return ids_rea
+        
+        
  
       
 class Realization(Component):
@@ -223,7 +241,43 @@ class Realization(Component):
     def set_restart(self,restart_date):
         self.data['restart']=restart_date
         oc=self.update_fields(['restart'], ['name'])    
-        return oc   
+        return oc
+    
+    def number_of_chunks(self,id_rea):
+        dbc=vdb.vdb()
+        nchunkd=dbc.select('Chunk','COUNT(Chunk.id_chunk)','id_rea=%s'%id_rea)
+        nchunk=vdb.parse_one_field(nchunkd)
+        return nchunk
+    
+    def last_chunk(self,id_rea):
+        dbc=vdb.vdb()
+        nchunkd=dbc.select('Chunk','MAX(Chunk.id_chunk)','id_rea=%s'%id_rea)
+        nchunk=vdb.parse_one_field(nchunkd)
+        return nchunk 
+        
+    
+    def run(self,id_rea,nchunk=0):
+        dbc=vdb.vdb()
+        chunkd=dbc.select('Chunk,Realization','MAX(Chunk.id_chunk),MAX(Chunk.id)','id_rea=%s AND Realization.restart >= Chunk.sdate'%id_rea)
+        [first_id_chunk,first_id]=chunkd[0].values()
+        if nchunk == 0: 
+            nchunk=self.last_chunk(id_rea)
+        # The last chunk id is ch-ch_id (first chunk) + nchunk 
+        for chunki in range(first_id,first_id-first_id_chunk+nchunk):
+            chi=Chunk(data={'id':'%s'%chunki})
+            print chi.get_configuration_fields()
+            chi.loadfromDB(['id'],chi.get_configuration_fields())
+]
+                             
+    def is_finished(self,id_rea):
+        dbc=vdb.vdb()
+        max_id=dbc.select('Chunk','MAX(id)','id_rea=%s'%id_rea,verbose=self.verbose)
+        status=dbc.select('Chunk','status','id=%s'%vdb.parse_one_field(max_id),verbose=self.verbose)
+        if status == 100:
+            return 1
+        else:
+            return 0
+          
         
 class Chunk(Component):
     """ Chunk CLASS
@@ -245,15 +299,16 @@ class Chunk(Component):
         wps=self.get_one_field(['wps'], ['id'])
         return wps     
    
-    def set_wps(self):
-        self.data['wps']=1
+    def set_wps(self,f):
+        self.data['wps']=f
         oc=self.update_fields(['wps'], ['id'])
         return oc     
    
     def set_status(self,st):
         self.data['status']=st
-        oc=self.update_fields(['wps'], ['id'])
+        oc=self.update_fields(['status'], ['id'])
         return oc   
+    
    
 if __name__ == "__main__":
     usage="""%prog [OPTIONS] exp_values function fvalues 

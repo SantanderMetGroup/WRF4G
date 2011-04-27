@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/bash 
 
 # WRF4G_ini.sh
 #
@@ -21,7 +21,7 @@ VCPDEBUG="-v"
 function w4gini_exit(){
   excode=$1
   case ${excode} in
-    ${ERROR_GETDATERST_FAILED}
+    ${ERROR_GETDATERST_FAILED})
       echo "Problems getting the restart date... (not even -1)"
       ;;
     ${EXIT_CHUNK_ALREADY_FINISHED})
@@ -158,12 +158,12 @@ source source.it && rm source.it
 rm wrf4g.conf wrf.input
 
 export WRF4G_EXPERIMENT="${experiment_name}"
-
 export WRF4G_REALIZATION=$1
 export WRF4G_CHUNK=$2
 export WRF4G_CHUNK_ID=$3
 export chunk_start_date=$4 
 export chunk_end_date=$5
+
 
 #
 #  Change ROOTDIR if necesary
@@ -184,11 +184,12 @@ tar xzf sandbox.tar.gz
 #
 export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
 export PATH="${ROOTDIR}/bin:$PATH"
+export LD_LIBRARY_PATH=${ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
+export PYTHONPATH=${ROOTDIR}/lib/python
 chmod +x ${ROOTDIR}/bin/*
-WRF4G.py Chunk set_status id=${WRF4G_CHUNK_ID} 10
 vcp ${WRF4G_APPS}/WRF4G-${WRF4G_VERSION}.tar.gz . || exit ${ERROR_MISSING_WRF4GSRC}
-WRF4G.py Chunk set_status id=${WRF4G_CHUNK_ID} 11
 tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz
+WRF4G.py Chunk set_status id=${WRF4G_CHUNK_ID} 10
 
 #
 #  Load functions and set the PATH
@@ -212,6 +213,8 @@ if test -n "${WRF4G_RUN_LOCAL}"; then
 else
   LOCALDIR=${ROOTDIR}
 fi
+export ROOTDIR
+export LOCALDIR=${PWD}
 echo ${ROOTDIR} > rootdir
 echo ${PWD} > ${ROOTDIR}/localdir
 
@@ -226,7 +229,7 @@ WRF4G.py Chunk set_status id=${WRF4G_CHUNK_ID} 13
 tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz || w4gini_exit ${ERROR_MISSING_WRF4GBIN}
 rm WRF4Gbin-${WRF_VERSION}.tar.gz
 WRF4G.py Chunk set_status id=${WRF4G_CHUNK_ID} 14
-tar xzf ${ROOTDIR}/sandbox.tar.gz WRFV3/run/namelist.input # La namelist buena esta aqui!
+tar xzf ${ROOTDIR}/sandbox.tar.gz WRFV3/run/namelist.input    # La namelist buena esta aqui!
 rm -f ${ROOTDIR}/sandbox.tar.gz 
 
 #
@@ -246,19 +249,22 @@ timelog_clean
 #  Get the restart files if necesary.
 #
 restart_date=$(WRF4G.py -v Realization get_restart name=${WRF4G_REALIZATION})
-if  test ${restart_date} >= ${chunk_start_date}; then
-   chunk_restart_date= ${chunk_restart_date}
-   chunk_is_restart=".T."  
+if  test ${restart_date} == "None"; then
+   export chunk_restart_date=${chunk_start_date}
+   export chunk_is_restart=".F."
+else
+   export chunk_restart_date=${chunk_restart_date}
+   export chunk_is_restart=".T."  
    download_file rst ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
    mv ${ROOTDIR}/wrfrst* WRFV3/run >& /dev/null 
 fi
-  
+
 #
 #   Must WPS run or are the boundaries available?
 #
 wps_stored=$(WRF4G.py -v Chunk get_wps id=${WRF4G_CHUNK_ID})
 
-if test ${wps_stored} -eq "0"; then
+if test ${wps_stored} -eq "1"; then
   WRF4G.py Chunk set_status id=${WRF4G_CHUNK_ID} 15
   cd ${LOCALDIR}/WPS || exit
     vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || exit ${ERROR_VCP_FAILED}
@@ -280,13 +286,11 @@ else
     #
     #   Modify the namelist
     #
-    set +v
     fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
     fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
     fortnml_set  namelist.wps interval_seconds      ${global_interval}
     fortnml_set  namelist.wps max_dom               ${max_dom}
     fortnml_set  namelist.wps prefix                "'${global_name}'"
-    set -v
     #
     #   Preprocessor
     #
@@ -330,7 +334,7 @@ else
       rm -rf grbData/*.grb
       if ! which cdo; then
         thisdir=$(pwd)
-        cd `cat ../rootdir`
+        cd $ROOTDIR
           if test -e /software/ScientificLinux/4.6/etc/bashrc; then
             cp /oceano/gmeteo/WORK/MDM.UC/Apps/cdo.tar.gz .
           else
@@ -371,7 +375,6 @@ else
     #
     timelog_init "metgrid"
     WRF4G.py Chunk set_status id=${WRF4G_CHUNK_ID} 23
-      set +v
       fortnml_vardel namelist.wps opt_output_from_metgrid_path
       fortnml_vardel namelist.wps opt_output_from_geogrid_path
       fortnml_vardel namelist.wps opt_metgrid_tbl_path
@@ -379,7 +382,6 @@ else
       fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
       fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
       fortnml -o -f namelist.wps -s fg_name ${global_name}
-      set -v
       ${ROOTDIR}/bin/metgrid.exe \
         >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_METGRID_FAILED}
