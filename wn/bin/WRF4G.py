@@ -254,20 +254,28 @@ class Realization(Component):
         nchunkd=dbc.select('Chunk','MAX(Chunk.id_chunk)','id_rea=%s'%id_rea)
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk 
-        
-    
+         
     def run(self,id_rea,nchunk=0):
+        execfile('wrf4g.conf')
+        
         dbc=vdb.vdb()
         chunkd=dbc.select('Chunk,Realization','MAX(Chunk.id_chunk),MAX(Chunk.id)','id_rea=%s AND Realization.restart >= Chunk.sdate'%id_rea)
         [first_id_chunk,first_id]=chunkd[0].values()
         if nchunk == 0: 
             nchunk=self.last_chunk(id_rea)
         # The last chunk id is ch-ch_id (first chunk) + nchunk 
+
         for chunki in range(first_id,first_id-first_id_chunk+nchunk):
             chi=Chunk(data={'id':'%s'%chunki})
-            print chi.get_configuration_fields()
-            chi.loadfromDB(['id'],chi.get_configuration_fields())
-]
+            chi.loadfromDB(['id'],chi.get_configuration_fields())         
+            job=gridway.job()
+            job.create_template(name,arguments,np=NP,req=REQUIREMENTS)
+            if chunki == first_id:
+                job=gridway.submit(dep=id)
+            else:
+                job=gridway.submit(dep=id)
+            
+            
                              
     def is_finished(self,id_rea):
         dbc=vdb.vdb()
