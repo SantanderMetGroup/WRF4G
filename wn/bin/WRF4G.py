@@ -7,6 +7,12 @@ path.append('/home/valva/WRF4G/util/python_classes')
 import vdb
 from optparse import OptionParser
 
+def datetime2datewrf (date_object):
+    return date_object.strftime("%Y-%m-%d_%H:%M:%S")
+
+def datetime2dateiso (date_object):
+    return date_object.strftime("%Y%m%dT%H%M%SZ") 
+
 def pairs2dict(pairs):
     d={}
     for p in pairs.split(','):
@@ -82,7 +88,6 @@ class Component:
      if id>0: return id
      else: return -1
      
-     
     def create(self):
         """
         Create experiment
@@ -111,7 +116,6 @@ class Component:
         condition='id=%s'%self.data['id']
         oc=dbc.update(self.element,ddata,condition,verbose=self.verbose)
         return oc
-
     
     def get_one_field(self,val,cond):
         dbc=vdb.vdb()
@@ -137,9 +141,7 @@ class Component:
         condition=condition[4:]
         
         oc=dbc.update(self.element,ddata,condition,verbose=self.verbose)
-        return oc
-
-     
+        return oc     
     def prepare(self):
         """
         Checks if experiment exists in database. If experiment exists, 
@@ -203,7 +205,6 @@ class Experiment(Component):
         for id_rea in get_realizations_id():
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose)
             
-    
     def get_realizations_id(self):
         """    
         Query database and Returns a list with the realization
@@ -213,15 +214,12 @@ class Experiment(Component):
         dbc=vdb.vdb()
         idp=dbc.select('Realization','id','id_exp=%s'%id_exp,verbose=self.verbose)
         ids_rea = vdb.list_query().one_field(idp,'python')
-        return ids_rea
-        
-        
- 
+        return ids_rea 
       
 class Realization(Component):
     """ Realization CLASS
     """
-
+    
     def get_no_reconfigurable_fields(self):
         return ['id','id_exp','sdate','mphysics_label']
     
@@ -234,6 +232,10 @@ class Realization(Component):
     def get_reconfigurable_fields(self):
         return['edate']
  
+    def get_name(self):
+        name=self.get_one_field(['name'], ['id'])
+        return name
+    
     def get_restart(self):
         restart=self.get_one_field(['restart'], ['name'])
         return restart
@@ -245,35 +247,44 @@ class Realization(Component):
     
     def number_of_chunks(self,id_rea):
         dbc=vdb.vdb()
-        nchunkd=dbc.select('Chunk','COUNT(Chunk.id_chunk)','id_rea=%s'%id_rea)
+        nchunkd=dbc.select('Chunk','COUNT(Chunk.id_chunk)','id_rea=%s'%self.data['id'])
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk
     
-    def last_chunk(self,id_rea):
+    def last_chunk(self):
         dbc=vdb.vdb()
-        nchunkd=dbc.select('Chunk','MAX(Chunk.id_chunk)','id_rea=%s'%id_rea)
+        nchunkd=dbc.select('Chunk','MAX(Chunk.id_chunk)','id_rea=%s'%self.data['id'])
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk 
          
-    def run(self,id_rea,nchunk=0):
+    def run(self,nchunk=0):
+        import gridway
+        NP=1
+        REQUIREMENTS=''
         execfile('wrf4g.conf')
         
         dbc=vdb.vdb()
-        chunkd=dbc.select('Chunk,Realization','MAX(Chunk.id_chunk),MAX(Chunk.id)','id_rea=%s AND Realization.restart >= Chunk.sdate'%id_rea)
+        print self.data['id']
+        rea_name=self.get_name()
+        chunkd=dbc.select('Chunk,Realization','MAX(Chunk.id_chunk),MAX(Chunk.id)','id_rea=%d AND Realization.restart >= Chunk.sdate'%self.data['id'])
         [first_id_chunk,first_id]=chunkd[0].values()
         if nchunk == 0: 
-            nchunk=self.last_chunk(id_rea)
+            nchunk=self.last_chunk()
         # The last chunk id is ch-ch_id (first chunk) + nchunk 
 
         for chunki in range(first_id,first_id-first_id_chunk+nchunk):
             chi=Chunk(data={'id':'%s'%chunki})
-            chi.loadfromDB(['id'],chi.get_configuration_fields())         
+            chi.loadfromDB(['id'],chi.get_configuration_fields())
+            arguments='%s %d %d %s %s'%(rea_name,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))    
             job=gridway.job()
-            job.create_template(name,arguments,np=NP,req=REQUIREMENTS)
+            job.create_template(rea_name,arguments,np=NP,req=REQUIREMENTS)
             if chunki == first_id:
-                job=gridway.submit(dep=id)
+                gw_id=job.submit()
             else:
-                job=gridway.submit(dep=id)
+                gw_id=job.submit(dep=gw_id)
+            print gw_id
+                
+            
             
             
                              
