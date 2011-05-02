@@ -22,7 +22,7 @@ class job:
        template="""NAME = %s
 EXECUTABLE = /bin/bash 
 ARGUMENTS = "./WRF4G_ini.sh %s"
-INPUT_FILES   = WRF4G_ini.sh
+INPUT_FILES   = WRF4G_ini.sh,sandbox.tar.gz
 RANK = (CPU_MHZ * 2) + FREE_MEM_MB 
 REQUIREMENTS=%s
 NP=%d"""%(name,arguments,req,np)

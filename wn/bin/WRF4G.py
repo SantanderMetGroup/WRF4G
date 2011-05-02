@@ -206,18 +206,29 @@ class Experiment(Component):
     def get_reconfigurable_fields(self):
         return['sdate','edate','mphysics_labels']
         
+    def get_id_from_name(self):
+
+        wheresta=''
+        dbc=vdb.vdb()
+        idp=dbc.select(self.element,'id',"name='%s'"%self.data['name'],verbose=self.verbose)
+        id = vdb.list_query().one_field(idp)
+        if id !='': return id
+        else: return -1
+        
     def run(self):
-        for id_rea in get_realizations_id():
+        for id_rea in self.get_realizations_id():
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose)
+            rea.run()
+            
+        return 0
             
     def get_realizations_id(self):
         """    
         Query database and Returns a list with the realization
         ids of an experiment"""
         
-        id_exp=self.get_id(['name'])
         dbc=vdb.vdb()
-        idp=dbc.select('Realization','id','id_exp=%s'%id_exp,verbose=self.verbose)
+        idp=dbc.select('Realization','id','id_exp=%s'%self.data['id'],verbose=self.verbose)
         ids_rea = vdb.list_query().one_field(idp,'python')
         return ids_rea 
     
@@ -274,23 +285,24 @@ class Realization(Component):
         return nchunk 
          
     def run(self,nchunk=0):
+        path.append('/home/valva/WRF4G/ui/lib/python')
         import gridway
         NP=1
         REQUIREMENTS=''
-        execfile('wrf4g.conf')
+        exec open('wrf4g.conf').read()
         
         dbc=vdb.vdb()
         rea_name=self.get_name()
-        chunkd=dbc.select('Chunk,Realization','MAX(Chunk.id_chunk),MAX(Chunk.id)','id_rea=%d AND Realization.restart >= Chunk.sdate'%self.data['id'])
+        chunkd=dbc.select('Chunk,Realization','MAX(Chunk.id_chunk),MAX(Chunk.id)','id_rea=%s AND Realization.restart >= Chunk.sdate'%self.data['id'])
         [first_id_chunk,first_id]=chunkd[0].values()
         if nchunk == 0: 
             nchunk=self.last_chunk()
-        # The last chunk id is ch-ch_id (first chunk) + nchunk 
 
-        for chunki in range(first_id,first_id-first_id_chunk+nchunk):
+        for chunki in range(first_id,first_id+nchunk):
             chi=Chunk(data={'id':'%s'%chunki})
             chi.loadfromDB(['id'],chi.get_configuration_fields())
-            arguments='%s %d %d %s %s'%(rea_name,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))    
+            arguments='%s %d %d %s %s'%(rea_name,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
+            print arguments    
             job=gridway.job()
             job.create_template(rea_name,arguments,np=NP,req=REQUIREMENTS)
             if chunki == first_id:

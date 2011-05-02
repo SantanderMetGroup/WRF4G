@@ -108,7 +108,6 @@ function timelog_end(){
 
 function timelog_init(){
   timelog_item=${1// /_}
-  create_output_structure
   echo -e "$(date +%Y%m%d%H%M%S)\n$(hostname --fqdn):$(pwd)" > ${timelog_item}.init && vcp ${timelog_item}.init ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
   echo -n "$(printf "%20s" "$timelog_item") $(date +%Y%m%d%H%M%S) " >> ${logdir}/time.log
 }
@@ -132,7 +131,6 @@ function wrf4g_exit(){
       ls -lR >& ${logdir}/ls.wps
       ;;
   esac
-  create_output_structure
   test -f namelist.input && cp namelist.input ${logdir}/
   tar czf log.tar.gz ${logdir} && vcp log.tar.gz ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/
   test "${LOCALDIR}" != "${ROOTDIR}" && mv ${logdir} ${ROOTDIR}/
@@ -440,7 +438,6 @@ else
        WRF4G.py Chunk set_status id=${WRF4G_CHUNK_ID} 26
     if test "${save_wps}" -eq 1; then
       timelog_init "wps put"
-        create_output_structure
         post_and_register --no-bg wps "${chunk_start_date}"
         WRF4G.py Chunk set_wps id=${WRF4G_CHUNK_ID} 1
       timelog_end

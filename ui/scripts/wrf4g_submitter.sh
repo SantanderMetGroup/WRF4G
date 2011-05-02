@@ -304,7 +304,25 @@ fi
 
 # Submitting phase.
 
-#
+#if test -d "wrf4g_files"; then
+#   cd wrf4g_files/
+#   tar czhf ../wrf4g_files.tar.gz *
+#   cd ..
+#fi
+id_exp=$(WRF4G.py $WRF4G_FLAGS Experiment get_id_from_name name=${WRF4G_EXPERIMENT})
+mkdir -p tar_temp/bin
+cd tar_temp
+vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf4g.conf .
+vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf.input .
+cp ${wrf4g_root}/wn/bin/vcp bin/
+tar -czf sandbox.tar.gz *
+cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh .
+
+#Submit jobs
+WRF4G.py $WRF4G_FLAGS Experiment run id=${id_exp} 
+cd ..
+#rm -rf tar_temp
+
 #RECUPERAR
 #
 #
