@@ -3,8 +3,9 @@
 from sys import stderr,exit, path
 import sys
 import inspect
-path.append('/home/valva/WRF4G/util/python_classes')
+path.append('/home/valva/WRF4G/wn/lib/python')
 import vdb
+import vcp
 from optparse import OptionParser
 
 def datetime2datewrf (date_object):
@@ -142,6 +143,7 @@ class Component:
         
         oc=dbc.update(self.element,ddata,condition,verbose=self.verbose)
         return oc     
+    
     def prepare(self):
         """
         Checks if experiment exists in database. If experiment exists, 
@@ -174,12 +176,15 @@ class Component:
                         exit(9)
                     else: 
                         self.update()
+                        self.prepare_storage()
             else:
                 if self.verbose: stderr.write('%s already exists. Submitting...\n'%self.element)
                 self.data['id']=-1
         else:
             if self.verbose: stderr.write('Creating %s\n'%self.element)
             self.data['id']=self.create()
+            self.prepare_storage()
+    
                   
         return self.data['id']
        
@@ -215,7 +220,18 @@ class Experiment(Component):
         idp=dbc.select('Realization','id','id_exp=%s'%id_exp,verbose=self.verbose)
         ids_rea = vdb.list_query().one_field(idp,'python')
         return ids_rea 
+    
+    def prepare_storage(self):          
+        # Load the URL into the VCPURL class
+        exec open('wrf4g.conf').read()
+        exp_dir="%s/experiments/%s" %(WRF4G_BASEPATH, self.data['name'])
+        list=vcp.VCPURL(exp_dir)
+        list.mkdir(verbose=self.verbose)
+        output=vcp.copy_file('wrf4g.conf',exp_dir,verbose=self.verbose) 
+        output=vcp.copy_file('wrf.input',exp_dir,verbose=self.verbose) 
       
+
+    
 class Realization(Component):
     """ Realization CLASS
     """
@@ -264,7 +280,6 @@ class Realization(Component):
         execfile('wrf4g.conf')
         
         dbc=vdb.vdb()
-        print self.data['id']
         rea_name=self.get_name()
         chunkd=dbc.select('Chunk,Realization','MAX(Chunk.id_chunk),MAX(Chunk.id)','id_rea=%d AND Realization.restart >= Chunk.sdate'%self.data['id'])
         [first_id_chunk,first_id]=chunkd[0].values()
@@ -284,9 +299,16 @@ class Realization(Component):
                 gw_id=job.submit(dep=gw_id)
             print gw_id
                 
-            
-            
-            
+    def prepare_storage(self):          
+        # Load the URL into the VCPURL class
+        exec open('wrf4g.conf').read()
+        reas=self.data['name'].split('__')
+        rea_dir="%s/experiments/%s/%s" % (WRF4G_BASEPATH,reas[0],self.data['name'])
+        for dir in ["output","restart","wpsout"]:
+          repo="%s/%s" % (rea_dir,dir)
+          list=vcp.VCPURL(repo)
+          list.mkdir(verbose=self.verbose)    
+        output=vcp.copy_file('namelist.input',rea_dir,verbose=self.verbose)       
                              
     def is_finished(self,id_rea):
         dbc=vdb.vdb()
@@ -328,6 +350,9 @@ class Chunk(Component):
         oc=self.update_fields(['status'], ['id'])
         return oc   
     
+    def prepare_storage(self):
+        pass
+    
    
 if __name__ == "__main__":
     usage="""%prog [OPTIONS] exp_values function fvalues 
@@ -357,7 +382,7 @@ if __name__ == "__main__":
         fvalues=args[3]
         #fvalues=args[3].split(',')
         # Call the Class method.
-        output=getattr(comp,function)(fvalues)
+        output=getattr(comp,function)(*args[3:])
     else:                  
         output=getattr(comp,function)()
     print output

@@ -82,16 +82,6 @@ function get_nim_vars(){
 function is_dry_run(){
   test "${isdry}" = "yes"
 }
-
-function is_reconfigure(){
-  test "${reconfigure}" = "yes"
-}
-
-
-function should_not_run_this_chunk(){
-  test "$(date2int ${current_date}) -gt $(date2int ${queue_end_date})" -o "$(date2int ${final_date}) -lt $(date2int ${queue_start_date})"
-}
-
 function if_not_dry(){
   comando=$*
   if ! is_dry_run; then
@@ -125,12 +115,10 @@ function cycle_chunks(){
   export WRF4G_REALIZATION="${realization_name}"
   realization_start_date=$3
   realization_end_date=$4
-
-  if ! is_dry_run; then 
-   echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}"   
-  fi
-
   current_date=${realization_start_date}
+  
+  echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}"   
+
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
   read eyy emm edd ehh trash <<< $(echo ${realization_end_date} | tr '_:T-' '    ')
   chunkno=1
@@ -146,60 +134,12 @@ function cycle_chunks(){
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
     
-    id_chunk=$(WRF4G.py $WRF4G_FLAGS Chunk prepare id_rea=${id_rea},id_chunk=${chunkno},sdate=${current_date},edate=${final_date},wps=0,status=0)
-    
-    
-    if test ${is_restart} -eq 0 || 
-      (test ${is_restart} -eq 1 && rematch "${rst_realization}" "${realization_name}" && rematch "${rst_chunk}" "${chunkno}" ; ) ; then
-      if is_dry_run; then
-        echo "  ${realization_name}  $(printf "%4d" ${chunkno})  ${current_date}  ${final_date}"
-      else
-        chunkdir="${userdir}/realizations/${realization_name}/$(printf '%04d' ${chunkno})"
-        echo "  ---> chunk: ${chunkno} - ${current_date} -> ${final_date}"
-        mkdir -p ${chunkdir} || cannot_mkdir ${chunkdir}            
-        test ${chunkno} -eq 1 && restart_flag=".F." || restart_flag=".T."
-        create_wrf_chunk
-        mkdir -p ${chunkdir}/WRFV3/run
-        cp ${userdir}/namelist.input ${chunkdir}/WRFV3/run/namelist.input
-        cp ${userdir}/wrf.input      ${chunkdir}/wrf.input
-        cp ${userdir}/wrf4g.conf     ${chunkdir}/wrf4g.conf
-        mkdir ${chunkdir}/bin
-        cp ${wrf4g_root}/wn/bin/vcp  ${chunkdir}/bin/vcp
-        cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh ${chunkdir}/WRF4G_ini.sh
-        if test -d "wrf4g_files"; then
-               cd wrf4g_files/
-               tar czhf ${chunkdir}/wrf4g_files.tar.gz *
-               cd ..
-        fi
-        
-        #
-        #   Pack the sandbox
-        #
-        tar czh --exclude WRF4G_ini.sh -f sandbox.tar.gz *
-        rm -rf wrf4g.conf wrf.input WRFV3 bin wrf.chunk
-        create_job_template
-        cd ${chunkdir}      
-        
-        #
-        #   Submit the job
-        #
-        #chunkjid=submit_job $(test ${is_restart} -eq 0 && echo ${chunkjid})
-        cd ${userdir}
-        printf '%6d %04d %s %s %s\n' "${chunkjid}" "${chunkno}" "${current_date}" "${final_date}" "${realization_name}" >> pids.${experiment_name}
-        fi
-      fi
-      
+    id_chunk=$(WRF4G.py $WRF4G_FLAGS Chunk prepare id_rea=${id_rea},id_chunk=${chunkno},sdate=${current_date},edate=${final_date},wps=0,status=0)  
 
-      
-
-    #
-    #  Cycle dates and jobids
-    #
     current_date=${final_date}
     read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
     let chunkno++
     test "${justone}" = "yes" && exit
-    sleep ${waitsec}
   done
 }
 
@@ -228,6 +168,7 @@ function cycle_hindcasts(){
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
     rea_name="${realization_name}__${cyy}${cmm}${cdd}${chh}_${fyy}${fmm}${fdd}${fhh}"
+    echo " ${realization_name}  $(printf "%4d" ${chunkno})  ${current_date}  ${final_date}"
     id_rea=$(WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},mphysics_label=${mphysics_label})
     if test $?  -ne 0; then
            exit
@@ -277,51 +218,6 @@ function cycle_time(){
 
 
 
-function create_wrf_chunk () {
-#
-#  Create the sandbox file
-#
-cat << EOF > ${chunkdir}/wrf.chunk
-realization_name="${realization_name}"
-chunk_name="$(printf "%04d" ${chunkno})"
-chunk_start_date="${current_date}"
-chunk_end_date="${final_date}"
-chunk_is_restart="${restart_flag}"
-EOF
-}
-
-function create_job_template () {
-#
-#  Create Gridway job template
-#
-cat << EOF > job.gw
-NAME = ${WRF4G_CHUNK}${WRF4G_REALIZATION}
-EXECUTABLE = /bin/bash 
-ARGUMENTS = "./WRF4G_ini.sh"
-INPUT_FILES   = sandbox.tar.gz, WRF4G_ini.sh
-RANK = (CPU_MHZ * 2) + FREE_MEM_MB 
-REQUIREMENTS = HOSTNAME = "local*" & QUEUE_NAME= "dinamica";
-NP=10
-#MONITOR=/usr/local/gw/libexec/gw_monitor.sh
-#REQUIREMENTS = HOSTNAME = "*.unican.es";
-#REQUIREMENTS = HOSTNAME = "ce01.afroditi.hellasgrid.gr";
-#REQUIREMENTS = QUEUE_ACCESS = "*:esr:*"
-#REQUIREMENTS = QUEUE_NAME = "hmem"
-#ENVIRONMENT = X509_USER_PROXY=/oceano/gmeteo/users/valva/x509up_u15104
-EOF
-}
-
-function submit_job () {
-  depid=$1
-
-  if test -n "${depid}"; then
-    depflag="-d ${depid}"
-  else
-    depflag=""
-  fi
-
-  gwsubmit -v ${depflag} -t job.gw | awk -F: '/JOB ID/ {print $2}'
-}
 
 
 rm -f pids.${experiment_name}
@@ -338,8 +234,7 @@ if test "${is_multiphysics}" -ne "0"; then
         mphysics_labels=$(py_sort_mlabels ${mlabel})
     fi
 else
-   mphysics_labels=''
-   
+   mphysics_labels=''   
 fi
 
 data="name=${experiment_name},sdate=${start_date},edate=${end_date},mphysics=${is_multiphysics},cont=${is_continuous},basepath=${WRF4G_BASEPATH},mphysics_labels=${mphysics_labels}"
@@ -348,7 +243,6 @@ if test $?  -ne 0; then
    exit
 fi
 
-echo id:$id
 if test ${id} -ge 0; then
 	if ! is_dry_run; then 
 	  cp ${wrf4g_root}/wn/WRFV3/test/em_real/namelist.input ${userdir}/namelist.input.base
@@ -365,9 +259,10 @@ if test ${id} -ge 0; then
 	    fnvar=${var/__/@}
 	    fortnml -wof namelist.input.base -m $fnvar -- $(eval echo \$NIN_${var})
 	  done
+      cp namelist.input.base namelist.input
+      
 	fi
     
-    if_not_dry cp namelist.input.base namelist.input
 	#
 	#  Multiphysics support. Physical parameters overwritten!
 	#
@@ -406,5 +301,50 @@ else
 	  cycle_time "${experiment_name}" ${id} ${start_date} ${end_date}
 	fi
 fi
-# The experiment already exists. 
 
+# Submitting phase.
+
+#
+#RECUPERAR
+#
+#
+#   if test ${is_restart} -eq 0 || 
+#      (test ${is_restart} -eq 1 && rematch "${rst_realization}" "${realization_name}" && rematch "${rst_chunk}" "${chunkno}" ; ) ; then
+#      if is_dry_run; then
+#        echo "  ${realization_name}  $(printf "%4d" ${chunkno})  ${current_date}  ${final_date}"
+#      else
+#        chunkdir="${userdir}/realizations/${realization_name}/$(printf '%04d' ${chunkno})"
+#        echo "  ---> chunk: ${chunkno} - ${current_date} -> ${final_date}"
+#        mkdir -p ${chunkdir} || cannot_mkdir ${chunkdir}            
+#        test ${chunkno} -eq 1 && restart_flag=".F." || restart_flag=".T."
+#        create_wrf_chunk
+#        mkdir -p ${chunkdir}/WRFV3/run
+#        cp ${userdir}/namelist.input ${chunkdir}/WRFV3/run/namelist.input
+#        cp ${userdir}/wrf.input      ${chunkdir}/wrf.input
+#        cp ${userdir}/wrf4g.conf     ${chunkdir}/wrf4g.conf
+#        mkdir ${chunkdir}/bin
+#        cp ${wrf4g_root}/wn/bin/vcp  ${chunkdir}/bin/vcp
+#        cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh ${chunkdir}/WRF4G_ini.sh
+#        if test -d "wrf4g_files"; then
+#               cd wrf4g_files/
+#               tar czhf ${chunkdir}/wrf4g_files.tar.gz *
+#               cd ..
+#        fi
+#        
+#        #
+#        #   Pack the sandbox
+#        #
+#        tar czh --exclude WRF4G_ini.sh -f sandbox.tar.gz *
+#        rm -rf wrf4g.conf wrf.input WRFV3 bin wrf.chunk
+#        create_job_template
+#        cd ${chunkdir}      
+#        
+#        #
+#        #   Submit the job
+#        #
+#        #chunkjid=submit_job $(test ${is_restart} -eq 0 && echo ${chunkjid})
+#        cd ${userdir}
+#        printf '%6d %04d %s %s %s\n' "${chunkjid}" "${chunkno}" "${current_date}" "${final_date}" "${realization_name}" >> pids.${experiment_name}
+#        fi
+#      fi
+# 
