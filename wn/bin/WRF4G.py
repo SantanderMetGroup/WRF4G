@@ -290,7 +290,7 @@ class Realization(Component):
         
         dbc=vdb.vdb()
         rea_name=self.get_name()
-        chunkd=dbc.select('Chunk,Realization','MAX(Chunk.id_chunk),MAX(Chunk.id)','id_rea=%s AND Realization.restart >= Chunk.sdate'%self.data['id'])
+        chunkd=dbc.select('Chunk,Realization','MIN(Chunk.id_chunk),MIN(Chunk.id)','id_rea=%s AND Realization.restart >= Chunk.sdate'%self.data['id'],verbose=self.verbose)
         [first_id_chunk,first_id]=chunkd[0].values()
         if nchunk == 0: 
             nchunk=self.last_chunk()
@@ -298,7 +298,7 @@ class Realization(Component):
         for chunki in range(first_id,first_id+nchunk):
             chi=Chunk(data={'id':'%s'%chunki})
             chi.loadfromDB(['id'],chi.get_configuration_fields())
-            arguments='%s %d %d %s %s'%(rea_name,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
+            arguments='%s %d %d %s %s'%(rea_name + id_chunk,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
             job=gridway.job()
             job.create_template(rea_name,arguments,np=NP,req=REQUIREMENTS)
             if chunki == first_id:
