@@ -3,7 +3,6 @@
 from sys import stderr,exit, path
 import sys
 import inspect
-path.append('/home/valva/WRF4G/wn/lib/python')
 import vdb
 import vcp
 from optparse import OptionParser
@@ -218,8 +217,7 @@ class Experiment(Component):
     def run(self):
         for id_rea in self.get_realizations_id():
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose)
-            rea.run()
-            
+            rea.run()            
         return 0
             
     def get_realizations_id(self):
@@ -285,7 +283,6 @@ class Realization(Component):
         return nchunk 
          
     def run(self,nchunk=0):
-        path.append('/home/valva/WRF4G/ui/lib/python')
         import gridway
         NP=1
         REQUIREMENTS=''
@@ -302,14 +299,12 @@ class Realization(Component):
             chi=Chunk(data={'id':'%s'%chunki})
             chi.loadfromDB(['id'],chi.get_configuration_fields())
             arguments='%s %d %d %s %s'%(rea_name,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
-            print arguments    
             job=gridway.job()
             job.create_template(rea_name,arguments,np=NP,req=REQUIREMENTS)
             if chunki == first_id:
                 gw_id=job.submit()
             else:
                 gw_id=job.submit(dep=gw_id)
-            print gw_id
                 
     def prepare_storage(self):          
         # Load the URL into the VCPURL class

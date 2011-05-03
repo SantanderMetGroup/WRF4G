@@ -1,4 +1,4 @@
-#! /bin/bash 
+#! /bin/bash
 
 # WRF4G_ini.sh
 #
@@ -42,7 +42,7 @@ function w4gini_exit(){
 
 function WRF4G_prepare (){
   #
-  #  Move all executables out of LOCALDIR
+  #  Move all executables out of LOCALDIRvcp
   #
   mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
   mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
@@ -157,6 +157,7 @@ rm wrf4g.conf wrf.input
 
 export WRF4G_EXPERIMENT="${experiment_name}"
 export WRF4G_REALIZATION=$1
+export realization_name=${WRF4G_REALIZATION}
 export WRF4G_CHUNK=$2
 export WRF4G_CHUNK_ID=$3
 export chunk_start_date=$4 
@@ -177,6 +178,7 @@ ROOTDIR=$(pwd)
 #  Expand the sandbox files
 #
 tar xzf sandbox.tar.gz 
+rm sandbox.tar.gz
 #
 #   Expand the WRF4G scripts
 #
@@ -227,8 +229,8 @@ WRF4G.py Chunk set_status id=${WRF4G_CHUNK_ID} 13
 tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz || w4gini_exit ${ERROR_MISSING_WRF4GBIN}
 rm WRF4Gbin-${WRF_VERSION}.tar.gz
 WRF4G.py Chunk set_status id=${WRF4G_CHUNK_ID} 14
-tar xzf ${ROOTDIR}/sandbox.tar.gz WRFV3/run/namelist.input    # La namelist buena esta aqui!
-rm -f ${ROOTDIR}/sandbox.tar.gz 
+vcp  ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/ WRFV3/run/namelist.input    # La namelist buena esta aqui!
+
 
 #
 #  If there are additional files, expand'em

@@ -39,7 +39,6 @@ NP=%d"""%(name,arguments,req,np)
            depend=''
     
        command="%s/bin/gwsubmit -v %s -t %s"%(self.gwloc,depend,self.template)
-       print command
        (err,out)=commands.getstatusoutput(command)
        if err != 0: 
          sys.stderr.write(out + '\n')
