@@ -298,9 +298,9 @@ class Realization(Component):
         for chunki in range(first_id,first_id+nchunk):
             chi=Chunk(data={'id':'%s'%chunki})
             chi.loadfromDB(['id'],chi.get_configuration_fields())
-            arguments='%s %d %d %s %s'%(rea_name + id_chunk,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
+            arguments='%s %d %d %s %s'%(rea_name ,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
             job=gridway.job()
-            job.create_template(rea_name,arguments,np=NP,req=REQUIREMENTS)
+            job.create_template(rea_name + chi.data['id_chunk'],arguments,np=NP,req=REQUIREMENTS)
             if chunki == first_id:
                 gw_id=job.submit()
             else:
