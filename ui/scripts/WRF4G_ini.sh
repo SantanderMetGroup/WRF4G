@@ -12,8 +12,7 @@ function load_default_config (){
  timestep_dxfactor=6
  real_parallel=0
  wrf_parallel=1
- set -v
-VCPDEBUG="-v"
+ VCPDEBUG="-v"
 
 
 }
@@ -185,7 +184,7 @@ rm sandbox.tar.gz
 export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
 export PATH="${ROOTDIR}/bin:$PATH"
 export LD_LIBRARY_PATH=${ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
-export PYTHONPATH=${ROOTDIR}/lib/python
+export PYTHONPATH=${ROOTDIR}/lib/python:${ROOTDIR}/lib/shared_libs:$PYTHONPATH
 chmod +x ${ROOTDIR}/bin/*
 vcp ${WRF4G_APPS}/WRF4G-${WRF4G_VERSION}.tar.gz . || exit ${ERROR_MISSING_WRF4GSRC}
 tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz
@@ -229,7 +228,7 @@ WRF4G.py Chunk set_status id=${WRF4G_CHUNK_ID} 13
 tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz || w4gini_exit ${ERROR_MISSING_WRF4GBIN}
 rm WRF4Gbin-${WRF_VERSION}.tar.gz
 WRF4G.py Chunk set_status id=${WRF4G_CHUNK_ID} 14
-vcp  ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/ WRFV3/run/namelist.input    # La namelist buena esta aqui!
+vcp  ${WRF4G_BASEPATH}/experiments/${experiment_name}/${realization_name}/namelist.input  WRFV3/run/namelist.input || exit 14
 
 
 #

@@ -1,4 +1,4 @@
-#! /bin/bash -x
+#! /bin/bash 
 #
 # wrf4g_submitter
 #
@@ -51,6 +51,8 @@ fi
 userdir=`pwd`
 wrf4g_root=$(dirname $(dirname $(dirname $0)))
 export PATH="${wrf4g_root}/wn/bin:${PATH}"
+export PYTHONPATH="${PYTHONPATH}:${wrf4g_root}/wn/lib/python:${wrf4g_root}/ui/lib/python"
+
 #
 #  Load wrf.input et al.
 #
@@ -217,11 +219,6 @@ function cycle_time(){
 }
 
 
-
-
-
-rm -f pids.${experiment_name}
-skip=0
 #
 #  Initial override of namelist values
 #
@@ -319,7 +316,7 @@ tar -czf sandbox.tar.gz *
 cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh .
 
 #Submit jobs
-WRF4G.py $WRF4G_FLAGS Experiment run id=${id_exp} 
+id=$(WRF4G.py $WRF4G_FLAGS Experiment run id=${id_exp})
 cd ..
 #rm -rf tar_temp
 
