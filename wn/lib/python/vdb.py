@@ -111,7 +111,6 @@ class vdb:
    def update(self, table, data, condition='1=1', verbose=False):
       """ UPDATE table SET data WHERE condition
       UPDATE "table" with the values of the "data" dictionary
-      Returns a dictionary with the name of the fields and their contents. 
       Example:
 
       c=vdb()

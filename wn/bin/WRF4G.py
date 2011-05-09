@@ -127,7 +127,6 @@ class Component:
         
         condition='id=%s'%self.data['id']
         oc=dbc.update(self.element,ddata,condition,verbose=self.verbose)
-        self.data['id']=oc
         return oc
     
     def get_one_field(self,val,cond):
@@ -400,7 +399,10 @@ class Chunk(Component):
 class Job(Component):
 
     def get_reconfigurable_fields(self):
-        return['resource','status','wn']
+        return['resource','wn']
+
+    def get_distinct_fields(self):
+        return['gw_job','id_chunk']
     
     def stjob2stchunk(self):
         dst={1:1, 10: 2, 40: 4, 41: 3}
@@ -412,9 +414,8 @@ class Job(Component):
         # If status involves any change in Chunk status, change the Chunk in DB
         dst=self.stjob2stchunk()
         if st in dst:
-            id_rea=Chunk(data={'id': self.data['id_chunk']},verbose=self.verbose).get_id_rea()
-            rea=Realization(data={'id': id_rea },verbose=self.verbose)
-            o=rea.set_status(dst[st])
+            id_rea=Chunk(data={'id': self.data['id_chunk']},verbose=self.verbose).set_status(dst[st])
+            
         # Add an Event in the DB
         timestamp=datetime2datewrf(datetime.utcnow())
         event_data= {'id_job': self.data['id'], 'status': st, 'timestamp': timestamp }
@@ -424,8 +425,9 @@ class Job(Component):
     def load_wn_conf(self,wn_gwres):
         wn_gwres=int(wn_gwres)
         dbc=vdb.vdb()
-        for field in self.data(keys):
-            cond="%s AND %s='%s'" %(wheresta,field,self.data[field])
+        cond=''
+        for field in self.get_distinct_fields():
+            cond="%s AND %s='%s'" %(cond,field,self.data[field])
         cond=cond[4:]
         jobd=dbc.select('Job','MAX(id),gw_restarted',cond,verbose=self.verbose)
         [max_id,db_gwres]=jobd[0].values()
@@ -433,12 +435,12 @@ class Job(Component):
             self.data['gw_restarted']=wn_gwres
             id=self.create()
         elif db_gwres == wn_gwres:
-            id=self.update(id=max_id)
+            self.data['id']=str(max_id)
+            id=self.update()
         else:
             stderr.write('Error: This job should not be running this Chunk\n')
             exit(9)
         self.set_status(10)
-        print id
         
     def get_hash(self):
         pass
