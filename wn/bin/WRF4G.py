@@ -5,6 +5,7 @@ import sys
 import inspect
 import vdb
 import vcp
+from datetime import datetime
 from optparse import OptionParser
 
 def datetime2datewrf (date_object):
@@ -26,6 +27,16 @@ def list2fields(arr):
        fields="%s,%s" %(fields,i)
     fields=fields[1:]
     return fields
+
+def create_hash():
+    import md5
+    import random
+    rand=random.randint(1,60000)
+    text=str(datetime.utcnow()) + str(rand)
+    ha=md5.new()
+    ha.update(text)
+    return ha.hexdigest()
+
 
 class Component:
     """  Component CLASS
@@ -97,6 +108,7 @@ class Component:
         """
         dbc=vdb.vdb()
         id=dbc.insert(self.element,self.data,verbose=self.verbose)
+        self.data['id']=id
         if id>0: return id
         else: return -1
         
@@ -115,6 +127,7 @@ class Component:
         
         condition='id=%s'%self.data['id']
         oc=dbc.update(self.element,ddata,condition,verbose=self.verbose)
+        self.data['id']=oc
         return oc
     
     def get_one_field(self,val,cond):
@@ -262,14 +275,28 @@ class Realization(Component):
         return name
     
     def get_restart(self):
-        restart=self.get_one_field(['restart'], ['name'])
+        restart=self.get_one_field(['restart'], ['id'])
         return restart
    
     def set_restart(self,restart_date):
         self.data['restart']=restart_date
-        oc=self.update_fields(['restart'], ['name'])    
+        oc=self.update_fields(['restart'], ['id'])    
         return oc
-    
+
+    def get_cdate(self):
+        restart=self.get_one_field(['cdate'], ['id'])
+        return restart
+   
+    def set_cdate(self,cdate):
+        self.data['cdate']=restart_date
+        oc=self.update_fields(['cdate'], ['id'])    
+        return oc
+
+    def set_status(self,status):
+        self.data['status']=status
+        oc=self.update_fields(['status'], ['id'])    
+        return oc
+
     def number_of_chunks(self,id_rea):
         dbc=vdb.vdb()
         nchunkd=dbc.select('Chunk','COUNT(Chunk.id_chunk)','id_rea=%s'%self.data['id'])
@@ -298,13 +325,19 @@ class Realization(Component):
         for chunki in range(first_id,first_id+nchunk):
             chi=Chunk(data={'id':'%s'%chunki})
             chi.loadfromDB(['id'],chi.get_configuration_fields())
-            arguments='%s %d %d %s %s'%(rea_name ,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
+            arguments='%s %s %d %d %s %s'%(rea_name,self.data['id'] ,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
             job=gridway.job()
-            job.create_template(rea_name + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS)
+            job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS)
             if chunki == first_id:
                 gw_id=job.submit()
             else:
                 gw_id=job.submit(dep=gw_id)
+            
+            job_data={'gw_job': gw_id,'id_chunk': str(chi.data['id']), 'hash': create_hash()}
+            job=Job(job_data,verbose=self.verbose)
+            jid=job.create()
+            job.set_status(1)
+            
                 
     def prepare_storage(self):          
         # Load the URL into the VCPURL class
@@ -357,9 +390,62 @@ class Chunk(Component):
         oc=self.update_fields(['status'], ['id'])
         return oc   
     
+    def get_id_rea(self):
+        id_rea=self.get_one_field(['id_rea'], ['id'])
+        return id_rea     
+        
     def prepare_storage(self):
         pass
+   
+class Job(Component):
+
+    def get_reconfigurable_fields(self):
+        return['resource','status','wn']
     
+    def stjob2stchunk(self):
+        dst={1:1, 10: 2, 40: 4, 41: 3}
+        return dst
+
+    def set_status(self,st):
+        self.data['status']=st
+        oc=self.update_fields(['status'], ['id'])
+        # If status involves any change in Chunk status, change the Chunk in DB
+        dst=self.stjob2stchunk()
+        if st in dst:
+            id_rea=Chunk(data={'id': self.data['id_chunk']},verbose=self.verbose).get_id_rea()
+            rea=Realization(data={'id': id_rea },verbose=self.verbose)
+            o=rea.set_status(dst[st])
+        # Add an Event in the DB
+        timestamp=datetime2datewrf(datetime.utcnow())
+        event_data= {'id_job': self.data['id'], 'status': st, 'timestamp': timestamp }
+        id_event=Events(data=event_data).create()
+        return oc   
+    
+    def load_wn_conf(self,wn_gwres):
+        wn_gwres=int(wn_gwres)
+        dbc=vdb.vdb()
+        for field in self.data(keys):
+            cond="%s AND %s='%s'" %(wheresta,field,self.data[field])
+        cond=cond[4:]
+        jobd=dbc.select('Job','MAX(id),gw_restarted',cond,verbose=self.verbose)
+        [max_id,db_gwres]=jobd[0].values()
+        if db_gwres > wn_gwres:
+            self.data['gw_restarted']=wn_gwres
+            id=self.create()
+        elif db_gwres == wn_gwres:
+            id=self.update(id=max_id)
+        else:
+            stderr.write('Error: This job should not be running this Chunk\n')
+            exit(9)
+        print id,self.get_hash()
+        
+    def get_hash(self):
+        pass
+
+class Events(Component):
+    pass
+
+     
    
 if __name__ == "__main__":
     usage="""%prog [OPTIONS] exp_values function fvalues 
