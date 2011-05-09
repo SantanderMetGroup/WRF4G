@@ -11,6 +11,7 @@ source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 source ${ROOTDIR}/wrf4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
 sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.input > source.it || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
+PID=$(cat ${LOCALDIR}/WRFV3/run/wrf.pid)
 
 
 
@@ -46,6 +47,10 @@ function filetype(){
   esac
 }
 
+function get_current_date(){
+  grep rsl.out.0000 
+}
+
 function filedate(){
   thefile=$1
   echo ${thefile} | sed -e 's/^.*\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]:[0-9][0-9]:[0-9][0-9]\).*$/\1/'
@@ -53,16 +58,20 @@ function filedate(){
 
 function clean_while_running(){
   for patt in ${file_patterns}; do
-    domains=$(ls ${patt}* 2> /dev/null| sort | awk -F_ '{print $2}' | grep '^d' | sort | uniq)
+    domains=$(ls ${patt}* 2> /dev/null| sort | awk -F_ '{print $2}' | grep '^d' | sort -r | uniq)
     for dom in ${domains}; do
       for file in $(all_but_last ${patt}_${dom}); do
         if test "${file}" == "${avoid_file}"; then
           time_debug "Skipping initial restart file ${file}"
           continue
         else
-          if ! /usr/sbin/lsof | grep ${file}; then # Make sure it is not open...
+          #if ! /usr/sbin/lsof | grep ${file}; then # Make sure it is not open...
+          if ! ls /proc/$PID/fd | grep ${file}; then # Make sure it is not open...
             time_debug "Uploading ${file} (start)"
             post_and_register --no-bg $(filetype $file) $(filedate $file) $file
+            if test $patt == "rst" -a $dom == "d01"; then
+		WRF4G.py Realization set_restart id=${WRF4G_ID_REALIZATION} $(filedate $file) # In the future kill the job if it can't contact the DB
+	    fi
             time_debug "Uploading ${file} (end)"
           else
             time_debug "${file} still open, skipping"
@@ -84,6 +93,9 @@ function clean_all(){
           # This time the files cannot be open by any process. We are uploading everything
           time_debug "Uploading ${file} (start)"
           post_and_register --no-bg $(filetype $file) $(filedate $file) $file
+           if test $patt == "rst" -a $dom == "d01"; then
+		WRF4G.py Realization set_restart id=${WRF4G_ID_REALIZATION} $(filedate $file) # In the future kill the job if it can't contact the DB
+          fi
           time_debug "Uploading ${file} (end)"
         fi
       done
@@ -110,5 +122,6 @@ do
     clean_all
     break
   fi
+  
   sleep ${wait_s}
 done
