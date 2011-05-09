@@ -276,8 +276,8 @@ class Realization(Component):
     
     def get_restart(self):
         restart=self.get_one_field(['restart'], ['id'])
-        return restart
-   
+        return datetime2datewrf(restart)
+        
     def set_restart(self,restart_date):
         self.data['restart']=restart_date
         oc=self.update_fields(['restart'], ['id'])    
@@ -437,7 +437,8 @@ class Job(Component):
         else:
             stderr.write('Error: This job should not be running this Chunk\n')
             exit(9)
-        print id,self.get_hash()
+        self.set_status(10)
+        print id
         
     def get_hash(self):
         pass

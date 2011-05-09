@@ -51,7 +51,8 @@ fi
 userdir=`pwd`
 wrf4g_root=$(dirname $(dirname $(dirname $0)))
 export PATH="${wrf4g_root}/wn/bin:${PATH}"
-export PYTHONPATH="${PYTHONPATH}:${wrf4g_root}/wn/lib/python:${wrf4g_root}/ui/lib/python"
+#export PYTHONPATH="${PYTHONPATH}:${wrf4g_root}/wn/lib/python:${wrf4g_root}/ui/lib/python"
+
 
 #
 #  Load wrf.input et al.
