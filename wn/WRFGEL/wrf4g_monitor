@@ -47,8 +47,8 @@ function filetype(){
   esac
 }
 
-function get_current_date(){
-  grep rsl.out.0000 
+function current_date(){
+ tail -100 rsl.out.0000 | grep "Timing for main: time" | sort -r | head -1 | awk '{print $5}'
 }
 
 function filedate(){
@@ -116,6 +116,7 @@ do
   if ps aux | awk '$2=='${wrf_pid}'' | grep -q wrf.exe
   then
     time_debug "WRF seems to be running"
+    WRF4G.py Realization set_cdate id=${WRF4G_ID_REALIZATION} $(current_date)
     clean_while_running
   else
     time_debug "WRF is not running anymore"
