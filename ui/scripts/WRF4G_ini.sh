@@ -260,11 +260,12 @@ vcp ${WRF4G_APPS}/WRF4Gbin-${WRF_VERSION}.tar.gz .
 tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz || w4gini_exit ${ERROR_MISSING_WRF4GBIN}
 rm WRF4Gbin-${WRF_VERSION}.tar.gz
 
-vcp  ${WRF4G_BASEPATH}/experiments/${experiment_name}/${WRF4G_REALIZATION}/namelist.input  WRFV3/run/namelist.input || w4gini_exit ${ERROR_MISSING_NAMELIST}
+vcp ${WRF4G_BASEPATH}/experiments/${experiment_name}/${WRF4G_REALIZATION}/namelist.input  WRFV3/run/namelist.input || w4gini_exit ${ERROR_MISSING_NAMELIST}
 
 #
 #  If there are additional files, expand'em
 #
+vcp ${WRF4G_BASEPATH}/experiments/${experiment_name}/wrf4g_files.tar.gz ${ROOTDIR} &>/dev/null
 if test -f ${ROOTDIR}/wrf4g_files.tar.gz; then
   tar xzvf ${ROOTDIR}/wrf4g_files.tar.gz && rm ${ROOTDIR}/wrf4g_files.tar.gz
 fi

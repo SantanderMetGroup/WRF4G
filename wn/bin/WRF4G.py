@@ -39,13 +39,19 @@ def create_hash():
     ha.update(text)
     return ha.hexdigest()
 
-def db_parameters():
-    wrf4g_conf=os.environ.get('WRF4G_CONF_FILE')
-    
+def opendbconnection():
+    c=vdb.vdb(host=DB_HOST, user=DB_USER, db='WRF4GDB', port=DB_PORT, passwd=DB_PASSWD)
+    return c
+
+def load_default_values():
+    global NP,REQUIREMENTS,DB_HOST,DB_PORT,DB_USER,DB_PASSWD
+    NP=1
+    REQUIREMENTS=''
     DB_HOST="ui01.macc.unican.es"
     DB_PORT=13306
     DB_USER="gridway"
     DB_PASSWD="ui01"
+
 
 class Component:
     """  Component CLASS
@@ -64,7 +70,7 @@ class Component:
         """    
         Returns a list with all the Component fields.
         """
-        dbc=vdb.vdb()
+        dbc=opendbconnection()
         salida=dbc.describe(self.element)
         return salida
     
@@ -78,7 +84,7 @@ class Component:
         Component.id  
         """
         wheresta=''
-        dbc=vdb.vdb()
+        dbc=opendbconnection()
         for field in fields:
             wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
         wheresta=wheresta[4:]
@@ -98,7 +104,7 @@ class Component:
      """
 
      wheresta=''
-     dbc=vdb.vdb()
+     dbc=opendbconnection()
      for field in list_query:
          wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
      wheresta=wheresta[4:]     
@@ -115,7 +121,7 @@ class Component:
         id > 0 --> Creation Worked.
         -1--> Creation Failed
         """
-        dbc=vdb.vdb()
+        dbc=opendbconnection()
         id=dbc.insert(self.element,self.data,verbose=self.verbose)
         self.data['id']=id
         if id>0: return id
@@ -128,7 +134,7 @@ class Component:
         id >0 --> Creation Worked.
         -1--> Creation Failed
         """
-        dbc=vdb.vdb()
+        dbc=opendbconnection()
         
         ddata={}
         for field in self.get_reconfigurable_fields():
@@ -139,7 +145,7 @@ class Component:
         return oc
     
     def get_one_field(self,val,cond):
-        dbc=vdb.vdb()
+        dbc=opendbconnection()
         
         condition=''
         for field in cond:
@@ -150,7 +156,7 @@ class Component:
         return dic[0][val[0]]
 
     def update_fields(self,val,cond):
-        dbc=vdb.vdb()
+        dbc=opendbconnection()
         
         ddata={}
         for field in val:
@@ -229,7 +235,7 @@ class Experiment(Component):
     def get_id_from_name(self):
 
         wheresta=''
-        dbc=vdb.vdb()
+        dbc=opendbconnection()
         idp=dbc.select(self.element,'id',"name='%s'"%self.data['name'],verbose=self.verbose)
         id = vdb.list_query().one_field(idp)
         if id !='': return id
@@ -246,14 +252,13 @@ class Experiment(Component):
         Query database and Returns a list with the realization
         ids of an experiment"""
         
-        dbc=vdb.vdb()
+        dbc=opendbconnection()
         idp=dbc.select('Realization','id','id_exp=%s'%self.data['id'],verbose=self.verbose)
         ids_rea = vdb.list_query().one_field(idp,'python')
         return ids_rea 
     
     def prepare_storage(self):          
         # Load the URL into the VCPURL class
-        exec open('wrf4g.conf').read()
         exp_dir="%s/experiments/%s" %(WRF4G_BASEPATH, self.data['name'])
         list=vcp.VCPURL(exp_dir)
         list.mkdir(verbose=self.verbose)
@@ -263,7 +268,8 @@ class Experiment(Component):
             for file in os.listdir('wrf4g_files'):
                 tFile.add('wrf4g_files/' + file)
             tFile.close()
-            output=vcp.copy_file('wrf4g_files.tar.gz',exp_dir,verbose=self.verbose)             
+            output=vcp.copy_file('wrf4g_files.tar.gz',exp_dir,verbose=self.verbose)    
+            os.remove('wrf4g_files.tar.gz')         
             
         output=vcp.copy_file('wrf4g.conf',exp_dir,verbose=self.verbose) 
         output=vcp.copy_file('wrf.input',exp_dir,verbose=self.verbose) 
@@ -320,24 +326,20 @@ class Realization(Component):
         return finished
     
     def number_of_chunks(self,id_rea):
-        dbc=vdb.vdb()
+        dbc=opendbconnection()
         nchunkd=dbc.select('Chunk','COUNT(Chunk.id_chunk)','id_rea=%s'%self.data['id'])
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk
     
     def last_chunk(self):
-        dbc=vdb.vdb()
+        dbc=opendbconnection()
         nchunkd=dbc.select('Chunk','MAX(Chunk.id)','id_rea=%s'%self.data['id'])
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk 
          
     def run(self,nchunk=0):
-        import gridway
-        NP=1
-        REQUIREMENTS=''
-        exec open('wrf4g.conf').read()
-        
-        dbc=vdb.vdb()
+        import gridway        
+        dbc=opendbconnection()
         rea_name=self.get_name()
         restart=self.get_restart()
         
@@ -379,7 +381,6 @@ class Realization(Component):
                 
     def prepare_storage(self):          
         # Load the URL into the VCPURL class
-        exec open('wrf4g.conf').read()
         reas=self.data['name'].split('__')
         rea_dir="%s/experiments/%s/%s" % (WRF4G_BASEPATH,reas[0],self.data['name'])
         for dir in ["output","restart","wpsout"]:
@@ -389,7 +390,7 @@ class Realization(Component):
         output=vcp.copy_file('namelist.input',rea_dir,verbose=self.verbose)       
                              
     def is_finished(self,id_rea):
-        dbc=vdb.vdb()
+        dbc=opendbconnection()
         max_id=dbc.select('Chunk','MAX(id)','id_rea=%s'%id_rea,verbose=self.verbose)
         status=dbc.select('Chunk','status','id=%s'%vdb.parse_one_field(max_id),verbose=self.verbose)
         if status == 100:
@@ -467,7 +468,7 @@ class Job(Component):
     
     def load_wn_conf(self,wn_gwres):
         wn_gwres=int(wn_gwres)
-        dbc=vdb.vdb()
+        dbc=opendbconnection()
         cond=''
         for field in self.get_distinct_fields():
             cond="%s AND %s='%s'" %(cond,field,self.data[field])
@@ -512,8 +513,11 @@ if __name__ == "__main__":
         
     class_name=args[0]
     function=args[1]
-
+    load_default_values()
     wrf4g_conf=os.environ.get('WRF4G_CONF_FILE')
+    if wrf4g_conf == None:
+        sys.stderr.write('WRF4G_CONF_FILE is not defined. Please define it and try again\n')
+        sys.exit(1)
     exec open(wrf4g_conf).read()
     
     data=''

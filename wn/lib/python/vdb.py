@@ -38,7 +38,7 @@ class vdb:
    def __init__(self, host="ui01.macc.unican.es", user="gridway", db="cam", port=13306, passwd="ui01"):
    # connect
      try:
-       self.con = MySQLdb.connect(host="ui01.macc.unican.es", user="gridway", db="WRF4GDB", port=13306, passwd="ui01")
+       self.con = MySQLdb.connect(host=host, user=user, db=db, port=port, passwd=passwd)
       # db = MySQLdb.connect('host'=host, 'user'=user,'db'=db,'port'=port,'passwd'=passwd)
      except MySQLdb.Error, e:
        print "Error %d: %s" % (e.args[0], e.args[1])
