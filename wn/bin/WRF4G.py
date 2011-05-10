@@ -264,12 +264,14 @@ class Experiment(Component):
         list.mkdir(verbose=self.verbose)
         if os.path.exists('wrf4g_files'):
             import tarfile
-            tFile = tarfile.open("wrf4g_files.tar.gz", 'w:gz')
-            for file in os.listdir('wrf4g_files'):
-                tFile.add('wrf4g_files/' + file)
+            os.chdir('wrf4g_files')
+            tFile = tarfile.open('../wrf4g_files.tar.gz', 'w:gz')
+            for file in os.listdir('.'):
+                tFile.add(file)
             tFile.close()
+            os.chdir('..')
             output=vcp.copy_file('wrf4g_files.tar.gz',exp_dir,verbose=self.verbose)    
-            os.remove('wrf4g_files.tar.gz')         
+            os.remove('wrf4g_files.tar.gz')  
             
         output=vcp.copy_file('wrf4g.conf',exp_dir,verbose=self.verbose) 
         output=vcp.copy_file('wrf.input',exp_dir,verbose=self.verbose) 
@@ -375,7 +377,7 @@ class Realization(Component):
             job_data={'gw_job': gw_id,'id_chunk': str(chi.data['id']), 'hash': create_hash()}
             job=Job(job_data,verbose=self.verbose)
             jid=job.create()
-            job.set_status(1)
+            job.set_status('1')
             
             
                 
@@ -386,14 +388,16 @@ class Realization(Component):
         for dir in ["output","restart","wpsout"]:
           repo="%s/%s" % (rea_dir,dir)
           list=vcp.VCPURL(repo)
-          list.mkdir(verbose=self.verbose)    
-        output=vcp.copy_file('namelist.input',rea_dir,verbose=self.verbose)       
+          list.mkdir(verbose=self.verbose)
+        output=vcp.copy_file('namelist.input',rea_dir,verbose=self.verbose) 
+        os.remove('namelist.input') 
+        os.remove('namelist.input.base')
                              
     def is_finished(self,id_rea):
         dbc=opendbconnection()
         max_id=dbc.select('Chunk','MAX(id)','id_rea=%s'%id_rea,verbose=self.verbose)
         status=dbc.select('Chunk','status','id=%s'%vdb.parse_one_field(max_id),verbose=self.verbose)
-        if status == 100:
+        if status == '4':
             return 1
         else:
             return 0
@@ -449,7 +453,7 @@ class Job(Component):
         return['gw_job','id_chunk']
     
     def stjob2stchunk(self):
-        dst={1:1, 10: 2, 40: 4, 41: 3}
+        dst={'1':1, '10': 2, '40': 4, '41': 3}
         return dst
 
     def set_status(self,st):
@@ -458,7 +462,7 @@ class Job(Component):
         # If status involves any change in Chunk status, change the Chunk in DB
         dst=self.stjob2stchunk()
         if st in dst:
-            id_rea=Chunk(data={'id': self.data['id_chunk']},verbose=self.verbose).set_status(dst[st])
+            id_rea=Chunk(data={'id': self.data['id']},verbose=self.verbose).set_status(dst[st])
             
         # Add an Event in the DB
         timestamp=datetime2datewrf(datetime.utcnow())
@@ -485,7 +489,7 @@ class Job(Component):
         else:
             stderr.write('Error: This job should not be running this Chunk\n')
             exit(9)
-        self.set_status(10)
+        self.set_status('10')
         return self.data['id']
         
     def get_hash(self):

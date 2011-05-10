@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/bash -x 
 
 # WRF4G_ini.sh
 #
@@ -113,7 +113,7 @@ function prepare_local_environment (){
 
 
 function timelog_clean(){
-  rm -f ${logdir}/time.logERROR_RETRIEVE_RESTART_DATE
+  rm -f ${logdir}/time.log
 }
 
 function timelog_end(){
@@ -156,7 +156,7 @@ function wrf4g_exit(){
   esac
 
   test -f namelist.input && cp namelist.input ${logdir}/
-  tar czf log.tar.gz.${WRF4G_JOB_ID} ${logdir} && vcp log.tar.gz ${WRF4G_BASEPATH}/experiments/${experiment_name}/${WRF4G_REALIZATION}/
+  tar czf log${WRF4G_JOB_ID}.tar.gz ${logdir} && vcp log${WRF4G_JOB_ID}.tar.gz ${WRF4G_BASEPATH}/experiments/${experiment_name}/${WRF4G_REALIZATION}/
   test "${LOCALDIR}" != "${ROOTDIR}" && mv ${logdir} ${ROOTDIR}/
   exit ${excode}
 }
@@ -182,8 +182,8 @@ rm wrf4g.conf wrf.input
 export WRF4G_EXPERIMENT="${experiment_name}"
 export WRF4G_REALIZATION=$1
 export WRF4G_ID_REALIZATION=$2
-export WRF4G_CHUNK=$3
-export WRF4G_CHUNK_ID=$4
+export WRF4G_NCHUNK=$3
+export WRF4G_ID_CHUNK=$4
 export chunk_start_date=$5
 export chunk_end_date=$6
 
@@ -193,8 +193,8 @@ export chunk_end_date=$6
 #
 ROOTDIR=$(pwd)
 if test -n "${WRF4G_RUN_SHARED}"; then
-  mkdir -p ${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
-  cd ${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_CHUNK}
+  mkdir -p ${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_NCHUNK}
+  cd ${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_NCHUNK}
   mv ${ROOTDIR}/sandbox.tar.gz .
 fi 
 ROOTDIR=$(pwd)
@@ -210,9 +210,10 @@ export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
 export PATH="${ROOTDIR}/bin:$PATH"
 export LD_LIBRARY_PATH=${ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
 export PYTHONPATH=${ROOTDIR}/lib/python:${ROOTDIR}/lib/shared_libs:$PYTHONPATH
-chmod +x ${ROOTDIR}/bin/*
+chmod +x ${ROOTDIR}/bin/* 
 vcp ${WRF4G_APPS}/WRF4G-${WRF4G_VERSION}.tar.gz . || exit 40 # We do not have yet the wrf4g_exit_codes ${ERROR_MISSING_WRF4GSRC}
 tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz  || exit 40
+chmod +x ${ROOTDIR}/bin/* 
 
 
 #
@@ -224,9 +225,9 @@ export PATH="${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
 chmod +x ${ROOTDIR}/WRFGEL/*
 
 # Update Job Status in DB
-job_conf="gw_job=${GW_JOB_ID},id_chunk=${WRF4G_CHUNK},resource=${GW_HOSTNAME},wn=$(hostname)"
-WRF4G_JOB_ID=$(WRF4G.py Job load_wn_conf  $job_conf $GW_RESTARTED) || w4gini_exit ${ERROR_LOW_GW_RESTARTED}
-
+job_conf="gw_job=${GW_JOB_ID},id_chunk=${WRF4G_ID_CHUNK},resource=${GW_HOSTNAME},wn=$(hostname)"
+WRF4G_JOB_ID=$(WRF4G.py Job load_wn_conf  $job_conf $GW_RESTARTED) #|| w4gini_exit ${ERROR_LOW_GW_RESTARTED}
+echo $?
 #
 #   Should we unpack here or there is a local filesystem for us to run?
 #
@@ -250,7 +251,7 @@ echo ${PWD} > ${ROOTDIR}/localdir
 #  Create WRF4G framework structure
 #
 logdir=${LOCALDIR}/log
-mkdir ${logdir}
+mkdir -p ${logdir}
 
 # Redirect output and error file descriptors
 exec &>log/WRF4G.log
@@ -272,23 +273,24 @@ fi
 
 WRF4G_prepare
 
-prepare_runtime_environmentEXIT_CHUNK_SHOULD_NOT_RUN
+prepare_runtime_environment
 
 timelog_clean
 
 #
 #  Get the restart files if necesary.
 #
-restart_date=$(WRF4G.py -v Realization get_restart name=${WRF4G_REALIZATION}) || w4gini_exit ${ERROR_ACCESS_DB}
+restart_date=$(WRF4G.py -v Realization get_restart id=${WRF4G_ID_REALIZATION}) || w4gini_exit ${ERROR_ACCESS_DB}
 if  test ${restart_date} == "None"; then
    export chunk_restart_date=${chunk_start_date}
    export chunk_is_restart=".F."
-elif test date2int ${restart_date} -ge date2int ${chunk_start_date} -a date2int ${restart_date} -le date2int ${chunk_end_date}; then
-   export chunk_restart_date=${chunk_restart_date}
+elif test $(date2int ${restart_date}) -ge $(date2int ${chunk_start_date}) -a $(date2int ${restart_date}) -le $(date2int ${chunk_end_date}); then
+   export chunk_restart_date=${restart_date}
    export chunk_is_restart=".T."  
    WRF4G.py Job set_status id=${WRF4G_JOB_ID} 12
-   download_file rst ${restart_date} || exit ${ERROR_RST_DOWNLOAD_FAILED}
-   mv ${ROOTDIR}/wrfrst* WRFV3/run >& /dev/null 
+   download_file rst $(date_wrf2iso ${restart_date}) || exit ${ERROR_RST_DOWNLOAD_FAILED}
+   ls wrfrst*
+   mv ${ROOTDIR}/wrfrst* WRFV3/run 
 else
    w4gini_exit ${EXIT_CHUNK_SHOULD_NOT_RUN}
 fi
@@ -297,7 +299,7 @@ fi
 #
 #   Must WPS run or are the boundaries available?
 #
-wps_stored=$(WRF4G.py -v Chunk get_wps id=${WRF4G_CHUNK_ID}) || w4gini_exit ${ERROR_ACCESS_DB}
+wps_stored=$(WRF4G.py -v Chunk get_wps id=${WRF4G_ID_CHUNK}) || w4gini_exit ${ERROR_ACCESS_DB}
 
 if test ${wps_stored} -eq "1"; then
   cd ${LOCALDIR}/WPS || exit
@@ -367,8 +369,7 @@ else
      rm -f GRIBFILE.*
     ./link_grib.csh grbOtherData/*.grb
     timelog_init "ungrib_others"
-    ${ROOTDIR}/bin/ungrib.exe >&
-    ${logdir}/ungrib_${preprocessor_other}_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
+    ${ROOTDIR}/bin/ungrib.exe >& ${logdir}/ungrib_${preprocessor_other}_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
     cat ${logdir}/ungrib_${preprocessor_other}_${iyy}${imm}${idd}${ihh}.out \
     | grep -q -i 'Successful completion of ungrib' \
     || wrf4g_exit ${ERROR_UNGRIB_FAILED}
@@ -471,7 +472,7 @@ else
       WRF4G.py Job set_status id=${WRF4G_JOB_ID} 25
       timelog_init "wps put"
         post_and_register --no-bg wps "${chunk_start_date}"
-        WRF4G.py Chunk set_wps id=${WRF4G_CHUNK_ID} 1
+        WRF4G.py Chunk set_wps id=${WRF4G_ID_CHUNK} 1
       timelog_end
     fi
   cd ${LOCALDIR} || exit
@@ -504,7 +505,7 @@ cd ${LOCALDIR}/WRFV3/run || exit
     # This time is also useful to copy the wpsout data
     sleep 30
     ps -ef | grep wrf.exe
-    wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
+    bash -x wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   
     wait $(cat monitor.pid)
   timelog_end
