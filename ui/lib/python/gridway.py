@@ -21,11 +21,12 @@ class job:
        f = open (ftemplate,'w')
        template="""NAME = %s
 EXECUTABLE = /bin/bash 
-ARGUMENTS = "./WRF4G_ini.sh %s"
+ARGUMENTS = "-x ./WRF4G_ini.sh %s"
 INPUT_FILES   = WRF4G_ini.sh,sandbox.tar.gz
 RANK = (CPU_MHZ * 2) + FREE_MEM_MB 
 REQUIREMENTS=%s
-NP=%d"""%(name,arguments,req,np)
+NP=%d
+"""%(name,arguments,req,np)
        f.write(template)
        f.close()
        self.template=ftemplate

@@ -69,7 +69,7 @@ function clean_while_running(){
           if ! ls /proc/$PID/fd | grep ${file}; then # Make sure it is not open...
             time_debug "Uploading ${file} (start)"
             post_and_register --no-bg $(filetype $file) $(filedate $file) $file
-            if test $patt == "rst" -a $dom == "d01"; then
+            if test $patt == "wrfrst" -a $dom == "d01"; then
 		WRF4G.py Realization set_restart id=${WRF4G_ID_REALIZATION} $(filedate $file) # In the future kill the job if it can't contact the DB
 	    fi
             time_debug "Uploading ${file} (end)"
@@ -93,7 +93,7 @@ function clean_all(){
           # This time the files cannot be open by any process. We are uploading everything
           time_debug "Uploading ${file} (start)"
           post_and_register --no-bg $(filetype $file) $(filedate $file) $file
-           if test $patt == "rst" -a $dom == "d01"; then
+           if test $patt == "wrfrst" -a $dom == "d01"; then
 		WRF4G.py Realization set_restart id=${WRF4G_ID_REALIZATION} $(filedate $file) # In the future kill the job if it can't contact the DB
           fi
           time_debug "Uploading ${file} (end)"
