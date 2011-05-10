@@ -275,7 +275,9 @@ class Realization(Component):
     
     def get_restart(self):
         restart=self.get_one_field(['restart'], ['id'])
-        return datetime2datewrf(restart)
+	if restart != None:
+		restart=datetime2datewrf(restart)
+        return restart
         
     def set_restart(self,restart_date):
         self.data['restart']=restart_date
@@ -283,11 +285,11 @@ class Realization(Component):
         return oc
 
     def get_cdate(self):
-        restart=self.get_one_field(['cdate'], ['id'])
-        return restart
+        cdate=self.get_one_field(['cdate'], ['id'])
+        return cdate
    
     def set_cdate(self,cdate):
-        self.data['cdate']=restart_date
+        self.data['cdate']=cdate
         oc=self.update_fields(['cdate'], ['id'])    
         return oc
 
@@ -316,7 +318,7 @@ class Realization(Component):
         
         dbc=vdb.vdb()
         rea_name=self.get_name()
-        chunkd=dbc.select('Chunk,Realization','MIN(Chunk.id_chunk),MIN(Chunk.id)','id_rea=%s AND Realization.restart >= Chunk.sdate'%self.data['id'],verbose=self.verbose)
+        chunkd=dbc.select('Chunk,Realization','MAX(Chunk.id_chunk),MAX(Chunk.id)','id_rea=%s AND Realization.restart >= Chunk.sdate'%self.data['id'],verbose=True)
         [first_id_chunk,first_id]=chunkd[0].values()
         if nchunk == 0: 
             nchunk=self.last_chunk()
@@ -434,6 +436,7 @@ class Job(Component):
         if db_gwres > wn_gwres:
             self.data['gw_restarted']=wn_gwres
             id=self.create()
+            self.data['id']=id
         elif db_gwres == wn_gwres:
             self.data['id']=str(max_id)
             id=self.update()
@@ -441,6 +444,7 @@ class Job(Component):
             stderr.write('Error: This job should not be running this Chunk\n')
             exit(9)
         self.set_status(10)
+        return self.data['id']
         
     def get_hash(self):
         pass
