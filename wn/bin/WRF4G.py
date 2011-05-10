@@ -7,6 +7,8 @@ import vdb
 import vcp
 from datetime import datetime
 from optparse import OptionParser
+import os
+
 
 def datetime2datewrf (date_object):
     return date_object.strftime("%Y-%m-%d_%H:%M:%S")
@@ -37,6 +39,13 @@ def create_hash():
     ha.update(text)
     return ha.hexdigest()
 
+def db_parameters():
+    wrf4g_conf=os.environ.get('WRF4G_CONF_FILE')
+    
+    DB_HOST="ui01.macc.unican.es"
+    DB_PORT=13306
+    DB_USER="gridway"
+    DB_PASSWD="ui01"
 
 class Component:
     """  Component CLASS
@@ -248,6 +257,14 @@ class Experiment(Component):
         exp_dir="%s/experiments/%s" %(WRF4G_BASEPATH, self.data['name'])
         list=vcp.VCPURL(exp_dir)
         list.mkdir(verbose=self.verbose)
+        if os.path.exists('wrf4g_files'):
+            import tarfile
+            tFile = tarfile.open("wrf4g_files.tar.gz", 'w:gz')
+            for file in os.listdir('wrf4g_files'):
+                tFile.add('wrf4g_files/' + file)
+            tFile.close()
+            output=vcp.copy_file('wrf4g_files.tar.gz',exp_dir,verbose=self.verbose)             
+            
         output=vcp.copy_file('wrf4g.conf',exp_dir,verbose=self.verbose) 
         output=vcp.copy_file('wrf.input',exp_dir,verbose=self.verbose) 
       
@@ -275,8 +292,8 @@ class Realization(Component):
     
     def get_restart(self):
         restart=self.get_one_field(['restart'], ['id'])
-	if restart != None:
-		restart=datetime2datewrf(restart)
+        if restart != None:
+           restart=datetime2datewrf(restart)
         return restart
         
     def set_restart(self,restart_date):
@@ -293,11 +310,15 @@ class Realization(Component):
         oc=self.update_fields(['cdate'], ['id'])    
         return oc
 
-    def set_status(self,status):
-        self.data['status']=status
-        oc=self.update_fields(['status'], ['id'])    
-        return oc
-
+    def has_finished(self):
+        lchunk=self.last_chunk()
+        status=Chunk(data={'id': '%s'%lchunk}).get_status()
+        if status == 4:
+            finished=True
+        else:
+            finished=False
+        return finished
+    
     def number_of_chunks(self,id_rea):
         dbc=vdb.vdb()
         nchunkd=dbc.select('Chunk','COUNT(Chunk.id_chunk)','id_rea=%s'%self.data['id'])
@@ -306,7 +327,7 @@ class Realization(Component):
     
     def last_chunk(self):
         dbc=vdb.vdb()
-        nchunkd=dbc.select('Chunk','MAX(Chunk.id_chunk)','id_rea=%s'%self.data['id'])
+        nchunkd=dbc.select('Chunk','MAX(Chunk.id)','id_rea=%s'%self.data['id'])
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk 
          
@@ -318,12 +339,27 @@ class Realization(Component):
         
         dbc=vdb.vdb()
         rea_name=self.get_name()
-        chunkd=dbc.select('Chunk,Realization','MAX(Chunk.id_chunk),MAX(Chunk.id)','id_rea=%s AND Realization.restart >= Chunk.sdate'%self.data['id'],verbose=True)
+        restart=self.get_restart()
+        
+        if self.has_finished():
+            stderr.write('Realization %s already finished.'%rea_name)
+            return 1
+            
+        if restart == None:
+            chunkd=dbc.select('Chunk','MIN(Chunk.id_chunk),MIN(Chunk.id)','id_rea=%s'%self.data['id'],verbose=self.verbose)
+        else:
+            chunkd=dbc.select('Chunk,Realization','Chunk.id_chunk,Chunk.id','Chunk.id_rea=%s AND Chunk.id_rea=Realization.id AND Realization.restart >=Chunk.sdate AND Realization.restart<Chunk.edate'%self.data['id'],verbose=self.verbose)
+            if chunkd== ():
+                stderr.write('DB inconsistency.')
+                return 2
+        
         [first_id_chunk,first_id]=chunkd[0].values()
         if nchunk == 0: 
-            nchunk=self.last_chunk()
+            lchunk=self.last_chunk()
+        else:
+            lchunk=first_id+nchunk
 
-        for chunki in range(first_id,first_id+nchunk):
+        for chunki in range(first_id,lchunk+1):
             chi=Chunk(data={'id':'%s'%chunki})
             chi.loadfromDB(['id'],chi.get_configuration_fields())
             arguments='%s %s %d %d %s %s'%(rea_name,self.data['id'] ,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
@@ -338,6 +374,7 @@ class Realization(Component):
             job=Job(job_data,verbose=self.verbose)
             jid=job.create()
             job.set_status(1)
+            
             
                 
     def prepare_storage(self):          
@@ -390,6 +427,10 @@ class Chunk(Component):
         self.data['status']=st
         oc=self.update_fields(['status'], ['id'])
         return oc   
+    
+    def get_status(self):
+        status=self.get_one_field(['status'], ['id'])
+        return status   
     
     def get_id_rea(self):
         id_rea=self.get_one_field(['id_rea'], ['id'])
@@ -472,6 +513,9 @@ if __name__ == "__main__":
     class_name=args[0]
     function=args[1]
 
+    wrf4g_conf=os.environ.get('WRF4G_CONF_FILE')
+    exec open(wrf4g_conf).read()
+    
     data=''
     if len(args) > 2:   data=pairs2dict(args[2])         
     inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure)"%(class_name,data)
