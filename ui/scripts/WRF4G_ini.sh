@@ -1,4 +1,4 @@
-#! /bin/bash -x 
+#! /bin/bash
 
 # WRF4G_ini.sh
 #
@@ -18,43 +18,6 @@ function load_default_config (){
 function date2int(){
   date=$[1]
   echo $date| sed 's/[-_:]//g'
-}
-
-function w4gini_exit(){
-  excode=$1
-  case ${excode} in
-    ${ERROR_GETDATERST_FAILED})
-      echo "Problems getting the restart date... (not even -1)"
-      ;;
-    ${EXIT_CHUNK_ALREADY_FINISHED})
-      echo "This chunk already run! Ciao..." >> WRF4G_ini.err
-      ;;
-    ${EXIT_RESTART_MISMATCH})
-      echo "Something went wrong! (the restart file is not available and the chunk is a restart...)" >> WRF4G_ini.err
-      ;;
-    ${EXIT_CHUNK_SHOULD_NOT_RUN})
-      echo "The date of the simulation did not reach this chunk yet! Ciao..." >> WRF4G_ini.err
-      ;;
-    ${ERROR_MISSING_WRF4GBIN})
-      echo "Could not find the WRF binary file: WRF4Gbin-${WRF_VERSION}.tar.gz " >> WRF4G_ini.err
-      ;;
-    ${ERROR_LOW_GW_RESTARTED})
-      echo "This Job should not run this chunk " >> WRF4G_ini.err
-      ;;
-    ${ERROR_MISSING_NAMELIST})
-      echo "Could not find the namelist" >> WRF4G_ini.err
-      ;;
-    ${ERROR_ACCESS_DB})
-      echo "Could not access DB" >> WRF4G_ini.err
-      ;;
-    ${ERROR_CANNOT_ACCESS_LOCALDIR})
-    echo "Cannot access $LOCALDIR" >> WRF4G_ini.err
-      ;;
-    ${ERROR_VCP_FAILED})
-        echo "Error Copying file $2" >> WRF4G_ini.err
-      ;;
-  esac
-  exit ${excode}
 }
 
 function WRF4G_prepare (){
@@ -134,17 +97,16 @@ function wrf4g_exit(){
   #  logs to a safe place and leave
   #
 
-  echo "exit $excode" >> ${logdir}/time.log
-  ls -l >& ${logdir}/ls.wrf
-  if test -e rsl.out.0000; then
-    mkdir -p rsl_wrf
-    mv rsl.* rsl_wrf/
-    mv rsl_wrf ${logdir}/
-  fi
   case $excode in
     0)
+
        timelog_end
-       WRF4G.py Job set_status id=${WRF4G_JOB_ID} 40
+       if test $(grep -c "SUCCESS COMPLETE WRF" rsl.out.0000) -eq 1 ;then
+          WRF4G.py Job set_status id=${WRF4G_JOB_ID} 40
+       else
+	  WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41
+	  extcode=${ERROR_UNEXPECTED_WRF_TERMINATION}
+       fi
        ;;
     ${ERROR_UNGRIB_FAILED})
        ls -lR >& ${logdir}/ls.wps
@@ -155,9 +117,24 @@ function wrf4g_exit(){
        ;;
   esac
 
+  echo "exit $excode" >> ${logdir}/time.log
+  ls -l >& ${logdir}/ls.wrf
+  cp namelist.output ${logdir}/
+  if test -e rsl.out.0000; then
+    mkdir -p rsl_wrf
+    mv rsl.* rsl_wrf/
+    mv rsl_wrf ${logdir}/
+  fi
   test -f namelist.input && cp namelist.input ${logdir}/
-  tar czf log${WRF4G_JOB_ID}.tar.gz ${logdir} && vcp log${WRF4G_JOB_ID}.tar.gz ${WRF4G_BASEPATH}/experiments/${experiment_name}/${WRF4G_REALIZATION}/
-  test "${LOCALDIR}" != "${ROOTDIR}" && mv ${logdir} ${ROOTDIR}/
+  logfile="log_${WRF4G_NCHUNK}_${WRF4G_JOB_ID}.tar.gz"
+  cd ${logdir}
+  tar czf ${logfile} * && vcp ${logfile} ${WRF4G_BASEPATH}/experiments/${experiment_name}/${WRF4G_REALIZATION}/log/
+  cd -
+  # Clean the heavy stuff
+  if test "${clean_after_run}" -eq 1; then
+    cd
+    rm -rf ${LOCALDIR} ${ROOTDIR} 
+  fi
   exit ${excode}
 }
 
@@ -174,8 +151,8 @@ load_default_config
 #
 #  Load wrf.input and wrf.chunk
 #
-source wrf4g.conf                            || exit ${ERROR_MISSING_WRF4GCNF}
-sed -e 's/\ *=\ */=/' wrf.input > source.it  || exit ${ERROR_MISSING_WRFINPUT}
+source wrf4g.conf                            || exit 2
+sed -e 's/\ *=\ */=/' wrf.input > source.it  || exit 2
 source source.it && rm source.it
 rm wrf4g.conf wrf.input
 
@@ -226,7 +203,7 @@ chmod +x ${ROOTDIR}/WRFGEL/*
 
 # Update Job Status in DB
 job_conf="gw_job=${GW_JOB_ID},id_chunk=${WRF4G_ID_CHUNK},resource=${GW_HOSTNAME},wn=$(hostname)"
-WRF4G_JOB_ID=$(WRF4G.py Job load_wn_conf  $job_conf $GW_RESTARTED) #|| w4gini_exit ${ERROR_LOW_GW_RESTARTED}
+WRF4G_JOB_ID=$(WRF4G.py Job load_wn_conf  $job_conf $GW_RESTARTED) #|| wrf4g_exit ${ERROR_LOW_GW_RESTARTED}
 echo $?
 #
 #   Should we unpack here or there is a local filesystem for us to run?
@@ -236,7 +213,7 @@ if test -n "${WRF4G_RUN_LOCAL}"; then
     eval "WRF4G_RUN_LOCAL=\$$(echo ${WRF4G_RUN_LOCAL} | sed -e 's/var://')"
   fi
   LOCALDIR="${WRF4G_RUN_LOCAL}/wrf4g.$(date +%Y%m%d%H%M%S%N)"
-  mkdir ${LOCALDIR} || w4gini_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
+  mkdir ${LOCALDIR} || wrf4g_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
   cd ${LOCALDIR}
 else
   LOCALDIR=${ROOTDIR}
@@ -257,11 +234,14 @@ mkdir -p ${logdir}
 exec &>log/WRF4G.log
 
 WRF4G.py Job set_status id=${WRF4G_JOB_ID} 11
+#WRF4G.py Chunk should_I_run id=${WRF4G_ID_CHUNK} || wrf4g_exit ${ERROR_PREVIOUS_CHUNK_NOT_FINISHED}
+  
+  
 vcp ${WRF4G_APPS}/WRF4Gbin-${WRF_VERSION}.tar.gz .
-tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz || w4gini_exit ${ERROR_MISSING_WRF4GBIN}
+tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz || wrf4g_exit ${ERROR_MISSING_WRF4GBIN}
 rm WRF4Gbin-${WRF_VERSION}.tar.gz
 
-vcp ${WRF4G_BASEPATH}/experiments/${experiment_name}/${WRF4G_REALIZATION}/namelist.input  WRFV3/run/namelist.input || w4gini_exit ${ERROR_MISSING_NAMELIST}
+vcp ${WRF4G_BASEPATH}/experiments/${experiment_name}/${WRF4G_REALIZATION}/namelist.input  WRFV3/run/namelist.input || wrf4g_exit ${ERROR_MISSING_NAMELIST}
 
 #
 #  If there are additional files, expand'em
@@ -280,7 +260,7 @@ timelog_clean
 #
 #  Get the restart files if necesary.
 #
-restart_date=$(WRF4G.py -v Realization get_restart id=${WRF4G_ID_REALIZATION}) || w4gini_exit ${ERROR_ACCESS_DB}
+restart_date=$(WRF4G.py -v Realization get_restart id=${WRF4G_ID_REALIZATION}) || wrf4g_exit ${ERROR_ACCESS_DB}
 if  test ${restart_date} == "None"; then
    export chunk_restart_date=${chunk_start_date}
    export chunk_is_restart=".F."
@@ -288,23 +268,22 @@ elif test $(date2int ${restart_date}) -ge $(date2int ${chunk_start_date}) -a $(d
    export chunk_restart_date=${restart_date}
    export chunk_is_restart=".T."  
    WRF4G.py Job set_status id=${WRF4G_JOB_ID} 12
-   download_file rst $(date_wrf2iso ${restart_date}) || exit ${ERROR_RST_DOWNLOAD_FAILED}
-   ls wrfrst*
-   mv ${ROOTDIR}/wrfrst* WRFV3/run 
+   download_file rst $(date_wrf2iso ${restart_date}) || wrf4g_exit ${ERROR_RST_DOWNLOAD_FAILED}
+   mv wrfrst* WRFV3/run 
 else
-   w4gini_exit ${EXIT_CHUNK_SHOULD_NOT_RUN}
+   wrf4g_exit ${EXIT_CHUNK_SHOULD_NOT_RUN}
 fi
 
 
 #
 #   Must WPS run or are the boundaries available?
 #
-wps_stored=$(WRF4G.py -v Chunk get_wps id=${WRF4G_ID_CHUNK}) || w4gini_exit ${ERROR_ACCESS_DB}
+wps_stored=$(WRF4G.py -v Chunk get_wps id=${WRF4G_ID_CHUNK}) || wrf4g_exit ${ERROR_ACCESS_DB}
 
 if test ${wps_stored} -eq "1"; then
-  cd ${LOCALDIR}/WPS || exit
-    vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || w4gini_exit ${ERROR_VCP_FAILED} namelist.wps
-  cd ${LOCALDIR}/WRFV3/run || exit
+  cd ${LOCALDIR}/WPS || wrf4g_exit ${ERROR_GETTING_WPS}
+    vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || wrf4g_exit ${ERROR_VCP_FAILED} namelist.wps
+  cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ${ERROR_GETTING_WPS}
     namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_is_restart} ${timestep_dxfactor}
     WRF4G.py Job set_status id=${WRF4G_JOB_ID} 20
     timelog_init "wps get"
@@ -312,12 +291,12 @@ if test ${wps_stored} -eq "1"; then
     timelog_end
   cd ${LOCALDIR}
 else
-  cd ${LOCALDIR}/WPS || exit
+  cd ${LOCALDIR}/WPS || wrf4g_exit ${ERROR_GETTING_WPS}
     clean_wps
     #
     #   Get geo_em files and namelist.wps
     #
-    vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/'*' . || w4gini_exit ${ERROR_VCP_FAILED} ${domain_name}
+    vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/'*' . || wrf4g_exit ${ERROR_VCP_FAILED} ${domain_name}
 
     #
     #   Modify the namelist
@@ -395,10 +374,9 @@ else
 	End_of_nmlungrib
       ln -sf Vtable.${global_name}FIX Vtable
       cpp -P namelist.wps.infix > namelist.wps
-      ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}FIX_${iyy}${imm}${idd}${ihh}.out || exit 203
-      mv ${global_name}FIX* ${global_name}FIX || exit 71
+      ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}FIX_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
+      mv ${global_name}FIX* ${global_name}FIX || wrf4g_exit ${ERROR_UNGRIB_FAILED}
     fi
-
 
     #
     #   Run metgrid
@@ -425,7 +403,7 @@ else
         rm -rf ${global_name}\:*
       fi
     timelog_end
-  cd ${LOCALDIR}/WRFV3/run || exit
+  cd ${LOCALDIR}/WRFV3/run 
     #------------------------------------------------------------------
     #                              REAL
     #------------------------------------------------------------------
@@ -475,7 +453,7 @@ else
         WRF4G.py Chunk set_wps id=${WRF4G_ID_CHUNK} 1
       timelog_end
     fi
-  cd ${LOCALDIR} || exit
+  cd ${LOCALDIR} || wrf4g_exit $ERROR_CANNOT_ACCESS_LOCALDIR
 fi
     
     
@@ -484,7 +462,7 @@ fi
 #------------------------------------------------------------------
 #                              WRF
 #------------------------------------------------------------------
-cd ${LOCALDIR}/WRFV3/run || exit
+cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ERROR_CANNOT_ACCESS_LOCALDIR
   if test -n "${icbcprocessor}"; then
     WRF4G.py Job set_status id=${WRF4G_JOB_ID} 26
     timelog_init "icbcprocessor"
@@ -509,12 +487,7 @@ cd ${LOCALDIR}/WRFV3/run || exit
     echo $! > monitor.pid   
     wait $(cat monitor.pid)
   timelog_end
-  # Clean the heavy stuff
-  if test "${clean_after_run}" -eq 1; then
-    rm -f CAM_ABS_DATA wrf[bli]* ${ROOTDIR}/bin/real.exe ${ROOTDIR}/bin/wrf.exe \
-        ${ROOTDIR}/bin/metgrid.exe ${ROOTDIR}/bin/ungrib.exe
-  fi
+
   wrf4g_exit 0
-cd ${LOCALDIR}
 
 

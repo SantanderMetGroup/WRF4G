@@ -1,4 +1,4 @@
-#! /bin/bash -x
+#! /bin/bash
 #
 # wrf4g_submitter
 #

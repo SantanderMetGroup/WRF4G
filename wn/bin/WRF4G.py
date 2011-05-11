@@ -385,7 +385,7 @@ class Realization(Component):
         # Load the URL into the VCPURL class
         reas=self.data['name'].split('__')
         rea_dir="%s/experiments/%s/%s" % (WRF4G_BASEPATH,reas[0],self.data['name'])
-        for dir in ["output","restart","wpsout"]:
+        for dir in ["output","restart","wpsout","log"]:
           repo="%s/%s" % (rea_dir,dir)
           list=vcp.VCPURL(repo)
           list.mkdir(verbose=self.verbose)
@@ -461,8 +461,9 @@ class Job(Component):
         oc=self.update_fields(['status'], ['id'])
         # If status involves any change in Chunk status, change the Chunk in DB
         dst=self.stjob2stchunk()
+        
         if st in dst:
-            id_rea=Chunk(data={'id': self.data['id']},verbose=self.verbose).set_status(dst[st])
+            Chunk(data={'id': self.get_id_chunk()},verbose=self.verbose).set_status(dst[st])
             
         # Add an Event in the DB
         timestamp=datetime2datewrf(datetime.utcnow())
@@ -470,6 +471,11 @@ class Job(Component):
         id_event=Events(data=event_data).create()
         return oc   
     
+    def get_id_chunk(self):
+        id_chunk=self.get_one_field(['id_chunk'], ['id'])
+        return id_chunk
+    
+
     def load_wn_conf(self,wn_gwres):
         wn_gwres=int(wn_gwres)
         dbc=opendbconnection()
