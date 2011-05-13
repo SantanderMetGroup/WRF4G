@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/bash -x
 
 # WRF4G_ini.sh
 #
@@ -75,21 +75,6 @@ function prepare_local_environment (){
 }
 
 
-function timelog_clean(){
-  rm -f ${logdir}/time.log
-}
-
-function timelog_end(){
-  echo "$(date +%Y%m%d%H%M%S)" > ${timelog_item}.end && vcp ${timelog_item}.end ${WRF4G_BASEPATH}/experiments/${experiment_name}/${WRF4G_REALIZATION}/
-  date +%Y%m%d%H%M%S >> ${logdir}/time.log
-}
-
-function timelog_init(){
-  timelog_item=${1// /_}
-  echo -e "$(date +%Y%m%d%H%M%S)\n$(hostname --fqdn):$(pwd)" > ${timelog_item}.init && vcp ${timelog_item}.init ${WRF4G_BASEPATH}/experiments/${experiment_name}/${WRF4G_REALIZATION}/
-  echo -n "$(printf "%20s" "$timelog_item") $(date +%Y%m%d%H%M%S) " >> ${logdir}/time.log
-}
-
 function wrf4g_exit(){
   excode=$1
   #
@@ -99,8 +84,6 @@ function wrf4g_exit(){
 
   case $excode in
     0)
-
-       timelog_end
        if test $(grep -c "SUCCESS COMPLETE WRF" rsl.out.0000) -eq 1 ;then
           WRF4G.py Job set_status id=${WRF4G_JOB_ID} 40
        else
@@ -116,10 +99,10 @@ function wrf4g_exit(){
        WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41
        ;;
   esac
+  WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} ${excode}
 
-  echo "exit $excode" >> ${logdir}/time.log
   ls -l >& ${logdir}/ls.wrf
-  cp namelist.output ${logdir}/
+  test -f cp namelist.output ${logdir}/
   if test -e rsl.out.0000; then
     mkdir -p rsl_wrf
     mv rsl.* rsl_wrf/
@@ -128,12 +111,14 @@ function wrf4g_exit(){
   test -f namelist.input && cp namelist.input ${logdir}/
   logfile="log_${WRF4G_NCHUNK}_${WRF4G_JOB_ID}.tar.gz"
   cd ${logdir}
+  echo ROOTDIR: $ROOTDIR
+  echo LOCALDIR: $LOCALDIR
   tar czf ${logfile} * && vcp ${logfile} ${WRF4G_BASEPATH}/experiments/${experiment_name}/${WRF4G_REALIZATION}/log/
   cd -
   # Clean the heavy stuff
   if test "${clean_after_run}" -eq 1; then
-    cd
-    rm -rf ${LOCALDIR} ${ROOTDIR} 
+    cd ${ROOTDIR}
+    test "${LOCALDIR}" != "${ROOTDIR}" && rm -rf ${LOCALDIR} 
   fi
   exit ${excode}
 }
@@ -208,6 +193,12 @@ echo $?
 #
 #   Should we unpack here or there is a local filesystem for us to run?
 #
+if test -z "${WRF4G_RUN_LOCAL}"; then
+    if test -n ${GW_LOCALDIR};then
+        ${WRF4G_RUN_LOCAL}=${GW_LOCALDIR}
+    fi
+fi
+
 if test -n "${WRF4G_RUN_LOCAL}"; then
   if test "${WRF4G_RUN_LOCAL:0:4}" = "var:" ; then
     eval "WRF4G_RUN_LOCAL=\$$(echo ${WRF4G_RUN_LOCAL} | sed -e 's/var://')"
@@ -255,8 +246,6 @@ WRF4G_prepare
 
 prepare_runtime_environment
 
-timelog_clean
-
 #
 #  Get the restart files if necesary.
 #
@@ -286,9 +275,7 @@ if test ${wps_stored} -eq "1"; then
   cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ${ERROR_GETTING_WPS}
     namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_is_restart} ${timestep_dxfactor}
     WRF4G.py Job set_status id=${WRF4G_JOB_ID} 20
-    timelog_init "wps get"
-      download_file wps $(date_wrf2iso ${chunk_start_date})
-    timelog_end
+    download_file wps $(date_wrf2iso ${chunk_start_date})
   cd ${LOCALDIR}
 else
   cd ${LOCALDIR}/WPS || wrf4g_exit ${ERROR_GETTING_WPS}
@@ -309,7 +296,6 @@ else
     #
     #   Preprocessor
     #
-    timelog_init "get boundaries"
     WRF4G.py Job set_status id=${WRF4G_JOB_ID} 21
 
       if test -z "${global_preprocessor}"; then
@@ -324,17 +310,14 @@ else
         preprocessor.${global_preprocessor} ${global_path} ${chunk_start_date} ${chunk_end_date}
       fi
       ./link_grib.csh grbData/*.grb
-    timelog_end
     WRF4G.py Job set_status id=${WRF4G_JOB_ID} 22
-    timelog_init "ungrib"
       ln -sf ungrib/Variable_Tables/Vtable.${global_name} Vtable
       ${ROOTDIR}/bin/ungrib.exe \
         >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_UNGRIB_FAILED}
       cat ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
-        | grep -q -i 'Successful completion of ungrib' \
-        || wrf4g_exit ${ERROR_UNGRIB_FAILED}
-    timelog_end
+        | grep -q -i 'Successful completion of ungrib' || wrf4g_exit ${ERROR_UNGRIB_FAILED}
+
 
     
    #
@@ -347,12 +330,10 @@ else
      preprocessor.${preprocessor_other} ${chunk_start_date} ${chunk_end_date} ${global_name}
      rm -f GRIBFILE.*
     ./link_grib.csh grbOtherData/*.grb
-    timelog_init "ungrib_others"
     ${ROOTDIR}/bin/ungrib.exe >& ${logdir}/ungrib_${preprocessor_other}_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
     cat ${logdir}/ungrib_${preprocessor_other}_${iyy}${imm}${idd}${ihh}.out \
     | grep -q -i 'Successful completion of ungrib' \
     || wrf4g_exit ${ERROR_UNGRIB_FAILED}
-    timelog_end
    done
    # List of prefixes for metgrid. If same field is found in two or more input sources,
    # the last encountered will take priority.
@@ -382,7 +363,6 @@ else
     #   Run metgrid
     #
     WRF4G.py Job set_status id=${WRF4G_JOB_ID} 23
-    timelog_init "metgrid"
       fortnml_vardel namelist.wps opt_output_from_metgrid_path
       fortnml_vardel namelist.wps opt_output_from_geogrid_path
       fortnml_vardel namelist.wps opt_metgrid_tbl_path
@@ -402,13 +382,11 @@ else
         rm -rf grbData
         rm -rf ${global_name}\:*
       fi
-    timelog_end
   cd ${LOCALDIR}/WRFV3/run 
     #------------------------------------------------------------------
     #                              REAL
     #------------------------------------------------------------------
    WRF4G.py Job set_status id=${WRF4G_JOB_ID} 24
-   timelog_init "real"
       clean_real
       ln -s ../../WPS/met_em.d??.????-??-??_??:00:00.nc .
       fix_ptop
@@ -435,7 +413,6 @@ else
         rm -f met_em*
         rm -f ../../WPS/met_em*
       fi
-    timelog_end
 
     #
     #  Upload the wpsout files (create the output structure if necessary):
@@ -448,10 +425,8 @@ else
 
     if test "${save_wps}" -eq 1; then
       WRF4G.py Job set_status id=${WRF4G_JOB_ID} 25
-      timelog_init "wps put"
         post_and_register --no-bg wps "${chunk_start_date}"
         WRF4G.py Chunk set_wps id=${WRF4G_ID_CHUNK} 1
-      timelog_end
     fi
   cd ${LOCALDIR} || wrf4g_exit $ERROR_CANNOT_ACCESS_LOCALDIR
 fi
@@ -465,11 +440,8 @@ fi
 cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ERROR_CANNOT_ACCESS_LOCALDIR
   if test -n "${icbcprocessor}"; then
     WRF4G.py Job set_status id=${WRF4G_JOB_ID} 26
-    timelog_init "icbcprocessor"
       icbcprocessor.${icbcprocessor} >&  ${logdir}/icbcproc_${ryy}${rmm}${rdd}${rhh}.out
-    timelog_end
   fi
-  timelog_init "wrf"
     
     # If wrf is run in parallel and the environment is not prepared, prepare it.  	 
     if [ ${local_openmpi} -eq 1 -a ${wrf_parallel} -eq 1  ]; then
@@ -486,7 +458,6 @@ cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ERROR_CANNOT_ACCESS_LOCALDIR
     bash -x wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   
     wait $(cat monitor.pid)
-  timelog_end
 
   wrf4g_exit 0
 

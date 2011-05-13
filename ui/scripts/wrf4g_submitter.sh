@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/bash -x
 #
 # wrf4g_submitter
 #
@@ -21,6 +21,7 @@ if test ${#} -ge 1; then
     case $1 in
       --dry-run)
           isdry="yes"
+	  WRF4G_FLAGS="$WRF4G_FLAGS --dry-run"
         ;;
       --run-just-one)
           justone="yes"
@@ -257,56 +258,51 @@ if test ${id} -ge 0; then
 	    fnvar=${var/__/@}
 	    fortnml -wof namelist.input.base -m $fnvar -- $(eval echo \$NIN_${var})
 	  done
-      cp namelist.input.base namelist.input
+          cp namelist.input.base namelist.input
       
 	fi
     
 	#
 	#  Multiphysics support. Physical parameters overwritten!
 	#
-    mlabels=${multiphysics_labels}
+        mlabels=${multiphysics_labels}
 	if test "${is_multiphysics}" -ne "0"; then
-    
-      echo "---> Multi-physics run"
-    icomb=1
-    for mpid in $(echo ${multiphysics_combinations} | tr '/' ' '); do
-        if_not_dry cp namelist.input.base namelist.input
-        iphys=1
-        for var in $(echo ${multiphysics_variables} | tr ',' ' '); do
-          thisphys=$(tuple_item ${mpid} ${iphys})
-          if echo ${thisphys} | grep -q ':' ; then
-            if_not_dry fortnml_setm namelist.input $var ${thisphys//:/ }
-          else
-            nitems=$(tuple_item ${multiphysics_nitems} ${iphys})
-            if_not_dry fortnml_setn namelist.input $var ${nitems} ${thisphys}
-          fi
-          let iphys++
-        done
-        if test -n "${multiphysics_labels}"; then
-          realabel=$(tuple_item ${multiphysics_labels//\//,} ${icomb})
-        else
-          stripmpid=${mpid//:/}
-          realabel="${stripmpid//,/_}"
-        fi
+          echo "---> Multi-physics run"
+          icomb=1
+          for mpid in $(echo ${multiphysics_combinations} | tr '/' ' '); do
+            if_not_dry cp namelist.input.base namelist.input
+            iphys=1
+            for var in $(echo ${multiphysics_variables} | tr ',' ' '); do
+              thisphys=$(tuple_item ${mpid} ${iphys})
+              if echo ${thisphys} | grep -q ':' ; then
+                if_not_dry fortnml_setm namelist.input $var ${thisphys//:/ }
+              else
+                nitems=$(tuple_item ${multiphysics_nitems} ${iphys})
+               if_not_dry fortnml_setn namelist.input $var ${nitems} ${thisphys}
+              fi
+              let iphys++
+            done
+            if test -n "${multiphysics_labels}"; then
+              realabel=$(tuple_item ${multiphysics_labels//\//,} ${icomb})
+            else
+              stripmpid=${mpid//:/}
+              realabel="${stripmpid//,/_}"
+            fi
         
 	    cycle_time "${experiment_name}__${realabel}" ${id} ${start_date} ${end_date} ${realabel}
-        let icomb++
-    done 
+            let icomb++
+         done 
 
 
-else
+	else
 	  echo "---> Single physics run"
 	  cycle_time "${experiment_name}" ${id} ${start_date} ${end_date}
-	fi
+        fi
+        rm namelist.input namelist.input.base
+
 fi
 
-# Submitting phase.
 
-#if test -d "wrf4g_files"; then
-#   cd wrf4g_files/
-#   tar czhf ../wrf4g_files.tar.gz *
-#   cd ..
-#fi
 id_exp=$(WRF4G.py $WRF4G_FLAGS Experiment get_id_from_name name=${WRF4G_EXPERIMENT})
 mkdir -p tar_temp/bin
 cd tar_temp
@@ -321,46 +317,3 @@ id=$(WRF4G.py $WRF4G_FLAGS Experiment run id=${id_exp})
 cd ..
 #rm -rf tar_temp
 
-#RECUPERAR
-#
-#
-#   if test ${is_restart} -eq 0 || 
-#      (test ${is_restart} -eq 1 && rematch "${rst_realization}" "${realization_name}" && rematch "${rst_chunk}" "${chunkno}" ; ) ; then
-#      if is_dry_run; then
-#        echo "  ${realization_name}  $(printf "%4d" ${chunkno})  ${current_date}  ${final_date}"
-#      else
-#        chunkdir="${userdir}/realizations/${realization_name}/$(printf '%04d' ${chunkno})"
-#        echo "  ---> chunk: ${chunkno} - ${current_date} -> ${final_date}"
-#        mkdir -p ${chunkdir} || cannot_mkdir ${chunkdir}            
-#        test ${chunkno} -eq 1 && restart_flag=".F." || restart_flag=".T."
-#        create_wrf_chunk
-#        mkdir -p ${chunkdir}/WRFV3/run
-#        cp ${userdir}/namelist.input ${chunkdir}/WRFV3/run/namelist.input
-#        cp ${userdir}/wrf.input      ${chunkdir}/wrf.input
-#        cp ${userdir}/wrf4g.conf     ${chunkdir}/wrf4g.conf
-#        mkdir ${chunkdir}/bin
-#        cp ${wrf4g_root}/wn/bin/vcp  ${chunkdir}/bin/vcp
-#        cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh ${chunkdir}/WRF4G_ini.sh
-#        if test -d "wrf4g_files"; then
-#               cd wrf4g_files/
-#               tar czhf ${chunkdir}/wrf4g_files.tar.gz *
-#               cd ..
-#        fi
-#        
-#        #
-#        #   Pack the sandbox
-#        #
-#        tar czh --exclude WRF4G_ini.sh -f sandbox.tar.gz *
-#        rm -rf wrf4g.conf wrf.input WRFV3 bin wrf.chunk
-#        create_job_template
-#        cd ${chunkdir}      
-#        
-#        #
-#        #   Submit the job
-#        #
-#        #chunkjid=submit_job $(test ${is_restart} -eq 0 && echo ${chunkjid})
-#        cd ${userdir}
-#        printf '%6d %04d %s %s %s\n' "${chunkjid}" "${chunkno}" "${current_date}" "${final_date}" "${realization_name}" >> pids.${experiment_name}
-#        fi
-#      fi
-# 

@@ -60,42 +60,11 @@ if type in type_list.keys() :
     dest_folder="%s/experiments/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
     dest= dest_folder + "/" + dest_file
     
-    #In the case of restart move the previous restart file to the .bak and the delete the old one  
-    """if type =="rst" : 
-       
-        dest_bak=VCPURL(dest_folder)
-        back_list=dest_bak.ls("*")
-        if len(back_list) != 2 : 
-            stderr.write("Error: There are more than one back file")
-            exit(4)
-        else: 
-            # Rename all the files to *.bak
-            for old_file in back_list:
-                if verbose: stderr.write("Moving : %s to %s" % (file,dest))
-                VCPURL(dest_folder + "/"+  old_file).mv(old_file + ".bak")
-                if old_file.find(".bak") != -1 : file2del=dest_folder + "/"+ old_file + ".bak"
-            
-            #Upload the new file 
-            if verbose: stderr.write("origin: %s destiny: %s" % (file,dest)) 
-            output=copy_file(file,dest)
-            stderr.write(output)
-            
-            if verbose: stderr.write("Deleting from local disk: %s" % file )
-            # Delete the old .bak file
-            VCPURL(file2del).rm()
-    """
     if verbose: stderr.write( "Copying %s -> %s\n" %(file, dest))
     output=copy_file(file,dest +".part", verbose=verbose)
     if verbose: stderr.write(output + "\n")
     VCPURL(dest + ".part").rename(basename(dest))
-    if type == "out":
-      # Update the current date
-      rootdir = open('../../rootdir').read().strip()
-      cmdstr = "source %s/lib/bash/wrf_util.sh; get_last_frame_date %s > current_date.txt" % (rootdir, file)
-      cmdstat, cmdout = getstatusoutput(cmdstr)
-      print cmdstat, cmdout
-      copy_file("current_date.txt", "%s/current_date.txt" % dest_folder, verbose=verbose)
-    else:              # It is a restart file.
+    if type == "rst":
     	data={'name': env_var["WRF4G_REALIZATION"]}
         r=WRF4G.Realization(data)
         r.set_restart(date)   

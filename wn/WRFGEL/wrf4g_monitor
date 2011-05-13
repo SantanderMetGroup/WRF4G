@@ -111,12 +111,17 @@ function clean_all(){
   fi
 }
 
+i=0
 while true
 do
+  let i++
+  if test $i -eq 10;then
+     WRF4G.py Realization set_cdate id=${WRF4G_ID_REALIZATION} $(current_date)
+     i=0
+  fi
   if ps aux | awk '$2=='${wrf_pid}'' | grep -q wrf.exe
   then
     time_debug "WRF seems to be running"
-    WRF4G.py Realization set_cdate id=${WRF4G_ID_REALIZATION} $(current_date)
     clean_while_running
   else
     time_debug "WRF is not running anymore"

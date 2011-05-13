@@ -390,8 +390,8 @@ class Realization(Component):
           list=vcp.VCPURL(repo)
           list.mkdir(verbose=self.verbose)
         output=vcp.copy_file('namelist.input',rea_dir,verbose=self.verbose) 
-        os.remove('namelist.input') 
-        os.remove('namelist.input.base')
+        #os.remove('namelist.input') 
+        #os.remove('namelist.input.base')
                              
     def is_finished(self,id_rea):
         dbc=opendbconnection()
@@ -470,6 +470,11 @@ class Job(Component):
         event_data= {'id_job': self.data['id'], 'status': st, 'timestamp': timestamp }
         id_event=Events(data=event_data).create()
         return oc   
+
+    def set_exitcode(self,exitcode):
+        self.data['exitcode']=exitcode
+        oc=self.update_fields(['exitcode'], ['id'])    
+        return oc
     
     def get_id_chunk(self):
         id_chunk=self.get_one_field(['id_chunk'], ['id'])
