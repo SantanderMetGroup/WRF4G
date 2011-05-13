@@ -144,6 +144,28 @@ class vdb:
           
       return 0
   
+   def delete_row(self,table,condition,verbose=False):
+      """ DELETE FROM table WHERE condition
+          DELETE FROM WRF4GDB.Experiment WHERE `id`='16';   
+      """
+       # create a cursor
+      cursor = self.con.cursor (MySQLdb.cursors.DictCursor)
+
+      try:
+        query = "DELETE FROM %s WHERE %s" % (table, condition)
+        if verbose:
+           stderr.write(query + "\n")
+        cursor.execute(query)
+
+      except MySQLdb.Error, e:
+        print "Error %d: %s" % (e.args[0], e.args[1])
+        exit(10)
+     
+      self.con.commit()
+      self.con.close()  
+          
+      return 0
+
    def describe(self,table,verbose=False):
        cursor = self.con.cursor (MySQLdb.cursors.DictCursor)
        
@@ -166,6 +188,28 @@ class vdb:
            fields.append(i['Field'])
        return fields
       
+   def remove_entry(self,table,entry,verbose=False):
+       cursor = self.con.cursor (MySQLdb.cursors.DictCursor)
+       
+      # execute SQL INSERT statement
+       try:
+        query = "DESCRIBE %s" % table
+        if verbose:
+           stderr.write(query + "\n")
+        cursor.execute(query)
+        result = cursor.fetchall()
+ 
+       except MySQLdb.Error, e:
+        print "Error %d: %s" % (e.args[0], e.args[1])
+        exit(8)
+
+       self.con.commit()
+       self.con.close()
+       fields=[]
+       for i in result:
+           fields.append(i['Field'])
+       return fields
+
 
 class list_query:
    """This class receive a list from a select query and format it. 

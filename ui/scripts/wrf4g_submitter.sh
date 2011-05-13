@@ -10,11 +10,11 @@
 # function cycle_time(realization_name, start_date, end_date)
 #
 
-
+nchunks=""
 isdry="no"
 justone="no"
-owforce="no"
-waitsec=0
+
+
  
 if test ${#} -ge 1; then
   while test "$*"; do
@@ -26,12 +26,10 @@ if test ${#} -ge 1; then
       --run-just-one)
           justone="yes"
         ;;
-      --force)
-          owforce="yes"
-        ;;
-      --wait)
-          waitsec=$2; shift
-        ;;
+      --nchunks)
+	  nchunks=$2
+          shift
+        ;;      
       --reconfigure)
       	  reconfigure="yes"
           WRF4G_FLAGS="$WRF4G_FLAGS -r"
@@ -120,7 +118,7 @@ function cycle_chunks(){
   realization_end_date=$4
   current_date=${realization_start_date}
   
-  echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}">&2
+  echo -e "\t---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}">&2
 
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
   read eyy emm edd ehh trash <<< $(echo ${realization_end_date} | tr '_:T-' '    ')
@@ -137,7 +135,7 @@ function cycle_chunks(){
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
     
-    echo "     ---> chunks ${chunkno}: ${realization_name} ${current_date} ${final_date}">&2
+    echo -e "\t\t---> chunks ${chunkno}: ${realization_name} ${current_date} ${final_date}">&2
     id_chunk=$(WRF4G.py $WRF4G_FLAGS Chunk prepare id_rea=${id_rea},id_chunk=${chunkno},sdate=${current_date},edate=${final_date},wps=0,status=0)  
 
     current_date=${final_date}
@@ -154,7 +152,7 @@ function cycle_hindcasts(){
   end_date=$4
   mphysics_label=$5
   
-  echo "---> cycle_hindcasts: $1 $2 $3 $4 $5">&2
+  echo -e "\n---> cycle_hindcasts: $1 $2 $3 $4 $5">&2
   current_date=${start_date}
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
   read eyy emm edd ehh trash <<< $(echo ${end_date} | tr '_:T-' '    ')
@@ -172,7 +170,7 @@ function cycle_hindcasts(){
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
     rea_name="${realization_name}__${cyy}${cmm}${cdd}${chh}_${fyy}${fmm}${fdd}${fhh}"
-    echo " ${realization_name}  $(printf "%4d" ${chunkno})  ${current_date}  ${final_date}"
+    #echo " ${realization_name}  $(printf "%4d" ${chunkno})  ${current_date}  ${final_date}"
     id_rea=$(WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},mphysics_label=${mphysics_label})
     if test $?  -ne 0; then
            exit
@@ -201,7 +199,6 @@ function cycle_time(){
    
   case ${is_continuous} in
     0)
-      echo "---> Hindcast run">&2
       test -n "${simulation_length_h}" || exit
       test -n "${simulation_interval_h}" || exit
       cycle_hindcasts  ${realization_name} ${id_exp} ${start_date} ${end_date} ${mphysics_label}
@@ -236,7 +233,8 @@ else
    mphysics_labels=''   
 fi
 
-echo "====== PREPARING EXPERIMENT ${WRF4G_EXPERIMENT} ======">&2
+echo -e "\n\t=========== PREPARING EXPERIMENT ${WRF4G_EXPERIMENT} ============\n">&2
+
 data="name=${experiment_name},sdate=${start_date},edate=${end_date},mphysics=${is_multiphysics},cont=${is_continuous},basepath=${WRF4G_BASEPATH},mphysics_labels=${mphysics_labels}"
 id=$(WRF4G.py $WRF4G_FLAGS Experiment  prepare $data )
 if test $?  -ne 0; then
@@ -244,6 +242,7 @@ if test $?  -ne 0; then
 fi
 
 if test ${id} -ge 0; then
+        echo "Preparing namelist...">&2
 	if ! is_dry_run; then 
 	  cp ${wrf4g_root}/wn/WRFV3/test/em_real/namelist.input ${userdir}/namelist.input.base
 	  fortnml -wof namelist.input.base -s max_dom ${max_dom}
@@ -268,9 +267,15 @@ if test ${id} -ge 0; then
 	#
         mlabels=${multiphysics_labels}
 	if test "${is_multiphysics}" -ne "0"; then
-          echo "---> Multi-physics run">&2
           icomb=1
           for mpid in $(echo ${multiphysics_combinations} | tr '/' ' '); do
+            if test -n "${multiphysics_labels}"; then
+              realabel=$(tuple_item ${multiphysics_labels//\//,} ${icomb})
+            else
+              stripmpid=${mpid//:/}
+              realabel="${stripmpid//,/_}"
+            fi
+            echo -e "\n--->Realization: mphysic=${realabel} ${start_date} ${end_date}">&2
             if_not_dry cp namelist.input.base namelist.input
             iphys=1
             for var in $(echo ${multiphysics_variables} | tr ',' ' '); do
@@ -283,39 +288,40 @@ if test ${id} -ge 0; then
               fi
               let iphys++
             done
-            if test -n "${multiphysics_labels}"; then
-              realabel=$(tuple_item ${multiphysics_labels//\//,} ${icomb})
-            else
-              stripmpid=${mpid//:/}
-              realabel="${stripmpid//,/_}"
-            fi
-        
+
+            
 	    cycle_time "${experiment_name}__${realabel}" ${id} ${start_date} ${end_date} ${realabel}
             let icomb++
-         done 
+           done 
 
 
 	else
-	  echo "---> Single physics run">&2
+	  echo -e "\n---> Single physics run">&2
 	  cycle_time "${experiment_name}" ${id} ${start_date} ${end_date}
         fi
-        rm namelist.input namelist.input.base
-
+	if_not_dry rm namelist.input namelist.input.base
 fi
 
 
-echo "====== SUBMITTING EXPERIMENT ${WRF4G_EXPERIMENT} ====== ">&2
+echo -e "\n\t========== SUBMITTING EXPERIMENT ${WRF4G_EXPERIMENT} ===========\n">&2
 id_exp=$(WRF4G.py $WRF4G_FLAGS Experiment get_id_from_name name=${WRF4G_EXPERIMENT})
-mkdir -p tar_temp/bin
-cd tar_temp
-o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf4g.conf .)
-o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf.input . )
-cp ${wrf4g_root}/wn/bin/vcp bin/
-tar -czf sandbox.tar.gz *
-cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh .
+
+if ! is_dry_run; then 
+  mkdir -p tar_temp/bin
+  cd tar_temp
+   o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf4g.conf .)
+   o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf.input . )
+   cp ${wrf4g_root}/wn/bin/vcp bin/
+   tar -czf sandbox.tar.gz *
+   cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh .
+fi
 
 #Submit jobs
-id=$(WRF4G.py $WRF4G_FLAGS Experiment run id=${id_exp})
-cd ..
-#rm -rf tar_temp
+id=$(WRF4G.py $WRF4G_FLAGS Experiment run id=${id_exp} $nchunks)
+if ! is_dry_run; then 
+  cd ..
+  rm -rf tar_temp
+else
+  id=$(WRF4G.py $WRF4G_FLAGS Experiment delete id=${id_exp}) 
+fi
 

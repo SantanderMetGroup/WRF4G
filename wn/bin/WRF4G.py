@@ -154,6 +154,16 @@ class Component:
         oc=dbc.update(self.element,ddata,condition,verbose=self.verbose)
         return oc
     
+    def delete(self):
+        """
+        Delete a row of Component. It clears the DB and all the data related to it. 
+        """
+        if self.verbose: stderr.write("Deleting %s with id %s\n"%(self.element,self.data['id']))
+        dbc=opendbconnection()
+        condition='id=%s'%self.data['id']
+        o=dbc.delete_row(self.element,condition)
+        return 0
+    
     def get_one_field(self,val,cond):
         dbc=opendbconnection()
         
@@ -219,13 +229,13 @@ class Component:
         else:
             if self.verbose: stderr.write('Creating %s\n'%self.element)
             self.data['id']=self.create()
-            self.prepare_storage()
-    
-                  
+            if not self.dryrun:
+                self.prepare_storage()
+                    
         return self.data['id']
        
     
-      
+    
 class Experiment(Component):
     
     """  Experiment CLASS
@@ -251,15 +261,15 @@ class Experiment(Component):
         if id !='': return id
         else: return -1
         
-    def run(self):
+    def run(self,nchunk=0):
         rea_ids=self.get_realizations_id()
         if len(rea_ids) == 0:
             stderr.write('There are not realizations to run.\n')
         for id_rea in rea_ids:
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
-            rea.run()
+            rea.run(nchunk=nchunk)
         return 0
-            
+                        
     def get_realizations_id(self):
         """    
         Query database and Returns a list with the realization
@@ -373,7 +383,7 @@ class Realization(Component):
         if nchunk == 0: 
             lchunk=self.last_chunk()
         else:
-            lchunk=first_id+nchunk
+            lchunk=first_id+int(nchunk)-1
 
         for chunki in range(first_id,lchunk+1):
             chi=Chunk(data={'id':'%s'%chunki})
