@@ -307,12 +307,13 @@ echo -e "\n\t========== SUBMITTING EXPERIMENT ${WRF4G_EXPERIMENT} ===========\n"
 id_exp=$(WRF4G.py $WRF4G_FLAGS Experiment get_id_from_name name=${WRF4G_EXPERIMENT})
 
 if ! is_dry_run; then 
-  mkdir -p tar_temp/bin
-  cd tar_temp
+  mkdir -p .${WRF4G_EXPERIMENT}/bin
+  cd .${WRF4G_EXPERIMENT}
    o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf4g.conf .)
    o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf.input . )
    cp ${wrf4g_root}/wn/bin/vcp bin/
    tar -czf sandbox.tar.gz *
+   rm -rf wrf* bin
    cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh .
 fi
 
@@ -320,7 +321,7 @@ fi
 id=$(WRF4G.py $WRF4G_FLAGS Experiment run id=${id_exp} $nchunks)
 if ! is_dry_run; then 
   cd ..
-  rm -rf tar_temp
+#  rm -rf tar_temp
 else
   id=$(WRF4G.py $WRF4G_FLAGS Experiment delete id=${id_exp}) 
 fi
