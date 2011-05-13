@@ -1,4 +1,4 @@
-#! /bin/bash -x
+#! /bin/bash
 #
 # wrf4g_submitter
 #
@@ -62,7 +62,6 @@ sed -e 's/\ *=\ */=/' wrf4g.conf > source.it       || exit ${ERROR_MISSING_WRF4G
 source source.it && rm source.it
 sed -e 's/\ *=\ */=/' wrf.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
-echo "is_multiphysics -> $is_multiphysics"
 source ${wrf4g_root}/wn/lib/bash/wrf_util.sh       || exit ${ERROR_MISSING_WRFUTIL}
 #
 #  export some variables
@@ -121,7 +120,7 @@ function cycle_chunks(){
   realization_end_date=$4
   current_date=${realization_start_date}
   
-  echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}"   
+  echo "---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}">&2
 
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
   read eyy emm edd ehh trash <<< $(echo ${realization_end_date} | tr '_:T-' '    ')
@@ -138,6 +137,7 @@ function cycle_chunks(){
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
     
+    echo "     ---> chunks ${chunkno}: ${realization_name} ${current_date} ${final_date}">&2
     id_chunk=$(WRF4G.py $WRF4G_FLAGS Chunk prepare id_rea=${id_rea},id_chunk=${chunkno},sdate=${current_date},edate=${final_date},wps=0,status=0)  
 
     current_date=${final_date}
@@ -154,7 +154,7 @@ function cycle_hindcasts(){
   end_date=$4
   mphysics_label=$5
   
-  echo "---> cycle_hindcasts: $1 $2 $3 $4 $5"
+  echo "---> cycle_hindcasts: $1 $2 $3 $4 $5">&2
   current_date=${start_date}
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
   read eyy emm edd ehh trash <<< $(echo ${end_date} | tr '_:T-' '    ')
@@ -201,13 +201,13 @@ function cycle_time(){
    
   case ${is_continuous} in
     0)
-      echo "---> Hindcast run"
+      echo "---> Hindcast run">&2
       test -n "${simulation_length_h}" || exit
       test -n "${simulation_interval_h}" || exit
       cycle_hindcasts  ${realization_name} ${id_exp} ${start_date} ${end_date} ${mphysics_label}
       ;;
     1)
-      echo "---> Continuous run"
+      echo "---> Continuous run">&2
       id_rea=$(WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${realization_name},sdate=${start_date},edate=${end_date},status=0,cdate=${start_date},mphysics_label=${mphysics_label})
       if test $?  -ne 0; then
            exit
@@ -236,6 +236,7 @@ else
    mphysics_labels=''   
 fi
 
+echo "====== PREPARING EXPERIMENT ${WRF4G_EXPERIMENT} ======">&2
 data="name=${experiment_name},sdate=${start_date},edate=${end_date},mphysics=${is_multiphysics},cont=${is_continuous},basepath=${WRF4G_BASEPATH},mphysics_labels=${mphysics_labels}"
 id=$(WRF4G.py $WRF4G_FLAGS Experiment  prepare $data )
 if test $?  -ne 0; then
@@ -267,7 +268,7 @@ if test ${id} -ge 0; then
 	#
         mlabels=${multiphysics_labels}
 	if test "${is_multiphysics}" -ne "0"; then
-          echo "---> Multi-physics run"
+          echo "---> Multi-physics run">&2
           icomb=1
           for mpid in $(echo ${multiphysics_combinations} | tr '/' ' '); do
             if_not_dry cp namelist.input.base namelist.input
@@ -295,7 +296,7 @@ if test ${id} -ge 0; then
 
 
 	else
-	  echo "---> Single physics run"
+	  echo "---> Single physics run">&2
 	  cycle_time "${experiment_name}" ${id} ${start_date} ${end_date}
         fi
         rm namelist.input namelist.input.base
@@ -303,11 +304,12 @@ if test ${id} -ge 0; then
 fi
 
 
+echo "====== SUBMITTING EXPERIMENT ${WRF4G_EXPERIMENT} ====== ">&2
 id_exp=$(WRF4G.py $WRF4G_FLAGS Experiment get_id_from_name name=${WRF4G_EXPERIMENT})
 mkdir -p tar_temp/bin
 cd tar_temp
-vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf4g.conf .
-vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf.input .
+o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf4g.conf .)
+o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf.input . )
 cp ${wrf4g_root}/wn/bin/vcp bin/
 tar -czf sandbox.tar.gz *
 cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh .

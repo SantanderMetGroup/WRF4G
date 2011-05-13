@@ -358,8 +358,7 @@ if __name__ == "__main__":
    parser.add_option("-r", "--recursive",action="store_true", dest="recursive", default=False,help="Copy directories recursively")
    
    (options, args) = parser.parse_args()
-
-   stderr.write(" ".join(argv) + "\n")
+   if options.verbose:    stderr.write(" ".join(argv) + "\n")
    
    if len(args) != 2:
       parser.error("Incorrect number of arguments")

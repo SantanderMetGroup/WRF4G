@@ -30,14 +30,22 @@ def list2fields(arr):
     fields=fields[1:]
     return fields
 
+#===============================================================================
+# def create_hash():
+#    import md5
+#    import random
+#    rand=random.randint(1,60000)
+#    text=str(datetime.utcnow()) + str(rand)
+#    ha=md5.new()
+#    ha.update(text)
+#    return ha.hexdigest()
+#===============================================================================
 def create_hash():
-    import md5
     import random
-    rand=random.randint(1,60000)
-    text=str(datetime.utcnow()) + str(rand)
-    ha=md5.new()
-    ha.update(text)
-    return ha.hexdigest()
+    rand=random.randint(1,60000000)
+    text=str(rand)
+    return text
+
 
 def opendbconnection():
     c=vdb.vdb(host=DB_HOST, user=DB_USER, db='WRF4GDB', port=DB_PORT, passwd=DB_PASSWD)
@@ -57,9 +65,11 @@ class Component:
     """  Component CLASS
     """
 
-    def __init__(self,data='',verbose='no',reconfigure='no'):
+    def __init__(self,data='',verbose=False,reconfigure=False,dryrun=False):
+        #val={'no': False, 'yes': True}
         self.verbose=verbose
         self.reconfigure=reconfigure
+        self.dryrun=dryrun
         self.element=self.__class__.__name__
         self.data=data
         self.allfields=['','','','']        
@@ -109,7 +119,7 @@ class Component:
          wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
      wheresta=wheresta[4:]     
      #dic=dbc.select(self.element,list2fields(fields), wheresta, verbose=1 )
-     dic=dbc.select(self.element,list2fields(fields),wheresta, verbose=1 )
+     dic=dbc.select(self.element,list2fields(fields),wheresta, verbose=self.verbose )
      self.__init__(dic[0])
      if id>0: return id
      else: return -1
@@ -152,7 +162,7 @@ class Component:
           condition="%s AND %s='%s'" %(condition,field,self.data[field])
         condition=condition[4:]   
         
-        dic=dbc.select(self.element,list2fields(val),condition, verbose=1 )
+        dic=dbc.select(self.element,list2fields(val),condition, verbose=self.verbose )
         return dic[0][val[0]]
 
     def update_fields(self,val,cond):
@@ -204,7 +214,7 @@ class Component:
                         self.update()
                         self.prepare_storage()
             else:
-                if self.verbose: stderr.write('%s already exists. Submitting...\n'%self.element)
+                stderr.write('%s already exists. Submitting...\n'%self.element)
                 self.data['id']=-1
         else:
             if self.verbose: stderr.write('Creating %s\n'%self.element)
@@ -242,16 +252,18 @@ class Experiment(Component):
         else: return -1
         
     def run(self):
-        for id_rea in self.get_realizations_id():
-            rea=Realization(data={'id': str(id_rea)},verbose=self.verbose)
-            rea.run()            
+        rea_ids=self.get_realizations_id()
+        if len(rea_ids) == 0:
+            stderr.write('There are not realizations to run.\n')
+        for id_rea in rea_ids:
+            rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
+            rea.run()
         return 0
             
     def get_realizations_id(self):
         """    
         Query database and Returns a list with the realization
-        ids of an experiment"""
-        
+        ids of an experiment"""        
         dbc=opendbconnection()
         idp=dbc.select('Realization','id','id_exp=%s'%self.data['id'],verbose=self.verbose)
         ids_rea = vdb.list_query().one_field(idp,'python')
@@ -367,17 +379,22 @@ class Realization(Component):
             chi=Chunk(data={'id':'%s'%chunki})
             chi.loadfromDB(['id'],chi.get_configuration_fields())
             arguments='%s %s %d %d %s %s'%(rea_name,self.data['id'] ,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
-            job=gridway.job()
-            job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS)
-            if chunki == first_id:
-                gw_id=job.submit()
-            else:
-                gw_id=job.submit(dep=gw_id)
             
-            job_data={'gw_job': gw_id,'id_chunk': str(chi.data['id']), 'hash': create_hash()}
-            job=Job(job_data,verbose=self.verbose)
-            jid=job.create()
-            job.set_status('1')
+            if chunki == first_id: 
+                stderr.write('Submitting realization: "%s" with restart %s\n'%(rea_name,restart))
+            stderr.write('\tSubmitting Chunk %d:\t%s\t%s\n'%(chi.data['id_chunk'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate'])))
+    
+            if self.dryrun == False:
+                job=gridway.job()
+                job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS)
+                if chunki == first_id:
+                    gw_id=job.submit()
+                else:
+                    gw_id=job.submit(dep=gw_id)
+                job_data={'gw_job': gw_id,'id_chunk': str(chi.data['id']), 'hash': create_hash()}
+                job=Job(job_data,verbose=self.verbose)
+                jid=job.create()
+                job.set_status('1')
             
             
                 
@@ -476,10 +493,14 @@ class Job(Component):
         oc=self.update_fields(['exitcode'], ['id'])    
         return oc
     
+    def set_exitcode(self,exitcode):
+        self.data['exitcode']=exitcode
+        oc=self.update_fields(['exitcode'], ['id'])    
+        return oc 
+    
     def get_id_chunk(self):
         id_chunk=self.get_one_field(['id_chunk'], ['id'])
         return id_chunk
-    
 
     def load_wn_conf(self,wn_gwres):
         wn_gwres=int(wn_gwres)
@@ -520,6 +541,7 @@ if __name__ == "__main__":
     parser = OptionParser(usage,version="%prog 1.0")
     parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
     parser.add_option("-r", "--reconfigure",action="store_true", dest="reconfigure", default=False,help="Reconfigure element in WRF4G")
+    parser.add_option("-n", "--dry-run",action="store_true", dest="dryrun", default=False,help="Perform a trial run with no changes made")
     (options, args) = parser.parse_args()
     
     if len(args) < 2:
@@ -537,7 +559,7 @@ if __name__ == "__main__":
     
     data=''
     if len(args) > 2:   data=pairs2dict(args[2])         
-    inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure)"%(class_name,data)
+    inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure,dryrun=options.dryrun)"%(class_name,data)
     # Instantiate the Component Class:
     # comp=Chunk(data={'id': '23'},verbose=options.verbose,reconfigure=options.reconfigure)
     comp=eval(inst)
