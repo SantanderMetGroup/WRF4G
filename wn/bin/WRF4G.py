@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from sys import stderr,exit, path
+path.reverse()
 import sys
 import inspect
 import vdb
@@ -8,6 +9,7 @@ import vcp
 from datetime import datetime
 from optparse import OptionParser
 import os
+
 
 
 def datetime2datewrf (date_object):
@@ -47,10 +49,6 @@ def create_hash():
     return text
 
 
-def opendbconnection():
-    c=vdb.vdb(host=DB_HOST, user=DB_USER, db='WRF4GDB', port=DB_PORT, passwd=DB_PASSWD)
-    return c
-
 def load_default_values():
     global NP,REQUIREMENTS,DB_HOST,DB_PORT,DB_USER,DB_PASSWD
     NP=1
@@ -80,7 +78,6 @@ class Component:
         """    
         Returns a list with all the Component fields.
         """
-        dbc=opendbconnection()
         salida=dbc.describe(self.element)
         return salida
     
@@ -94,7 +91,7 @@ class Component:
         Component.id  
         """
         wheresta=''
-        dbc=opendbconnection()
+        
         for field in fields:
             wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
         wheresta=wheresta[4:]
@@ -114,7 +111,7 @@ class Component:
      """
 
      wheresta=''
-     dbc=opendbconnection()
+     
      for field in list_query:
          wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
      wheresta=wheresta[4:]     
@@ -131,7 +128,7 @@ class Component:
         id > 0 --> Creation Worked.
         -1--> Creation Failed
         """
-        dbc=opendbconnection()
+        
         id=dbc.insert(self.element,self.data,verbose=self.verbose)
         self.data['id']=id
         if id>0: return id
@@ -144,7 +141,7 @@ class Component:
         id >0 --> Creation Worked.
         -1--> Creation Failed
         """
-        dbc=opendbconnection()
+        
         
         ddata={}
         for field in self.get_reconfigurable_fields():
@@ -159,13 +156,13 @@ class Component:
         Delete a row of Component. It clears the DB and all the data related to it. 
         """
         if self.verbose: stderr.write("Deleting %s with id %s\n"%(self.element,self.data['id']))
-        dbc=opendbconnection()
+        
         condition='id=%s'%self.data['id']
         o=dbc.delete_row(self.element,condition)
         return 0
     
     def get_one_field(self,val,cond):
-        dbc=opendbconnection()
+        
         
         condition=''
         for field in cond:
@@ -176,7 +173,7 @@ class Component:
         return dic[0][val[0]]
 
     def update_fields(self,val,cond):
-        dbc=opendbconnection()
+        
         
         ddata={}
         for field in val:
@@ -255,7 +252,7 @@ class Experiment(Component):
     def get_id_from_name(self):
 
         wheresta=''
-        dbc=opendbconnection()
+        
         idp=dbc.select(self.element,'id',"name='%s'"%self.data['name'],verbose=self.verbose)
         id = vdb.list_query().one_field(idp)
         if id !='': return id
@@ -269,12 +266,21 @@ class Experiment(Component):
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
             rea.run(nchunk=nchunk)
         return 0
-                        
+    
+    def ps(self):
+        self.data['id']=self.get_id_from_name()
+        rea_ids=self.get_realizations_id()
+        print "Experiment: %s"%self.data['name']
+        for id_rea in rea_ids:
+            rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
+            rea.ps()
+        return 0
+                      
     def get_realizations_id(self):
         """    
         Query database and Returns a list with the realization
         ids of an experiment"""        
-        dbc=opendbconnection()
+        
         idp=dbc.select('Realization','id','id_exp=%s'%self.data['id'],verbose=self.verbose)
         ids_rea = vdb.list_query().one_field(idp,'python')
         return ids_rea 
@@ -349,26 +355,34 @@ class Realization(Component):
             finished=False
         return finished
     
+    def has_failed(self):
+        
+        nchunkd=dbc.select('Chunk','id','id_rea=%s AND status=3'%self.data['id'] )
+        if nchunkd != ():     
+            return True
+        else:
+            return False 
+    
     def number_of_chunks(self,id_rea):
-        dbc=opendbconnection()
+        
         nchunkd=dbc.select('Chunk','COUNT(Chunk.id_chunk)','id_rea=%s'%self.data['id'])
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk
     
     def last_chunk(self):
-        dbc=opendbconnection()
+        
         nchunkd=dbc.select('Chunk','MAX(Chunk.id)','id_rea=%s'%self.data['id'])
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk 
          
     def run(self,nchunk=0):
         import gridway        
-        dbc=opendbconnection()
+        
         rea_name=self.get_name()
         restart=self.get_restart()
         
         if self.has_finished():
-            stderr.write('Realization %s already finished.'%rea_name)
+            stderr.write('Realization %s already finished.\n'%rea_name)
             return 1
             
         if restart == None:
@@ -405,7 +419,47 @@ class Realization(Component):
                 job=Job(job_data,verbose=self.verbose)
                 jid=job.create()
                 job.set_status('1')
-            
+    
+    def ps(self):
+        #
+        per=0
+        rea_name=self.get_name()
+        restart=self.get_restart()
+        chunk_number=self.last_chunk()
+        if self.has_finished():
+            status="Done"
+            per=100
+        elif self.has_failed():
+            status="Failed"
+        
+        elif restart == None:
+            chunkd=dbc.select('Chunk','MIN(Chunk.id_chunk),MIN(Chunk.id)','id_rea=%s'%self.data['id'],verbose=self.verbose)
+            [id_chunk,id]=chunkd[0].values()
+            chi=Chunk(data={'id':'%s'%id})
+            st=chi.get_status()
+            if st==2:
+                status="Running"
+            elif st==3:
+                status="Failed"
+            per=100.*int(id_chunk)/int(self.last_chunk())
+        else:
+            chunkd=dbc.select('Chunk,Realization','Chunk.id_chunk,Chunk.id','Chunk.id_rea=%s AND Chunk.id_rea=Realization.id AND Realization.restart >=Chunk.sdate AND Realization.restart<Chunk.edate'%self.data['id'],verbose=self.verbose)
+            if chunkd== ():
+                stderr.write('DB inconsistency.')
+                return 2
+            [id_chunk,id]=chunkd[0].values()
+            chi=Chunk(data={'id':'%s'%id})
+            st=chi.get_status()
+            if st==2:
+                status="Running"
+            elif st==3:
+                status="Failed"
+            per=100.*int(id_chunk)/int(self.last_chunk())
+        
+        
+        print "\t%s\t%s\t%d"%(rea_name,status,per)
+        
+        
             
                 
     def prepare_storage(self):          
@@ -421,7 +475,7 @@ class Realization(Component):
         #os.remove('namelist.input.base')
                              
     def is_finished(self,id_rea):
-        dbc=opendbconnection()
+        
         max_id=dbc.select('Chunk','MAX(id)','id_rea=%s'%id_rea,verbose=self.verbose)
         status=dbc.select('Chunk','status','id=%s'%vdb.parse_one_field(max_id),verbose=self.verbose)
         if status == '4':
@@ -568,6 +622,8 @@ if __name__ == "__main__":
     exec open(wrf4g_conf).read()
     
     data=''
+    load_default_values() 
+    dbc=vdb.vdb(host=DB_HOST, user=DB_USER, db='WRF4GDB', port=DB_PORT, passwd=DB_PASSWD)
     if len(args) > 2:   data=pairs2dict(args[2])         
     inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure,dryrun=options.dryrun)"%(class_name,data)
     # Instantiate the Component Class:
@@ -581,6 +637,13 @@ if __name__ == "__main__":
     else:                  
         output=getattr(comp,function)()
     print output
+    
+    if options.dryrun:
+        dbc.rollback()
+    else:
+        dbc.commit()
+    dbc.close()
+
 
 
 

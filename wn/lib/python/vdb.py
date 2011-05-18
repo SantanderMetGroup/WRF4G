@@ -43,7 +43,15 @@ class vdb:
      except MySQLdb.Error, e:
        print "Error %d: %s" % (e.args[0], e.args[1])
        exit(9)
-     
+
+   def close(self):
+       self.con.close()
+       
+   def commit(self):
+       self.con.commit()
+       
+   def rollback(self):
+       self.con.rollback()
 
    def insert(self, table, data, verbose=False):
       """ INSERT INTO table (data(keys)) VALUES(data(values))
@@ -70,8 +78,7 @@ class vdb:
         print "Error %d: %s" % (e.args[0], e.args[1])
         exit(8)
 
-      self.con.commit()
-      self.con.close()  
+      
       id = list_query().one_field(result)
       return id
 
@@ -102,8 +109,8 @@ class vdb:
         print "Error %d: %s" % (e.args[0], e.args[1])
         exit(10)
      
-      self.con.commit()
-      self.con.close()      
+      
+   
       
       # return an array with a dictionary for each entry
       return result
@@ -139,9 +146,7 @@ class vdb:
         print "Error %d: %s" % (e.args[0], e.args[1])
         exit(10)
      
-      self.con.commit()
-      self.con.close()  
-          
+                
       return 0
   
    def delete_row(self,table,condition,verbose=False):
@@ -161,9 +166,7 @@ class vdb:
         print "Error %d: %s" % (e.args[0], e.args[1])
         exit(10)
      
-      self.con.commit()
-      self.con.close()  
-          
+                
       return 0
 
    def describe(self,table,verbose=False):
@@ -181,8 +184,7 @@ class vdb:
         print "Error %d: %s" % (e.args[0], e.args[1])
         exit(8)
 
-       self.con.commit()
-       self.con.close()
+       
        fields=[]
        for i in result:
            fields.append(i['Field'])
@@ -202,9 +204,7 @@ class vdb:
        except MySQLdb.Error, e:
         print "Error %d: %s" % (e.args[0], e.args[1])
         exit(8)
-
-       self.con.commit()
-       self.con.close()
+        
        fields=[]
        for i in result:
            fields.append(i['Field'])
