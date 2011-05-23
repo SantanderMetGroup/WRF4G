@@ -14,10 +14,12 @@ eformateddate=$3     # end date to process
 source wrf_util.sh 
 read iyy imm trash <<< `echo $sformateddate | tr '_T:-' '    '`
 read fyy fmm trash <<< `echo $eformateddate | tr '_T:-' '    '`
+
 #
 #  The first time step doesn't seem to contain all the data required...
 #
 read iyy imm <<< `date '+%Y %m' -d "${iyy}${imm}01 1 month ago"`
+echo $iyy $imm
 echo "Linking global data from: ${global_path}"
 mkdir -p grbData
 for yearmon in $(get_yearmons $iyy $imm $fyy $fmm)

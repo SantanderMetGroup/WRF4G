@@ -301,8 +301,8 @@ class Experiment(Component):
             output=vcp.copy_file('wrf4g_files.tar.gz',exp_dir,verbose=self.verbose)    
             os.remove('wrf4g_files.tar.gz')  
             
-        output=vcp.copy_file('wrf4g.conf',exp_dir,verbose=self.verbose) 
-        output=vcp.copy_file('wrf.input',exp_dir,verbose=self.verbose) 
+        output=vcp.copy_file('resources4g.conf',exp_dir,verbose=self.verbose) 
+        output=vcp.copy_file('wrf4g.input',exp_dir,verbose=self.verbose) 
       
 
     
@@ -568,7 +568,6 @@ class Job(Component):
 
     def load_wn_conf(self,wn_gwres):
         wn_gwres=int(wn_gwres)
-        dbc=opendbconnection()
         cond=''
         for field in self.get_distinct_fields():
             cond="%s AND %s='%s'" %(cond,field,self.data[field])
@@ -615,14 +614,13 @@ if __name__ == "__main__":
     class_name=args[0]
     function=args[1]
     load_default_values()
-    wrf4g_conf=os.environ.get('WRF4G_CONF_FILE')
-    if wrf4g_conf == None:
-        sys.stderr.write('WRF4G_CONF_FILE is not defined. Please define it and try again\n')
+    resources4g_conf=os.environ.get('RESOURCES4G_CONF')
+    if resources4g_conf == None:
+        sys.stderr.write('RESOURCES4G_CONF is not defined. Please define it and try again\n')
         sys.exit(1)
-    exec open(wrf4g_conf).read()
+    exec open(resources4g_conf).read()
     
     data=''
-    load_default_values() 
     dbc=vdb.vdb(host=DB_HOST, user=DB_USER, db='WRF4GDB', port=DB_PORT, passwd=DB_PASSWD)
     if len(args) > 2:   data=pairs2dict(args[2])         
     inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure,dryrun=options.dryrun)"%(class_name,data)

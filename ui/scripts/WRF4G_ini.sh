@@ -40,7 +40,7 @@ function prepare_runtime_environment(){
     prepare_openmpi=0
     local_openmpi=0
     LAUNCHER_REAL="";LAUNCHER_WRF=""
-    MPI_LAUNCHER="mpirun $MPI_ENV"
+    MPI_LAUNCHER="mpirun -np $GW_NP $MPI_ENV"
 
     if [ $real_parallel -eq 1 ]; then
        prepare_openmpi=1
@@ -129,17 +129,17 @@ function wrf4g_exit(){
 #
 #  Change working directory to WRF4G_RUN_SHARED if needed 
 #
-tar xzf sandbox.tar.gz wrf4g.conf wrf.input
+tar xzf sandbox.tar.gz resources4g.conf wrf4g.input
 
 load_default_config
 
 #
-#  Load wrf.input and wrf.chunk
+#  Load wrf4g.input
 #
-source wrf4g.conf                            || exit 2
-sed -e 's/\ *=\ */=/' wrf.input > source.it  || exit 2
+source resources4g.conf                        || exit 2
+sed -e 's/\ *=\ */=/' wrf4g.input > source.it  || exit 2
 source source.it && rm source.it
-rm wrf4g.conf wrf.input
+rm resources4g.conf wrf4g.input
 
 export WRF4G_EXPERIMENT="${experiment_name}"
 export WRF4G_REALIZATION=$1
@@ -168,7 +168,7 @@ rm sandbox.tar.gz
 #
 #   Expand the WRF4G scripts
 #
-export WRF4G_CONF_FILE="${ROOTDIR}/wrf4g.conf"
+export RESOURCES4G_CONF="${ROOTDIR}/resources4g.conf"
 export PATH="${ROOTDIR}/bin:$PATH"
 export LD_LIBRARY_PATH=${ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
 export PYTHONPATH=${ROOTDIR}/lib/python:${ROOTDIR}/lib/shared_libs:$PYTHONPATH
@@ -189,7 +189,10 @@ chmod +x ${ROOTDIR}/WRFGEL/*
 # Update Job Status in DB
 job_conf="gw_job=${GW_JOB_ID},id_chunk=${WRF4G_ID_CHUNK},resource=${GW_HOSTNAME},wn=$(hostname)"
 WRF4G_JOB_ID=$(WRF4G.py Job load_wn_conf  $job_conf $GW_RESTARTED) #|| wrf4g_exit ${ERROR_LOW_GW_RESTARTED}
-echo $?
+if test $? -ne 0; then
+    exit 92
+fi
+
 #
 #   Should we unpack here or there is a local filesystem for us to run?
 #

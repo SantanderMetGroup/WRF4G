@@ -1,13 +1,13 @@
 #! /bin/bash -x
 
 #
-#  Load wrf4g.conf, wrf.chunk and wrf.input
+#  Load resources4g.conf and wrf4g.input
 #
 ROOTDIR=$(cat ../../rootdir)
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
-source ${ROOTDIR}/wrf4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
-sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf.input > source.it || exit ${ERROR_MISSING_WRFINPUT}
+source ${ROOTDIR}/resources4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
+sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf4g.input > source.it || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
 
 logfile="../../log/wrfgel.out"

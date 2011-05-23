@@ -38,6 +38,10 @@ if test ${#} -ge 1; then
           verbose="yes"
           WRF4G_FLAGS="$WRF4G_FLAGS -v" 
         ;;
+      --help)
+          echo "Usage: $0  --dry-run --nchunks --verbose"
+          exit 
+          ;;
       *)
         echo "Unknown argument: $1"
         exit
@@ -47,24 +51,26 @@ if test ${#} -ge 1; then
   done
 fi
 
+if test -z $WRF4G_LOCATION; then
+   echo '$WRF4G_LOCATION variable not established. Please export WRF4G_LOCATION and try again'
+   exit 1
+fi
+
 userdir=`pwd`
-wrf4g_root=$(dirname $(dirname $(dirname $0)))
-export PATH="${wrf4g_root}/wn/bin:${PATH}"
-export PYTHONPATH="${PYTHONPATH}:${wrf4g_root}/wn/lib/python:${wrf4g_root}/ui/lib/python"
 
+export PATH=${WRF4G_LOCATION}/bin:${PATH}
+export PYTHONPATH=${PYTHONPATH}:${WRF4G_LOCATION}/lib/python
 
 #
-#  Load wrf.input et al.
+#  Load wrf4g.input et al.
 #
-sed -e 's/\ *=\ */=/' wrf4g.conf > source.it       || exit ${ERROR_MISSING_WRF4GCNF}
+sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources4g.conf | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >resources4g.conf|| exit ${ERROR_MISSING_WRF4GSRC}
+source resources4g.conf
+export RESOURCES4G_CONF=${PWD}/resources4g.conf
+sed -e 's/\ *=\ */=/' wrf4g.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
-sed -e 's/\ *=\ */=/' wrf.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
-source source.it && rm source.it
-source ${wrf4g_root}/wn/lib/bash/wrf_util.sh       || exit ${ERROR_MISSING_WRFUTIL}
-#
-#  export some variables
-#
-export WRF4G_CONF_FILE="${userdir}/wrf4g.conf"
+source ${WRF4G_LOCATION}/lib/bash/wrf_util.sh       || exit ${ERROR_MISSING_WRFUTIL}
+
 export WRF4G_EXPERIMENT="${experiment_name}"
 
 
@@ -118,7 +124,7 @@ function cycle_chunks(){
   realization_end_date=$4
   current_date=${realization_start_date}
   
-  echo -e "\t---> cycle_chunks: ${realization_name} ${realization_start_date} ${realization_end_date}">&2
+  echo -e "\t---> cycle_chunks: ${realizahttps://192.168.200.93/index.htmltion_name} ${realization_start_date} ${realization_end_date}">&2
 
   read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
   read eyy emm edd ehh trash <<< $(echo ${realization_end_date} | tr '_:T-' '    ')
@@ -244,7 +250,7 @@ fi
 if test ${id} -ge 0; then
         echo "Preparing namelist...">&2
 	if ! is_dry_run; then 
-	  cp ${wrf4g_root}/wn/WRFV3/test/em_real/namelist.input ${userdir}/namelist.input.base
+	  cp ${WRF4G_LOCATION}/etc/templates/namelist.input ${userdir}/namelist.input.base
 	  fortnml -wof namelist.input.base -s max_dom ${max_dom}
 	  for var in $(get_ni_vars); do
 	    fnvar=${var/__/@}
@@ -309,12 +315,12 @@ id_exp=$(WRF4G.py $WRF4G_FLAGS Experiment get_id_from_name name=${WRF4G_EXPERIME
 if ! is_dry_run; then 
   mkdir -p .${WRF4G_EXPERIMENT}/bin
   cd .${WRF4G_EXPERIMENT}
-   o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf4g.conf .)
-   o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf.input . )
-   cp ${wrf4g_root}/wn/bin/vcp bin/
+   o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/resources4g.conf .)
+   o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf4g.input . )
+   cp ${WRF4G_LOCATION}/bin/vcp bin/
    tar -czf sandbox.tar.gz *
    rm -rf wrf* bin
-   cp ${wrf4g_root}/ui/scripts/WRF4G_ini.sh .
+   cp ${WRF4G_LOCATION}/etc/templates/WRF4G_ini.sh .
 fi
 
 #Submit jobs
@@ -325,4 +331,6 @@ if ! is_dry_run; then
 else
   id=$(WRF4G.py $WRF4G_FLAGS Experiment delete id=${id_exp}) 
 fi
+
+rm -f resources4g.conf
 
