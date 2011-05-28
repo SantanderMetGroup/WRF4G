@@ -1,0 +1,91 @@
+#! /bin/bash
+
+# wrf4g_framewok: start and stop the Gridway and Mysql components of WRF4G.
+
+if test -z $WRF4G_LOCATION; then
+   echo '$WRF4G_LOCATION variable not established. Please export WRF4G_LOCATION and try again'
+   exit 1
+fi
+
+if test -f $WRF4G_LOCATION/etc/components4g.conf; then
+   COMPONENTS4G_CONF="$WRF4G_LOCATION/etc/components4g.conf"
+   grep DB_PORT $COMPONENTS4G_CONF> source.it
+   source source.it && rm source.it
+else
+   echo 'Components configuration does not exists'
+   exit 1
+fi
+
+
+export GW_LOCATION=$WRF4G_LOCATION/opt/drm4g_gridway-5.7
+export MYSQL_LOCATION=$WRF4G_LOCATION/opt/mysql-5.5
+export PATH=$GW_LOCATION/bin:$PATH
+export LD_LIBRARY_PATH=$WRF4G_LOCATION/lib/shared_libs:$LD_LIBRARY_PATH
+
+
+case "$1" in
+    start)
+	echo -n "Starting Gridway......."
+        grep '://' $COMPONENTS4G_CONF > $GW_LOCATION/etc/hosts_drm4g.list
+        sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources4g.conf | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >temp; cp temp ${WRF4G_LOCATION}/etc/resources4g.conf
+        sed -i "s#\$HOSTNAME#$HOSTNAME#" $COMPONENTS4G_CONF
+
+        if test -f $GW_LOCATION/var/.lock; then
+          echo "FAILED: Gridway already running. Run \"$(basename $0) stop\" to stop it" 
+          exit 2
+        fi
+	gwd -c 
+        st=$?
+        if test $st -ne 0; then 
+           echo "FAILED: Problems starting Gridway $st"
+           exit 2 
+        fi
+	echo "  OK"
+	cd $MYSQL_LOCATION
+	echo -n "Starting Mysql ......."
+
+        if test -f $MYSQL_LOCATION/data/`hostname`.pid; then
+           mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
+           if test $(ps -p $mysql_pid | grep -m1 -c $mysql_pid) -eq 1; then
+              echo "FAILED: Mysql already running. Run \"$(basename $0) stop\" to stop it"
+              exit 3
+           fi
+        fi
+ 
+        while [ $(netstat -atn |grep -m1 -c ":$DB_PORT ") -eq 1 ];do
+             let DB_PORT++
+        done
+	sed -i "s/DB_PORT.*$/DB_PORT=$DB_PORT/"  $WRF4G_LOCATION/etc/components4g.conf
+	nohup ./bin/mysqld_safe --no-defaults --port=$DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock &>/dev/null &
+	echo "OK"
+       ;;
+    stop)
+	echo -n "Stopping Gridway ...."
+	rm -f $GW_LOCATION/var/.lock
+        gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
+        gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
+        if test -n "$gwd_pid"; then  kill -9 $gwd_pid ;fi
+        if test $? -ne 0; then
+           echo "FAILED: Gridway already stopped"
+	   exit 2
+        fi
+        echo "  OK"
+	echo -n "Stopping Mysql ...."
+        mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
+        if test -n "$mysql_pid" ; then mysql_ppid=$(ps h -p $mysql_pid -o ppid); fi
+	if test -n "$mysql_ppid"; then kill -9 $mysql_ppid ;fi
+	if test -n "$mysql_pid" ;then  kill -9 $mysql_pid ;fi
+	echo "  OK"
+        ;;
+    restart)
+        ## Stop the service and regardless of whether it was
+        ## running or not, start it again.
+        $0 stop
+        $0 start
+        ;;
+    *)
+        echo "Usage: /etc/init.d/$0 {start|stop}"
+        exit 1
+        ;;
+esac
+
