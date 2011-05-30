@@ -169,6 +169,7 @@ rm sandbox.tar.gz
 #   Expand the WRF4G scripts
 #
 export RESOURCES4G_CONF="${ROOTDIR}/resources4g.conf"
+export DB4G_CONF="${ROOTDIR}/db4g.conf"
 export PATH="${ROOTDIR}/bin:$PATH"
 export LD_LIBRARY_PATH=${ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
 export PYTHONPATH=${ROOTDIR}/lib/python:${ROOTDIR}/lib/shared_libs:$PYTHONPATH
@@ -312,7 +313,7 @@ else
       else
         preprocessor.${global_preprocessor} ${global_path} ${chunk_start_date} ${chunk_end_date}
       fi
-      ./link_grib.csh grbData/*.grb
+      ./link_grib.sh grbData/*.grb
     WRF4G.py Job set_status id=${WRF4G_JOB_ID} 22
       ln -sf ungrib/Variable_Tables/Vtable.${global_name} Vtable
       ${ROOTDIR}/bin/ungrib.exe \
@@ -332,7 +333,7 @@ else
      #No global path. Path to the data must be included inside the postprocessor.
      preprocessor.${preprocessor_other} ${chunk_start_date} ${chunk_end_date} ${global_name}
      rm -f GRIBFILE.*
-    ./link_grib.csh grbOtherData/*.grb
+    ./link_grib.sh grbOtherData/*.grb
     ${ROOTDIR}/bin/ungrib.exe >& ${logdir}/ungrib_${preprocessor_other}_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
     cat ${logdir}/ungrib_${preprocessor_other}_${iyy}${imm}${idd}${ihh}.out \
     | grep -q -i 'Successful completion of ungrib' \

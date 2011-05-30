@@ -27,7 +27,7 @@ case "$1" in
     start)
 	echo -n "Starting Gridway......."
         grep '://' $COMPONENTS4G_CONF > $GW_LOCATION/etc/hosts_drm4g.list
-        sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources4g.conf | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >temp; cp temp ${WRF4G_LOCATION}/etc/resources4g.conf
+        sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources4g.conf | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >temp; cp temp ${WRF4G_LOCATION}/etc/resources4g.conf; rm temp
         sed -i "s#\$HOSTNAME#$HOSTNAME#" $COMPONENTS4G_CONF
 
         if test -f $GW_LOCATION/var/.lock; then

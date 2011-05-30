@@ -229,10 +229,8 @@ class Component:
             if not self.dryrun:
                 self.prepare_storage()
                     
-        return self.data['id']
-       
-    
-    
+        return self.data['id']    
+
 class Experiment(Component):
     
     """  Experiment CLASS
@@ -286,6 +284,11 @@ class Experiment(Component):
         return ids_rea 
     
     def prepare_storage(self):          
+        resources4g_conf=os.environ.get('RESOURCES4G_CONF')
+        if resources4g_conf == None:
+            sys.stderr.write('RESOURCES4G_CONF is not defined. Please define it and try again\n')
+            sys.exit(1)
+        exec open(resources4g_conf).read()     
         # Load the URL into the VCPURL class
         exp_dir="%s/experiments/%s" %(WRF4G_BASEPATH, self.data['name'])
         list=vcp.VCPURL(exp_dir)
@@ -301,11 +304,10 @@ class Experiment(Component):
             output=vcp.copy_file('wrf4g_files.tar.gz',exp_dir,verbose=self.verbose)    
             os.remove('wrf4g_files.tar.gz')  
             
-        output=vcp.copy_file('resources4g.conf',exp_dir,verbose=self.verbose) 
+        output=vcp.copy_file(db4g_conf,exp_dir,verbose=self.verbose)
+        output=vcp.copy_file(resources4g_conf,exp_dir,verbose=self.verbose) 
         output=vcp.copy_file('wrf4g.input',exp_dir,verbose=self.verbose) 
-      
-
-    
+         
 class Realization(Component):
     """ Realization CLASS
     """
@@ -369,14 +371,20 @@ class Realization(Component):
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk
     
-    def last_chunk(self):
         
+    def last_chunk(self):        
         nchunkd=dbc.select('Chunk','MAX(Chunk.id)','id_rea=%s'%self.data['id'])
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk 
          
     def run(self,nchunk=0):
-        import gridway        
+        import gridway   
+        
+        resources4g_conf=os.environ.get('RESOURCES4G_CONF')
+        if resources4g_conf == None:
+            sys.stderr.write('RESOURCES4G_CONF is not defined. Please define it and try again\n')
+            sys.exit(1)
+        exec open(resources4g_conf).read()          
         
         rea_name=self.get_name()
         restart=self.get_restart()
@@ -421,18 +429,27 @@ class Realization(Component):
                 job.set_status('1')
     
     def ps(self):
-        #
-        per=0
-        rea_name=self.get_name()
-        restart=self.get_restart()
-        chunk_number=self.last_chunk()
-        if self.has_finished():
-            status="Done"
-            per=100
-        elif self.has_failed():
-            status="Failed"
         
-        elif restart == None:
+        drea=dbc.select('Realization','name,restart,sdate,cdate,edate','id=%s'%self.data['id'])
+        nchunks=self.last_chunk()
+        if self.has_failed(): 
+            reastatus='Failed'
+        did=dbc.select('Chunk','MAX(id_chunk)','id_rea=%s AND status=4'%self.data['id'])
+        id=vdb.parse_one_field(did)
+        if id == nchunks:
+            reastatus='Done'
+        elif id == None:
+            id=0
+        idn=int(id)+1
+        ch=Chunk(data={'id': str(idn)})    
+        lastjob=ch.last_job()
+        j=Job(data={'id':lastjob})
+        status=j.get_status()
+        exit_code=j.get_exitcode()
+        
+        sys.exit()
+       
+        if restart == None:
             chunkd=dbc.select('Chunk','MIN(Chunk.id_chunk),MIN(Chunk.id)','id_rea=%s'%self.data['id'],verbose=self.verbose)
             [id_chunk,id]=chunkd[0].values()
             chi=Chunk(data={'id':'%s'%id})
@@ -463,7 +480,11 @@ class Realization(Component):
             
                 
     def prepare_storage(self):          
-        # Load the URL into the VCPURL class
+        resources4g_conf=os.environ.get('RESOURCES4G_CONF')
+        if resources4g_conf == None:
+            sys.stderr.write('RESOURCES4G_CONF is not defined. Please define it and try again\n')
+            sys.exit(1)
+        exec open(resources4g_conf).read()        
         reas=self.data['name'].split('__')
         rea_dir="%s/experiments/%s/%s" % (WRF4G_BASEPATH,reas[0],self.data['name'])
         for dir in ["output","restart","wpsout","log"]:
@@ -482,8 +503,7 @@ class Realization(Component):
             return 1
         else:
             return 0
-          
-        
+                  
 class Chunk(Component):
     """ Chunk CLASS
     """
@@ -525,6 +545,11 @@ class Chunk(Component):
     def prepare_storage(self):
         pass
    
+    def last_job(self):
+        last_job=dbc.select('Job,Chunk','Job.MAX(id)','Chunk.id=%s AND Job.id_chunk=Chunk.id'%self.data['id'])
+        lj=vdb.parse_one_field(last_job)
+        return lj
+    
 class Job(Component):
 
     def get_reconfigurable_fields(self):
@@ -536,7 +561,9 @@ class Job(Component):
     def stjob2stchunk(self):
         dst={'1':1, '10': 2, '40': 4, '41': 3}
         return dst
+    
 
+    
     def set_status(self,st):
         self.data['status']=st
         oc=self.update_fields(['status'], ['id'])
@@ -552,11 +579,11 @@ class Job(Component):
         id_event=Events(data=event_data).create()
         return oc   
 
-    def set_exitcode(self,exitcode):
-        self.data['exitcode']=exitcode
-        oc=self.update_fields(['exitcode'], ['id'])    
-        return oc
-    
+    def get_status(self):
+        status=self.get_one_field(['status'], ['id'])
+        return status
+        
+        
     def set_exitcode(self,exitcode):
         self.data['exitcode']=exitcode
         oc=self.update_fields(['exitcode'], ['id'])    
@@ -614,12 +641,12 @@ if __name__ == "__main__":
     class_name=args[0]
     function=args[1]
     load_default_values()
-    resources4g_conf=os.environ.get('RESOURCES4G_CONF')
-    if resources4g_conf == None:
-        sys.stderr.write('RESOURCES4G_CONF is not defined. Please define it and try again\n')
+    db4g_conf=os.environ.get('DB4G_CONF')
+    if db4g_conf == None:
+        sys.stderr.write('DB4G_CONF is not defined. Please define it and try again\n')
         sys.exit(1)
-    exec open(resources4g_conf).read()
-    
+    exec open(db4g_conf).read()     
+   
     data=''
     dbc=vdb.vdb(host=DB_HOST, user=DB_USER, db='WRF4GDB', port=DB_PORT, passwd=DB_PASSWD)
     if len(args) > 2:   data=pairs2dict(args[2])         

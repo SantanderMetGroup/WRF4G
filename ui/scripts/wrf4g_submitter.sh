@@ -58,15 +58,19 @@ fi
 
 userdir=`pwd`
 
+#
+#  Prepare environment
+#
 export PATH=${WRF4G_LOCATION}/bin:${PATH}
 export PYTHONPATH=${PYTHONPATH}:${WRF4G_LOCATION}/lib/python
 
 #
-#  Load wrf4g.input et al.
+#  Load configuration files
 #
+grep "DB_.*=" ${WRF4G_LOCATION}/etc/components4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf
+export DB4G_CONF=`pwd`/db4g.conf ; source $DB4G_CONF
 sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources4g.conf | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >resources4g.conf|| exit ${ERROR_MISSING_WRF4GSRC}
-source resources4g.conf
-export RESOURCES4G_CONF=${PWD}/resources4g.conf
+export RESOURCES4G_CONF=${PWD}/resources4g.conf ; source $RESOURCES4G_CONF
 sed -e 's/\ *=\ */=/' wrf4g.input > source.it        || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
 source ${WRF4G_LOCATION}/lib/bash/wrf_util.sh       || exit ${ERROR_MISSING_WRFUTIL}
@@ -224,6 +228,8 @@ function cycle_time(){
 }
 
 
+echo -e "\n\t=========== PREPARING EXPERIMENT ${WRF4G_EXPERIMENT} ============\n">&2
+
 #
 #  Initial override of namelist values
 #
@@ -239,7 +245,14 @@ else
    mphysics_labels=''   
 fi
 
-echo -e "\n\t=========== PREPARING EXPERIMENT ${WRF4G_EXPERIMENT} ============\n">&2
+if test -z "${chunk_size_h}"; then
+    sec=$(datediff_s ${end_date} ${start_date})
+    let chunk_size_h=${sec}/3600
+fi
+
+if test "${is_continuous}" -ne "0" -a -z "${NI_restart_interval}"; then
+    let NI_restart_interval=${chunk_size_h}*60
+fi
 
 data="name=${experiment_name},sdate=${start_date},edate=${end_date},mphysics=${is_multiphysics},cont=${is_continuous},basepath=${WRF4G_BASEPATH},mphysics_labels=${mphysics_labels}"
 id=$(WRF4G.py $WRF4G_FLAGS Experiment  prepare $data )
@@ -315,6 +328,7 @@ id_exp=$(WRF4G.py $WRF4G_FLAGS Experiment get_id_from_name name=${WRF4G_EXPERIME
 if ! is_dry_run; then 
   mkdir -p .${WRF4G_EXPERIMENT}/bin
   cd .${WRF4G_EXPERIMENT}
+   o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/db4g.conf . )
    o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/resources4g.conf .)
    o=$(vcp ${WRF4G_BASEPATH}/experiments/${WRF4G_EXPERIMENT}/wrf4g.input . )
    cp ${WRF4G_LOCATION}/bin/vcp bin/
@@ -332,5 +346,4 @@ else
   id=$(WRF4G.py $WRF4G_FLAGS Experiment delete id=${id_exp}) 
 fi
 
-rm -f resources4g.conf
-
+rm -f $RESOURCES4G_CONF $DB4G_CONF
