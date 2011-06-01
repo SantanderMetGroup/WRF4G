@@ -236,16 +236,16 @@ class Experiment(Component):
     """  Experiment CLASS
     """
     def get_no_reconfigurable_fields(self):
-        return ['id','cont','mphysics','basepath']
+        return ['id','multiple_dates','multiple_parameters','basepath']
     
     def get_configuration_fields(self):
-        return ['id','sdate','edate','basepath','cont','mphysics','mphysics_labels']
+        return ['id','sdate','edate','basepath','multiple_dates','multiple_parameters','multiparams_labels']
     
     def get_distinct_fields(self):
         return['name']
         
     def get_reconfigurable_fields(self):
-        return['sdate','edate','mphysics_labels']
+        return['sdate','edate','multiparams_labels']
         
     def get_id_from_name(self):
 
@@ -284,13 +284,13 @@ class Experiment(Component):
         return ids_rea 
     
     def prepare_storage(self):          
-        resources4g_conf=os.environ.get('RESOURCES4G_CONF')
-        if resources4g_conf == None:
-            sys.stderr.write('RESOURCES4G_CONF is not defined. Please define it and try again\n')
+        RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
+        if RESOURCES_WRF4G == None:
+            sys.stderr.write('RESOURCES_WRF4G is not defined. Please define it and try again\n')
             sys.exit(1)
-        exec open(resources4g_conf).read()     
+        exec open(RESOURCES_WRF4G).read()     
         # Load the URL into the VCPURL class
-        exp_dir="%s/experiments/%s" %(WRF4G_BASEPATH, self.data['name'])
+        exp_dir="%s/%s" %(WRF4G_BASEPATH, self.data['name'])
         list=vcp.VCPURL(exp_dir)
         list.mkdir(verbose=self.verbose)
         if os.path.exists('wrf4g_files'):
@@ -305,21 +305,21 @@ class Experiment(Component):
             os.remove('wrf4g_files.tar.gz')  
             
         output=vcp.copy_file(db4g_conf,exp_dir,verbose=self.verbose)
-        output=vcp.copy_file(resources4g_conf,exp_dir,verbose=self.verbose) 
-        output=vcp.copy_file('wrf4g.input',exp_dir,verbose=self.verbose) 
+        output=vcp.copy_file(RESOURCES_WRF4G,exp_dir,verbose=self.verbose) 
+        output=vcp.copy_file('experiment.wrf4g',exp_dir,verbose=self.verbose) 
          
 class Realization(Component):
     """ Realization CLASS
     """
     
     def get_no_reconfigurable_fields(self):
-        return ['id','id_exp','sdate','mphysics_label']
+        return ['id','id_exp','sdate','multiparams_label']
     
     def get_configuration_fields(self):
-        return ['id','id_exp','sdate','edate','mphysics_label']
+        return ['id','id_exp','sdate','edate','multiparams_label']
     
     def get_distinct_fields(self):
-        return['id_exp','sdate','mphysics_label']
+        return['id_exp','sdate','multiparams_label']
         
     def get_reconfigurable_fields(self):
         return['edate']
@@ -380,11 +380,11 @@ class Realization(Component):
     def run(self,nchunk=0):
         import gridway   
         
-        resources4g_conf=os.environ.get('RESOURCES4G_CONF')
-        if resources4g_conf == None:
-            sys.stderr.write('RESOURCES4G_CONF is not defined. Please define it and try again\n')
+        RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
+        if RESOURCES_WRF4G == None:
+            sys.stderr.write('RESOURCES_WRF4G is not defined. Please define it and try again\n')
             sys.exit(1)
-        exec open(resources4g_conf).read()          
+        exec open(RESOURCES_WRF4G).read()          
         
         rea_name=self.get_name()
         restart=self.get_restart()
@@ -480,13 +480,13 @@ class Realization(Component):
             
                 
     def prepare_storage(self):          
-        resources4g_conf=os.environ.get('RESOURCES4G_CONF')
-        if resources4g_conf == None:
-            sys.stderr.write('RESOURCES4G_CONF is not defined. Please define it and try again\n')
+        RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
+        if RESOURCES_WRF4G == None:
+            sys.stderr.write('RESOURCES_WRF4G is not defined. Please define it and try again\n')
             sys.exit(1)
-        exec open(resources4g_conf).read()        
+        exec open(RESOURCES_WRF4G).read()        
         reas=self.data['name'].split('__')
-        rea_dir="%s/experiments/%s/%s" % (WRF4G_BASEPATH,reas[0],self.data['name'])
+        rea_dir="%s/%s/%s" % (WRF4G_BASEPATH,reas[0],self.data['name'])
         for dir in ["output","restart","wpsout","log"]:
           repo="%s/%s" % (rea_dir,dir)
           list=vcp.VCPURL(repo)

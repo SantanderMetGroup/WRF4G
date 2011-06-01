@@ -13,6 +13,7 @@ function load_default_config (){
  real_parallel=0
  wrf_parallel=1
  VCPDEBUG="-v"
+ global_preprocessor="default"
 }
 
 function date2int(){
@@ -113,7 +114,7 @@ function wrf4g_exit(){
   cd ${logdir}
   echo ROOTDIR: $ROOTDIR
   echo LOCALDIR: $LOCALDIR
-  tar czf ${logfile} * && vcp ${logfile} ${WRF4G_BASEPATH}/experiments/${experiment_name}/${WRF4G_REALIZATION}/log/
+  tar czf ${logfile} * && vcp ${logfile} ${WRF4G_BASEPATH}/${experiment_name}/${WRF4G_REALIZATION}/log/
   cd -
   # Clean the heavy stuff
   if test "${clean_after_run}" -eq 1; then
@@ -129,17 +130,17 @@ function wrf4g_exit(){
 #
 #  Change working directory to WRF4G_RUN_SHARED if needed 
 #
-tar xzf sandbox.tar.gz resources4g.conf wrf4g.input
+tar xzf sandbox.tar.gz resources.wrf4g experiment.wrf4g
 
 load_default_config
 
 #
-#  Load wrf4g.input
+#  Load experiment.wrf4g
 #
-source resources4g.conf                        || exit 2
-sed -e 's/\ *=\ */=/' wrf4g.input > source.it  || exit 2
+source resources.wrf4g                        || exit 2
+sed -e 's/\ *=\ */=/' experiment.wrf4g > source.it  || exit 2
 source source.it && rm source.it
-rm resources4g.conf wrf4g.input
+rm resources.wrf4g experiment.wrf4g
 
 export WRF4G_EXPERIMENT="${experiment_name}"
 export WRF4G_REALIZATION=$1
@@ -168,7 +169,7 @@ rm sandbox.tar.gz
 #
 #   Expand the WRF4G scripts
 #
-export RESOURCES4G_CONF="${ROOTDIR}/resources4g.conf"
+export RESOURCES_WRF4G="${ROOTDIR}/resources.wrf4g"
 export DB4G_CONF="${ROOTDIR}/db4g.conf"
 export PATH="${ROOTDIR}/bin:$PATH"
 export LD_LIBRARY_PATH=${ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
@@ -198,7 +199,7 @@ fi
 #   Should we unpack here or there is a local filesystem for us to run?
 #
 if test -z "${WRF4G_RUN_LOCAL}"; then
-    if test -n ${GW_LOCALDIR};then
+    if test -n "${GW_LOCALDIR}";then
         ${WRF4G_RUN_LOCAL}=${GW_LOCALDIR}
     fi
 fi
@@ -236,12 +237,12 @@ vcp ${WRF4G_APPS}/WRF4Gbin-${WRF_VERSION}.tar.gz .
 tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz || wrf4g_exit ${ERROR_MISSING_WRF4GBIN}
 rm WRF4Gbin-${WRF_VERSION}.tar.gz
 
-vcp ${WRF4G_BASEPATH}/experiments/${experiment_name}/${WRF4G_REALIZATION}/namelist.input  WRFV3/run/namelist.input || wrf4g_exit ${ERROR_MISSING_NAMELIST}
+vcp ${WRF4G_BASEPATH}/${experiment_name}/${WRF4G_REALIZATION}/namelist.input  WRFV3/run/namelist.input || wrf4g_exit ${ERROR_MISSING_NAMELIST}
 
 #
 #  If there are additional files, expand'em
 #
-vcp ${WRF4G_BASEPATH}/experiments/${experiment_name}/wrf4g_files.tar.gz ${ROOTDIR} &>/dev/null
+vcp ${WRF4G_BASEPATH}/${experiment_name}/wrf4g_files.tar.gz ${ROOTDIR} &>/dev/null
 if test -f ${ROOTDIR}/wrf4g_files.tar.gz; then
   tar xzvf ${ROOTDIR}/wrf4g_files.tar.gz && rm ${ROOTDIR}/wrf4g_files.tar.gz
 fi
@@ -256,10 +257,10 @@ prepare_runtime_environment
 restart_date=$(WRF4G.py -v Realization get_restart id=${WRF4G_ID_REALIZATION}) || wrf4g_exit ${ERROR_ACCESS_DB}
 if  test ${restart_date} == "None"; then
    export chunk_restart_date=${chunk_start_date}
-   export chunk_is_restart=".F."
+   export chunk_rerun=".F."
 elif test $(date2int ${restart_date}) -ge $(date2int ${chunk_start_date}) -a $(date2int ${restart_date}) -le $(date2int ${chunk_end_date}); then
    export chunk_restart_date=${restart_date}
-   export chunk_is_restart=".T."  
+   export chunk_rerun=".T."  
    WRF4G.py Job set_status id=${WRF4G_JOB_ID} 12
    download_file rst $(date_wrf2iso ${restart_date}) || wrf4g_exit ${ERROR_RST_DOWNLOAD_FAILED}
    mv wrfrst* WRFV3/run 
@@ -277,7 +278,7 @@ if test ${wps_stored} -eq "1"; then
   cd ${LOCALDIR}/WPS || wrf4g_exit ${ERROR_GETTING_WPS}
     vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || wrf4g_exit ${ERROR_VCP_FAILED} namelist.wps
   cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ${ERROR_GETTING_WPS}
-    namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_is_restart} ${timestep_dxfactor}
+    namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_rerun} ${timestep_dxfactor}
     WRF4G.py Job set_status id=${WRF4G_JOB_ID} 20
     download_file wps $(date_wrf2iso ${chunk_start_date})
   cd ${LOCALDIR}
@@ -343,25 +344,6 @@ else
    # the last encountered will take priority.
    fortnml --overwrite -f namelist.wps -s fg_name@metgrid "'${global_name}','${preprocessor_others}'" 
 
-    #
-    #                     Fix fields
-    #
-    if [ -e Vtable.${global_name}FIX ]; then
-      sed -e 's/@start_date@/'${syy}-${smm}-${sdd}_${shh}:00:00'/g' \
-          -e 's/@end_date@/'${syy}-${smm}-${sdd}_${shh}:00:00'/g' \
-          -e 's/@interval_seconds@/'${interval_seconds}'/g' \
-          namelist.wps.in > namelist.wps.infix
-      cat <<- End_of_nmlungrib > namelist.ungrib
-	&ungrib
-	 out_format = 'WPS'
-	 prefix = '${global_name}FIX'
-	/
-	End_of_nmlungrib
-      ln -sf Vtable.${global_name}FIX Vtable
-      cpp -P namelist.wps.infix > namelist.wps
-      ./ungrib/ungrib.exe >& ${logdir}/ungrib_${global_name}FIX_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
-      mv ${global_name}FIX* ${global_name}FIX || wrf4g_exit ${ERROR_UNGRIB_FAILED}
-    fi
 
     #
     #   Run metgrid
@@ -394,7 +376,7 @@ else
       clean_real
       ln -s ../../WPS/met_em.d??.????-??-??_??:00:00.nc .
       fix_ptop
-      namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_is_restart} ${timestep_dxfactor}
+      namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_rerun} ${timestep_dxfactor}
       
       # If real is run in parallel, prepare the environment.  	 
       if [ ${local_openmpi} -eq 1 -a ${real_parallel} -eq 1 ]; then
