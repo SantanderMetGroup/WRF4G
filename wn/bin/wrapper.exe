@@ -1,0 +1,7 @@
+#! /bin/bash
+exe=$1
+ulimit -s unlimited
+$* &
+test -f ${exe}.pid || echo "$!" > ${exe}.pid
+wait
+rm ${exe}.pid

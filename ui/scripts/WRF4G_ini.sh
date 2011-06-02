@@ -384,7 +384,7 @@ else
       if [ ${local_openmpi} -eq 1 -a ${real_parallel} -eq 1 ]; then
           prepare_local_environment
       fi
-      ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrapper.exe real.exe >& ${logdir}/real_${ryy}${rmm}${rdd}${rhh}.out || wrf4g_exit ${ERROR_REAL_FAILED}
+      ${LAUNCHER_REAL} ${ROOTDIR}/bin/wrapper.exe real.exe >& ${logdir}/real_${ryy}${rmm}${rdd}${rhh}.out || wrf4g_exit ${ERROR_REAL_FAILED}
       cat ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'SUCCESS COMPLETE REAL_EM' \
         || wrf4g_exit ${ERROR_REAL_FAILED}
