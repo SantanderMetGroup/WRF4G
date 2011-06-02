@@ -4,13 +4,11 @@
 #
 wrf_pid=$1
 #
-#  Load resources4g.conf, wrf.chunk and wrf4g.input
+#  Load configuration files
 #
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
-source ${ROOTDIR}/resources4g.conf                           || exit ${ERROR_MISSING_WRF4GCNF}
-sed -e 's/\ *=\ */=/' ${ROOTDIR}/wrf4g.input > source.it || exit ${ERROR_MISSING_WRFINPUT}
-source source.it && rm source.it
+#source ${ROOTDIR}/resources.wrf4g                           || exit ${ERROR_MISSING_WRF4GCNF}
 PID=$(cat ${LOCALDIR}/WRFV3/run/wrf.pid)
 
 

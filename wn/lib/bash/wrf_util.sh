@@ -203,8 +203,8 @@ End_of_Python
 }
 
 function py_sort_mlabels(){
-  #multiphysics_labels="1/5/311/355"
-  #multiphysics_labels="normal/burrada/prueba"
+  #multiparams_labels="1/5/311/355"
+  #multiparams_labels="normal/burrada/prueba"
   
   mlabels=$1
   python << End_of_Python

@@ -103,7 +103,7 @@ function wrf4g_exit(){
   WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} ${excode}
 
   ls -l >& ${logdir}/ls.wrf
-  test -f cp namelist.output ${logdir}/
+  test -f namelist.output && cp namelist.output ${logdir}/
   if test -e rsl.out.0000; then
     mkdir -p rsl_wrf
     mv rsl.* rsl_wrf/
@@ -149,7 +149,6 @@ export WRF4G_NCHUNK=$3
 export WRF4G_ID_CHUNK=$4
 export chunk_start_date=$5
 export chunk_end_date=$6
-
 
 #
 #  Change ROOTDIR if necesary
@@ -268,6 +267,9 @@ else
    wrf4g_exit ${EXIT_CHUNK_SHOULD_NOT_RUN}
 fi
 
+read iyy imm idd ihh trash <<< $(echo ${chunk_start_date} | tr '_:T-' '    ')
+read ryy rmm rdd rhh trash <<< $(echo ${chunk_restart_date} | tr '_:T-' '    ')
+read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}   | tr '_:T-' '    ')
 
 #
 #   Must WPS run or are the boundaries available?
@@ -382,10 +384,7 @@ else
       if [ ${local_openmpi} -eq 1 -a ${real_parallel} -eq 1 ]; then
           prepare_local_environment
       fi
-	 
-      ${LAUNCHER_REAL} ${ROOTDIR}/bin/real.exe \
-        >& ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
-        || wrf4g_exit ${ERROR_REAL_FAILED}
+      ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrapper.exe real.exe >& ${logdir}/real_${ryy}${rmm}${rdd}${rhh}.out || wrf4g_exit ${ERROR_REAL_FAILED}
       cat ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'SUCCESS COMPLETE REAL_EM' \
         || wrf4g_exit ${ERROR_REAL_FAILED}
@@ -436,7 +435,7 @@ cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ERROR_CANNOT_ACCESS_LOCALDIR
 	
     fortnml -o -f namelist.input -s debug_level 0
     WRF4G.py Job set_status id=${WRF4G_JOB_ID} 29
-    ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrf_wrapper.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
+    ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrapper.exe wrf.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
     # This time is also useful to copy the wpsout data
     sleep 30

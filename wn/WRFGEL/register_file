@@ -8,7 +8,7 @@ from os.path import basename
 import WRF4G
 
 
-RESOURCES4G_CONF_NOT_DEFINED=1
+RESOURCES_WRF4G_NOT_DEFINED=1
 DATE_BAD_FORMED=2
 TOO_MANY_DATES=3
 
@@ -18,7 +18,7 @@ Example: %prog rst 1990-01-01_00:00:00 wrfrst_d01_1990-01-01_00:00:00
          %prog out 1990-01-01_00:00:00 wrfout_d01_1990-01-01_00:00:00
          %prog wps 1990-01-01_00:00:00
 
-This command needs that the following environment variables have been established: WRF4G_EXPERIMENT, WRF4G_REALIZATION and RESOURCES4G_CONF.
+This command needs that the following environment variables have been established: WRF4G_EXPERIMENT, WRF4G_REALIZATION and RESOURCES_WRF4G.
 """
 # Check the Arguments
 parser = OptionParser(usage,version="%prog 1.0")
@@ -43,9 +43,9 @@ else:
   exit(1)
 
 # Check that the environment variables has been established and import their values
-env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","RESOURCES4G_CONF": ""}
+env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","RESOURCES_WRF4G": ""}
 env_var=get_env_vars(env_var)
-exec(open(env_var["RESOURCES4G_CONF"]).read())
+exec(open(env_var["RESOURCES_WRF4G"]).read())
 # List all the variables in the script and search WRF4G_BASEPATH
 if not 'WRF4G_BASEPATH' in dir():
   stderr.write("Error: WRF4G_BASEPATH is not defined\n")
@@ -57,7 +57,7 @@ if type in type_list.keys() :
     file_o=wrffile(file)
     dest_file=file_o.file_name_iso()
     
-    dest_folder="%s/experiments/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
+    dest_folder="%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
     dest= dest_folder + "/" + dest_file
     
     if verbose: stderr.write( "Copying %s -> %s\n" %(file, dest))
@@ -75,7 +75,7 @@ if type in type_list.keys() :
     input.rm()
 
 elif type == "ts":
-    dest_folder="%s/experiments/%s/%s/output" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"])
+    dest_folder="%s/%s/%s/output" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"])
     dest= dest_folder + "/" + file
     if verbose: stderr.write( "Copying %s -> %s\n" %(file, dest))
     output=copy_file(file,dest +".part", verbose=verbose)
@@ -97,7 +97,7 @@ else :
 
     for wps_file in wps_files :
         dest_file=basename(wps_file)
-        dest="%s/experiments/%s/%s/%s/%s%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],"wpsout",dest_file,suffix)
+        dest="%s/%s/%s/%s/%s%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],"wpsout",dest_file,suffix)
         if verbose:
              stderr.write("origin: %s destiny: %s\n" % (wps_file,dest))
         output=copy_file(wps_file,dest, verbose=verbose) 
