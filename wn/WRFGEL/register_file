@@ -12,10 +12,10 @@ RESOURCES_WRF4G_NOT_DEFINED=1
 DATE_BAD_FORMED=2
 TOO_MANY_DATES=3
 
-usage="""%prog file_type date [file_name]
+usage="""%prog file_type date [file_name] [file_end_date]
 
 Example: %prog rst 1990-01-01_00:00:00 wrfrst_d01_1990-01-01_00:00:00
-         %prog out 1990-01-01_00:00:00 wrfout_d01_1990-01-01_00:00:00
+         %prog out 1990-01-01_00:00:00 wrfout_d01_1990-01-01_00:00:00 1991-03-01_00:00:00
          %prog wps 1990-01-01_00:00:00
 
 This command needs that the following environment variables have been established: WRF4G_EXPERIMENT, WRF4G_REALIZATION and RESOURCES_WRF4G.
@@ -34,7 +34,9 @@ type_list = {
 
 stderr.write("WRFGEL(register_file)> START: %s\n" % args)
 
-if len(args) == 3 and args[0] in type_list.keys() + ["ts",]:
+if len(args) == 4 and args[0] == "out":
+  [type,date,file,file_end_date] = args
+elif len(args) == 3 and args[0] in type_list.keys() + ["ts",]:
   [type,date,file] = args
 elif len(args) == 2 and args[0] == "wps":
   [type,date] = args
@@ -54,9 +56,16 @@ if not 'WRF4G_BASEPATH' in dir():
 # Change the name of the file in the repository (Change date to the iso format
 # and add .nc at the end of the name
 if type in type_list.keys() :
-    file_o=wrffile(file)
-    dest_file=file_o.file_name_iso()
+ 
     
+    if type == "out":
+        file_o=wrffile(file,file_end_date)
+        dest_file=file_o.file_name_out_iso()
+    else:
+        file_o=wrffile(file)
+        dest_file=file_o.file_name_iso()
+        
+
     dest_folder="%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
     dest= dest_folder + "/" + dest_file
     
@@ -64,11 +73,6 @@ if type in type_list.keys() :
     output=copy_file(file,dest +".part", verbose=verbose)
     if verbose: stderr.write(output + "\n")
     VCPURL(dest + ".part").rename(basename(dest))
-    if type == "rst":
-    	data={'name': env_var["WRF4G_REALIZATION"]}
-        r=WRF4G.Realization(data)
-        r.set_restart(date)   
-
     input=VCPURL(file)
     # Delete the file from local disk 
     if verbose: stderr.write("Deleting file %s\n" %file)

@@ -54,7 +54,7 @@ function do_all(){
   #
   #  Now, register the file in the background. If something fails, kill the whole thing
   #
-  if test -n $3; then 
+  if test -n "$3"; then 
     chmod g+rw $3
   fi
   register_file $* >> ${logfile} 2>&1

@@ -72,7 +72,15 @@ export PYTHONPATH=${PYTHONPATH}:${WRF4G_LOCATION}/lib/python
 #
 grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf
 export DB4G_CONF=`pwd`/db4g.conf ; source $DB4G_CONF
-sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >resources.wrf4g|| exit ${ERROR_MISSING_WRF4GSRC}
+
+if test -f resources.wrf4g; then
+  mv resources.wrf4g resources.wrf4g.orig
+  sed -e 's/\ *=\ */=/' resources.wrf4g.orig > resources.wrf4g
+else
+  sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >resources.wrf4g|| exit ${ERROR_MISSING_WRF4GSRC}
+fi
+
+
 export RESOURCES_WRF4G=${PWD}/resources.wrf4g ; source $RESOURCES_WRF4G
 sed -e 's/\ *=\ */=/' experiment.wrf4g > source.it        || exit ${ERROR_MISSING_WRFINPUT}
 source source.it && rm source.it
@@ -355,3 +363,7 @@ else
 fi
 
 rm -f $RESOURCES_WRF4G $DB4G_CONF
+
+if test -f resources.wrf4g.orig; then
+  mv resources.wrf4g.orig resources.wrf4g
+fi

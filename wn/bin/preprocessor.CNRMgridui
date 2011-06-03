@@ -22,7 +22,7 @@ if ! which cdo; then
     if test -e /software/ScientificLinux/4.6/etc/bashrc; then
       cp /oceano/gmeteo/WORK/MDM.UC/Apps/cdo.tar.gz .
     else
-      cp /gpfs/csic_projects/meteo/WORK/GRIDUI/Apps/cdo.tar.gz .
+      vcp ${WRF4G_Apps}/cdo.tar.gz .
     fi
     tar xzf cdo.tar.gz && rm cdo.tar.gz
   cd ${thisdir}

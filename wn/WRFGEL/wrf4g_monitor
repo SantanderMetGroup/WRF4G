@@ -59,6 +59,7 @@ function clean_while_running(){
     domains=$(ls ${patt}* 2> /dev/null| sort | awk -F_ '{print $2}' | grep '^d' | sort -r | uniq)
     for dom in ${domains}; do
       for file in $(all_but_last ${patt}_${dom}); do
+        edate=''
         if test "${file}" == "${avoid_file}"; then
           time_debug "Skipping initial restart file ${file}"
           continue
@@ -66,10 +67,13 @@ function clean_while_running(){
           #if ! /usr/sbin/lsof | grep ${file}; then # Make sure it is not open...
           if ! ls /proc/$PID/fd | grep ${file}; then # Make sure it is not open...
             time_debug "Uploading ${file} (start)"
-            post_and_register --no-bg $(filetype $file) $(filedate $file) $file
+            if test $patt == "wrfout"; then
+                edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
+            fi
+            post_and_register --no-bg $(filetype $file) $(filedate $file) $file $edate
             if test $patt == "wrfrst" -a $dom == "d01"; then
 		WRF4G.py Realization set_restart id=${WRF4G_ID_REALIZATION} $(filedate $file) # In the future kill the job if it can't contact the DB
-	    fi
+            fi
             time_debug "Uploading ${file} (end)"
           else
             time_debug "${file} still open, skipping"
@@ -85,13 +89,17 @@ function clean_all(){
     domains=$(ls ${patt}* 2>/dev/null | sort | awk -F_ '{print $2}' | grep '^d' | sort | uniq)
     for dom in ${domains}; do
       for file in ${patt}_${dom}*; do
+        edate=''
         if test "${file}" == "${avoid_file}"; then
           continue
         else
           # This time the files cannot be open by any process. We are uploading everything
           time_debug "Uploading ${file} (start)"
-          post_and_register --no-bg $(filetype $file) $(filedate $file) $file
-           if test $patt == "wrfrst" -a $dom == "d01"; then
+          if test $(filetype $file) == "out"; then
+                edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
+          fi
+          post_and_register --no-bg $(filetype $file) $(filedate $file) $file $edate
+           if test $(filetype $file) == "rst" -a $dom == "d01"; then
 		WRF4G.py Realization set_restart id=${WRF4G_ID_REALIZATION} $(filedate $file) # In the future kill the job if it can't contact the DB
           fi
           time_debug "Uploading ${file} (end)"
@@ -114,7 +122,7 @@ while true
 do
   let i++
   if test $i -eq 10;then
-     WRF4G.py Realization set_cdate id=${WRF4G_ID_REALIZATION} $(current_date)
+     output=$(WRF4G.py Realization set_cdate id=${WRF4G_ID_REALIZATION} $(current_date))
      i=0
   fi
   if ps aux | awk '$2=='${wrf_pid}'' | grep -q wrf.exe

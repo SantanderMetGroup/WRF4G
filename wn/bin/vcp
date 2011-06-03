@@ -207,11 +207,13 @@ class wrffile :
     It recieves a file name with one of the following shapes: wrfrst_d01_1991-01-01_12:00:00 or
     wrfrst_d01_19910101T120000Z and it return the date of the file, the name,..."""
     
-    def __init__(self,url):
+    def __init__(self,url,edate=None):
         """ Change the name of the file in the repository (Change date to the iso format
         and add .nc at the end of the name""" 
         # wrfrst_d01_1991-01-01_12:00:00
-        
+        if edate:
+           self.edate=datewrf2datetime(edate)
+
         g=search("(.*)(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})",url) 
         if g:
            [base_file,date_file]=g.groups() 
@@ -238,6 +240,8 @@ class wrffile :
          return self.file_name + datetime2datewrf(self.date)
     def file_name_iso(self):
          return self.file_name + datetime2dateiso(self.date) + ".nc"
+    def file_name_out_iso(self):
+         return "%s%s_%s.nc" %(self.file_name,datetime2dateiso(self.date),datetime2dateiso(self.edate))
 
 def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
     """Copies origin in destination. Both are arrays containing 

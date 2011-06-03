@@ -2,6 +2,7 @@
 exe=$1
 ulimit -s unlimited
 $* &
-test -f ${exe}.pid || echo "$!" > ${exe}.pid
+prefix=${exe/.exe}
+test -f ${prefix}.pid || echo "$!" > ${prefix}.pid
 wait
-rm ${exe}.pid
+rm ${prefix}.pid

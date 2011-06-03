@@ -1,4 +1,4 @@
-#! /bin/bash -x
+#! /bin/bash
 
 # WRF4G_ini.sh
 #
@@ -27,11 +27,8 @@ function WRF4G_prepare (){
   #
   mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
   mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
-  mv ${LOCALDIR}/WPS/preprocessor.*      ${ROOTDIR}/bin/
   mv ${LOCALDIR}/WRFV3/run/real.exe      ${ROOTDIR}/bin/
   mv ${LOCALDIR}/WRFV3/run/wrf.exe       ${ROOTDIR}/bin/
-  mv ${LOCALDIR}/WRFV3/run/icbcprocessor.*  ${ROOTDIR}/bin/
-  mv ${LOCALDIR}/WRFV3/run/postprocessor.*  ${ROOTDIR}/bin/
   umask 002
 
 }
@@ -86,21 +83,21 @@ function wrf4g_exit(){
   case $excode in
     0)
        if test $(grep -c "SUCCESS COMPLETE WRF" rsl.out.0000) -eq 1 ;then
-          WRF4G.py Job set_status id=${WRF4G_JOB_ID} 40
+          output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 40)
        else
-	  WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41
+	  output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41)
 	  extcode=${ERROR_UNEXPECTED_WRF_TERMINATION}
        fi
        ;;
     ${ERROR_UNGRIB_FAILED})
        ls -lR >& ${logdir}/ls.wps
-       WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41
+       output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41)
        ;;
     *)
-       WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41
+       output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41)
        ;;
   esac
-  WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} ${excode}
+  output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} ${excode})
 
   ls -l >& ${logdir}/ls.wrf
   test -f namelist.output && cp namelist.output ${logdir}/
@@ -228,7 +225,7 @@ mkdir -p ${logdir}
 # Redirect output and error file descriptors
 exec &>log/WRF4G.log
 
-WRF4G.py Job set_status id=${WRF4G_JOB_ID} 11
+out=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 11)
 #WRF4G.py Chunk should_I_run id=${WRF4G_ID_CHUNK} || wrf4g_exit ${ERROR_PREVIOUS_CHUNK_NOT_FINISHED}
   
   
@@ -243,7 +240,7 @@ vcp ${WRF4G_BASEPATH}/${experiment_name}/${WRF4G_REALIZATION}/namelist.input  WR
 #
 vcp ${WRF4G_BASEPATH}/${experiment_name}/wrf4g_files.tar.gz ${ROOTDIR} &>/dev/null
 if test -f ${ROOTDIR}/wrf4g_files.tar.gz; then
-  tar xzvf ${ROOTDIR}/wrf4g_files.tar.gz && rm ${ROOTDIR}/wrf4g_files.tar.gz
+  tar xzf ${ROOTDIR}/wrf4g_files.tar.gz && rm ${ROOTDIR}/wrf4g_files.tar.gz
 fi
 
 WRF4G_prepare
@@ -253,14 +250,14 @@ prepare_runtime_environment
 #
 #  Get the restart files if necesary.
 #
-restart_date=$(WRF4G.py -v Realization get_restart id=${WRF4G_ID_REALIZATION}) || wrf4g_exit ${ERROR_ACCESS_DB}
+restart_date=$(WRF4G.py Realization get_restart id=${WRF4G_ID_REALIZATION}) || wrf4g_exit ${ERROR_ACCESS_DB}
 if  test ${restart_date} == "None"; then
    export chunk_restart_date=${chunk_start_date}
    export chunk_rerun=".F."
 elif test $(date2int ${restart_date}) -ge $(date2int ${chunk_start_date}) -a $(date2int ${restart_date}) -le $(date2int ${chunk_end_date}); then
    export chunk_restart_date=${restart_date}
    export chunk_rerun=".T."  
-   WRF4G.py Job set_status id=${WRF4G_JOB_ID} 12
+   output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 12)
    download_file rst $(date_wrf2iso ${restart_date}) || wrf4g_exit ${ERROR_RST_DOWNLOAD_FAILED}
    mv wrfrst* WRFV3/run 
 else
@@ -274,14 +271,14 @@ read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}   | tr '_:T-' '    ')
 #
 #   Must WPS run or are the boundaries available?
 #
-wps_stored=$(WRF4G.py -v Chunk get_wps id=${WRF4G_ID_CHUNK}) || wrf4g_exit ${ERROR_ACCESS_DB}
+wps_stored=$(WRF4G.py Chunk get_wps id=${WRF4G_ID_CHUNK}) || wrf4g_exit ${ERROR_ACCESS_DB}
 
 if test ${wps_stored} -eq "1"; then
   cd ${LOCALDIR}/WPS || wrf4g_exit ${ERROR_GETTING_WPS}
     vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || wrf4g_exit ${ERROR_VCP_FAILED} namelist.wps
   cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ${ERROR_GETTING_WPS}
     namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_rerun} ${timestep_dxfactor}
-    WRF4G.py Job set_status id=${WRF4G_JOB_ID} 20
+    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 20)
     download_file wps $(date_wrf2iso ${chunk_start_date})
   cd ${LOCALDIR}
 else
@@ -303,7 +300,7 @@ else
     #
     #   Preprocessor
     #
-    WRF4G.py Job set_status id=${WRF4G_JOB_ID} 21
+    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 21)
 
       if test -z "${global_preprocessor}"; then
         echo "Linking global data from: ${global_path}"
@@ -317,7 +314,7 @@ else
         preprocessor.${global_preprocessor} ${global_path} ${chunk_start_date} ${chunk_end_date}
       fi
       ./link_grib.sh grbData/*.grb
-    WRF4G.py Job set_status id=${WRF4G_JOB_ID} 22
+    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 22)
       ln -sf ungrib/Variable_Tables/Vtable.${global_name} Vtable
       ${ROOTDIR}/bin/ungrib.exe \
         >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
@@ -350,7 +347,7 @@ else
     #
     #   Run metgrid
     #
-    WRF4G.py Job set_status id=${WRF4G_JOB_ID} 23
+    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 23)
       fortnml_vardel namelist.wps opt_output_from_metgrid_path
       fortnml_vardel namelist.wps opt_output_from_geogrid_path
       fortnml_vardel namelist.wps opt_metgrid_tbl_path
@@ -374,7 +371,7 @@ else
     #------------------------------------------------------------------
     #                              REAL
     #------------------------------------------------------------------
-   WRF4G.py Job set_status id=${WRF4G_JOB_ID} 24
+   output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 24)
       clean_real
       ln -s ../../WPS/met_em.d??.????-??-??_??:00:00.nc .
       fix_ptop
@@ -409,7 +406,7 @@ else
     #
 
     if test "${save_wps}" -eq 1; then
-      WRF4G.py Job set_status id=${WRF4G_JOB_ID} 25
+        output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 25)
         post_and_register --no-bg wps "${chunk_start_date}"
         WRF4G.py Chunk set_wps id=${WRF4G_ID_CHUNK} 1
     fi
@@ -424,7 +421,7 @@ fi
 #------------------------------------------------------------------
 cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ERROR_CANNOT_ACCESS_LOCALDIR
   if test -n "${icbcprocessor}"; then
-    WRF4G.py Job set_status id=${WRF4G_JOB_ID} 26
+    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 26)
       icbcprocessor.${icbcprocessor} >&  ${logdir}/icbcproc_${ryy}${rmm}${rdd}${rhh}.out
   fi
     
@@ -434,13 +431,12 @@ cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ERROR_CANNOT_ACCESS_LOCALDIR
     fi
 	
     fortnml -o -f namelist.input -s debug_level 0
-    WRF4G.py Job set_status id=${WRF4G_JOB_ID} 29
+    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 29)
     ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrapper.exe wrf.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
     # This time is also useful to copy the wpsout data
     sleep 30
-    ps -ef | grep wrf.exe
-    bash -x wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
+    bash wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   
     wait $(cat monitor.pid)
 
