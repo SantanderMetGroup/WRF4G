@@ -1,0 +1,7 @@
+NAME = testc__3
+EXECUTABLE = /bin/bash 
+ARGUMENTS = "./WRF4G_ini.sh testc 1 3 3 1983-08-26_12:00:00 1983-08-27_00:00:00"
+INPUT_FILES   = WRF4G_ini.sh,sandbox.tar.gz
+RANK = (CPU_MHZ * 2) + FREE_MEM_MB 
+REQUIREMENTS=
+NP=1
