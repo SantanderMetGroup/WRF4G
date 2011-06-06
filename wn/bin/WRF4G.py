@@ -65,11 +65,20 @@ def load_default_values():
     DB_PASSWD="ui01"
 
 def format_output(dout):
-    dreastatus={0:'Prepared',1:'Submit',2:'Run',3: 'Failed',4:'Done'}
+    dreastatus={0:'Prepared',1:'Submit',2:'Running',3: 'Failed',4:'Done',5:'Pending'}
     djobstatus=JobStatus()
-    per=(int(dout['cdate'].strftime("%s"))-int(dout['sdate'].strftime("%s")))/(int(dout['edate'].strftime("%s"))-int(dout['sdate'].strftime("%s")))
+    if dout['exitcode']==None:
+        exitcode='-'
+    else:
+        exitcode=str(dout['exitcode']) 
+
+    runt=(int(dout['cdate'].strftime("%s"))-int(dout['sdate'].strftime("%s")))*100.    
+    totalt=int(dout['edate'].strftime("%s"))-int(dout['sdate'].strftime("%s"))
+    per=runt/totalt
+    if dout['rea_status']==4:   per=100.
+    if dout['status'] < 10:  dout['rea_status']=5   
     
-    print '%-11s %-8s %-10s %-10s %-10s %-13s %2d %3d'%(dout['name'][0:10],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],dout['exitcode'],per)        
+    print '%-11s %-8s %-10s %-10s %-10s %-13s %2s %2.2f'%(dout['name'][0:10],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],exitcode,per)        
     #print '%-11s %-8s %-10s %-10s %-10s'%(dout['name'][0:10],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10])        
             
 
@@ -278,7 +287,6 @@ class Experiment(Component):
         for id_rea in rea_ids:
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
             rea.run(nchunk=nchunk)
-        return "Hoa"
     
     def ps(self):
         self.data['id']=self.get_id_from_name()
@@ -364,6 +372,15 @@ class Realization(Component):
         self.data['cdate']=cdate
         oc=self.update_fields(['cdate'], ['id'])    
         return oc
+    
+    def has_finished(self):
+        lchunk=self.last_chunk()
+        status=Chunk(data={'id': '%s'%lchunk}).get_status()
+        if status == 4:
+            finished=True
+        else:
+            finished=False
+        return finished
  
     def get_init_status(self):
         
@@ -373,12 +390,11 @@ class Realization(Component):
     
     def current_chunk_status(self):
         nchunks=self.number_of_chunks()
-        failed=dbc.select('Chunk','MIN(id)','id_rea=%s AND status=3'%self.data['id'] )
+        failed=dbc.select('Chunk','MIN(id_chunk)','id_rea=%s AND status=3'%self.data['id'] )
         id_chunk=vdb.parse_one_field(failed)
         
         if id_chunk:     
             status=3
-            ch=Chunk(data={'id_chunk':id_chunk,'id_rea':self.data['id']})
         else:
             did=dbc.select('Chunk','MAX(id_chunk)','id_rea=%s AND status=4'%self.data['id'])
             id_chunk=vdb.parse_one_field(did)
@@ -386,10 +402,11 @@ class Realization(Component):
                 id_chunk=0
             if id_chunk == nchunks:
                 status=4
-                ch=Chunk(data={'id_chunk':id_chunk,'id_rea':self.data['id']})
             else:
                 status=2
-                ch=Chunk(data={'id_chunk':id_chunk + 1,'id_rea':self.data['id']})
+                id_chunk=id_chunk + 1
+        
+        ch=Chunk(data={'id_chunk':id_chunk,'id_rea':self.data['id']})
         id=ch.get_one_field(['id'], ['id_chunk','id_rea'])
         return (id,id_chunk,status)    
         
@@ -472,7 +489,7 @@ class Realization(Component):
         status=self.get_init_status()
         
         if status == 0 or status ==1:
-            djob={'gw_job': '-', 'status': 1, 'wn': '-', 'resource': '-', 'exitcode': 0,'nchunks':'0/%d'%nchunks}
+            djob={'gw_job': '-', 'status': 1, 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'0/%d'%nchunks}
         else:
             (id_chunk,current_chunk,status)=self.current_chunk_status()            
             #(id_chunk,status)=self.current_chunk_status()                
@@ -481,7 +498,7 @@ class Realization(Component):
             j=Job(data={'id':lastjob})            
             djob=j.get_info()
             if djob['status'] < 10:
-                djob={'gw_job': '-', 'status': djob['status'], 'wn': '-', 'resource': '-', 'exitcode': 0,'nchunks':'0/%d'%nchunks}
+                djob={'gw_job': '-', 'status': djob['status'], 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'0/%d'%nchunks}
             djob['nchunks']='%d/%d'%(current_chunk,nchunks)
         dout.update(djob)
         dout['rea_status']=status        
