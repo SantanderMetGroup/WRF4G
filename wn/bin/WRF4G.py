@@ -48,6 +48,12 @@ def create_hash():
     text=str(rand)
     return text
 
+def JobStatus():
+    dstatus=dbc.select('Jobstatus','id,description')
+    sta={}
+    for entry in dstatus:
+        sta[entry['id']]=entry['description']
+    return sta
 
 def load_default_values():
     global NP,REQUIREMENTS,DB_HOST,DB_PORT,DB_USER,DB_PASSWD
@@ -58,6 +64,14 @@ def load_default_values():
     DB_USER="gridway"
     DB_PASSWD="ui01"
 
+def format_output(dout):
+    dreastatus={0:'Prepared',1:'Submit',2:'Run',3: 'Failed',4:'Done'}
+    djobstatus=JobStatus()
+    per=(int(dout['cdate'].strftime("%s"))-int(dout['sdate'].strftime("%s")))/(int(dout['edate'].strftime("%s"))-int(dout['sdate'].strftime("%s")))
+    
+    print '%-11s %-8s %-10s %-10s %-10s %-13s %2d %3d'%(dout['name'][0:10],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],dout['exitcode'],per)        
+    #print '%-11s %-8s %-10s %-10s %-10s'%(dout['name'][0:10],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10])        
+            
 
 class Component:
     """  Component CLASS
@@ -122,6 +136,7 @@ class Component:
      else: return -1
      
     def create(self):
+ 
         """
         Create experiment
         Returns id:
@@ -263,16 +278,18 @@ class Experiment(Component):
         for id_rea in rea_ids:
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
             rea.run(nchunk=nchunk)
-        return 0
+        return "Hoa"
     
     def ps(self):
         self.data['id']=self.get_id_from_name()
         rea_ids=self.get_realizations_id()
-        print "Experiment: %s"%self.data['name']
+        dout=[]
+        print '%-11s %-8s %-10s %-10s %-10s %-13s %2s %3s'%('Realization','Status','Chunks','Comp.Res','WN','Run.Sta','ext','%')        
         for id_rea in rea_ids:
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
-            rea.ps()
-        return 0
+            dout=rea.ps()
+            format_output(dout)
+        return ''
                       
     def get_realizations_id(self):
         """    
@@ -347,16 +364,35 @@ class Realization(Component):
         self.data['cdate']=cdate
         oc=self.update_fields(['cdate'], ['id'])    
         return oc
-
-    def has_finished(self):
-        lchunk=self.last_chunk()
-        status=Chunk(data={'id': '%s'%lchunk}).get_status()
-        if status == 4:
-            finished=True
-        else:
-            finished=False
-        return finished
+ 
+    def get_init_status(self):
+        
+        dst=dbc.select('Chunk','status','id_rea=%s AND id_chunk=1'%self.data['id'] )
+        st=vdb.parse_one_field(dst)
+        return st
     
+    def current_chunk_status(self):
+        nchunks=self.number_of_chunks()
+        failed=dbc.select('Chunk','MIN(id)','id_rea=%s AND status=3'%self.data['id'] )
+        id_chunk=vdb.parse_one_field(failed)
+        
+        if id_chunk:     
+            status=3
+            ch=Chunk(data={'id_chunk':id_chunk,'id_rea':self.data['id']})
+        else:
+            did=dbc.select('Chunk','MAX(id_chunk)','id_rea=%s AND status=4'%self.data['id'])
+            id_chunk=vdb.parse_one_field(did)
+            if id_chunk == None:
+                id_chunk=0
+            if id_chunk == nchunks:
+                status=4
+                ch=Chunk(data={'id_chunk':id_chunk,'id_rea':self.data['id']})
+            else:
+                status=2
+                ch=Chunk(data={'id_chunk':id_chunk + 1,'id_rea':self.data['id']})
+        id=ch.get_one_field(['id'], ['id_chunk','id_rea'])
+        return (id,id_chunk,status)    
+        
     def has_failed(self):
         
         nchunkd=dbc.select('Chunk','id','id_rea=%s AND status=3'%self.data['id'] )
@@ -365,12 +401,11 @@ class Realization(Component):
         else:
             return False 
     
-    def number_of_chunks(self,id_rea):
+    def number_of_chunks(self):
         
         nchunkd=dbc.select('Chunk','COUNT(Chunk.id_chunk)','id_rea=%s'%self.data['id'])
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk
-    
         
     def last_chunk(self):        
         nchunkd=dbc.select('Chunk','MAX(Chunk.id)','id_rea=%s'%self.data['id'])
@@ -428,57 +463,33 @@ class Realization(Component):
                 jid=job.create()
                 job.set_status('1')
     
+
     def ps(self):
         
         drea=dbc.select('Realization','name,restart,sdate,cdate,edate','id=%s'%self.data['id'])
-        nchunks=self.last_chunk()
-        if self.has_failed(): 
-            reastatus='Failed'
-        did=dbc.select('Chunk','MAX(id_chunk)','id_rea=%s AND status=4'%self.data['id'])
-        id=vdb.parse_one_field(did)
-        if id == nchunks:
-            reastatus='Done'
-        elif id == None:
-            id=0
-        idn=int(id)+1
-        ch=Chunk(data={'id': str(idn)})    
-        lastjob=ch.last_job()
-        j=Job(data={'id':lastjob})
-        status=j.get_status()
-        exit_code=j.get_exitcode()
+        dout=drea[0]
+        nchunks=self.number_of_chunks()
+        status=self.get_init_status()
         
-        sys.exit()
-       
-        if restart == None:
-            chunkd=dbc.select('Chunk','MIN(Chunk.id_chunk),MIN(Chunk.id)','id_rea=%s'%self.data['id'],verbose=self.verbose)
-            [id_chunk,id]=chunkd[0].values()
-            chi=Chunk(data={'id':'%s'%id})
-            st=chi.get_status()
-            if st==2:
-                status="Running"
-            elif st==3:
-                status="Failed"
-            per=100.*int(id_chunk)/int(self.last_chunk())
+        if status == 0 or status ==1:
+            djob={'gw_job': '-', 'status': 1, 'wn': '-', 'resource': '-', 'exitcode': 0,'nchunks':'0/%d'%nchunks}
         else:
-            chunkd=dbc.select('Chunk,Realization','Chunk.id_chunk,Chunk.id','Chunk.id_rea=%s AND Chunk.id_rea=Realization.id AND Realization.restart >=Chunk.sdate AND Realization.restart<Chunk.edate'%self.data['id'],verbose=self.verbose)
-            if chunkd== ():
-                stderr.write('DB inconsistency.')
-                return 2
-            [id_chunk,id]=chunkd[0].values()
-            chi=Chunk(data={'id':'%s'%id})
-            st=chi.get_status()
-            if st==2:
-                status="Running"
-            elif st==3:
-                status="Failed"
-            per=100.*int(id_chunk)/int(self.last_chunk())
-        
-        
-        print "\t%s\t%s\t%d"%(rea_name,status,per)
-        
+            (id_chunk,current_chunk,status)=self.current_chunk_status()            
+            #(id_chunk,status)=self.current_chunk_status()                
+            ch=Chunk(data={'id': id_chunk}) 
+            lastjob=ch.get_last_job()
+            j=Job(data={'id':lastjob})            
+            djob=j.get_info()
+            if djob['status'] < 10:
+                djob={'gw_job': '-', 'status': djob['status'], 'wn': '-', 'resource': '-', 'exitcode': 0,'nchunks':'0/%d'%nchunks}
+            djob['nchunks']='%d/%d'%(current_chunk,nchunks)
+        dout.update(djob)
+        dout['rea_status']=status        
+        #dout={'gw_job': 4L, 'status': 40L, 'sdate': datetime.datetime(1983, 8, 25, 12, 0), 'resource': 'mycomputer', 'name': 'testc1', 'wn': 'sipc18', 'nchunks': '3/3', 'cdate': datetime.datetime(1983, 8, 25, 12, 0), 'exitcode': 0L, 'edate': datetime.datetime(1983, 8, 27, 0, 0), 'restart': datetime.datetime(1983, 8, 27, 0, 0), 'rea_status': 4}]
+        return dout
+       
         
             
-                
     def prepare_storage(self):          
         RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
         if RESOURCES_WRF4G == None:
@@ -545,10 +556,11 @@ class Chunk(Component):
     def prepare_storage(self):
         pass
    
-    def last_job(self):
-        last_job=dbc.select('Job,Chunk','Job.MAX(id)','Chunk.id=%s AND Job.id_chunk=Chunk.id'%self.data['id'])
+    def get_last_job(self):
+        last_job=dbc.select('Job,Chunk','MAX(Job.id)','Chunk.id=%s AND Job.id_chunk=Chunk.id'%self.data['id'])
         lj=vdb.parse_one_field(last_job)
         return lj
+    
     
 class Job(Component):
 
@@ -561,9 +573,7 @@ class Job(Component):
     def stjob2stchunk(self):
         dst={'1':1, '10': 2, '40': 4, '41': 3}
         return dst
-    
-
-    
+        
     def set_status(self,st):
         self.data['status']=st
         oc=self.update_fields(['status'], ['id'])
@@ -582,8 +592,11 @@ class Job(Component):
     def get_status(self):
         status=self.get_one_field(['status'], ['id'])
         return status
-        
-        
+    
+    def get_info(self):
+        jobd=dbc.select('Job','gw_job,status,exitcode,resource,wn','id=%s'%self.data['id'],verbose=self.verbose)
+        return jobd[0]
+            
     def set_exitcode(self,exitcode):
         self.data['exitcode']=exitcode
         oc=self.update_fields(['exitcode'], ['id'])    

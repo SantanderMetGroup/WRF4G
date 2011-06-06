@@ -344,9 +344,10 @@ id_exp=$(WRF4G.py $WRF4G_FLAGS Experiment get_id_from_name name=${WRF4G_EXPERIME
 if ! is_dry_run; then 
   mkdir -p .${WRF4G_EXPERIMENT}/bin
   cd .${WRF4G_EXPERIMENT}
-   o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/db4g.conf . )
-   o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/resources.wrf4g .)
-   o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/experiment.wrf4g . )
+   cp ../db4g.conf ../resources.wrf4g ../experiment.wrf4g .
+   #o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/db4g.conf . )
+   #o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/resources.wrf4g .)
+   #o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/experiment.wrf4g . )
    cp ${WRF4G_LOCATION}/bin/vcp bin/
    tar -czf sandbox.tar.gz *
    rm -rf wrf* bin

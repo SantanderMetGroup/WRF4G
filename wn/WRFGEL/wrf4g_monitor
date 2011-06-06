@@ -85,6 +85,7 @@ function clean_while_running(){
 }
 
 function clean_all(){
+  output=$(WRF4G.py Realization set_cdate id=${WRF4G_ID_REALIZATION} $(current_date))
   for patt in ${file_patterns}; do
     domains=$(ls ${patt}* 2>/dev/null | sort | awk -F_ '{print $2}' | grep '^d' | sort | uniq)
     for dom in ${domains}; do
