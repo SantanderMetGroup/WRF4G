@@ -64,7 +64,7 @@ def load_default_values():
     DB_USER="gridway"
     DB_PASSWD="ui01"
 
-def format_output(dout):
+def format_output(dout,ext=False):
     dreastatus={0:'Prepared',1:'Submit',2:'Running',3: 'Failed',4:'Done',5:'Pending'}
     djobstatus=JobStatus()
     if dout['exitcode']==None:
@@ -75,12 +75,11 @@ def format_output(dout):
     runt=(int(dout['cdate'].strftime("%s"))-int(dout['sdate'].strftime("%s")))*100.    
     totalt=int(dout['edate'].strftime("%s"))-int(dout['sdate'].strftime("%s"))
     per=runt/totalt
-    if dout['rea_status']==4:   per=100.
-    if dout['status'] < 10:  dout['rea_status']=5   
+    if dout['status'] < 10:  dout['rea_status']=5  
     
-    print '%-11s %-8s %-10s %-10s %-10s %-13s %2s %2.2f'%(dout['name'][0:10],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],exitcode,per)        
-    #print '%-11s %-8s %-10s %-10s %-10s'%(dout['name'][0:10],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10])        
-            
+    print '%-11s %-8s %-10s %-10s %-10s %-13s %2s %2.2f'%(dout['name'][0:10],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],exitcode,per)
+    if ext==True:
+        print "%10s %10s %10s"%(dout['sdate'],dout['restart'],dout['edate'])    
 
 class Component:
     """  Component CLASS

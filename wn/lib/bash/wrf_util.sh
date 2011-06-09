@@ -212,7 +212,7 @@ ml="$mlabels"
 ml=ml.replace(' ','')
 ml=ml.replace(',','_')
 arr=ml.split('/')
-arr.sort()
+#arr.sort()
 print "/".join(arr)
 End_of_Python
 }

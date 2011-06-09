@@ -192,6 +192,7 @@ function cycle_hindcasts(){
     fi
     rea_name="${realization_name}__${cyy}${cmm}${cdd}${chh}_${fyy}${fmm}${fdd}${fhh}"
     #echo " ${realization_name}  $(printf "%4d" ${chunkno})  ${current_date}  ${final_date}"
+    echo "WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},multiparams_label=${multiparams_label}"
     id_rea=$(WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},multiparams_label=${multiparams_label})
     if test $?  -ne 0; then
            exit
@@ -304,12 +305,7 @@ if test ${id} -ge 0; then
 	if test "${multiple_parameters}" -ne "0"; then
           icomb=1
           for mpid in $(echo ${multiparams_combinations} | tr '/' ' '); do
-            if test -n "${multiparams_labels}"; then
-              realabel=$(tuple_item ${multiparams_labels//\//,} ${icomb})
-            else
-              stripmpid=${mpid//:/}
-              realabel="${stripmpid//,/_}"
-            fi
+            realabel=$(tuple_item ${multiparams_labels//\//,} ${icomb})
             echo -e "\n--->Realization: multiparams=${realabel} ${start_date} ${end_date}">&2
             if_not_dry cp namelist.input.base namelist.input
             iparam=1
@@ -322,9 +318,7 @@ if test ${id} -ge 0; then
                if_not_dry fortnml_setn namelist.input $var ${nitems} ${thisparam}
               fi
               let iparam++
-            done
-
-            
+            done           
 	    cycle_time "${experiment_name}__${realabel}" ${id} ${start_date} ${end_date} ${realabel}
             let icomb++
            done 
