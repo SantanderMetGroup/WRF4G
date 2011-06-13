@@ -4,8 +4,9 @@
 #
 # This can be any kind of executable accepting three arguments:
 #
+
 global_path=$1       # Path to the data
-sformateddate=$2     # initial date to process as YYYY-MM-DD_HH:MM:SS
+sformateddate=$2     # initial date to process as YYYY-MM-DD_HH:MM:SS (Ex. 1983-08-27_00:00:00)
 eformateddate=$3     # end date to process
 #
 # and creating a directory grbData with grib data for those dates and ready to
@@ -14,6 +15,9 @@ eformateddate=$3     # end date to process
 source wrf_util.sh 
 read iyy imm trash <<< `echo $sformateddate | tr '_T:-' '    '`
 read fyy fmm trash <<< `echo $eformateddate | tr '_T:-' '    '`
+
+#if 
+#Si DD_HH:MM:SS es 01_00:00:00, haria falta bajarse el mes anterior 
 
 #
 #  The first time step doesn't seem to contain all the data required...

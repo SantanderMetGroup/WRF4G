@@ -8,11 +8,11 @@ if test -z $WRF4G_LOCATION; then
 fi
 
 if test -f $WRF4G_LOCATION/etc/framework4g.conf; then
-   COMPONENTS4G_CONF="$WRF4G_LOCATION/etc/framework4g.conf"
-   grep DB_PORT $COMPONENTS4G_CONF> source.it
+   FRAMEWORK4G_CONF="$WRF4G_LOCATION/etc/framework4g.conf"
+   grep DB_PORT $FRAMEWORK4G_CONF> source.it
    source source.it && rm source.it
 else
-   echo 'Components configuration does not exists'
+   echo '$WRF4G_LOCATION/etc/framework4g.conf does not exist'
    exit 1
 fi
 
@@ -26,9 +26,9 @@ export LD_LIBRARY_PATH=$WRF4G_LOCATION/lib/shared_libs:$LD_LIBRARY_PATH
 case "$1" in
     start)
 	echo -n "Starting Gridway......."
-        grep '://' $COMPONENTS4G_CONF > $GW_LOCATION/etc/hosts_drm4g.list
+        grep '://' $FRAMEWORK4G_CONF > $GW_LOCATION/etc/hosts_drm4g.list
         sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >temp; cp temp ${WRF4G_LOCATION}/etc/resources.wrf4g; rm temp
-        sed -i "s#\$HOSTNAME#$HOSTNAME#" $COMPONENTS4G_CONF
+        sed -i "s#\$HOSTNAME#$HOSTNAME#" $FRAMEWORK4G_CONF
 
         if test -f $GW_LOCATION/var/.lock; then
           echo "FAILED: Gridway already running. Run \"$(basename $0) stop\" to stop it" 

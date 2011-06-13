@@ -1,4 +1,4 @@
-#! /bin/bash -x
+#! /bin/bash
 
 #
 #  Load experiment.wrf4g and conf files
