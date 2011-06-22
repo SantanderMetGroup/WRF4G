@@ -294,55 +294,41 @@ else
     #
     fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
     fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
-    fortnml_set  namelist.wps interval_seconds      ${global_interval}
     fortnml_set  namelist.wps max_dom               ${max_dom}
-    fortnml_set  namelist.wps prefix                "'${global_name}'"
+    fortnml_set  namelist.wps prefix                "'${extdata_vtable}'"
+    fortnml_set  namelist.wps interval_seconds     ${extdata_interval}
+
     #
     #   Preprocessor
     #
     output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 21)
 
-      if test -z "${global_preprocessor}"; then
-        echo "Linking global data from: ${global_path}"
-        mkdir -p grbData
-        for yearmon in $(get_yearmons $iyy $imm $fyy $fmm) 
-        do
-          year=${yearmon:0:4}
-          vcp ${VCPDEBUG} ${global_path}/${year}/'*'${yearmon}'*'.grb ln://`pwd`/grbData 
-        done
-      else
-        preprocessor.${global_preprocessor} ${global_path} ${chunk_start_date} ${chunk_end_date}
-      fi
-      ./link_grib.sh grbData/*.grb
-    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 22)
-      ln -sf ungrib/Variable_Tables/Vtable.${global_name} Vtable
-      ${ROOTDIR}/bin/ungrib.exe \
-        >& ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
-        || wrf4g_exit ${ERROR_UNGRIB_FAILED}
-      cat ${logdir}/ungrib_${global_name}_${iyy}${imm}${idd}${ihh}.out \
-        | grep -q -i 'Successful completion of ungrib' || wrf4g_exit ${ERROR_UNGRIB_FAILED}
+    #extdata_vtable=NCEP
+    #extdata_preprocessor=NNR1
+    #extdata_path=/oceano/gmeteo/INPUT
+    #extdata_interval=21600
 
+    vts=''
+    i=1
+    for vt in ${extdata_vtable/,/ }; do
+       fortnml --overwrite -f namelist.wps -s prefix@ungrib ${vt}
+       ln -s ungrib/Variable_Tables/Vtable.${vt} Vtable
+       vpath=$(tuple_item ${extdata_path} ${i})
+       vpreprocessor=$(tuple_item ${extdata_preprocessor} ${i})
+       preprocessor.${vpreprocessor} ${chunk_start_date} ${chunk_end_date} ${vpath} ${vt}
+       ./link_grib.sh grbData/*.grb
+       ungrib.exe >& ${logdir}/ungrib_${extdata_vtable}_${iyy}${imm}${idd}${ihh}.out \
+         || wrf4g_exit ${ERROR_UNGRIB_FAILED}
+       cat ${logdir}/ungrib_${extdata_vtable}_${iyy}${imm}${idd}${ihh}.out \
+        | grep -q -i 'Successful completion of ungrib' || wrf4g_exit ${ERROR_UNGRIB_FAILED}     
+       rm -rf grbData
+       rm GRIBFILE.*
+       vts=${vts}\'${vt}\',
+       let i++
+     done
 
-    
-   #
-   # Check for other preprocessors and apply them.
-   #
-   for preprocessor_other in ${preprocessor_others//,/ }
-   do
-     fortnml --overwrite -f namelist.wps -s prefix@ungrib ${preprocessor_other}
-     #No global path. Path to the data must be included inside the postprocessor.
-     preprocessor.${preprocessor_other} ${chunk_start_date} ${chunk_end_date} ${global_name}
-     rm -f GRIBFILE.*
-    ./link_grib.sh grbOtherData/*.grb
-    ${ROOTDIR}/bin/ungrib.exe >& ${logdir}/ungrib_${preprocessor_other}_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
-    cat ${logdir}/ungrib_${preprocessor_other}_${iyy}${imm}${idd}${ihh}.out \
-    | grep -q -i 'Successful completion of ungrib' \
-    || wrf4g_exit ${ERROR_UNGRIB_FAILED}
-   done
-   # List of prefixes for metgrid. If same field is found in two or more input sources,
-   # the last encountered will take priority.
-   fortnml --overwrite -f namelist.wps -s fg_name@metgrid "'${global_name}','${preprocessor_others}'" 
-
+     fortnml --overwrite -f namelist.wps -s fg_name@metgrid "${vts}" 
+     output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 22)
 
     #
     #   Run metgrid
@@ -354,7 +340,7 @@ else
       fortnml_vardel namelist.wps opt_geogrid_tbl_path
       fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
       fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
-      fortnml -o -f namelist.wps -s fg_name ${global_name}
+      #fortnml -o -f namelist.wps -s fg_name ${extdata_vtable}
       ${ROOTDIR}/bin/metgrid.exe \
         >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_METGRID_FAILED}
@@ -365,7 +351,9 @@ else
       if test "${clean_after_run}" -eq 1; then
         rm -f GRIBFILE.*
         rm -rf grbData
-        rm -rf ${global_name}\:*
+        for file in ${extdata_vtable/,/ }; do
+           rm -rf ${file}\:*
+        done
       fi
   cd ${LOCALDIR}/WRFV3/run 
     #------------------------------------------------------------------

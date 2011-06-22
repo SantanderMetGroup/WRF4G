@@ -280,8 +280,16 @@ fi
 if test ${id} -ge 0; then
         echo "Preparing namelist...">&2
 	if ! is_dry_run; then 
-	  cp ${WRF4G_LOCATION}/etc/templates/namelist.input ${userdir}/namelist.input.base
-	  fortnml -wof namelist.input.base -s max_dom ${max_dom}
+          wrf_ver=$( echo ${WRF_VERSION} | awk -F_ '{ print $1}' )
+          namelist=${WRF4G_LOCATION}/etc/templates/${wrf_ver}/namelist.input
+          if test -f ${namelist}; then
+   	    cp ${namelist} ${userdir}/namelist.input.base
+	    fortnml -wof namelist.input.base -s max_dom ${max_dom}
+          else
+            echo "There is not a namelist template for WRF ${wrf_ver} (File ${namelist} do not exists) "
+            exit 10
+          fi
+
 	  for var in $(get_ni_vars); do
 	    fnvar=${var/__/@}
 	    fortnml -wof namelist.input.base -s $fnvar -- $(eval echo \$NI_${var})

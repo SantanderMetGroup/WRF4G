@@ -70,7 +70,7 @@ function clean_while_running(){
             if test $patt == "wrfout"; then
                 edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
             fi
-            post_and_register --no-bg $(filetype $file) $(filedate $file) $file $edate
+            post_and_register --no-bg $(filetype $file) $(filedate $file) $file # $edate: Add when WRF4G is prepared to rerun continous in hindcast.
             if test $patt == "wrfrst" -a $dom == "d01"; then
 		WRF4G.py Realization set_restart id=${WRF4G_ID_REALIZATION} $(filedate $file) # In the future kill the job if it can't contact the DB
             fi
