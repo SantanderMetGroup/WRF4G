@@ -1,0 +1,80 @@
+# WRF input for WRF (V3.0) simulations by Meteorology & Data Maining group of
+# Dept. de Matematica Aplicada de la Universidad de Cantabria. Lluis i Jesus
+# (March. 2009)
+#
+#   Experiment configuration
+#
+experiment_name = "wrfucm"
+experiment_description = "5 days operational running of WRF in GMS of the explosive cyclogenesis along the Cantabrian coast occurred on 23-24th January 2009. 2 different realizations of 120 hours started every 12 hours. Each one with chunks every 24 hour"
+max_dom = 1
+domain_name = "wrfuc"
+extdata_vtable = "NCEP"    # Vtables must exist as Vtable.[input_extdata]
+extdata_path = "${WRF4G_INPUT}/NCEP/Reanalysis1/6hr"
+extdata_interval = 21600   # Seconds between global analysis input times
+extdata_preprocessor = "NNR1"
+
+
+start_date      = "2009-01-21_12:00:00"
+end_date        = "2009-01-25_12:00:00"
+chunk_size_h = 24
+multiple_dates = 1
+  simulation_interval_h = 12
+  simulation_length_h = 72
+rerun = 0
+multiple_parameters = 1
+  multiparams_variables = "mp_physics,cu_physics,ra_lw_physics,ra_sw_physics,sf_sfclay_physics,bl_pbl_physics,sf_surface_physics"
+  multiparams_nitems = "${max_dom},${max_dom},${max_dom},${max_dom},${max_dom},${max_dom},${max_dom}"
+  multiparams_combinations = "5,1:1:0,1,1,2,2,2/4,1:1:0,1,1,1,1,2/4,1:1:0,1,1,2,2,2/4,1:1:0,1,1,7,7,2/4,3:3:0,1,1,7,7,2  "
+  multiparams_labels = "phys1/phys2/phys3/phys4/phys5"
+#
+clean_after_run = 1
+postprocessor = "SFC"
+#
+#   Override namelist.input variables here
+#
+# Single valued:
+#
+NI_restart_interval = 1440999 # minutos
+NI_spec_bdy_width = 10
+NI_spec_zone = 1
+NI_relax_zone = 9
+NI_feedback = 0
+#
+# One value per domain:
+#
+NIM_history_interval = 360,60,60,60 # minutos
+NIM_frames_per_outfile = 12999,12,12,12
+#
+# One value per domain; but all equal (provide a single value here):
+#
+NIN_e_vert             = 28
+NIN_mp_physics         = 4   # 1: Kessler, 2: Lin, 3: WRF S-M 3, 4: WRF S-M 5, 5: Eta, 6: WRF S-M 6, 7: Goddard, 8: Thompson, 10: Morrison
+NIN_radt               = 15
+NIN_ra_lw_physics      = 3
+NIN_ra_sw_physics      = 3
+#
+#  CLWRF  ##################################################
+#
+NI_clwrf_variables__time_control         = 1
+NI_gust_wind__time_control               = 0
+#
+#  Extreme temperatures and wind
+#
+NI_auxhist3_outname__time_control        = 'wrfxtrm_d<domain>_<date>'
+NI_io_form_auxhist3__time_control        = 2
+NIM_auxhist3_interval__time_control      = 180,180,180,180
+NIM_frames_per_auxhist3__time_control    = 999,999,999,999
+#
+#  7-to-7 precip output
+#
+NI_auxhist4_outname__time_control        = 'wrfrain_d<domain>_<date>'
+NI_io_form_auxhist4__time_control        = 2
+NIM_auxhist4_interval__time_control      = 1440,1440,1440,1440
+NIM_frames_per_auxhist4__time_control    = 7,7,7,7 # One per restart
+NIM_auxhist4_begin_h__time_control       = 7,7,7,7
+# Climate 24 hours
+NI_auxhist5_outname__time_control        = 'wrf24hc_d<domain>_<date>'
+NI_io_form_auxhist5__time_control        = 2
+NIM_auxhist5_interval__time_control      = 1440,1440,1440,1440
+NIM_frames_per_auxhist5__time_control    = 999,999,999,999
+

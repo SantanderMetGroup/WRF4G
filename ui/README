@@ -1,0 +1,123 @@
+
+== Required Software ==
+
+WRF4G need the following software preinstalled:
+
+ * '''Python''', version >= 2.4 and < 3.0.
+ * '''MySQLdb''': Ubuntu: sudo apt-get install MySQL-python. Centos, RHEL: yum install MySQL-python
+
+== Platform Notes ==
+
+WRF4G has been run only in 64bits platforms. Currently has been tested under the following O.S.:
+
+ * '''Ubuntu 10.04 Lucid Lynx''': No known issues.
+ * '''Centos 5''': No known issues.
+
+== Installation ==
+
+ * Download and unpack the distribution file WRF4G.tar.gz to the installation directory, for example your $HOME directory.
+{{{
+cd $install_path (i.e cd $HOME)
+wget WRF4G.tar.gz
+tar -xzvf WRF4G.tar.gz
+}}}
+
+ * Set up the WRF4G user environment. (To avoid typing the export command everytime you want to use WRF4G, it is advisable to copy this line in $HOME/.bashrc)
+
+{{{
+export WRF4G_LOCATION=$install_path/WRF4G
+export GW_LOCATION=$WRF4G_LOCATION/opt/drm4g_gridway-5.7
+export PATH=$PATH:$WRF4G_LOCATION/bin:$GW_LOCATION/bin
+}}}
+
+== QuickStart Guide ==
+ * Start the WRF4G Framework:
+
+{{{
+wrf4g_framework start
+}}}
+
+         
+ * Launch an example in the local machine:
+
+{{{
+cd $WRF4G_LOCATION/experiments/single/snd50c
+wrf4g_submitter.sh
+}}}
+
+ * Run gwps to see the jobs' status
+
+{{{
+gwps
+}}}
+
+ * Check the simulation output and log files in $WRF4G_LOCATION/repository/output
+
+'''To run a different experiment, you only need to modify the following files according to your needs:'''
+
+ * experiment.wrf4g: Experiment configuration: type of experment, simulation dates, restarts, physics,...
+ * resources.wrf4g: With this file the resources used by a WRF experiment are configured: data repository, number of processes for MPI, version of WRF to run,.. By default there is a file that stores a configuration that affects to every experiment ($WRF4G_LOCATION/etc/resources.wrf4g). If a file with this name (resources.wrf4g) is found in the folder where experiment.wrf4g is stored, this file will be used instead of the application one ($WRF4G_LOCATION/etc/resources.wrf4g)
+ * $WRF4G_LOCATION/etc/framework4g.conf: Database and computing resources configuration. After modifying this file, '''wrf4g_framework restart''' must be run.
+
+For example, to add a new PBS cluster to run jobs:
+
+ * First modify the file $WRF4G_LOCATION/etc/framework4g.conf to add more resources:
+{{{
+mycomputer         local://localhost?LRMS_TYPE=fork;NODECOUNT=1
+ui01              local://localhost?LRMS_TYPE=pbs;QUEUE_NAME=estadistica
+}}}
+
+ * Change the following fields in $WRF4G_LOCATION/etc/resources.wrf4g or copy $WRF4G_LOCATION/etc/resources.wrf4g where experiment.wrf4g is located: 
+   * The repository data if the cluster do not access them directly.
+   * NP to the number of MPI processess you want to use
+   * REQUIREMENTS if you want to choose the resource that will run the experiment. REQUIREMENTS ='HOSTNAME = "*ui01*";'
+
+ * Restart the wrf4g_framework: '''wrf4g_framework restart'''
+ * Submit the experiment with a different name (change the name in experiment.wrf4g)
+{{{
+cd $WRF4G_LOCATION/experiments/single/snd50c
+wrf4g_submitter.sh
+}}}
+
+
+== Configuration ==
+
+WRF4G package has the following structure:
+{{{
+WRF4G
+|-- bin
+|-- doc
+|-- etc
+|   |-- framework4g.conf
+|   |-- resources.wrf4g
+|   `-- templates
+|-- experiments
+|   |-- ensemble
+|   |-- multipledates
+|   |-- multipleparameters
+|   |-- README
+|   `-- single
+|-- lib
+|-- opt
+|   |-- drm4g_gridway-5.7
+|   `-- mysql-5.5
+|-- README
+`-- repository
+    |-- Apps
+    |-- domains
+    `-- input
+}}}
+
+
+
+== Veryfing installation ==
+ * List the computing resources available for running jobs.
+
+{{{
+$ ~/wrf4g$ gwhost 
+HID PRIO OS              ARCH  MHZ  %CPU    MEM(F/T)     DISK(F/T)      N(U/F/T) LRMS               HOSTNAME                      
+0   1    GNU/Linux2.6.32 unkno 1000    0   1822/3270     2139/8662         0/1/1 FORK               mycomputer 
+}}}
+         
+ 
+
