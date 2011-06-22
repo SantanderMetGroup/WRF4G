@@ -96,10 +96,10 @@ function clean_all(){
         else
           # This time the files cannot be open by any process. We are uploading everything
           time_debug "Uploading ${file} (start)"
-          if test $(filetype $file) == "out"; then
-                edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
-          fi
-          post_and_register --no-bg $(filetype $file) $(filedate $file) $file $edate
+          #if test $(filetype $file) == "out"; then
+          #      edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
+          #fi
+          post_and_register --no-bg $(filetype $file) $(filedate $file) $file #$edate
            if test $(filetype $file) == "rst" -a $dom == "d01"; then
 		WRF4G.py Realization set_restart id=${WRF4G_ID_REALIZATION} $(filedate $file) # In the future kill the job if it can't contact the DB
           fi
