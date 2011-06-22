@@ -1,3 +1,0 @@
-fital griduisl5.ifca.es /home/fital/estudios/www
-running_sim: qstat -u fital | grep ' r ' 
-waiting_sim: qstat -u fital | grep ' qw '

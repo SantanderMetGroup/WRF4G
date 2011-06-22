@@ -1,8 +1,0 @@
-#! /bin/bash
-
-thisdir=$(pwd)
-basedir=$(dirname $(dirname $(dirname $0)))
-
-cp ${basedir}/wn/wrf.input .
-cp ${basedir}/wn/wrf4g.conf .
-cp ${basedir}/wn/WRFV3/run/namelist.input .
