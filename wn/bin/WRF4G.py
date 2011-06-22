@@ -63,6 +63,7 @@ def load_default_values():
     DB_PORT=13306
     DB_USER="gridway"
     DB_PASSWD="ui01"
+    DB_WRF4G="WRF4GDB"
 
 def format_output(dout,ext=False):
     dreastatus={0:'Prepared',1:'Submit',2:'Running',3: 'Failed',4:'Done',5:'Pending'}
@@ -677,7 +678,7 @@ if __name__ == "__main__":
     exec open(db4g_conf).read()     
    
     data=''
-    dbc=vdb.vdb(host=DB_HOST, user=DB_USER, db='WRF4GDB', port=DB_PORT, passwd=DB_PASSWD)
+    dbc=vdb.vdb(host=DB_HOST, user=DB_USER, db=DB_WRF4G, port=DB_PORT, passwd=DB_PASSWD)
     if len(args) > 2:   data=pairs2dict(args[2])         
     inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure,dryrun=options.dryrun)"%(class_name,data)
     # Instantiate the Component Class:
