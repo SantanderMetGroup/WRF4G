@@ -6,7 +6,7 @@
 #
 #   Experiment configuration
 #
-experiment_name = "testcll"
+experiment_name = "testc"
 experiment_description = "36 hour experiment of the extreme precipitation event along the Cantabrian coast occurred on 25-27th august 1983. Divided in 3 chunks of 12 hours with a restart every 6 hour"
 
 max_dom = 1
