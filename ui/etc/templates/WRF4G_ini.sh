@@ -127,21 +127,22 @@ function wrf4g_exit(){
 #
 #  Change working directory to WRF4G_RUN_SHARED if needed 
 #
-tar xzf sandbox.tar.gz resources.wrf4g experiment.wrf4g
+tar xzf sandbox.tar.gz resources.wrf4g experiment.wrf4g || exit 20
 
 load_default_config
 
 #
 #  Load experiment.wrf4g
 #
-source resources.wrf4g                        || exit 2
-sed -e 's/\ *=\ */=/' experiment.wrf4g > source.it  || exit 2
+source resources.wrf4g                        || exit 21
+sed -e 's/\ *=\ */=/' experiment.wrf4g > source.it  || exit 22
 source source.it && rm source.it
 rm resources.wrf4g experiment.wrf4g
 
 export WRF4G_EXPERIMENT="${experiment_name}"
 export WRF4G_REALIZATION=$1
 export WRF4G_ID_REALIZATION=$2
+
 export WRF4G_NCHUNK=$3
 export WRF4G_ID_CHUNK=$4
 export chunk_start_date=$5
@@ -160,8 +161,8 @@ ROOTDIR=$(pwd)
 #
 #  Expand the sandbox files
 #
-tar xzf sandbox.tar.gz 
-rm sandbox.tar.gz
+tar xzf sandbox.tar.gz || exit 20
+rm sandbox.tar.gz 
 #
 #   Expand the WRF4G scripts
 #
@@ -186,9 +187,16 @@ chmod +x ${ROOTDIR}/WRFGEL/*
 
 # Update Job Status in DB
 job_conf="gw_job=${GW_JOB_ID},id_chunk=${WRF4G_ID_CHUNK},resource=${GW_HOSTNAME},wn=$(hostname)"
-WRF4G_JOB_ID=$(WRF4G.py Job load_wn_conf  $job_conf $GW_RESTARTED) #|| wrf4g_exit ${ERROR_LOW_GW_RESTARTED}
-if test $? -ne 0; then
-    exit 92
+WRF4G_JOB_ID=$(WRF4G.py Job load_wn_conf  $job_conf $GW_RESTARTED) 
+exitcode=$?
+if test $exitcode -ne 0; then      
+   if test $exitcode -eq 89; then
+        exit 89
+   elif test  $exitcode -eq 92; then
+        wrf4g_exit 92
+   else
+        wrf4g_exit 88
+   fi
 fi
 
 #

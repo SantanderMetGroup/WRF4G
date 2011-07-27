@@ -41,6 +41,9 @@ if test ${#} -ge 1; then
       --rerun)
           rerun="yes"
         ;;
+      --force)
+          force="yes"
+        ;;
       --help)
           echo "Usage: $0  --dry-run --nchunks --verbose"
           exit 
@@ -274,7 +277,7 @@ fi
 data="name=${experiment_name},sdate=${start_date},edate=${end_date},multiple_parameters=${multiple_parameters},multiple_dates=${multiple_dates},basepath=${WRF4G_BASEPATH},multiparams_labels=${multiparams_labels}"  #,experiment_description=\'${experiment_description}\'"
 id=$(WRF4G.py $WRF4G_FLAGS Experiment  prepare $data )
 if test $?  -ne 0; then
-   exit
+   exit $?
 fi
 
 if test ${id} -ge 0; then
@@ -337,7 +340,18 @@ if test ${id} -ge 0; then
 	  cycle_time "${experiment_name}" ${id} ${start_date} ${end_date}
         fi
 	if_not_dry rm namelist.input namelist.input.base
+else 
+   if test "$force" != "yes"; then
+        echo "This simulation has already been submitted. Are you sure you want to submit it again? (y/n)?"
+        read a
+        if [[ $a == "Y" || $a == "y" ]]; then
+          echo "Relaunching experiment" 
+        else
+          exit 5
+        fi
+   fi
 fi
+
 
 
 echo -e "\n\t========== SUBMITTING EXPERIMENT ${WRF4G_EXPERIMENT} ===========\n">&2
@@ -351,7 +365,7 @@ if ! is_dry_run; then
    #o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/resources.wrf4g .)
    #o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/experiment.wrf4g . )
    cp ${WRF4G_LOCATION}/bin/vcp bin/
-   tar -czf sandbox.tar.gz *
+   tar -czf sandbox.tar.gz db4g.conf resources.wrf4g experiment.wrf4g bin/
    rm -rf wrf* bin
    cp ${WRF4G_LOCATION}/etc/templates/WRF4G_ini.sh .
 fi
