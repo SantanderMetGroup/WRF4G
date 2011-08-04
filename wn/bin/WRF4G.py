@@ -78,7 +78,7 @@ def format_output(dout,ext=False):
     per=runt/totalt
     if dout['status'] < 10:  dout['rea_status']=5  
     
-    print '%-11s %-8s %-10s %-10s %-10s %-13s %2s %2.2f'%(dout['name'][0:10],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],exitcode,per)
+    print '%-18s %-5s %-8s %-10s %-10s %-10s %-13s %2s %2.2f'%(dout['name'][0:17],dout['gw_job'],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],exitcode,per)
     if ext==True:
         print "%10s %10s %10s"%(dout['sdate'],dout['restart'],dout['edate'])    
 
@@ -292,7 +292,7 @@ class Experiment(Component):
         self.data['id']=self.get_id_from_name()
         rea_ids=self.get_realizations_id()
         dout=[]
-        print '%-11s %-8s %-10s %-10s %-10s %-13s %2s %3s'%('Realization','Status','Chunks','Comp.Res','WN','Run.Sta','ext','%')        
+        print '%-18s %-5s %-8s %-10s %-10s %-10s %-13s %2s %3s'%('Realization','GW_ID','Status','Chunks','Comp.Res','WN','Run.Sta','ext','%')        
         for id_rea in rea_ids:
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
             dout=rea.ps()
@@ -479,6 +479,7 @@ class Realization(Component):
                 job=Job(job_data,verbose=self.verbose)
                 jid=job.create()
                 job.set_status('1')
+                dbc.commit()
     
 
     def ps(self):
@@ -636,14 +637,13 @@ class Job(Component):
             print "%d"%last_job
             stderr.write('Error: Chunk %s already finished.\n'%data['id_chunk'])
             exit(91) 
-             
+
         # In this select statement we have the restriction of gw_job.
         jobd=dbc.select('Job','MAX(id),gw_restarted',cond,verbose=self.verbose)
         [max_id,db_gwres]=jobd[0].values()
 
         # If last_job is bigger than this job's id, then this job should not run.
         if last_job > max_id:
-            print "%d"%last_job
             stderr.write('Error: This job should not be running this Chunk\n')
             exit(92)
 
@@ -655,7 +655,6 @@ class Job(Component):
             self.data['id']=str(max_id)
             id=self.update()
         else:
-            print "%d"%last_job
             stderr.write('Error: This job should not be running this Chunk (restarted id)\n')
             exit(92)
         self.set_status('10')
