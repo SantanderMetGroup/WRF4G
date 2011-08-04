@@ -93,6 +93,14 @@ function wrf4g_exit(){
        ls -lR >& ${logdir}/ls.wps
        output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41)
        ;;
+    91)
+       output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} 91)
+       exit 91
+       ;;
+    92)
+       output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} 92)
+       exit 92
+       ;;
     *)
        output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41)
        ;;
@@ -192,10 +200,12 @@ exitcode=$?
 if test $exitcode -ne 0; then      
    if test $exitcode -eq 89; then
         exit 89
+   elif test  $exitcode -eq 91; then
+        wrf4g_exit 91
    elif test  $exitcode -eq 92; then
         wrf4g_exit 92
    else
-        wrf4g_exit 88
+        exit 88
    fi
 fi
 
@@ -432,7 +442,7 @@ cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ERROR_CANNOT_ACCESS_LOCALDIR
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
     # This time is also useful to copy the wpsout data
     sleep 30
-    bash wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
+    bash -x wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   
     wait $(cat monitor.pid)
 

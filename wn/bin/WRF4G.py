@@ -631,13 +631,19 @@ class Job(Component):
         cond=cond[4:]
         ch=Chunk(data={'id': self.data['id_chunk']})
         last_job=int(ch.get_last_job())
-
+        chunk_status=int(ch.get_status())
+        if chunk_status==4:
+            print "%d"%last_job
+            stderr.write('Error: Chunk %s already finished.\n'%data['id_chunk'])
+            exit(91) 
+             
         # In this select statement we have the restriction of gw_job.
         jobd=dbc.select('Job','MAX(id),gw_restarted',cond,verbose=self.verbose)
         [max_id,db_gwres]=jobd[0].values()
 
         # If last_job is bigger than this job's id, then this job should not run.
         if last_job > max_id:
+            print "%d"%last_job
             stderr.write('Error: This job should not be running this Chunk\n')
             exit(92)
 
@@ -649,6 +655,7 @@ class Job(Component):
             self.data['id']=str(max_id)
             id=self.update()
         else:
+            print "%d"%last_job
             stderr.write('Error: This job should not be running this Chunk (restarted id)\n')
             exit(92)
         self.set_status('10')
