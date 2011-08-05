@@ -66,7 +66,7 @@ def load_default_values():
     DB_WRF4G="WRF4GDB"
 
 def format_output(dout,ext=False):
-    dreastatus={0:'Prepared',1:'Submit',2:'Running',3: 'Failed',4:'Done',5:'Pending'}
+    dreastatus={0:'P',1:'W',2:'R',3: 'F',4:'D'}
     djobstatus=JobStatus()
     if dout['exitcode']==None:
         exitcode='-'
@@ -76,9 +76,9 @@ def format_output(dout,ext=False):
     runt=(int(dout['cdate'].strftime("%s"))-int(dout['sdate'].strftime("%s")))*100.    
     totalt=int(dout['edate'].strftime("%s"))-int(dout['sdate'].strftime("%s"))
     per=runt/totalt
-    if dout['status'] < 10:  dout['rea_status']=5  
+    if dout['status'] < 10 and dout['rea_status'] != 4:  dout['rea_status']=1  
     
-    print '%-18s %-5s %-8s %-10s %-10s %-10s %-13s %2s %2.2f'%(dout['name'][0:17],dout['gw_job'],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],exitcode,per)
+    print '%-18s %-5s %-2s %-6s %-10s %-10s %-13s %2s %2.2f'%(dout['name'][0:17],dout['gw_job'],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],exitcode,per)
     if ext==True:
         print "%10s %10s %10s"%(dout['sdate'],dout['restart'],dout['edate'])    
 
@@ -292,7 +292,7 @@ class Experiment(Component):
         self.data['id']=self.get_id_from_name()
         rea_ids=self.get_realizations_id()
         dout=[]
-        print '%-18s %-5s %-8s %-10s %-10s %-10s %-13s %2s %3s'%('Realization','GW_ID','Status','Chunks','Comp.Res','WN','Run.Sta','ext','%')        
+        print '%-18s %-3s %-4s %-6s %-10s %-10s %-13s %2s %3s'%('Realization','GW','Stat','Chunks','Comp.Res','WN','Run.Sta','ext','%')        
         for id_rea in rea_ids:
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
             dout=rea.ps()
@@ -489,7 +489,7 @@ class Realization(Component):
         nchunks=self.number_of_chunks()
         status=self.get_init_status()
         
-        if status == 0 or status ==1:
+        if status == 0:
             djob={'gw_job': '-', 'status': 1, 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'0/%d'%nchunks}
         else:
             (id_chunk,current_chunk,status)=self.current_chunk_status()            
@@ -499,7 +499,7 @@ class Realization(Component):
             j=Job(data={'id':lastjob})            
             djob=j.get_info()
             if djob['status'] < 10:
-                djob={'gw_job': '-', 'status': djob['status'], 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'0/%d'%nchunks}
+                djob={'gw_job': djob['gw_job'], 'status': djob['status'], 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'0/%d'%nchunks}
             djob['nchunks']='%d/%d'%(current_chunk,nchunks)
         dout.update(djob)
         dout['rea_status']=status        
