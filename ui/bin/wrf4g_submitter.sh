@@ -198,8 +198,7 @@ function cycle_hindcasts(){
     echo "WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},multiparams_label=${multiparams_label}"
     id_rea=$(WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},multiparams_label=${multiparams_label})
     if test $?  -ne 0; then
-	 echo $id >&2
-	 exit $?
+           exit
     fi
 
     if test ${id_rea} -ge 0; then
@@ -233,8 +232,8 @@ function cycle_time(){
       echo "---> Continuous run">&2
       id_rea=$(WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${realization_name},sdate=${start_date},edate=${end_date},status=0,cdate=${start_date},multiparams_label=${multiparams_label})
       if test $?  -ne 0; then
-           echo $id >&2
-           exit $?exit
+           echo $id >&2 
+           exit $?
       fi
 
       if test ${id_rea} -ge 0; then
