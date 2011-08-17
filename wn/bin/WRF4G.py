@@ -56,9 +56,10 @@ def JobStatus():
     return sta
 
 def load_default_values():
-    global NP,REQUIREMENTS,DB_HOST,DB_PORT,DB_USER,DB_PASSWD
+    global NP,ENVIRONMENT,REQUIREMENTS,DB_HOST,DB_PORT,DB_USER,DB_PASSWD
     NP=1
     REQUIREMENTS=''
+    ENVIRONMENT=''
     DB_HOST="ui01.macc.unican.es"
     DB_PORT=13306
     DB_USER="gridway"
@@ -470,7 +471,7 @@ class Realization(Component):
     
             if self.dryrun == False:
                 job=gridway.job()
-                job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS)
+                job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS,environ=ENVIRONMENT)
                 if chunki == first_id:
                     gw_id=job.submit()
                 else:
