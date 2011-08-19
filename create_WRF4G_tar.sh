@@ -9,4 +9,5 @@ cd WRF4G
 find ./ -name ".svn" | xargs rm -Rf
 cd ..
 tar -czvf WRF4G.tar.gz WRF4G
+rm -rf WRF4G
 

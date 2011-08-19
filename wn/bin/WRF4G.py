@@ -87,11 +87,12 @@ class Component:
     """  Component CLASS
     """
 
-    def __init__(self,data='',verbose=False,reconfigure=False,dryrun=False):
+    def __init__(self,data='',verbose=False,reconfigure=False,dryrun=False,rerun=False):
         #val={'no': False, 'yes': True}
         self.verbose=verbose
         self.reconfigure=reconfigure
         self.dryrun=dryrun
+        self.rerun=rerun
         self.element=self.__class__.__name__
         self.data=data
         self.allfields=['','','','']        
@@ -281,13 +282,20 @@ class Experiment(Component):
         if id !='': return id
         else: return -1
         
-    def run(self,nchunk=0):
+    def run(self,nrea=0,nchunk=0,priority=0):
+        ncrea=0
         rea_ids=self.get_realizations_id()
         if len(rea_ids) == 0:
             stderr.write('There are not realizations to run.\n')
+        
         for id_rea in rea_ids:
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
-            rea.run(nchunk=nchunk)
+            st=rea.run(nchunk=nchunk)
+            if st==1:
+                ncrea=ncrea+1
+                if ncrea==nrea:
+                    break
+                
     
     def ps(self):
         self.data['id']=self.get_id_from_name()
@@ -382,7 +390,8 @@ class Realization(Component):
         else:
             finished=False
         return finished
- 
+    
+
     def get_init_status(self):
         
         dst=dbc.select('Chunk','status','id_rea=%s AND id_chunk=1'%self.data['id'] )
@@ -390,6 +399,7 @@ class Realization(Component):
         return st
     
     def current_chunk_status(self):
+        status=0
         nchunks=self.number_of_chunks()
         failed=dbc.select('Chunk','MIN(id_chunk)','id_rea=%s AND status=3'%self.data['id'] )
         id_chunk=vdb.parse_one_field(failed)
@@ -404,12 +414,13 @@ class Realization(Component):
             if id_chunk == nchunks:
                 status=4
             else:
-                status=2
                 id_chunk=id_chunk + 1
         
         ch=Chunk(data={'id_chunk':id_chunk,'id_rea':self.data['id']})
         id=ch.get_one_field(['id'], ['id_chunk','id_rea'])
-        return (id,id_chunk,status)    
+        if status !=4 and status !=3:
+            status=ch.get_one_field(['status'], ['id_chunk','id_rea'])
+        return (id,id_chunk,int(status))    
         
     def has_failed(self):
         
@@ -430,7 +441,7 @@ class Realization(Component):
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk 
          
-    def run(self,nchunk=0):
+    def run(self,nchunk=0,priority=0):
         import gridway   
         
         RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
@@ -439,13 +450,37 @@ class Realization(Component):
             sys.exit(1)
         exec open(RESOURCES_WRF4G).read()          
         
-        rea_name=self.get_name()
-        restart=self.get_restart()
-        
-        if self.has_finished():
-            stderr.write('Realization %s already finished.\n'%rea_name)
-            return 1
+        if 'id' in self.data.keys():
+            rea_name=self.get_name()
+        else:
+            rea_name=self.data['name']
+            self.data['id']=self.get_id(['name'])
+            if self.data['id']== -1:
+                sys.stderr.write('Realization with name %s does not exists \n'%rea_name)
+                sys.exit(1)
             
+        #restart=self.get_restart()
+        
+        chunk_status=self.current_chunk_status()
+        
+        first_id=chunk_status[0]
+        first_id_chunk=chunk_status[1]
+        
+        if self.rerun:
+            first_id=first_id-first_id_chunk+1     
+            first_id_chunk=1
+        else:
+            if chunk_status[2] == 4:
+                stderr.write('Realization %s already finished.\n'%rea_name)
+                return 1
+            elif chunk_status[2] == 2:
+                stderr.write('Realization %s is still running.\n'%rea_name)
+                return 1
+
+
+         
+	
+        """
         if restart == None:
             chunkd=dbc.select('Chunk','MIN(Chunk.id_chunk),MIN(Chunk.id)','id_rea=%s'%self.data['id'],verbose=self.verbose)
         else:
@@ -453,11 +488,11 @@ class Realization(Component):
             if chunkd== ():
                 stderr.write('DB inconsistency.')
                 return 2
-        
         [first_id_chunk,first_id]=chunkd[0].values()
-        if nchunk == 0: 
-            lchunk=self.last_chunk()
-        else:
+        """
+        
+        lchunk=self.last_chunk()
+        if nchunk != 0 and lchunk-first_id > nchunk: 
             lchunk=first_id+int(nchunk)-1
 
         for chunki in range(first_id,lchunk+1):
@@ -466,7 +501,7 @@ class Realization(Component):
             arguments='%s %s %d %d %s %s'%(rea_name,self.data['id'] ,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
             
             if chunki == first_id: 
-                stderr.write('Submitting realization: "%s" with restart %s\n'%(rea_name,restart))
+                stderr.write('Submitting realization: "%s"\n'%(rea_name))
             stderr.write('\tSubmitting Chunk %d:\t%s\t%s\n'%(chi.data['id_chunk'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate'])))
     
             if self.dryrun == False:
@@ -481,6 +516,7 @@ class Realization(Component):
                 jid=job.create()
                 job.set_status('1')
                 dbc.commit()
+        return 0
     
 
     def ps(self):
@@ -679,6 +715,7 @@ if __name__ == "__main__":
     parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
     parser.add_option("-r", "--reconfigure",action="store_true", dest="reconfigure", default=False,help="Reconfigure element in WRF4G")
     parser.add_option("-n", "--dry-run",action="store_true", dest="dryrun", default=False,help="Perform a trial run with no changes made")
+    parser.add_option("-R", "--rerun",action="store_true", dest="rerun", default=False,help="Rerun an experiment or realization although it has been finished.")
     (options, args) = parser.parse_args()
     
     if len(args) < 2:
@@ -697,7 +734,7 @@ if __name__ == "__main__":
     data=''
     dbc=vdb.vdb(host=DB_HOST, user=DB_USER, db=DB_WRF4G, port=DB_PORT, passwd=DB_PASSWD)
     if len(args) > 2:   data=pairs2dict(args[2])         
-    inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure,dryrun=options.dryrun)"%(class_name,data)
+    inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure,dryrun=options.dryrun,rerun=options.rerun)"%(class_name,data)
     # Instantiate the Component Class:
     # comp=Chunk(data={'id': '23'},verbose=options.verbose,reconfigure=options.reconfigure)
     comp=eval(inst)
