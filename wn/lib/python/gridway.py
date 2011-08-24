@@ -42,11 +42,11 @@ NP=%d
     
        command="%s/bin/gwsubmit -v %s -t %s"%(self.gwloc,depend,self.template)
        (err,out)=commands.getstatusoutput(command)
+       os.unlink(self.template)
        if err != 0: 
          sys.stderr.write(out + '\n')
          sys.exit(1)
        else:
           return out[8:]
         
-        #os.unlink(template)
         

@@ -13,23 +13,51 @@
 nchunks=""
 isdry="no"
 justone="no"
-
+onlyrun="no"
+onlyprepare="no"
 
  
 if test ${#} -ge 1; then
   while test "$*"; do
     case $1 in
+      --exp)
+	  WRF4G_EXPERIMENT=$2
+          onlyrun=yes
+          shift
+        ;;  
+      --rea)
+	  reaname=$2
+          onlyrun=yes
+          shift
+        ;;     
+      --reafile)
+	  reafile=$2
+          onlyrun=yes
+          shift
+        ;;  
+      --only-prepare)
+          only_prepare=yes
+         ;;
       --dry-run)
           isdry="yes"
 	  WRF4G_FLAGS="$WRF4G_FLAGS --dry-run"
         ;;
       --run-just-one)
-          justone="yes"
+          nreas=1
+          nchunks=1
         ;;
       --nchunks)
 	  nchunks=$2
           shift
-        ;;      
+        ;;     
+      --nreas)
+          nreas=$2
+          shift
+        ;;
+      --priority)
+           priority=$2
+          shift
+        ;;         
       --reconfigure)
       	  reconfigure="yes"
           WRF4G_FLAGS="$WRF4G_FLAGS -r"
@@ -45,8 +73,36 @@ if test ${#} -ge 1; then
           force="yes"
         ;;
       --help)
-          echo "Usage: $0  --dry-run --nchunks --verbose"
-          exit 
+      echo "Usage: $0  --dry-run --nchunks N --nreas N --priority P --reconfigure --verbose --rerun --force --help"
+      cat << EOF
+
+      --dry-run: Perform a trial run with no changes made
+
+      --run-just-one: Run just the first chunk of the first realization. Only for test purposes.
+
+      --nchunks N: N is the number of chunks to run in each realization. 
+
+      --nreas N:  N is the number of realizations the user wants to submit.
+
+      --rea realization_name: Name of the realization to submit.
+  
+      --frea file_realizations: File containing the name of the realization to sumbit.
+ 
+      --exp experiment_name: Name of the experiment submit.
+
+      --priority P: P is the priority the experiment or realization is going to be launched with (P is a integer between 1 and 100).
+
+      --reconfigure: Reconfigure experiment. With this option we can change the end date of the experiments, we can add physics,...
+
+      --verbose: Verbose mode. Explain what is being done
+
+      --rerun: Rerun an experiment or realization although it has been finished
+
+      --force: Don't ask the user if he wants to submit an experiment already submitted
+
+      --help: Shows this help
+EOF
+       exit 
           ;;
       *)
         echo "Unknown argument: $1"
@@ -76,21 +132,22 @@ export PYTHONPATH=${PYTHONPATH}:${WRF4G_LOCATION}/lib/python
 grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf
 export DB4G_CONF=`pwd`/db4g.conf ; source $DB4G_CONF
 
-if test -f resources.wrf4g; then
-  mv resources.wrf4g resources.wrf4g.orig
-  sed -e 's/\ *=\ */=/' resources.wrf4g.orig > resources.wrf4g
-else
-  sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >resources.wrf4g|| exit ${ERROR_MISSING_WRF4GSRC}
+if test "${onlyrun}" != "yes"; then 
+	if test -f resources.wrf4g; then
+	  mv resources.wrf4g resources.wrf4g.orig
+	  sed -e 's/\ *=\ */=/' resources.wrf4g.orig > resources.wrf4g
+	else
+	  sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >resources.wrf4g|| exit ${ERROR_MISSING_WRF4GSRC}
+	fi
+
+
+	export RESOURCES_WRF4G=${PWD}/resources.wrf4g ; source $RESOURCES_WRF4G
+	sed -e 's/\ *=\ */=/' experiment.wrf4g > source.it        || exit ${ERROR_MISSING_WRFINPUT}
+	source source.it && rm source.it
+	source ${WRF4G_LOCATION}/lib/bash/wrf_util.sh       || exit ${ERROR_MISSING_WRFUTIL}
+
+	export WRF4G_EXPERIMENT="${experiment_name}"
 fi
-
-
-export RESOURCES_WRF4G=${PWD}/resources.wrf4g ; source $RESOURCES_WRF4G
-sed -e 's/\ *=\ */=/' experiment.wrf4g > source.it        || exit ${ERROR_MISSING_WRFINPUT}
-source source.it && rm source.it
-source ${WRF4G_LOCATION}/lib/bash/wrf_util.sh       || exit ${ERROR_MISSING_WRFUTIL}
-
-export WRF4G_EXPERIMENT="${experiment_name}"
-
 
 function get_ni_vars(){
   set | grep '^NI_' | sed -e 's/^NI_\(.*\)=.*$/\1/'
@@ -243,7 +300,7 @@ function cycle_time(){
   esac
 }
 
-
+if test "${onlyrun}" != "yes"; then
 echo -e "\n\t=========== PREPARING EXPERIMENT ${WRF4G_EXPERIMENT} ============\n">&2
 
 # TODO: Rerun
@@ -343,29 +400,37 @@ if test ${id} -ge 0; then
         fi
 	if_not_dry rm namelist.input namelist.input.base
 else 
+ if test "${onlyprepare}" == "yes"; then
    if test "$force" != "yes"; then
         echo "This simulation has already been submitted. Are you sure you want to submit it again? (y/n)?"
         read a
-        if [[ $a == "Y" || $a == "y" ]]; then
+        if ! [[ $a == "Y" || $a == "y" ]]; then
           echo "Relaunching experiment" 
         else
           exit 5
         fi
    fi
+ fi
 fi
 
+fi
 
-
+if test "${onlyprepare}" != "yes"; then
 echo -e "\n\t========== SUBMITTING EXPERIMENT ${WRF4G_EXPERIMENT} ===========\n">&2
+ 
+o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/resources.wrf4g .)
+export RESOURCES_WRF4G=`pwd`/resources.wrf4g
+source $RESOURCES_WRF4G
+
 id_exp=$(WRF4G.py $WRF4G_FLAGS Experiment get_id_from_name name=${WRF4G_EXPERIMENT})
 
 if ! is_dry_run; then 
   mkdir -p .${WRF4G_EXPERIMENT}/bin
   cd .${WRF4G_EXPERIMENT}
-   cp ../db4g.conf ../resources.wrf4g ../experiment.wrf4g .
-   #o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/db4g.conf . )
-   #o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/resources.wrf4g .)
-   #o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/experiment.wrf4g . )
+   #cp ../db4g.conf ../resources.wrf4g ../experiment.wrf4g .
+   cp ../db4g.conf . 
+   cp ../resources.wrf4g .
+   o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/experiment.wrf4g . )
    cp ${WRF4G_LOCATION}/bin/vcp bin/
    tar -czf sandbox.tar.gz db4g.conf resources.wrf4g experiment.wrf4g bin/
    rm -rf wrf* bin
@@ -376,13 +441,14 @@ fi
 id=$(WRF4G.py $WRF4G_FLAGS Experiment run id=${id_exp} $nchunks)
 if ! is_dry_run; then 
   cd ..
-#  rm -rf tar_temp
 else
   id=$(WRF4G.py $WRF4G_FLAGS Experiment delete id=${id_exp}) 
 fi
 
-rm -f $RESOURCES_WRF4G $DB4G_CONF
+rm -f ${RESOURCES_WRF4G} ${DB4G_CONF}
 
 if test -f resources.wrf4g.orig; then
   mv resources.wrf4g.orig resources.wrf4g
 fi
+fi
+

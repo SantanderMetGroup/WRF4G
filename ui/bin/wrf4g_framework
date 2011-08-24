@@ -34,7 +34,7 @@ case "$1" in
           echo "FAILED: Gridway already running. Run \"$(basename $0) stop\" to stop it" 
           exit 2
         fi
-	gwd -c 
+	gwd
         st=$?
         if test $st -ne 0; then 
            echo "FAILED: Problems starting Gridway $st"

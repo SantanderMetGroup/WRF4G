@@ -247,7 +247,7 @@ class Component:
                         self.update()
                         self.prepare_storage()
             else:
-                stderr.write('%s already exists. Submitting...\n'%self.element)
+                stderr.write('%s already exists. \n'%self.element)
                 self.data['id']=-1
         else:
             if self.verbose: stderr.write('Creating %s\n'%self.element)
@@ -476,10 +476,6 @@ class Realization(Component):
             elif chunk_status[2] == 2:
                 stderr.write('Realization %s is still running.\n'%rea_name)
                 return 1
-
-
-         
-	
         """
         if restart == None:
             chunkd=dbc.select('Chunk','MIN(Chunk.id_chunk),MIN(Chunk.id)','id_rea=%s'%self.data['id'],verbose=self.verbose)
