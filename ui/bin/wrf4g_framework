@@ -9,8 +9,6 @@ fi
 
 if test -f $WRF4G_LOCATION/etc/framework4g.conf; then
    FRAMEWORK4G_CONF="$WRF4G_LOCATION/etc/framework4g.conf"
-   grep DB_PORT $FRAMEWORK4G_CONF> source.it
-   source source.it && rm source.it
 else
    echo '$WRF4G_LOCATION/etc/framework4g.conf does not exist'
    exit 1
@@ -31,33 +29,45 @@ case "$1" in
         sed -i "s#\$HOSTNAME#$HOSTNAME#" $FRAMEWORK4G_CONF
 
         if test -f $GW_LOCATION/var/.lock; then
-          echo "FAILED: Gridway already running. Run \"$(basename $0) stop\" to stop it" 
+          echo -e "FAILED. \nGridway already running. Run \"$(basename $0) stop\" to stop it" 
           exit 2
         fi
 	gwd
         st=$?
         if test $st -ne 0; then 
-           echo "FAILED: Problems starting Gridway $st"
+           echo -e "FAILED. \nProblems starting Gridway $st"
            exit 2 
         fi
 	echo "  OK"
-	cd $MYSQL_LOCATION
-	echo -n "Starting Mysql ......."
 
-        if test -f $MYSQL_LOCATION/data/`hostname`.pid; then
-           mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
-           if test $(ps -p $mysql_pid | grep -m1 -c $mysql_pid) -eq 1; then
-              echo "FAILED: Mysql already running. Run \"$(basename $0) stop\" to stop it"
-              exit 3
-           fi
-        fi
  
-        while [ $(netstat -atn |grep -m1 -c ":$DB_PORT ") -eq 1 ];do
-             let DB_PORT++
-        done
-	sed -i "s/DB_PORT.*$/DB_PORT=$DB_PORT/"  $WRF4G_LOCATION/etc/framework4g.conf
-	nohup ./bin/mysqld_safe --no-defaults --port=$DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock &>/dev/null &
-	echo "OK"
+        #while [ $(netstat -atn |grep -m1 -c ":$DB_PORT ") -eq 1 ];do
+        #     let DB_PORT++
+        #done
+        grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
+        source db4g.conf.temp
+        if [ $DB_LOCAL -eq 1 ]; then
+	   cd $MYSQL_LOCATION
+	   echo -n "Starting Mysql ......."
+
+           if test -f $MYSQL_LOCATION/data/`hostname`.pid; then
+              mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
+              if test $(ps -p $mysql_pid | grep -m1 -c $mysql_pid) -eq 1; then
+                echo -e "FAILED.\nMysql already running. Run \"$(basename $0) stop\" to stop it"
+                exit 3
+              fi
+           fi
+           if [ $(netstat -atn |grep -m1 -c ":$DB_PORT ") -eq 1 ]; then
+               echo -e "FAILED.\nAnother process is listening on port $DB_PORT.\nChange DB_PORT in \$WRF4G_LOCATION/etc/framework.4g to start mysql on a different port."
+               exit 4         
+           fi
+	   #sed -i "s/DB_PORT.*$/DB_PORT=$DB_PORT/"  $WRF4G_LOCATION/etc/framework4g.conf
+	   nohup ./bin/mysqld_safe --no-defaults --port=$DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock &>/dev/null &
+           cd -
+           sed 's/DB_LOCAL.*/# DataBase Configuration/' db4g.conf.temp >${WRF4G_LOCATION}/etc/db4g.conf
+       	   echo "OK"
+         fi
+         rm db4g.conf.temp   
        ;;
     stop)
 	echo -n "Stopping Gridway ...."
@@ -70,12 +80,17 @@ case "$1" in
 	   exit 2
         fi
         echo "  OK"
-	echo -n "Stopping Mysql ...."
-        mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
-        if test -n "$mysql_pid" ; then mysql_ppid=$(ps h -p $mysql_pid -o ppid); fi
-	if test -n "$mysql_ppid"; then kill -9 $mysql_ppid ;fi
-	if test -n "$mysql_pid" ;then  kill -9 $mysql_pid ;fi
-	echo "  OK"
+        
+        grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
+        source db4g.conf.temp; rm db4g.conf.temp
+        if [ $DB_LOCAL -eq 1 ]; then
+	  echo -n "Stopping Mysql ...."
+          mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
+          if test -n "$mysql_pid" ; then mysql_ppid=$(ps h -p $mysql_pid -o ppid); fi
+	  if test -n "$mysql_ppid"; then kill -9 $mysql_ppid ;fi
+	  if test -n "$mysql_pid" ;then  kill -9 $mysql_pid ;fi
+	  echo "  OK"
+        fi
         ;;
     restart)
         ## Stop the service and regardless of whether it was
@@ -83,8 +98,17 @@ case "$1" in
         $0 stop
         $0 start
         ;;
+    reload)
+        # Only reloads gridway
+    	echo -n "Reloading Gridway ...."
+	rm -f $GW_LOCATION/var/.lock
+        gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
+        gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
+        if test -n "$gwd_pid"; then  kill -9 $gwd_pid ;fi
+        gwd
+        ;;
     *)
-        echo "Usage: /etc/init.d/$0 {start|stop}"
+        echo "Usage: /etc/init.d/$0 {start|stop|restart|reload}"
         exit 1
         ;;
 esac
