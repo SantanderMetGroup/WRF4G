@@ -63,7 +63,7 @@ case "$1" in
            fi
 	   #sed -i "s/DB_PORT.*$/DB_PORT=$DB_PORT/"  $WRF4G_LOCATION/etc/framework4g.conf
 	   nohup ./bin/mysqld_safe --no-defaults --port=$DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock &>/dev/null &
-           cd -
+           cd - &>/dev/null
            sed 's/DB_LOCAL.*/# DataBase Configuration/' db4g.conf.temp >${WRF4G_LOCATION}/etc/db4g.conf
        	   echo "OK"
          fi
@@ -102,7 +102,7 @@ case "$1" in
         # Only reloads gridway
     	echo -n "Reloading Gridway ...."
 	rm -f $GW_LOCATION/var/.lock
-        gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
+ cd       gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
         gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
         if test -n "$gwd_pid"; then  kill -9 $gwd_pid ;fi
         gwd

@@ -86,7 +86,7 @@ function wrf4g_exit(){
           output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 40)
        else
 	  output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41)
-	  extcode=${ERROR_UNEXPECTED_WRF_TERMINATION}
+	  excode=${ERROR_UNEXPECTED_WRF_TERMINATION}
        fi
        ;;
     ${ERROR_UNGRIB_FAILED})

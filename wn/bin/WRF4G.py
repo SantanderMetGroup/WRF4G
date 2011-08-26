@@ -379,7 +379,8 @@ class Realization(Component):
    
     def set_cdate(self,cdate):
         self.data['cdate']=cdate
-        oc=self.update_fields(['cdate'], ['id'])    
+        self.data['ctime']=timestamp=datetime2datewrf(datetime.utcnow())
+        oc=self.update_fields(['cdate','ctime'], ['id'])    
         return oc
     
     def has_finished(self):
