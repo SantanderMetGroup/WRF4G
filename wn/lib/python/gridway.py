@@ -13,7 +13,7 @@ class job:
            sys.exit(1)
 
   
-   def create_template(self,name,arguments,np=1,req='',environ=''):
+   def create_template(self,name,arguments,np=1,req='',environ='',inputsandbox=''):
        """Create template
        """
        
@@ -22,12 +22,12 @@ class job:
        template="""NAME = %s
 EXECUTABLE = /bin/bash 
 ARGUMENTS = "./WRF4G_ini.sh %s"
-INPUT_FILES   = WRF4G_ini.sh,sandbox.tar.gz
+INPUT_FILES   = %s
 RANK = (CPU_MHZ * 2) + FREE_MEM_MB 
 REQUIREMENTS=%s
 ENVIRONMENT=%s
 NP=%d
-"""%(name,arguments,req,environ,np)
+"""%(name,arguments,inputsandbox,req,environ,np)
        f.write(template)
        f.close()
        self.template=ftemplate

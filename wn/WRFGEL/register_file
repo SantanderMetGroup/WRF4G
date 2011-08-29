@@ -101,7 +101,7 @@ else :
 
     for wps_file in wps_files :
         dest_file=basename(wps_file)
-        dest="%s/%s/%s/%s/%s%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],"wpsout",dest_file,suffix)
+        dest="%s/%s/%s/%s/%s%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],"realout",dest_file,suffix)
         if verbose:
              stderr.write("origin: %s destiny: %s\n" % (wps_file,dest))
         output=copy_file(wps_file,dest, verbose=verbose) 

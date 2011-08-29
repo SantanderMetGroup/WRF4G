@@ -15,7 +15,7 @@ TOO_MANY_DATES=3
 usage="""%prog type date
 
 Example:    %prog rst 1990-01-01_00:00:00 
-            %prog wps 1990-01-01_00:00:00
+            %prog real 1990-01-01_00:00:00
 
 This command needs that the following environment variables have been established: WRF4G_EXPERIMENT, WRF4G_REALIZATION and RESOURCES_WRF4G.
 """
@@ -48,11 +48,11 @@ stderr.write("WRFGEL(download_file)> START: %s\n" % args)
 
 type_list={
   "rst" : "restart",
-  "wps" : "wpsout"
+  "real" : "realout"
 }
 pattern = {
   "rst" : "wrfrst*" + date + "*" ,
-  "wps" : "wrf[lbif]*_d\d\d_" + date + "*"
+  "real" : "wrf[lbif]*_d\d\d_" + date + "*"
 } 
 
 orig_folder="%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])

@@ -129,8 +129,7 @@ export PYTHONPATH=${PYTHONPATH}:${WRF4G_LOCATION}/lib/python
 #
 #  Load configuration files
 #
-grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf
-export DB4G_CONF=`pwd`/db4g.conf ; source $DB4G_CONF
+export DB4G_CONF=${WRF4G_LOCATION}/etc/db4g.conf ; source $DB4G_CONF
 
 if test "${onlyrun}" != "yes"; then 
 	if test -f resources.wrf4g; then
@@ -140,10 +139,10 @@ if test "${onlyrun}" != "yes"; then
 	  sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >resources.wrf4g|| exit ${ERROR_MISSING_WRF4GSRC}
 	fi
 
-
 	export RESOURCES_WRF4G=${PWD}/resources.wrf4g ; source $RESOURCES_WRF4G
-	sed -e 's/\ *=\ */=/' experiment.wrf4g > source.it        || exit ${ERROR_MISSING_WRFINPUT}
-	source source.it && rm source.it
+        suf=$RANDOM # This is a fix to solve the problem with source.
+	sed -e 's/\ *=\ */=/' experiment.wrf4g > source.$suf        || exit ${ERROR_MISSING_WRFINPUT}
+	source source.$suf && rm source.$suf
 	source ${WRF4G_LOCATION}/lib/bash/wrf_util.sh       || exit ${ERROR_MISSING_WRFUTIL}
 
 	export WRF4G_EXPERIMENT="${experiment_name}"
@@ -418,24 +417,18 @@ fi
 if test "${onlyprepare}" != "yes"; then
 echo -e "\n\t========== SUBMITTING EXPERIMENT ${WRF4G_EXPERIMENT} ===========\n">&2
  
+id_exp=$(WRF4G.py $WRF4G_FLAGS Experiment get_id_from_name name=${WRF4G_EXPERIMENT})
+if [ ${id_exp} -lt 0 ];then
+    echo "Experiment ${WRF4G_EXPERIMENT} do not exist in DB"
+    exit 6
+fi
+WRF4G_BASEPATH=$(WRF4G.py $WRF4G_FLAGS Experiment get_basepath id=${id_exp})
+
+
 o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/resources.wrf4g .)
 export RESOURCES_WRF4G=`pwd`/resources.wrf4g
 source $RESOURCES_WRF4G
 
-id_exp=$(WRF4G.py $WRF4G_FLAGS Experiment get_id_from_name name=${WRF4G_EXPERIMENT})
-
-if ! is_dry_run; then 
-  mkdir -p .${WRF4G_EXPERIMENT}/bin
-  cd .${WRF4G_EXPERIMENT}
-   #cp ../db4g.conf ../resources.wrf4g ../experiment.wrf4g .
-   cp ../db4g.conf . 
-   cp ../resources.wrf4g .
-   o=$(vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/experiment.wrf4g . )
-   cp ${WRF4G_LOCATION}/bin/vcp bin/
-   tar -czf sandbox.tar.gz db4g.conf resources.wrf4g experiment.wrf4g bin/
-   rm -rf wrf* bin
-   cp ${WRF4G_LOCATION}/etc/templates/WRF4G_ini.sh .
-fi
 
 #Submit jobs
 id=$(WRF4G.py $WRF4G_FLAGS Experiment run id=${id_exp} $nchunks)
@@ -444,8 +437,6 @@ if ! is_dry_run; then
 else
   id=$(WRF4G.py $WRF4G_FLAGS Experiment delete id=${id_exp}) 
 fi
-
-rm -f ${RESOURCES_WRF4G} ${DB4G_CONF}
 
 if test -f resources.wrf4g.orig; then
   mv resources.wrf4g.orig resources.wrf4g

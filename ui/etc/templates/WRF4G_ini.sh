@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/bash -x
 
 # WRF4G_ini.sh
 #
@@ -119,7 +119,7 @@ function wrf4g_exit(){
   cd ${logdir}
   echo ROOTDIR: $ROOTDIR
   echo LOCALDIR: $LOCALDIR
-  tar czf ${logfile} * && vcp ${logfile} ${WRF4G_BASEPATH}/${experiment_name}/${WRF4G_REALIZATION}/log/
+  tar czf ${logfile} * && vcp ${logfile} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/log/
   cd -
   # Clean the heavy stuff
   if test "${clean_after_run}" -eq 1; then
@@ -135,42 +135,38 @@ function wrf4g_exit(){
 #
 #  Change working directory to WRF4G_RUN_SHARED if needed 
 #
-tar xzf sandbox.tar.gz resources.wrf4g experiment.wrf4g || exit 20
-
 load_default_config
 
 #
-#  Load experiment.wrf4g
+#  Prepare files and get variables.
 #
+mkdir bin
+mv vcp bin
 source resources.wrf4g                        || exit 21
-sed -e 's/\ *=\ */=/' experiment.wrf4g > source.it  || exit 22
-source source.it && rm source.it
-rm resources.wrf4g experiment.wrf4g
+#sed -e 's/\ *=\ */=/' experiment.wrf4g > source.it  || exit 22
+#source source.it && rm source.it
 
-export WRF4G_EXPERIMENT="${experiment_name}"
-export WRF4G_REALIZATION=$1
-export WRF4G_ID_REALIZATION=$2
+export WRF4G_EXPERIMENT=$1
+export WRF4G_REALIZATION=$2
+export WRF4G_ID_REALIZATION=$3
+export WRF4G_NCHUNK=$4
+export WRF4G_ID_CHUNK=$5
+export chunk_start_date=$6
+export chunk_end_date=$7
 
-export WRF4G_NCHUNK=$3
-export WRF4G_ID_CHUNK=$4
-export chunk_start_date=$5
-export chunk_end_date=$6
 
 #
 #  Change ROOTDIR if necesary
 #
 ROOTDIR=$(pwd)
 if test -n "${WRF4G_RUN_SHARED}"; then
-  mkdir -p ${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_NCHUNK}
-  cd ${WRF4G_RUN_SHARED}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/${WRF4G_NCHUNK}
-  mv ${ROOTDIR}/sandbox.tar.gz .
+  mkdir -p ${WRF4G_RUN_SHARED}/${WRF4G_REALIZATION}/${WRF4G_NCHUNK}
+  cd ${WRF4G_RUN_SHARED}/${WRF4G_REALIZATION}/${WRF4G_NCHUNK}
+  mv ${ROOTDIR}/bin ${ROOTDIR}/db4g.conf ${ROOTDIR}/resources.wrf4g .
 fi 
 ROOTDIR=$(pwd)
-#
-#  Expand the sandbox files
-#
-tar xzf sandbox.tar.gz || exit 20
-rm sandbox.tar.gz 
+
+
 #
 #   Expand the WRF4G scripts
 #
@@ -181,7 +177,7 @@ export LD_LIBRARY_PATH=${ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
 export PYTHONPATH=${ROOTDIR}/lib/python:${ROOTDIR}/lib/shared_libs:$PYTHONPATH
 chmod +x ${ROOTDIR}/bin/* 
 vcp ${WRF4G_APPS}/WRF4G-${WRF4G_VERSION}.tar.gz . || exit 40 # We do not have yet the wrf4g_exit_codes ${ERROR_MISSING_WRF4GSRC}
-tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz  || exit 40
+tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz  || exit ${ERROR_MISSING_WRF4GSRC}
 chmod +x ${ROOTDIR}/bin/* 
 
 
@@ -192,6 +188,16 @@ source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 export PATH="${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
 chmod +x ${ROOTDIR}/WRFGEL/*
+
+# Try to download experiment from realization folder. If it doesn't exist download it from experiment.
+vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/experiment.wrf4g . &>/dev/null
+if [ $? -ne 0 ];then 
+   vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/experiment.wrf4g . || exit $ERROR_MISSING_EXPERIMENTSWRF4G
+fi
+
+suf=$RANDOM # This is a fix to solve the problem with source.
+sed -e 's/\ *=\ */=/' experiment.wrf4g > source.$suf        || exit ${ERROR_MISSING_WRFINPUT}
+source source.$suf && rm source.$suf
 
 # Update Job Status in DB
 job_conf="gw_job=${GW_JOB_ID},id_chunk=${WRF4G_ID_CHUNK},resource=${GW_HOSTNAME},wn=$(hostname)"
@@ -208,6 +214,7 @@ if test $exitcode -ne 0; then
         exit 88
    fi
 fi
+
 
 #
 #   Should we unpack here or there is a local filesystem for us to run?
@@ -247,16 +254,16 @@ out=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 11)
 #WRF4G.py Chunk should_I_run id=${WRF4G_ID_CHUNK} || wrf4g_exit ${ERROR_PREVIOUS_CHUNK_NOT_FINISHED}
   
   
-vcp ${WRF4G_APPS}/WRF4Gbin-${WRF_VERSION}.tar.gz .
+vcp ${WRF4G_APPS}/WRF4Gbin-${WRF_VERSION}.tar.gz .  
 tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz || wrf4g_exit ${ERROR_MISSING_WRF4GBIN}
 rm WRF4Gbin-${WRF_VERSION}.tar.gz
 
-vcp ${WRF4G_BASEPATH}/${experiment_name}/${WRF4G_REALIZATION}/namelist.input  WRFV3/run/namelist.input || wrf4g_exit ${ERROR_MISSING_NAMELIST}
+vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/namelist.input  WRFV3/run/namelist.input || wrf4g_exit ${ERROR_MISSING_NAMELIST}
 
 #
 #  If there are additional files, expand'em
 #
-vcp ${WRF4G_BASEPATH}/${experiment_name}/wrf4g_files.tar.gz ${ROOTDIR} &>/dev/null
+vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/wrf4g_files.tar.gz ${ROOTDIR} &>/dev/null
 if test -f ${ROOTDIR}/wrf4g_files.tar.gz; then
   tar xzf ${ROOTDIR}/wrf4g_files.tar.gz && rm ${ROOTDIR}/wrf4g_files.tar.gz
 fi
@@ -287,7 +294,7 @@ read ryy rmm rdd rhh trash <<< $(echo ${chunk_restart_date} | tr '_:T-' '    ')
 read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}   | tr '_:T-' '    ')
 
 #
-#   Must WPS run or are the boundaries available?
+#   Must WPS run or are the boundaries and initial conditions available?
 #
 wps_stored=$(WRF4G.py Chunk get_wps id=${WRF4G_ID_CHUNK}) || wrf4g_exit ${ERROR_ACCESS_DB}
 
@@ -297,7 +304,7 @@ if test ${wps_stored} -eq "1"; then
   cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ${ERROR_GETTING_WPS}
     namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_rerun} ${timestep_dxfactor}
     output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 20)
-    download_file wps $(date_wrf2iso ${chunk_start_date})
+    download_file real $(date_wrf2iso ${chunk_start_date})
   cd ${LOCALDIR}
 else
   cd ${LOCALDIR}/WPS || wrf4g_exit ${ERROR_GETTING_WPS}

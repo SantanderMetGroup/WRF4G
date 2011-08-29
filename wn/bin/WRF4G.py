@@ -139,7 +139,7 @@ class Component:
      
      for field in list_query:
          wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
-     wheresta=wheresta[4:]     
+     wheresta=wheresta[4:]    
      #dic=dbc.select(self.element,list2fields(fields), wheresta, verbose=1 )
      dic=dbc.select(self.element,list2fields(fields),wheresta, verbose=self.verbose )
      self.__init__(dic[0])
@@ -272,7 +272,7 @@ class Experiment(Component):
         
     def get_reconfigurable_fields(self):
         return['sdate','edate','multiparams_labels']
-        
+     
     def get_id_from_name(self):
 
         wheresta=''
@@ -281,7 +281,11 @@ class Experiment(Component):
         id = vdb.list_query().one_field(idp)
         if id !='': return id
         else: return -1
-        
+
+    def get_name(self):
+        name=self.get_one_field(['name'], ['id'])
+        return name
+           
     def run(self,nrea=0,nchunk=0,priority=0):
         ncrea=0
         rea_ids=self.get_realizations_id()
@@ -295,7 +299,10 @@ class Experiment(Component):
                 ncrea=ncrea+1
                 if ncrea==nrea:
                     break
-                
+     
+    def get_basepath(self):
+        cdate=self.get_one_field(['basepath'], ['id'])
+        return cdate           
     
     def ps(self):
         self.data['id']=self.get_id_from_name()
@@ -338,7 +345,7 @@ class Experiment(Component):
             output=vcp.copy_file('wrf4g_files.tar.gz',exp_dir,verbose=self.verbose)    
             os.remove('wrf4g_files.tar.gz')  
             
-        output=vcp.copy_file(db4g_conf,exp_dir,verbose=self.verbose)
+        output=vcp.copy_file(DB4G_CONF,exp_dir,verbose=self.verbose)
         output=vcp.copy_file(RESOURCES_WRF4G,exp_dir,verbose=self.verbose) 
         output=vcp.copy_file('experiment.wrf4g',exp_dir,verbose=self.verbose) 
          
@@ -376,6 +383,10 @@ class Realization(Component):
     def get_cdate(self):
         cdate=self.get_one_field(['cdate'], ['id'])
         return cdate
+
+    def get_exp_id(self):
+        id_exp=self.get_one_field(['id_exp'], ['id'])
+        return id_exp
    
     def set_cdate(self,cdate):
         self.data['cdate']=cdate
@@ -444,22 +455,18 @@ class Realization(Component):
          
     def run(self,nchunk=0,priority=0):
         import gridway   
-        
-        RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
-        if RESOURCES_WRF4G == None:
-            sys.stderr.write('RESOURCES_WRF4G is not defined. Please define it and try again\n')
-            sys.exit(1)
-        exec open(RESOURCES_WRF4G).read()          
-        
+        self.prepared=0
+
         if 'id' in self.data.keys():
-            rea_name=self.get_name()
+           self.data['name']=self.get_name()
+           rea_name=self.data['name']
         else:
             rea_name=self.data['name']
             self.data['id']=self.get_id(['name'])
             if self.data['id']== -1:
                 sys.stderr.write('Realization with name %s does not exists \n'%rea_name)
-                sys.exit(1)
-            
+                sys.exit(1)    
+        
         #restart=self.get_restart()
         
         chunk_status=self.current_chunk_status()
@@ -495,15 +502,18 @@ class Realization(Component):
         for chunki in range(first_id,lchunk+1):
             chi=Chunk(data={'id':'%s'%chunki})
             chi.loadfromDB(['id'],chi.get_configuration_fields())
-            arguments='%s %s %d %d %s %s'%(rea_name,self.data['id'] ,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
+            arguments='%s %s %s %d %d %s %s'%(self.get_exp_name(),rea_name,self.data['id'] ,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
             
             if chunki == first_id: 
                 stderr.write('Submitting realization: "%s"\n'%(rea_name))
             stderr.write('\tSubmitting Chunk %d:\t%s\t%s\n'%(chi.data['id_chunk'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate'])))
     
-            if self.dryrun == False:
+            if self.dryrun == False:      
+                self.prepare_gridway()   
+                exec open('resources.wrf4g').read()     
                 job=gridway.job()
-                job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS,environ=ENVIRONMENT)
+                sandbox='file://%s/etc/templates/WRF4G_ini.sh,file://%s/bin/vcp,file://%s/etc/db4g.conf,resources.wrf4g'%(WRF4G_LOCATION,WRF4G_LOCATION,WRF4G_LOCATION)
+                job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS,environ=ENVIRONMENT,inputsandbox=sandbox)
                 if chunki == first_id:
                     gw_id=job.submit()
                 else:
@@ -514,8 +524,36 @@ class Realization(Component):
                 job.set_status('1')
                 dbc.commit()
         return 0
-    
 
+    def get_exp_name(self):
+         if 'id' in self.data.keys():
+           self.data['name']=self.get_name()
+         else:
+            self.data['id']=self.get_id(['name'])
+         cexp=Experiment(data={'id': self.get_exp_id()})
+         exp_name=cexp.get_name()
+         return exp_name
+        
+    def prepare_gridway(self):
+        if self.prepared == 0: 
+            rea_name=self.data['name']
+            exp_id=self.get_exp_id()
+            exp_name=self.get_exp_name()
+            cexp=Experiment(data={'id': exp_id})
+            WRF4G_BASEPATH=cexp.get_basepath()
+            subdir= '%s/%s/%s/%s'%(WRF4G_LOCATION,'.submission',exp_name,rea_name)       
+            if not os.path.isdir(subdir):
+                os.makedirs(subdir)
+            os.chdir(subdir)
+            rea_input='%s/%s/%s'%(WRF4G_BASEPATH,exp_name,rea_name)
+            rea_vcp=vcp.VCPURL(rea_input)
+            orea=rea_vcp.ls('resources.wrf4g')
+            if 'resources.wrf4g' in orea:
+                output=vcp.copy_file('%s/%s'%(rea_input,'resources.wrf4g'),'.',verbose=self.verbose)
+            else:
+                output=vcp.copy_file('%s/%s/%s'%(WRF4G_BASEPATH,exp_name,'resources.wrf4g'),'.',verbose=self.verbose)           
+            self.prepared=1   
+        
     def ps(self):
         
         drea=dbc.select('Realization','name,restart,sdate,cdate,edate','id=%s'%self.data['id'])
@@ -539,9 +577,7 @@ class Realization(Component):
         dout['rea_status']=status        
         #dout={'gw_job': 4L, 'status': 40L, 'sdate': datetime.datetime(1983, 8, 25, 12, 0), 'resource': 'mycomputer', 'name': 'testc1', 'wn': 'sipc18', 'nchunks': '3/3', 'cdate': datetime.datetime(1983, 8, 25, 12, 0), 'exitcode': 0L, 'edate': datetime.datetime(1983, 8, 27, 0, 0), 'restart': datetime.datetime(1983, 8, 27, 0, 0), 'rea_status': 4}]
         return dout
-       
-        
-            
+                           
     def prepare_storage(self):          
         RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
         if RESOURCES_WRF4G == None:
@@ -550,7 +586,7 @@ class Realization(Component):
         exec open(RESOURCES_WRF4G).read()        
         reas=self.data['name'].split('__')
         rea_dir="%s/%s/%s" % (WRF4G_BASEPATH,reas[0],self.data['name'])
-        for dir in ["output","restart","wpsout","log"]:
+        for dir in ["output","restart","realout","log"]:
           repo="%s/%s" % (rea_dir,dir)
           list=vcp.VCPURL(repo)
           list.mkdir(verbose=self.verbose)
@@ -722,11 +758,16 @@ if __name__ == "__main__":
     class_name=args[0]
     function=args[1]
     load_default_values()
-    db4g_conf=os.environ.get('DB4G_CONF')
-    if db4g_conf == None:
+    DB4G_CONF=os.environ.get('DB4G_CONF')
+    if DB4G_CONF == None:
         sys.stderr.write('DB4G_CONF is not defined. Please define it and try again\n')
         sys.exit(1)
-    exec open(db4g_conf).read()     
+    exec open(DB4G_CONF).read()
+    
+    WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
+    if DB4G_CONF == None:
+        sys.stderr.writpathgridwaye('WRF4G_LOCATION is not defined. Please define it and try again\n')
+        sys.exit(1)   
    
     data=''
     dbc=vdb.vdb(host=DB_HOST, user=DB_USER, db=DB_WRF4G, port=DB_PORT, passwd=DB_PASSWD)
