@@ -63,13 +63,13 @@ function prepare_runtime_environment(){
 }
 
 function prepare_local_environment (){
-  #cp ${LOCALDIR}/WRF4Gbin-${WRF_VERSION}.tar.gz ${ROOTDIR}
+  #cp ${LOCALDIR}/WRFbin-${WRF_VERSION}.tar.gz ${ROOTDIR}
   mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
   $MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/WRFGEL/load_wrfbin.sh	
-  #rm ${ROOTDIR}/WRF4Gbin-${WRF_VERSION}.tar.gz
-  #rm {LOCALDIR}/WRF4Gbin-${WRF_VERSION}.tar.gz
+  #rm ${ROOTDIR}/WRFbin-${WRF_VERSION}.tar.gz
+  #rm {LOCALDIR}/WRFbin-${WRF_VERSION}.tar.gz
   prepare_openmpi=0
-  #mpiexec -mca btl self,sm,tcp --wdir /localtmp --preload-files-dest-dir /localtmp --preload-files /localtmp/WRF4Gbin-3.1.1_r484INTEL_OMPI.tar.gz --preload-binary /localtmp/wrf.sh /localtmp/wrf.sh
+  #mpiexec -mca btl self,sm,tcp --wdir /localtmp --preload-files-dest-dir /localtmp --preload-files /localtmp/WRFbin-3.1.1_r484INTEL_OMPI.tar.gz --preload-binary /localtmp/wrf.sh /localtmp/wrf.sh
 }
 
 
@@ -254,9 +254,9 @@ out=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 11)
 #WRF4G.py Chunk should_I_run id=${WRF4G_ID_CHUNK} || wrf4g_exit ${ERROR_PREVIOUS_CHUNK_NOT_FINISHED}
   
   
-vcp ${WRF4G_APPS}/WRF4Gbin-${WRF_VERSION}.tar.gz .  
-tar xzf WRF4Gbin-${WRF_VERSION}.tar.gz || wrf4g_exit ${ERROR_MISSING_WRF4GBIN}
-rm WRF4Gbin-${WRF_VERSION}.tar.gz
+vcp ${WRF4G_APPS}/WRFbin-${WRF_VERSION}.tar.gz .  
+tar xzf WRFbin-${WRF_VERSION}.tar.gz || wrf4g_exit ${ERROR_MISSING_WRFbin}
+rm WRFbin-${WRF_VERSION}.tar.gz
 
 vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/namelist.input  WRFV3/run/namelist.input || wrf4g_exit ${ERROR_MISSING_NAMELIST}
 

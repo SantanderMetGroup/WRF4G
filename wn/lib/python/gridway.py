@@ -21,7 +21,7 @@ class job:
        f = open (ftemplate,'w')
        template="""NAME = %s
 EXECUTABLE = /bin/bash 
-ARGUMENTS = "./WRF4G_ini.sh %s"
+ARGUMENTS = "./WRF4G.sh %s"
 INPUT_FILES   = %s
 RANK = (CPU_MHZ * 2) + FREE_MEM_MB 
 REQUIREMENTS=%s

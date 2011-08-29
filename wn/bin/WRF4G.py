@@ -512,7 +512,7 @@ class Realization(Component):
                 self.prepare_gridway()   
                 exec open('resources.wrf4g').read()     
                 job=gridway.job()
-                sandbox='file://%s/etc/templates/WRF4G_ini.sh,file://%s/bin/vcp,file://%s/etc/db4g.conf,resources.wrf4g'%(WRF4G_LOCATION,WRF4G_LOCATION,WRF4G_LOCATION)
+                sandbox='file://%s/etc/templates/WRF4G.sh,file://%s/bin/vcp,file://%s/etc/db4g.conf,resources.wrf4g'%(WRF4G_LOCATION,WRF4G_LOCATION,WRF4G_LOCATION)
                 job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS,environ=ENVIRONMENT,inputsandbox=sandbox)
                 if chunki == first_id:
                     gw_id=job.submit()
