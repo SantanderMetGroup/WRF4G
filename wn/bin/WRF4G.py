@@ -77,7 +77,7 @@ def format_output(dout,ext=False):
     runt=(int(dout['cdate'].strftime("%s"))-int(dout['sdate'].strftime("%s")))*100.    
     totalt=int(dout['edate'].strftime("%s"))-int(dout['sdate'].strftime("%s"))
     per=runt/totalt
-    if dout['status'] < 10 and dout['rea_status'] != 4:  dout['rea_status']=1  
+    if dout['status'] < 10 and dout['status']>0 and dout['rea_status'] != 4:  dout['rea_status']=1  
     
     print '%-18s %-5s %-2s %-6s %-10s %-10s %-13s %2s %2.2f'%(dout['name'][0:17],dout['gw_job'],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],exitcode,per)
     if ext==True:
@@ -306,6 +306,7 @@ class Experiment(Component):
     
     def ps(self):
         self.data['id']=self.get_id_from_name()
+        if self.data['id'] < 0:     sys.exit(19)
         rea_ids=self.get_realizations_id()
         dout=[]
         print '%-18s %-3s %-4s %-6s %-10s %-10s %-13s %2s %3s'%('Realization','GW','Stat','Chunks','Comp.Res','WN','Run.Sta','ext','%')        
@@ -555,14 +556,22 @@ class Realization(Component):
             self.prepared=1   
         
     def ps(self):
-        
+        only_rea=0
+        if 'id' in self.data.keys():
+           self.data['name']=self.get_name()
+        else:
+            self.data['id']=self.get_id(['name'])
+            only_rea=1
+            if self.data['id']== -1:
+                sys.stderr.write('Realization with name %s does not exists \n'%rea_name)
+                sys.exit(1)            
         drea=dbc.select('Realization','name,restart,sdate,cdate,edate','id=%s'%self.data['id'])
         dout=drea[0]
         nchunks=self.number_of_chunks()
         status=self.get_init_status()
         
         if status == 0:
-            djob={'gw_job': '-', 'status': 1, 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'0/%d'%nchunks}
+            djob={'gw_job': '-', 'status': 0, 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'0/%d'%nchunks}
         else:
             (id_chunk,current_chunk,status)=self.current_chunk_status()            
             #(id_chunk,status)=self.current_chunk_status()                
@@ -576,7 +585,12 @@ class Realization(Component):
         dout.update(djob)
         dout['rea_status']=status        
         #dout={'gw_job': 4L, 'status': 40L, 'sdate': datetime.datetime(1983, 8, 25, 12, 0), 'resource': 'mycomputer', 'name': 'testc1', 'wn': 'sipc18', 'nchunks': '3/3', 'cdate': datetime.datetime(1983, 8, 25, 12, 0), 'exitcode': 0L, 'edate': datetime.datetime(1983, 8, 27, 0, 0), 'restart': datetime.datetime(1983, 8, 27, 0, 0), 'rea_status': 4}]
-        return dout
+        if only_rea == 1 :
+            print '%-18s %-3s %-4s %-6s %-10s %-10s %-13s %2s %3s'%('Realization','GW','Stat','Chunks','Comp.Res','WN','Run.Sta','ext','%')
+            format_output(dout)
+            return ""
+        else:
+            return dout
                            
     def prepare_storage(self):          
         RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
