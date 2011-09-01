@@ -1,14 +1,29 @@
 #!/usr/bin/python
 
 from sys import stderr,exit, path
-path.reverse()
 import sys
-from optparse import OptionParser
 import os
+import re
+
+WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
+if WRF4G_LOCATION == None:
+    sys.stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
+    sys.exit(1)  
+
+os.environ['DB4G_CONF']='%s/etc/db4g.conf'%WRF4G_LOCATION
+DB4G_CONF=os.environ['DB4G_CONF']
+if not os.path.isfile(DB4G_CONF):
+   print 'DB4G_CONF do not exist'
+   sys.exit(2)
+
+sys.path.append('%s/lib/python'%WRF4G_LOCATION)
+sys.path.reverse()
+from optparse import OptionParser
+import WRF4G
    
 usage="""
 
-%prog [--dry-run] [--nchunks N] [--nreas N] [--priority P] [--verbose] [--force] [--help]
+%prog [--dry-run] [--nchunk N] [--nrea N] [--priority P] [--verbose] [--force] [--help]
 
 Synopsys:
 
@@ -16,38 +31,61 @@ Submits an experiment or realization. If the user do not specify an experiment o
 the name of the experiment will be retrieved from  experiment.wrf4g in case it exists in the current folder.    
 """  
 parser = OptionParser(usage,version="%prog 1.0")
-parser.add_option("-n", "--dry-run",action="store_false", dest="dryrun",help="Perform a trial run with no changes made")
-parser.add_option("-o", "--run-just-one",action="store_false", dest="runone", help="Run just the first chunk of the first realization. Only for testing purposes.")
-parser.add_option("-C", "--nchunk",metavar="N",dest="nchunk",default=0, help="Run the next N chunks not finished of each realization")
-parser.add_option("-R", "--nrea",metavar="N",dest="nrea", default=0, help="Run the next N realizations not finished of the experiment")
+parser.add_option("-n", "--dry-run",action="store_true", default=False, dest="dryrun",help="Perform a trial run with no changes made")
+parser.add_option("-e", "--exp",metavar="name",dest="exp_name", help="Name of the experiment to sumbit")
 parser.add_option("-r", "--rea",metavar="name",dest="rea_name", help="Name of the realization to sumbit")
 parser.add_option("-F", "--frea",metavar="FILE",dest="rea_file", help="File containing the name of the realization to sumbit.")
-parser.add_option("-e", "--exp",metavar="name",dest="exp_name", help="Name of the experiment to sumbit")
+parser.add_option("-a", "--rerun",action="store_true",default=False, dest="rerun",help="Force to run although ths realization or experiment has finished")
+parser.add_option("-o", "--run-just-one",action="store_true",default=False, dest="runone", help="Run just the first chunk of the first realization. Only for testing purposes.")
+parser.add_option("-C", "--nchunk",metavar="N",dest="nchunk",type="int",default=0, help="Run the next N chunks not finished of each realization")
+parser.add_option("-R", "--nrea",metavar="N",dest="nrea", type="int", default=0, help="Run the next N realizations not finished of the experiment")
 parser.add_option("-p", "--priority",metavar="P",dest="priority", default=0,help="P is the priority the experiment or realization is going to be launched with (P is a integer between 1 and 100)")
-parser.add_option("-v", "--verbose",action="store_false", dest="verbose",help="Verbose mode. Explain what is being done")
-parser.add_option("-f", "--force",action="store_false", dest="force",help="Don't ask the user if he wants to submit an experiment already submitted")
+parser.add_option("-v", "--verbose",action="store_true",default=False, dest="verbose",help="Verbose mode. Explain what is being done")
+parser.add_option("-f", "--force",action="store_true",default=False, dest="force",help="Don't ask the user if he wants to submit an experiment already submitted")
 
 (options, args) = parser.parse_args()
+
+experiment_name=None
 if not (options.exp_name or options.rea_name or options.rea_file):
     # No experiment or realization given
     if not os.path.isfile('experiment.wrf4g'):
       print "Error. Please provide the name of the experiment to submit."
       sys.exit(1)
-
-if runone:
+    else:
+      exp_file=open('experiment.wrf4g').read()
+      parsed=re.sub(r'\n\s+', '\n', exp_file)
+      exec parsed
+      
+if options.runone:
     nrea=1
-    nchunk=1
+    nchunk=1    
+if options.exp_name:
+    experiment_name=options.exp_name
 
-DB4G_CONF=os.environ.get('DB4G_CONF')
-if DB4G_CONF == None:
-    sys.stderr.write('DB4G_CONF is not defined. Please define it and try again\n')
-    sys.exit(1)
-exec open(DB4G_CONF).read()
+if experiment_name:
+    exp=WRF4G.Experiment(data={'name':'%s'%experiment_name},verbose=options.verbose,dryrun=options.dryrun)
+    id=exp.get_id_from_name()
+    if int(id) < 0:
+        print "Experiment %s do not exists"%experiment_name
+        sys.exit(2)
+    exp.run(nrea=options.nrea,nchunk=options.nchunk,priority=options.priority,rerun=options.rerun)
 
-WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
-if DB4G_CONF == None:
-    sys.stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
-    sys.exit(1)   
-        
-        
+elif options.rea_name:
+    rea=WRF4G.Realization(data={'name':'%s'%options.rea_name},verbose=options.verbose,dryrun=options.dryrun)
+    id=rea.get_id_from_name()   
+    rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun)
+elif options.rea_file:
+    f=open(options.rea_file)
+    for realization in f.readlines():
+        realization=realization.rstrip()
+        rea=WRF4G.Realization(data={'name':'%s'%realization},verbose=options.verbose,dryrun=options.dryrun)
+        id=rea.get_id_from_name()
+        rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun)      
+    f.close()
     
+ 
+if options.dryrun:
+     WRF4G.dbc.rollback()
+else:
+     WRF4G.dbc.commit()
+WRF4G.dbc.close()

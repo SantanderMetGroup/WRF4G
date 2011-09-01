@@ -10,8 +10,6 @@ from datetime import datetime
 from optparse import OptionParser
 import os
 
-
-
 def datetime2datewrf (date_object):
     return date_object.strftime("%Y-%m-%d_%H:%M:%S")
 
@@ -60,11 +58,6 @@ def load_default_values():
     NP=1
     REQUIREMENTS=''
     ENVIRONMENT=''
-    DB_HOST="ui01.macc.unican.es"
-    DB_PORT=13306
-    DB_USER="gridway"
-    DB_PASSWD="ui01"
-    DB_WRF4G="WRF4GDB"
 
 def format_output(dout,ext=False):
     dreastatus={0:'P',1:'W',2:'R',3: 'F',4:'D'}
@@ -83,19 +76,33 @@ def format_output(dout,ext=False):
     if ext==True:
         print "%10s %10s %10s"%(dout['sdate'],dout['restart'],dout['edate'])    
 
+DB4G_CONF=os.environ.get('DB4G_CONF')
+if DB4G_CONF == None:
+    sys.stderr.write('DB4G_CONF is not defined. Please define it and try again\n')
+    sys.exit(1)
+exec open(DB4G_CONF).read()
+
+
+WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
+if WRF4G_LOCATION == None:
+    sys.stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
+    sys.exit(1)   
+
+load_default_values()
+dbc=vdb.vdb(host=DB_HOST, user=DB_USER, db=DB_WRF4G, port=DB_PORT, passwd=DB_PASSWD)
+
+
+
 class Component:
     """  Component CLASS
     """
 
-    def __init__(self,data='',verbose=False,reconfigure=False,dryrun=False,rerun=False):
+    def __init__(self,data='',verbose=False,dryrun=False,reconfigure=False):
         #val={'no': False, 'yes': True}
         self.verbose=verbose
-        self.reconfigure=reconfigure
         self.dryrun=dryrun
-        self.rerun=rerun
         self.element=self.__class__.__name__
-        self.data=data
-        self.allfields=['','','','']        
+        self.data=data   
         #for field in data.keys():            
         #    setattr(self,field,data[field])
             
@@ -279,6 +286,7 @@ class Experiment(Component):
         
         idp=dbc.select(self.element,'id',"name='%s'"%self.data['name'],verbose=self.verbose)
         id = vdb.list_query().one_field(idp)
+        self.data['id']=id
         if id !='': return id
         else: return -1
 
@@ -286,15 +294,22 @@ class Experiment(Component):
         name=self.get_one_field(['name'], ['id'])
         return name
            
-    def run(self,nrea=0,nchunk=0,priority=0):
+    def run(self,nrea=0,nchunk=0,priority=0,rerun=None):
         ncrea=0
-        rea_ids=self.get_realizations_id()
+        if rerun:
+            rea_ids=self.get_realizations_id()
+        else:
+            rea_ids=self.get_unfinishedreas_id()
+            
         if len(rea_ids) == 0:
             stderr.write('There are not realizations to run.\n')
         
+        if nrea >  0:
+            rea_ids=rea_ids[0:nrea]
+
         for id_rea in rea_ids:
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
-            st=rea.run(nchunk=nchunk)
+            st=rea.run(nchunk=nchunk,priority=priority,rerun=rerun)
             if st==1:
                 ncrea=ncrea+1
                 if ncrea==nrea:
@@ -324,6 +339,14 @@ class Experiment(Component):
         idp=dbc.select('Realization','id','id_exp=%s'%self.data['id'],verbose=self.verbose)
         ids_rea = vdb.list_query().one_field(idp,'python')
         return ids_rea 
+    
+    def get_unfinishedreas_id(self):
+        """
+        Return a list of ids of the realization of a experiment which haven't finished.
+        """
+        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status!=4 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s'%self.data['id'],verbose=self.verbose)
+        ids_rea = vdb.list_query().one_field(idp,'python')
+        return ids_rea
     
     def prepare_storage(self):          
         RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
@@ -370,6 +393,15 @@ class Realization(Component):
         name=self.get_one_field(['name'], ['id'])
         return name
     
+    def get_id_from_name(self):
+
+        wheresta=''
+        idp=dbc.select(self.element,'id',"name='%s'"%self.data['name'],verbose=self.verbose)
+        id = vdb.list_query().one_field(idp)
+        self.data['id']=id
+        if id !='': return id
+        else: return -1
+        
     def get_restart(self):
         restart=self.get_one_field(['restart'], ['id'])
         if restart != None:
@@ -454,28 +486,30 @@ class Realization(Component):
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk 
          
-    def run(self,nchunk=0,priority=0):
+    def run(self,nchunk=0,priority=0,rerun=None):
         import gridway   
+        os.environ['GW_LOCATION']='%s/opt/drm4g_gridway-5.7'%WRF4G_LOCATION
+        
         self.prepared=0
 
-        if 'id' in self.data.keys():
-           self.data['name']=self.get_name()
-           rea_name=self.data['name']
-        else:
-            rea_name=self.data['name']
-            self.data['id']=self.get_id(['name'])
-            if self.data['id']== -1:
-                sys.stderr.write('Realization with name %s does not exists \n'%rea_name)
-                sys.exit(1)    
+#        if 'id' in self.data.keys():
+#           self.data['name']=self.get_name()
+#           rea_name=self.data['name']
+#        else:
+#            rea_name=self.data['name']
+#            self.data['id']=self.get_id(['name'])
+#            if self.data['id']== -1:
+#                sys.stderr.write('Realization with name %s does not exists \n'%rea_name)
+#                sys.exit(1)    
         
         #restart=self.get_restart()
-        
+        rea_name=self.get_name()
         chunk_status=self.current_chunk_status()
         
         first_id=chunk_status[0]
         first_id_chunk=chunk_status[1]
         
-        if self.rerun:
+        if rerun:
             first_id=first_id-first_id_chunk+1     
             first_id_chunk=1
         else:
@@ -497,8 +531,8 @@ class Realization(Component):
         """
         
         lchunk=self.last_chunk()
-        if nchunk != 0 and lchunk-first_id > nchunk: 
-            lchunk=first_id+int(nchunk)-1
+        if nchunk != 0 and lchunk-first_id >= nchunk: 
+            lchunk=first_id+nchunk-1
 
         for chunki in range(first_id,lchunk+1):
             chi=Chunk(data={'id':'%s'%chunki})
@@ -563,7 +597,7 @@ class Realization(Component):
             self.data['id']=self.get_id(['name'])
             only_rea=1
             if self.data['id']== -1:
-                sys.stderr.write('Realization with name %s does not exists \n'%rea_name)
+                sys.stderr.write('Realization with name %s does not exists \n'%self.data['name'])
                 sys.exit(1)            
         drea=dbc.select('Realization','name,restart,sdate,cdate,edate','id=%s'%self.data['id'])
         dout=drea[0]
@@ -573,15 +607,18 @@ class Realization(Component):
         if status == 0:
             djob={'gw_job': '-', 'status': 0, 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'0/%d'%nchunks}
         else:
-            (id_chunk,current_chunk,status)=self.current_chunk_status()            
-            #(id_chunk,status)=self.current_chunk_status()                
-            ch=Chunk(data={'id': id_chunk}) 
-            lastjob=ch.get_last_job()
-            j=Job(data={'id':lastjob})            
-            djob=j.get_info()
-            if djob['status'] < 10:
-                djob={'gw_job': djob['gw_job'], 'status': djob['status'], 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'0/%d'%nchunks}
-            djob['nchunks']='%d/%d'%(current_chunk,nchunks)
+            (id_chunk,current_chunk,status)=self.current_chunk_status()     
+            if status == 0:       
+                djob={'gw_job': '-', 'status': 0, 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'%s/%d'%(current_chunk,nchunks)}
+            else:
+                #(id_chunk,status)=self.current_chunk_status()                
+                ch=Chunk(data={'id': id_chunk}) 
+                lastjob=ch.get_last_job()
+                j=Job(data={'id':lastjob})            
+                djob=j.get_info()
+                if djob['status'] < 10:
+                    djob={'gw_job': djob['gw_job'], 'status': djob['status'], 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'0/%d'%nchunks}
+                djob['nchunks']='%d/%d'%(current_chunk,nchunks)
         dout.update(djob)
         dout['rea_status']=status        
         #dout={'gw_job': 4L, 'status': 40L, 'sdate': datetime.datetime(1983, 8, 25, 12, 0), 'resource': 'mycomputer', 'name': 'testc1', 'wn': 'sipc18', 'nchunks': '3/3', 'cdate': datetime.datetime(1983, 8, 25, 12, 0), 'exitcode': 0L, 'edate': datetime.datetime(1983, 8, 27, 0, 0), 'restart': datetime.datetime(1983, 8, 27, 0, 0), 'rea_status': 4}]
@@ -762,7 +799,6 @@ if __name__ == "__main__":
     parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
     parser.add_option("-r", "--reconfigure",action="store_true", dest="reconfigure", default=False,help="Reconfigure element in WRF4G")
     parser.add_option("-n", "--dry-run",action="store_true", dest="dryrun", default=False,help="Perform a trial run with no changes made")
-    parser.add_option("-R", "--rerun",action="store_true", dest="rerun", default=False,help="Rerun an experiment or realization although it has been finished.")
     (options, args) = parser.parse_args()
     
     if len(args) < 2:
@@ -771,22 +807,10 @@ if __name__ == "__main__":
         
     class_name=args[0]
     function=args[1]
-    load_default_values()
-    DB4G_CONF=os.environ.get('DB4G_CONF')
-    if DB4G_CONF == None:
-        sys.stderr.write('DB4G_CONF is not defined. Please define it and try again\n')
-        sys.exit(1)
-    exec open(DB4G_CONF).read()
-    
-    WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
-    if DB4G_CONF == None:
-        sys.stderr.writpathgridwaye('WRF4G_LOCATION is not defined. Please define it and try again\n')
-        sys.exit(1)   
    
     data=''
-    dbc=vdb.vdb(host=DB_HOST, user=DB_USER, db=DB_WRF4G, port=DB_PORT, passwd=DB_PASSWD)
     if len(args) > 2:   data=pairs2dict(args[2])         
-    inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure,dryrun=options.dryrun,rerun=options.rerun)"%(class_name,data)
+    inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure,dryrun=options.dryrun)"%(class_name,data)
     # Instantiate the Component Class:
     # comp=Chunk(data={'id': '23'},verbose=options.verbose,reconfigure=options.reconfigure)
     comp=eval(inst)
