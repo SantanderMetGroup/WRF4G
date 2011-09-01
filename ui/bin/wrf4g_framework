@@ -64,9 +64,9 @@ case "$1" in
 	   #sed -i "s/DB_PORT.*$/DB_PORT=$DB_PORT/"  $WRF4G_LOCATION/etc/framework4g.conf
 	   nohup ./bin/mysqld_safe --no-defaults --port=$DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock &>/dev/null &
            cd - &>/dev/null
-           sed 's/DB_LOCAL.*/# DataBase Configuration/' db4g.conf.temp >${WRF4G_LOCATION}/etc/db4g.conf
        	   echo "OK"
          fi
+         sed 's/DB_LOCAL.*/# DataBase Configuration/' db4g.conf.temp >${WRF4G_LOCATION}/etc/db4g.conf
          rm db4g.conf.temp   
        ;;
     stop)
@@ -108,7 +108,16 @@ case "$1" in
         gwd
         ;;
     *)
-        echo "Usage: /etc/init.d/$0 {start|stop|restart|reload}"
+      cat << EOF
+USAGE 
+  $(basename $0) {start|stop|restart|reload}
+
+SYNOPSYS
+  wrf4g_framework manages WRF4G framework components: drm4g and database. 
+  It load the framework configuration from etc/framework4g.conf.
+
+
+EOF
         exit 1
         ;;
 esac

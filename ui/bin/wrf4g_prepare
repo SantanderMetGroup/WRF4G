@@ -36,18 +36,20 @@ if test ${#} -ge 1; then
           rerun="yes"
         ;;
       --help)
-      echo "Usage: $0  --dry-run --reconfigure --verbose --help"
       cat << EOF
+USAGE 
+  $(basename $0)  [--dry-run] [--reconfigure] [--verbose] [--help]
 
-      --dry-run: Perform a trial run with no changes made
+SYNOPSYS
+  Given a file (experiment.wrf4g) describing the experiment, prepare the experiment creating the realization and chunks needed to perform it.
 
-      --reconfigure: Reconfigure experiment. With this option we can change the end date of the experiments, we can add physics,...
+OPTIONS
+  --dry-run        Perform a trial run with no changes made.
+  --reconfigure    Reconfigure experiment. With this option we can change the start and end date of the experiments and add new physics. 
+                   Values are taken from a modified experiment.wrf4g. 
+  --verbose        Verbose mode. Explain what is being done
+  --help           Shows this help
 
-      --verbose: Verbose mode. Explain what is being done
-
-      --force: Don't ask the user if he wants to submit an experiment already submitted
-
-      --help: Shows this help
 EOF
        exit 
           ;;
@@ -344,6 +346,12 @@ if test ${id} -ge 0; then
 	if_not_dry rm namelist.input namelist.input.base
 
 fi
+
+#if ! is_dry_run; then 
+#  cd ..
+#else
+#  id=$(WRF4G.py $WRF4G_FLAGS Experiment delete id=${id_exp}) 
+#fi
 
 if test -f resources.wrf4g.orig; then
   mv resources.wrf4g.orig resources.wrf4g
