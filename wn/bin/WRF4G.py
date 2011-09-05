@@ -101,6 +101,7 @@ class Component:
         #val={'no': False, 'yes': True}
         self.verbose=verbose
         self.dryrun=dryrun
+        self.reconfigure=reconfigure
         self.element=self.__class__.__name__
         self.data=data   
         #for field in data.keys():            
