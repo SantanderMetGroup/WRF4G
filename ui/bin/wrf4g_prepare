@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/bash -x
 #
 # wrf4g_submitter
 #
@@ -142,6 +142,10 @@ function cycle_chunks(){
     if test ${fyy}${fmm}${fdd}${fhh} -gt ${eyy}${emm}${edd}${ehh}; then
       final_date=${realization_end_date}
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
+    else
+      echo "ERROR -- error "
+      echo "Final date: "${fyy}${fmm}${fdd}${fhh}\
+        " less than initial date"${eyy}${emm}${edd}${ehh}
     fi
     
     echo -e "\t\t---> chunks ${chunkno}: ${realization_name} ${current_date} ${final_date}">&2
@@ -256,6 +260,7 @@ export WRF4G_EXPERIMENT="${experiment_name}"
 #
 #  Initial override of namelist values
 #
+
 if test "${multiple_parameters}" -ne "0"; then
     if [ -z ${multiparams_labels// /} ]; then
         mlabel=${multiparams_combinations// /}

@@ -80,7 +80,10 @@ elif options.rea_file:
         realization=realization.rstrip()
         rea=WRF4G.Realization(data={'name':'%s'%realization},verbose=options.verbose,dryrun=options.dryrun)
         id=rea.get_id_from_name()
-        rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun)      
+        if id < 0 :
+           print "Realization with name %s do not exist"%realization
+        else:
+           rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun)      
     f.close()
     
  
