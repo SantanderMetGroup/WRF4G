@@ -7,7 +7,7 @@ function load_default_config (){
  #
  #  Some default values
  #
- save_wps=1
+ save_wps=0
  clean_after_run=1
  timestep_dxfactor=6
  real_parallel=0
