@@ -696,6 +696,10 @@ class Chunk(Component):
     def get_id_rea(self):
         id_rea=self.get_one_field(['id_rea'], ['id'])
         return id_rea     
+
+    def get_id_chunk(self):
+        id_chunk=self.get_one_field(['id_chunk'], ['id'])
+        return id_chunk 
         
     def prepare_storage(self):
         pass
@@ -703,7 +707,7 @@ class Chunk(Component):
     def get_last_job(self):
         last_job=dbc.select('Job','MAX(Job.id)','Job.id_chunk=%s'%self.data['id'])
         lj=vdb.parse_one_field(last_job)
-        return lj
+        return int(lj)
     
     
 class Job(Component):
@@ -757,6 +761,14 @@ class Job(Component):
             cond="%s AND %s='%s'" %(cond,field,self.data[field])
         cond=cond[4:]
         ch=Chunk(data={'id': self.data['id_chunk']})
+        nchunk=int(ch.get_id_chunk())
+        if nchunk > 1:            
+            lch=Chunk(data={'id': str(int(self.data['id_chunk'])-1)})
+            lstatus=int(lch.get_status())
+            if lstatus!=4:
+                stderr.write('Error: The previous Chunk did not finished correctly\n')
+                exit(93)
+            
         last_job=int(ch.get_last_job())
         chunk_status=int(ch.get_status())
         if chunk_status==4:
@@ -769,7 +781,7 @@ class Job(Component):
         [max_id,db_gwres]=jobd[0].values()
 
         # If last_job is bigger than this job's id, then this job should not run.
-        if last_job > max_id:
+        if last_job > int(max_id):
             stderr.write('Error: This job should not be running this Chunk\n')
             exit(92)
 

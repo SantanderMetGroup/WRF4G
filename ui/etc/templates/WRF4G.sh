@@ -101,6 +101,10 @@ function wrf4g_exit(){
        output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} 92)
        exit 92
        ;;
+    93)
+       output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} 92)
+       exit 93
+       ;;
     *)
        output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41)
        ;;
@@ -110,8 +114,7 @@ function wrf4g_exit(){
   ls -l >& ${logdir}/ls.wrf
   test -f namelist.output && cp namelist.output ${logdir}/
   if test -e rsl.out.0000; then
-    mkdir -p rsl_wrfvalva:0      9   done ---- 12:04:22 12:04:57 0:00:29 0:00:00 92   test__1         mycomputer/FORK           
-valva:0      10  done ---- 12:04:23 12:05:57 0:00:29 0:00:00 92   test__2         mycomputer/FORK    
+    mkdir -p rsl_wrf
     mv rsl.* rsl_wrf/
     mv rsl_wrf ${logdir}/
   fi
@@ -211,6 +214,8 @@ if test $exitcode -ne 0; then
         wrf4g_exit 91
    elif test  $exitcode -eq 92; then
         wrf4g_exit 92
+   elif test  $exitcode -eq 93; then
+        wrf4g_exit 93
    else
         exit 88
    fi

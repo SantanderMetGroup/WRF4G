@@ -73,6 +73,9 @@ if experiment_name:
 elif options.rea_name:
     rea=WRF4G.Realization(data={'name':'%s'%options.rea_name},verbose=options.verbose,dryrun=options.dryrun)
     id=rea.get_id_from_name()   
+    if int(id) < 0:
+        print "Realization %s do not exists"%options.rea_name
+        sys.exit(3)
     rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun)
 elif options.rea_file:
     f=open(options.rea_file)
