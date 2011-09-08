@@ -110,7 +110,8 @@ function wrf4g_exit(){
   ls -l >& ${logdir}/ls.wrf
   test -f namelist.output && cp namelist.output ${logdir}/
   if test -e rsl.out.0000; then
-    mkdir -p rsl_wrf
+    mkdir -p rsl_wrfvalva:0      9   done ---- 12:04:22 12:04:57 0:00:29 0:00:00 92   test__1         mycomputer/FORK           
+valva:0      10  done ---- 12:04:23 12:05:57 0:00:29 0:00:00 92   test__2         mycomputer/FORK    
     mv rsl.* rsl_wrf/
     mv rsl_wrf ${logdir}/
   fi

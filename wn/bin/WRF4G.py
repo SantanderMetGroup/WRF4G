@@ -80,13 +80,7 @@ DB4G_CONF=os.environ.get('DB4G_CONF')
 if DB4G_CONF == None:
     sys.stderr.write('DB4G_CONF is not defined. Please define it and try again\n')
     sys.exit(1)
-exec open(DB4G_CONF).read()
-
-
-WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
-if WRF4G_LOCATION == None:
-    sys.stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
-    sys.exit(1)   
+exec open(DB4G_CONF).read() 
 
 load_default_values()
 dbc=vdb.vdb(host=DB_HOST, user=DB_USER, db=DB_WRF4G, port=DB_PORT, passwd=DB_PASSWD)
@@ -489,6 +483,11 @@ class Realization(Component):
          
     def run(self,nchunk=0,priority=0,rerun=None):
         import gridway   
+
+        WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
+        if WRF4G_LOCATION == None:
+           sys.stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
+           sys.exit(1) 
         os.environ['GW_LOCATION']='%s/opt/drm4g_gridway-5.7'%WRF4G_LOCATION
         
         self.prepared=0
@@ -577,6 +576,11 @@ class Realization(Component):
             exp_name=self.get_exp_name()
             cexp=Experiment(data={'id': exp_id})
             WRF4G_BASEPATH=cexp.get_basepath()
+            WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
+            if WRF4G_LOCATION == None:
+              sys.stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
+              sys.exit(1) 
+            os.environ['GW_LOCATION']='%s/opt/drm4g_gridway-5.7'%WRF4G_LOCATION
             subdir= '%s/%s/%s/%s'%(WRF4G_LOCATION,'.submission',exp_name,rea_name)       
             if not os.path.isdir(subdir):
                 os.makedirs(subdir)
@@ -697,7 +701,7 @@ class Chunk(Component):
         pass
    
     def get_last_job(self):
-        last_job=dbc.select('Job,Chunk','MAX(Job.id)','Chunk.id=%s AND Job.id_chunk=Chunk.id'%self.data['id'])
+        last_job=dbc.select('Job','MAX(Job.id)','Job.id_chunk=%s'%self.data['id'])
         lj=vdb.parse_one_field(last_job)
         return lj
     

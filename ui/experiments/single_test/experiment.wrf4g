@@ -4,37 +4,34 @@
 #
 #   Experiment configuration
 #
-experiment_name = "wrfucm"
-experiment_description = "5 days operational running of WRF in GMS of the explosive cyclogenesis along the Cantabrian coast occurred on 23-24th January 2009. 2 different realizations of 120 hours started every 12 hours. Each one with chunks every 24 hour"
+experiment_name = "test"
 max_dom = 1
-domain_name = "wrfuc"
-extdata_vtable = "NCEP"    # Vtables must exist as Vtable.[input_extdata]
-extdata_path = "${WRF4G_INPUT}/NCEP/Reanalysis1/6hr"
+domain_name = "Santander_50km"
+extdata_vtable = "GFS"    # Vtables must exist as Vtable.[input_extdata]
+extdata_path = "${WRF4G_INPUT}/NCEP/GFS"
 extdata_interval = 21600   # Seconds between global analysis input times
-extdata_preprocessor = "NNR1"
+extdata_preprocessor = "default"
 
-
-start_date      = "2009-01-21_12:00:00"
-end_date        = "2009-01-25_12:00:00"
-chunk_size_h = 24
-multiple_dates = 1
-  simulation_interval_h = 12
-  simulation_length_h = 72
+start_date      = "2011-08-28_12:00:00"
+end_date        = "2011-08-30_00:00:00"
+chunk_size_h = 12
+multiple_dates = 0
+  simulation_interval_h = 24
+  simulation_length_h = 36
 rerun = 0
-multiple_parameters = 1
+multiple_parameters = 0
   multiparams_variables = "mp_physics,cu_physics,ra_lw_physics,ra_sw_physics,sf_sfclay_physics,bl_pbl_physics,sf_surface_physics"
   multiparams_nitems = "${max_dom},${max_dom},${max_dom},${max_dom},${max_dom},${max_dom},${max_dom}"
   multiparams_combinations = "5,1:1:0,1,1,2,2,2/4,1:1:0,1,1,1,1,2/4,1:1:0,1,1,2,2,2/4,1:1:0,1,1,7,7,2/4,3:3:0,1,1,7,7,2  "
   multiparams_labels = "phys1/phys2/phys3/phys4/phys5"
 #
-clean_after_run = 1
+clean_after_run = 0
 postprocessor = "SFC"
 #
 #   Override namelist.input variables here
 #
 # Single valued:
 #
-NI_restart_interval = 1440999 # minutos
 NI_spec_bdy_width = 10
 NI_spec_zone = 1
 NI_relax_zone = 9
@@ -42,8 +39,8 @@ NI_feedback = 0
 #
 # One value per domain:
 #
-NIM_history_interval = 360,60,60,60 # minutos
-NIM_frames_per_outfile = 12999,12,12,12
+NIM_history_interval = 180,60,60,60 # minutos
+NIM_frames_per_outfile = 3,12,12,12
 #
 # One value per domain; but all equal (provide a single value here):
 #
