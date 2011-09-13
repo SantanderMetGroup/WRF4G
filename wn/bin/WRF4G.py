@@ -325,7 +325,18 @@ class Experiment(Component):
             dout=rea.ps()
             format_output(dout)
         return ''
-                      
+    
+    def status(self):
+        self.get_prepared_reas_id(),self.get_wait_reas_id(),self.get
+    
+    def sumarized_status(self):
+        prepared=len(self.get_prepared_reas_id())
+        wait=len(self.get_wait_reas_id())
+        run=len(self.get_run_reas_id())
+        done=len(self.get_done_reas_id())
+        fail=len(self.get_fail_reas_id())
+        return '%-10s %-3d %-3d %-3d %-3d %-3d'%(self.get_name,prepared,wait,run,done,fail)
+                          
     def get_realizations_id(self):
         """    
         Query database and Returns a list with the realization
@@ -342,6 +353,50 @@ class Experiment(Component):
         idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status!=4 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s'%self.data['id'],verbose=self.verbose)
         ids_rea = vdb.list_query().one_field(idp,'python')
         return ids_rea
+
+    def get_run_reas_id(self):
+        """
+        Return a list of ids of the realization of a experiment which have finished.
+        """
+        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=2 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s'%self.data['id'],verbose=self.verbose)
+        ids_rea = vdb.list_query().one_field(idp,'python')
+        return ids_rea      
+    
+    def get_fail_reas_id(self):
+        """
+        Return a list of ids of the realization of a experiment which have finished.
+        """
+        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=3 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s'%self.data['id'],verbose=self.verbose)
+        ids_rea = vdb.list_query().one_field(idp,'python')
+        return ids_rea  
+
+    def get_prepared_reas_id(self):
+        """
+        Return a list of ids of the realization of a experiment which have finished.
+        """
+        # SELECT DISTINCT(Realization.id) From Chunk,Realization where Realization.id=Chunk.id_rea AND Realization.id_exp=2 and Chunk.status = 1 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Chunk.id_rea AND c2.status!=1)
+        condition='Realization.id=Chunk.id_rea AND Realization.id_exp=%s and Chunk.status = 0 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Chunk.id_rea AND c2.status!=0)'%self.data['id']
+        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id',condition,verbose=self.verbose)
+        ids_rea = vdb.list_query().one_field(idp,'python')
+        return ids_rea   
+
+    def get_done_reas_id(self):
+        """
+        Return a list of ids of the realization of a experiment which have finished.
+        """
+        # SELECT DISTINCT(Realization.id) From Chunk,Realization where Realization.id=Chunk.id_rea AND Realization.id_exp=2 and Chunk.status = 1 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Chunk.id_rea AND c2.status!=1)
+        condition='Realization.id=Chunk.id_rea AND Realization.id_exp=%s and Chunk.status = 4 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Chunk.id_rea AND c2.status!=1)'%self.data['id']
+        idp=dbc.select('Chunk,Realization',condition,verbose=self.verbose)
+        ids_rea = vdb.list_query().one_field(idp,'python')
+        return ids_rea
+
+    def get_wait_reas_id(self):
+        """
+        Return a list of ids of the realization of a experiment which have finished.
+        """
+        idp=dbc.select('Chunk,Realization','Realization.id','Chunk.status=1 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s AND Chunk.id_chunk=1'%self.data['id'],verbose=self.verbose)
+        ids_rea = vdb.list_query().one_field(idp,'python')
+        return ids_rea  
     
     def prepare_storage(self):          
         RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
@@ -350,7 +405,7 @@ class Experiment(Component):
             sys.exit(1)
         exec open(RESOURCES_WRF4G).read()     
         # Load the URL into the VCPURL class
-        exp_dir="%s/%s" %(WRF4G_BASEPATH, self.data['name'])
+        exp_dir="%s/%s/" %(WRF4G_BASEPATH, self.data['name'])
         list=vcp.VCPURL(exp_dir)
         list.mkdir(verbose=self.verbose)
         if os.path.exists('wrf4g_files'):
@@ -430,7 +485,7 @@ class Realization(Component):
         else:
             finished=False
         return finished
-    
+
 
     def get_init_status(self):
         
@@ -463,7 +518,6 @@ class Realization(Component):
         return (id,id_chunk,int(status))    
         
     def has_failed(self):
-        
         nchunkd=dbc.select('Chunk','id','id_rea=%s AND status=3'%self.data['id'] )
         if nchunkd != ():     
             return True
@@ -641,7 +695,9 @@ class Realization(Component):
             sys.exit(1)
         exec open(RESOURCES_WRF4G).read()        
         reas=self.data['name'].split('__')
-        rea_dir="%s/%s/%s" % (WRF4G_BASEPATH,reas[0],self.data['name'])
+        rea_dir="%s/%s/%s/" % (WRF4G_BASEPATH,reas[0],self.data['name'])
+        list=vcp.VCPURL(rea_dir)
+        list.mkdir(verbose=self.verbose)
         for dir in ["output","restart","realout","log"]:
           repo="%s/%s" % (rea_dir,dir)
           list=vcp.VCPURL(repo)
