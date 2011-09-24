@@ -88,7 +88,7 @@ class VCPURL:
           
           self.command={'file': {'ls':"'ls -1 %s' %self.file" ,'mkdir':"'mkdir -p %s' %self.file" ,'rm':"'rm -rf %s' %self.file"  , 'rename':"'mv %s %s' %(orig,dest)", "name":"self.file"}, 
           'rsync' : {'ls':"'ssh -q %s ls -1 %s' %(self.usercomputer, self.file)",'mkdir': "'ssh -q %s mkdir -p %s' %(self.usercomputer,self.file)", 'rm':"'ssh -q %s rm -rf %s' %(self.usercomputer, self.file)" ,  'rename': "'ssh -q %s mv %s %s'%(self.usercomputer,orig,dest)",'name':"self.file"} , 
-          'gsiftp': {'ls':"'uberftp %s \"ls %s\"' %(self.computer, self.file)" ,'mkdir':"'uberftp %s \"mkdir %s\"' %(self.computer, self.file)" ,'rm':"'uberftp %s \"rm -r %s\"' %(self.computer, self.file)"  , 'rename':"'uberftp %s \"rename %s %s\"'%(self.computer,orig,dest)" , 'name': "self.file"}}
+          'gsiftp': {'ls':"'uberftp %s \"ls %s\" | awk \"NR>2\"' %(self.computer, self.file)" ,'mkdir':"'uberftp %s \"mkdir %s\"' %(self.computer, self.file)" ,'rm':"'uberftp %s \"rm -r %s\"' %(self.computer, self.file)"  , 'rename':"'uberftp %s \"rename %s %s\"'%(self.computer,orig,dest)" , 'name': "self.file"}}
         
 
     def __str__(self):
@@ -148,6 +148,9 @@ class VCPURL:
         """
         if err != 0 : return []
         out_list=out.split("\n")
+        if self.protocol == "gsiftp":
+            for i,elem in enumerate(out_list):
+                out_list[i]=elem.split()[-1]
         pattern=file.replace(".","\.")
         pattern=pattern.replace("*",".*")
         pattern= pattern + "$"
