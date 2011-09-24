@@ -9,7 +9,7 @@ wrf_pid=$1
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 #source ${ROOTDIR}/resources.wrf4g                           || exit ${ERROR_MISSING_WRF4GCNF}
-PID=$(cat ${LOCALDIR}/WRFV3/run/wrf.pid)
+#PID=$(cat ${LOCALDIR}/WRFV3/run/wrf.pid)
 
 
 
@@ -65,7 +65,7 @@ function clean_while_running(){
           continue
         else
           #if ! /usr/sbin/lsof | grep ${file}; then # Make sure it is not open...
-          if ! ls /proc/$PID/fd | grep ${file}; then # Make sure it is not open...
+          if ! ls /proc/$wrf_pid/fd | grep ${file}; then # Make sure it is not open...
             time_debug "Uploading ${file} (start)"
             #if test $patt == "wrfout"; then
             if test $(filetype $file) == "out"; then
