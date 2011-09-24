@@ -438,7 +438,7 @@ fi
 #------------------------------------------------------------------
 #                              WRF
 #------------------------------------------------------------------
-cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ERROR_CANNOT_ACCESS_LOCALDIR
+cd ${LOCALDIR}/WRFV3/run || wrf4g_exit $ERROR_CANNOT_ACCESS_LOCALDIR
   if test -n "${icbcprocessor}"; then
     output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 26)
       icbcprocessor.${icbcprocessor} >&  ${logdir}/icbcproc_${ryy}${rmm}${rdd}${rhh}.out
