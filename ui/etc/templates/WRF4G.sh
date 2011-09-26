@@ -242,7 +242,7 @@ else
   LOCALDIR=${ROOTDIR}
 fi
 export ROOTDIR
-export LOCALDIR=${PWD}
+export LOCALDIR
 echo ${ROOTDIR} > rootdir
 echo ${PWD} > ${ROOTDIR}/localdir
 
