@@ -3,11 +3,12 @@
 from sys import stderr, exit
 import MySQLdb
 import os
-import rlcompleter
-import readline
+# there is a bug with rlcompleter in Centos 6. When used, the $PS1 (in our case \033[?1034h$) is writen into stdout
+#import rlcompleter
+#import readline
 from re import search
 from optparse import OptionParser
-readline.parse_and_bind("tab: complete")
+#readline.parse_and_bind("tab: complete")
 #sys.path.append("/oceano/gmeteo/users/valva/python/MySQL-python/") 
 
 

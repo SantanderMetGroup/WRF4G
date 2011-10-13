@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from sys import stderr,exit, path
+from sys import stdout,stderr,exit,path
 path.reverse()
 import sys
 import inspect
@@ -894,7 +894,8 @@ if __name__ == "__main__":
         output=getattr(comp,function)(*args[3:])
     else:                  
         output=getattr(comp,function)()
-    print output
+    
+    stdout.write(str(output))
     
     if options.dryrun:
         dbc.rollback()
