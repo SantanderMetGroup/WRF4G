@@ -15,7 +15,7 @@ from optparse import OptionParser
 def parse_one_field(dict):
     return  dict[0].values()[0]
 
-def parse_one_list(self, result, interpreter='bash'):
+def parse_one_list(result, interpreter='bash'):
       """From the result of a query in list format, get the value of the
       first column and format it for bash or python
       """

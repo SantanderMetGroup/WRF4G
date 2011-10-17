@@ -1,6 +1,9 @@
 #!/bin/bash
 FOLDER="/tmp"
 echo "Creating WRF4G.tar.gz in ${FOLDER}"
+cd ui/opt/drm4g_gridway-5.7
+svn info>svn_info.txt
+cd -
 cp -RpL ui/ ${FOLDER}/
 svn info>${FOLDER}/ui/svn_info.txt
 cd ${FOLDER}/

@@ -288,10 +288,13 @@ fi
 if test ${id} -ge 0; then
         echo "Preparing namelist...">&2
 	if ! is_dry_run; then 
-          wrf_ver=$( echo ${WRF_VERSION} | awk -F_ '{ print $1}' )
-          namelist=${WRF4G_LOCATION}/etc/templates/${wrf_ver}/namelist.input
+          vcp ${WRF4G_APPS}/WRFbin-${WRF_VERSION}.tar.gz . >/dev/null
+          tar -xzvf WRFbin-${WRF_VERSION}.tar.gz WRFV3/run/namelist.input >&2;  rm -f WRFbin-${WRF_VERSION}.tar.gz
+          mv WRFV3/run/namelist.input namelist.input; rm -rf WRFV3
+          namelist=`pwd`/namelist.input
           if test -f ${namelist}; then
    	    cp ${namelist} ${userdir}/namelist.input.base
+            rm ${namelist}
 	    fortnml -wof namelist.input.base -s max_dom ${max_dom}
           else
             echo "There is not a namelist template for WRF ${wrf_ver} (File ${namelist} do not exists) "

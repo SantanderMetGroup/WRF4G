@@ -58,7 +58,7 @@ case "$1" in
               fi
            fi
            if [ $(netstat -atn |grep LISTEN | grep -m1 -c ":$DB_PORT ") -eq 1 ]; then
-               echo -e "FAILED.\nAnother process is listening on port $DB_PORT.\nChange DB_PORT in \$WRF4G_LOCATION/etc/framework.4g to start mysql on a different port."
+               echo -e "FAILED.\nAnother process is listening on port $DB_PORT.\nChange DB_PORT in \$WRF4G_LOCATION/etc/framework4g.conf to start mysql on a different port."
                exit 4         
            fi
 	   #sed -i "s/DB_PORT.*$/DB_PORT=$DB_PORT/"  $WRF4G_LOCATION/etc/framework4g.conf

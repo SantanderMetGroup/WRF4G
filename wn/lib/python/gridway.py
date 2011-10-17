@@ -33,14 +33,14 @@ NP=%d
        self.template=ftemplate
 
    
-   def submit(self,dep=None):
+   def submit(self,dep=None,priority=0):
      
        if dep != None:
            depend="-d %s"%dep
        else:
            depend=''
-    
-       command="%s/bin/gwsubmit -v %s -t %s"%(self.gwloc,depend,self.template)
+        
+       command="%s/bin/gwsubmit -p %s -v %s -t %s"%(self.gwloc,priority,depend,self.template)
        (err,out)=commands.getstatusoutput(command)
        os.unlink(self.template)
        if err != 0: 

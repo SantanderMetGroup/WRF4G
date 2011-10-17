@@ -72,9 +72,18 @@ def format_output(dout,ext=False):
     per=runt/totalt
     if dout['status'] < 10 and dout['status']>0 and dout['rea_status'] != 4:  dout['rea_status']=1  
     
-    print '%-18s %-5s %-2s %-6s %-10s %-10s %-13s %2s %2.2f'%(dout['name'][0:17],dout['gw_job'],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],exitcode,per)
-    if ext==True:
-        print "%10s %10s %10s"%(dout['sdate'],dout['restart'],dout['edate'])    
+    return  '%-18s %-5s %-2s %-6s %-10s %-10s %-13s %2s %2.2f\n'%(dout['name'][0:17],dout['gw_job'],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],exitcode,per)
+    #if ext==True:
+        #print "%10s %10s %10s"%(dout['sdate'],dout['restart'],dout['edate'])    
+        
+def getuserid(name,dbc):
+    idp=dbc.select('User','id',"name='%s'"%name)
+    if len(idp) == 0:
+        id=dbc.insert('User',{'name': name})
+    else:
+        id = vdb.list_query().one_field(idp)
+    return id      
+
 
 DB4G_CONF=os.environ.get('DB4G_CONF')
 if DB4G_CONF == None:
@@ -86,6 +95,15 @@ load_default_values()
 dbc=vdb.vdb(host=DB_HOST, user=DB_USER, db=DB_WRF4G, port=DB_PORT, passwd=DB_PASSWD)
 
 
+class Environment:
+    def __init__(self):
+        pass
+    
+    def list_experiments(self):
+        idp=dbc.select('Experiment','id','1=1')
+        id = vdb.parse_one_list(idp,interpreter='python')
+        return id
+        
 
 class Component:
     """  Component CLASS
@@ -238,7 +256,7 @@ class Component:
             # Experiment is different that the one found in the database
             if id == -1:
                 if self.reconfigure == False:
-                    stderr.write("Error: %s with the same name and different parameters already exists. If you want to overwrite some paramenters, try the reconfigure option\n." %self.element) 
+                    stderr.write("Error: %s with the same name and different parameters already exists. If you want to overwrite some parameters, try the reconfigure option\n." %self.element) 
                     exit(9)
                 else: 
                     id=self.get_id(self.get_no_reconfigurable_fields())
@@ -249,10 +267,19 @@ class Component:
                         self.update()
                         self.prepare_storage()
             else:
-                stderr.write('%s already exists. \n'%self.element)
-                self.data['id']=-1
+                if self.reconfigure == False:
+                    stderr.write('%s already exists. \n'%self.element)
+                    self.data['id']=-1
+                else:                
+                    self.prepare_storage()
         else:
             if self.verbose: stderr.write('Creating %s\n'%self.element)
+            if self.element == "Experiment":
+                import getpass
+                username=getpass.getuser()
+                userid=getuserid(username,dbc)
+                self.data['id_user']=userid
+                
             self.data['id']=self.create()
             if not self.dryrun:
                 self.prepare_storage()
@@ -315,27 +342,24 @@ class Experiment(Component):
         return cdate           
     
     def ps(self):
-        self.data['id']=self.get_id_from_name()
+        output=''
         if self.data['id'] < 0:     sys.exit(19)
         rea_ids=self.get_realizations_id()
         dout=[]
-        print '%-18s %-3s %-4s %-6s %-10s %-10s %-13s %2s %3s'%('Realization','GW','Stat','Chunks','Comp.Res','WN','Run.Sta','ext','%')        
         for id_rea in rea_ids:
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
             dout=rea.ps()
-            format_output(dout)
-        return ''
+            output=output + format_output(dout)
+        return output
+
     
-    def status(self):
-        self.get_prepared_reas_id(),self.get_wait_reas_id(),self.get
-    
-    def sumarized_status(self):
+    def summarized_status(self):
         prepared=len(self.get_prepared_reas_id())
         wait=len(self.get_wait_reas_id())
         run=len(self.get_run_reas_id())
         done=len(self.get_done_reas_id())
         fail=len(self.get_fail_reas_id())
-        return '%-10s %-3d %-3d %-3d %-3d %-3d'%(self.get_name,prepared,wait,run,done,fail)
+        return '%-10s %-3d %-3d %-3d %-3d %-3d'%(self.get_name(),prepared,wait,run,done,fail)
                           
     def get_realizations_id(self):
         """    
@@ -356,15 +380,15 @@ class Experiment(Component):
 
     def get_run_reas_id(self):
         """
-        Return a list of ids of the realization of a experiment which have finished.
+        Return a list of ids of the realization of a experiment which are running.
         """
-        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=2 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s'%self.data['id'],verbose=self.verbose)
+        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=2 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s AND Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND c2.status=3)'%self.data['id'],verbose=self.verbose)
         ids_rea = vdb.list_query().one_field(idp,'python')
         return ids_rea      
     
     def get_fail_reas_id(self):
         """
-        Return a list of ids of the realization of a experiment which have finished.
+        Return a list of ids of the realization of a experiment which have finished. Any of the Realization Chunks have the status 3.
         """
         idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=3 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s'%self.data['id'],verbose=self.verbose)
         ids_rea = vdb.list_query().one_field(idp,'python')
@@ -372,21 +396,21 @@ class Experiment(Component):
 
     def get_prepared_reas_id(self):
         """
-        Return a list of ids of the realization of a experiment which have finished.
+        Return a list of ids of the realization of a experiment which are prepared. Every Chunk in the Realization has status 0.
         """
         # SELECT DISTINCT(Realization.id) From Chunk,Realization where Realization.id=Chunk.id_rea AND Realization.id_exp=2 and Chunk.status = 1 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Chunk.id_rea AND c2.status!=1)
-        condition='Realization.id=Chunk.id_rea AND Realization.id_exp=%s and Chunk.status = 0 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Chunk.id_rea AND c2.status!=0)'%self.data['id']
+        condition='Realization.id=Chunk.id_rea AND Realization.id_exp=%s and Chunk.status = 0 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND (c2.status!=0 and c2.status!=4))'%self.data['id']
         idp=dbc.select('Chunk,Realization','DISTINCT Realization.id',condition,verbose=self.verbose)
         ids_rea = vdb.list_query().one_field(idp,'python')
         return ids_rea   
 
     def get_done_reas_id(self):
         """
-        Return a list of ids of the realization of a experiment which have finished.
+        Return a list of ids of the realization of a experiment which have finished. Every Chunk in the Realization has status 4.
         """
         # SELECT DISTINCT(Realization.id) From Chunk,Realization where Realization.id=Chunk.id_rea AND Realization.id_exp=2 and Chunk.status = 1 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Chunk.id_rea AND c2.status!=1)
-        condition='Realization.id=Chunk.id_rea AND Realization.id_exp=%s and Chunk.status = 4 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Chunk.id_rea AND c2.status!=1)'%self.data['id']
-        idp=dbc.select('Chunk,Realization',condition,verbose=self.verbose)
+        condition='Realization.id=Chunk.id_rea AND Realization.id_exp=%s and Chunk.status = 4 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND c2.status!=4)'%self.data['id']
+        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id',condition,verbose=self.verbose)
         ids_rea = vdb.list_query().one_field(idp,'python')
         return ids_rea
 
@@ -394,7 +418,7 @@ class Experiment(Component):
         """
         Return a list of ids of the realization of a experiment which have finished.
         """
-        idp=dbc.select('Chunk,Realization','Realization.id','Chunk.status=1 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s AND Chunk.id_chunk=1'%self.data['id'],verbose=self.verbose)
+        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=1 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s AND Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND (c2.status=2 OR c2.status=3 ) )'%self.data['id'],verbose=self.verbose)
         ids_rea = vdb.list_query().one_field(idp,'python')
         return ids_rea  
     
@@ -604,9 +628,9 @@ class Realization(Component):
                 sandbox='file://%s/etc/templates/WRF4G.sh,file://%s/bin/vcp,file://%s/etc/db4g.conf,resources.wrf4g'%(WRF4G_LOCATION,WRF4G_LOCATION,WRF4G_LOCATION)
                 job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS,environ=ENVIRONMENT,inputsandbox=sandbox)
                 if chunki == first_id:
-                    gw_id=job.submit()
+                    gw_id=job.submit(priority=priority)
                 else:
-                    gw_id=job.submit(dep=gw_id)
+                    gw_id=job.submit(priority=priority,dep=gw_id)
                 job_data={'gw_job': gw_id,'id_chunk': str(chi.data['id']), 'hash': create_hash()}
                 job=Job(job_data,verbose=self.verbose)
                 jid=job.create()
@@ -682,7 +706,6 @@ class Realization(Component):
         dout['rea_status']=status        
         #dout={'gw_job': 4L, 'status': 40L, 'sdate': datetime.datetime(1983, 8, 25, 12, 0), 'resource': 'mycomputer', 'name': 'testc1', 'wn': 'sipc18', 'nchunks': '3/3', 'cdate': datetime.datetime(1983, 8, 25, 12, 0), 'exitcode': 0L, 'edate': datetime.datetime(1983, 8, 27, 0, 0), 'restart': datetime.datetime(1983, 8, 27, 0, 0), 'rea_status': 4}]
         if only_rea == 1 :
-            print '%-18s %-3s %-4s %-6s %-10s %-10s %-13s %2s %3s'%('Realization','GW','Stat','Chunks','Comp.Res','WN','Run.Sta','ext','%')
             format_output(dout)
             return ""
         else:
@@ -866,7 +889,6 @@ if __name__ == "__main__":
     usage="""%prog [OPTIONS] exp_values function fvalues 
              Example: %prog 
     """
-
     
     parser = OptionParser(usage,version="%prog 1.0")
     parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
@@ -879,8 +901,7 @@ if __name__ == "__main__":
         exit(1)
         
     class_name=args[0]
-    function=args[1]
-   
+    function=args[1]    
     data=''
     if len(args) > 2:   data=pairs2dict(args[2])         
     inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure,dryrun=options.dryrun)"%(class_name,data)

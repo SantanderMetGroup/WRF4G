@@ -1,67 +1,99 @@
-#! /bin/bash
+#!/usr/bin/python
 
-if [ $# -ne 2 ]
-then
-  if [ -f experiment.wrf4g ]; then
-     sed -e 's/\ *=\ */=/' experiment.wrf4g > source.it        || exit ${ERROR_MISSING_WRFINPUT}
-     source source.it && rm source.it
-  fi
-fi
+from sys import stderr,stdout,exit,path
+import sys
+import os
+import re
 
-if test ${#} -ge 1; then
-  while test "$*"; do
-    case $1 in   
-      -e)
-          experiment_name=$2
-          shift
-        ;;      
-      -r)
-      	  realization_name=$2
-          only_rea="yes"
-          shift
-        ;;
-      --help)
-         echo "Usage: `basename $0` [-e experiment_name -f realization_name]"
-         echo
-         echo "If experiment.wrf4g is present, the experiment configured in this file will be launched, otherwise provide the experiment name with the flag -e or the realization name with -r"
-      ;;
-      *)
-        echo "Unknown argument: $1"
-        exit
-        ;;
-    esac
-    shift
-  done
-fi
+def sum_header():
+	bold = "\033[1m"
+	reset = "\033[0;0m"
+	print bold + '%-10s %-3s %-3s %-3s %-3s %-3s'%("Experiment","P","W","R","D","F") + reset
+	
 
+def long_header():
+    bold = "\033[1m"
+    reset = "\033[0;0m"
+    print bold + '%-18s %-3s %-4s %-6s %-10s %-10s %-13s %2s %3s'%('Realization','GW','Stat','Chunks','Comp.Res','WN','Run.Sta','ext','%') + reset
+	
+WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
+if WRF4G_LOCATION == None:
+    sys.stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
+    sys.exit(1)  
 
+os.environ['DB4G_CONF']='%s/etc/db4g.conf'%WRF4G_LOCATION
+DB4G_CONF=os.environ['DB4G_CONF']
+if not os.path.isfile(DB4G_CONF):
+   print 'DB4G_CONF do not exist'
+   sys.exit(2)
 
+sys.path.append('%s/lib/python'%WRF4G_LOCATION)
+sys.path.reverse()
+from optparse import OptionParser
+import WRF4G
+   
+usage="""
 
+%prog [--exp experiment] [--rea realization] [-PWFRD] [--long] [--running] [--help]
 
-if test -z $WRF4G_LOCATION; then
-   echo '$WRF4G_LOCATION variable not established. Please export WRF4G_LOCATION and try again'
-   exit 1
-fi
+Synopsys:
 
-userdir=`pwd`
+Submits an experiment or realization. If the user do not specify an experiment or realization with the options, 
+the name of the experiment will be retrieved from  experiment.wrf4g in case it exists in the current folder.    
+"""  
+parser = OptionParser(usage,version="%prog 1.0")
+parser.add_option("-e", "--exp",metavar="name",dest="exp_name", help="Name of the experiment.")
+parser.add_option("-r", "--rea",metavar="name",dest="rea_name", help="Name of the realization")
+parser.add_option("-l", "--long",action="store_true",default=False,dest="long", help="Show a detailed status.")
+#parser.add_option("-P", "--prepared",action="store_true",default=False, dest="prepare", help="Show realizations in Run(R) status.")
+#parser.add_option("-W", "--wait",action="store_true",default=False, dest="wait", help="Show realizations in Wait(W) status")
+#parser.add_option("-F", "--fail",action="store_true",default=False, dest="fail", help="Show realizations in Fail(F) status.")
+#parser.add_option("-R", "--run",action="store_true",default=False, dest="run", help="Show realizations in Run(R) status.")
+#parser.add_option("-D", "--done",action="store_true",default=False, dest="done", help="Show realizations in Done(D) status.")
 
-#
-#  Prepare environment
-#
-export PATH=${WRF4G_LOCATION}/bin:${PATH}
-export PYTHONPATH=${PYTHONPATH}:${WRF4G_LOCATION}/lib/python
+(options, args) = parser.parse_args()
 
-#
-#  Load configuration files
-#
-grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf
-export DB4G_CONF=`pwd`/db4g.conf ; source $DB4G_CONF
+if options.exp_name:
+    experiment_name=options.exp_name
+    exp=WRF4G.Experiment(data={'name':'%s'%experiment_name})
+    exp.data['id']=exp.get_id_from_name()
+    if exp.data['id']<0:
+        stderr.write("Experiment %s do not exists"%experiment_name)
+        exit(1)
+    elif options.long:
+    	long_header()
+        out=exp.ps()
+        print out
+    else:
+        sum_header()
+        out=exp.summarized_status()
+        print out
 
-if [ -n "$experiment_name" ]; then
-  WRF4G.py Experiment ps name=${experiment_name}
-else 
-  WRF4G.py Realization ps name=${realization_name}
-fi
+elif options.rea_name:
+    realization_name=options.rea_name
+    rea=WRF4G.Realization(data={'name':'%s'%realization_name})
+    out=rea.ps()
+    print out
 
-rm db4g.conf
+else:
+    env=WRF4G.Environment()
+    lexp=env.list_experiments()
+    
+    if options.long:
+    	long_header()
+        for id_exp in lexp:
+           exp=WRF4G.Experiment(data={'id':'%s'%id_exp})
+           out=exp.ps()
+           stdout.write(out)
+    else:
+    	sum_header()
+    	for id_exp in lexp:
+           exp=WRF4G.Experiment(data={'id':'%s'%id_exp})    	
+           out=exp.summarized_status()
+           print out
+           
+
+WRF4G.dbc.commit()
+WRF4G.dbc.close()
+
 

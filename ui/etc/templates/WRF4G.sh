@@ -113,7 +113,9 @@ function wrf4g_exit(){
 
   ls -l >& ${logdir}/ls.wrf
   test -f namelist.output && cp namelist.output ${logdir}/
-  test -f ../configure.wrf && cp ../configure.wrf ${logdir}/
+  test -f ../configure.wrf_wrf && cp ../configure.wrf_wrf ${logdir}/
+  test -f ../configure.wrf_real && cp ../configure.wrf_real ${logdir}/
+  test -f ../../WPS/configure.wps && cp ../../WPS/configure.wps ${logdir}/
   if test -e rsl.out.0000; then
     mkdir -p rsl_wrf
     mv rsl.* rsl_wrf/
