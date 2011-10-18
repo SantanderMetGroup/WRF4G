@@ -1,0 +1,4 @@
+#!/bin/bash
+gcc -Wall -g -c pi.c
+gcc -Wall -g -o pi.out pi.c
+./pi.out $@

@@ -1,0 +1,18 @@
+#!/usr/bin/env perl
+# Sum the content of one file and one number, or two files
+use strict;
+my $sum=0;
+foreach(@ARGV){
+	if ( -f $_) {
+	open (FILE,"<$_");
+	while(my $line = <FILE>){
+		chomp $line;
+        	$sum+=$line;
+	}
+	close(FILE);
+	}
+	else { 
+		$sum+=$_;
+	}
+}
+print "$sum\n";

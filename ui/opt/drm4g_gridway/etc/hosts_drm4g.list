@@ -1,0 +1,45 @@
+#**********************************************************************************************
+#                                   HOST CONFIGURATION FILE
+#                                   -----------------------
+# Syntax
+#   '#' Comments
+#
+# This file contains one resource per line, with format:
+#
+#   FQDN    attributes
+#   ...     ...
+#   FQDN    attributes
+#
+#   where:
+#   
+#   * FQDN: is the name of resource.
+#   * attributes: are the static attributes of resource. The syntax is:
+#
+#        <scheme>://<username>@<host>?<query>
+#
+#        -scheme: the URL schemes available are "ssh" and "local".
+#            * ssh:   access to remote DRM via SSH
+#            * local: use the local DRM 
+#        -username: user name 
+#        -host: host name
+#        -query: contains additional information. The query string syntax is:
+#            * key1=value1;key2=value2;key3=value3
+#            Variable options:
+#               LRMS_TYPE   (mandaroty)        : type of local DRM system for execution [pbs | sge | fork | mnslurm ]
+#               PROJECT     (optional for SGE) : specifies the project to which the jobs are assigned 
+#               GW_RUNDIR   (optional)         : defines the working directory on the DRM system and must be absolute path
+#               GW_LOCALDIR (optional)         : defines the working directory on the Working Node
+#               NODECOUNT   (optional)         : total number of slots on the DRM system  
+#               QUEUE_NAME  (optional)         : name of the queue to configure.  
+#*********************************************************************************************
+# Examples
+
+mycomputer            local://localhost?LRMS_TYPE=fork;NODECOUNT=1
+#PBS_cluster          local://localhost?LRMS_TYPE=pbs;QUEUE_NAME=estadistica
+#SGE_cluster          local://localhost?LRMS_TYPE=sge;PROJECT=l.project
+#RES_cluster          local://localhost?LRMS_TYPE=mnslurm
+#remote_PBS_cluster   ssh://user@hostname_submitting_machine?LRMS_TYPE=pbs;QUEUE_NAME=short
+#remote_SGE_cluster   ssh://user@hostname_submitting_machine?LRMS_TYPE=sge;PROJECT=l.project
+#remote_RES_cluster   ssh://user@hostname_submitting_machine?LRMS_TYPE=mnslurm
+#remote_FORK_cluster  ssh://user@hostname_submitting_machine?LRMS_TYPE=fork
+

@@ -1,0 +1,7 @@
+EXECUTABLE = /bin/ls
+ARGUMENTS = -la
+STDIN_FILE  = /dev/null
+STDOUT_FILE = ls.out.${JOB_ID}
+STDERR_FILE = ls.err.${JOB_ID}
+REQUIREMENTS = (ARCH = "i686" | ARCH="x86") & CPU_MHZ > 1000
+RANK = (CPU_MHZ * 2) + FREE_MEM_MB

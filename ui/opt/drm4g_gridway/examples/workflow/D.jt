@@ -1,0 +1,4 @@
+EXECUTABLE=sum
+ARGUMENTS=out.B out.C
+INPUT_FILES=out.B, out.C
+STDOUT_FILE=out.D
