@@ -3,7 +3,6 @@ from string import Template
 from drm4g.managers import sec_to_H_M_S
 import re
 import xml.dom.minidom
-from drm4g.utils.logger import *
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
@@ -97,7 +96,6 @@ class Job (drm4g.managers.Job):
         if 'qstat: Unknown Job Id' in err :
             return 'DONE'
         elif err:
-            self.logger.log(DEBUG, 'JID: ' + self.JobId + ' '.join(err.split('\n')))
             return 'UNKNOWN'
         else:
             out_parser = xml.dom.minidom.parseString(out)
