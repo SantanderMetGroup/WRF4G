@@ -15,7 +15,7 @@ else
 fi
 
 
-export GW_LOCATION=$WRF4G_LOCATION/opt/drm4g_gridway-5.7
+export GW_LOCATION=$WRF4G_LOCATION/opt/drm4g_gridway
 export MYSQL_LOCATION=$WRF4G_LOCATION/opt/mysql-5.5
 export PATH=$GW_LOCATION/bin:$PATH
 export LD_LIBRARY_PATH=$WRF4G_LOCATION/lib/shared_libs:$LD_LIBRARY_PATH

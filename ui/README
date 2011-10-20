@@ -16,7 +16,7 @@ WRF4G need the following software preinstalled both in the UI and the CR:
 WRF4G has been run only in 64bits platforms. Currently has been tested under the following O.S.:
 
  * '''Ubuntu 10.04 and 11.04''': No known issues.
- * '''Centos 5''': No known issues.
+ * '''Centos 5 and 6''': No known issues.
  * '''Debian 6.0''': No known issues.
 
 == Installation ==
@@ -32,6 +32,7 @@ tar xzvf WRF4G.tar.gz
 
 {{{
 export WRF4G_LOCATION=$WRF4G_INSTALL_PATH/WRF4G
+export GW_LOCATION=$WRF4G_LOCATION/opt/drm4g_gridway
 export PATH=$WRF4G_LOCATION/bin:$GW_LOCATION/bin:$PATH
 }}}
 
@@ -80,3 +81,7 @@ valva@sipc18:~/pruebasWRF/WRF4G/experiments/single/testc$ wrf4g_status -e testc
 Realization Status   Chunks     Comp.Res   WN         Run.Sta       ext   %
 testc       Done     3/3        mycomputer sipc18     Finished       0 100.00
 }}}
+
+ 
+== Problems ==
+If you find any problem, please [https://www.meteo.unican.es/trac/WRF4G/newticket?component=WRF4G&owner=valva&cc=antonio submit us a ticket!!]

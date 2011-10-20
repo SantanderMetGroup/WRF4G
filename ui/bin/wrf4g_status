@@ -34,12 +34,11 @@ import WRF4G
    
 usage="""
 
-%prog [--exp experiment] [--rea realization] [-PWFRD] [--long] [--running] [--help]
+%prog [--exp experiment] [--rea realization] [--long] [--running] [--help]
 
 Synopsys:
 
-Submits an experiment or realization. If the user do not specify an experiment or realization with the options, 
-the name of the experiment will be retrieved from  experiment.wrf4g in case it exists in the current folder.    
+Prints the experiment or realization status. 
 """  
 parser = OptionParser(usage,version="%prog 1.0")
 parser.add_option("-e", "--exp",metavar="name",dest="exp_name", help="Name of the experiment.")

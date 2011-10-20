@@ -566,7 +566,7 @@ class Realization(Component):
         if WRF4G_LOCATION == None:
            sys.stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
            sys.exit(1) 
-        os.environ['GW_LOCATION']='%s/opt/drm4g_gridway-5.7'%WRF4G_LOCATION
+        os.environ['GW_LOCATION']='%s/opt/drm4g_gridway'%WRF4G_LOCATION
         
         self.prepared=0
 
@@ -658,7 +658,7 @@ class Realization(Component):
             if WRF4G_LOCATION == None:
               sys.stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
               sys.exit(1) 
-            os.environ['GW_LOCATION']='%s/opt/drm4g_gridway-5.7'%WRF4G_LOCATION
+            os.environ['GW_LOCATION']='%s/opt/drm4g_gridway'%WRF4G_LOCATION
             subdir= '%s/%s/%s/%s'%(WRF4G_LOCATION,'.submission',exp_name,rea_name)       
             if not os.path.isdir(subdir):
                 os.makedirs(subdir)
