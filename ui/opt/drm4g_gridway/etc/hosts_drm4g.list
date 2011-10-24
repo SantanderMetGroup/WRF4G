@@ -25,7 +25,7 @@
 #        -query: contains additional information. The query string syntax is:
 #            * key1=value1;key2=value2;key3=value3
 #            Variable options:
-#               LRMS_TYPE   (mandaroty)        : type of local DRM system for execution [pbs | sge | fork | mnslurm ]
+#               LRMS_TYPE   (mandatory)        : type of local DRM system for execution [pbs | sge | fork | mnslurm ]
 #               PROJECT     (optional for SGE) : specifies the project to which the jobs are assigned 
 #               GW_RUNDIR   (optional)         : defines the working directory on the DRM system and must be absolute path
 #               GW_LOCALDIR (optional)         : defines the working directory on the Working Node
