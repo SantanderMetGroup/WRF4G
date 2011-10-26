@@ -11,5 +11,6 @@ cd WRF4G
 find ./ -name ".svn" | xargs rm -Rf
 cd ..
 tar -czvf WRF4G_${svn_tag}.tar.gz WRF4G
+ln -s WRF4G_${svn_tag}.tar.gz WRF4G.tar.gz
 rm -rf WRF4G
 

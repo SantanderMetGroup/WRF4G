@@ -65,6 +65,7 @@ function prepare_runtime_environment(){
 function prepare_local_environment (){
   #cp ${LOCALDIR}/WRFbin-${WRF_VERSION}.tar.gz ${ROOTDIR}
   mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
+  cp -R ${LOCALDIR}/WRFV3/run ${ROOTDIR}/runshared
   $MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/WRFGEL/load_wrfbin.sh	
   #rm ${ROOTDIR}/WRFbin-${WRF_VERSION}.tar.gz
   #rm {LOCALDIR}/WRFbin-${WRF_VERSION}.tar.gz
