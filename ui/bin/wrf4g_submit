@@ -34,7 +34,7 @@ parser.add_option("-n", "--dry-run",action="store_true", default=False, dest="dr
 parser.add_option("-e", "--exp",metavar="name",dest="exp_name", help="Name of the experiment to sumbit")
 parser.add_option("-r", "--rea",metavar="name",dest="rea_name", help="Name of the realization to sumbit")
 parser.add_option("-F", "--frea",metavar="FILE",dest="rea_file", help="File containing the name of the realization to sumbit.")
-parser.add_option("-a", "--rerun",action="store_true",default=False, dest="rerun",help="Force to run although ths realization or experiment has finished")
+parser.add_option("-a", "--rerun",action="store_true",default=False, dest="rerun",help="Force to run although this realization or experiment has finished")
 parser.add_option("-o", "--run-just-one",action="store_true",default=False, dest="runone", help="Run just the first chunk of the first realization. Only for testing purposes.")
 parser.add_option("-C", "--nchunk",metavar="N",dest="nchunk",type="int",default=0, help="Run the next N chunks not finished of each realization")
 parser.add_option("-R", "--nrea",metavar="N",dest="nrea", type="int", default=0, help="Run the next N realizations not finished of the experiment")
@@ -54,6 +54,18 @@ if not (options.exp_name or options.rea_name or options.rea_file):
       exp_file=open('experiment.wrf4g').read()
       parsed=re.sub(r'\n\s+', '\n', exp_file)
       exec parsed
+      
+if options.rerun and not options.force:
+   print """
+BE CAREFULL! 
+    --rerun: Force to run although this realization or experiment has finished.
+     
+If you really want to run this command use the --force option
+"""
+   
+   sys.exit(2)
+   
+ 
       
 if options.runone:
     nrea=1

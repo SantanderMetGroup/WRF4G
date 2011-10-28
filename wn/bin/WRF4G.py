@@ -342,6 +342,7 @@ class Experiment(Component):
         return cdate           
     
     def ps(self):
+        
         output=''
         if self.data['id'] < 0:     sys.exit(19)
         rea_ids=self.get_realizations_id()
@@ -595,7 +596,7 @@ class Realization(Component):
                 stderr.write('Realization %s already finished.\n'%rea_name)
                 return 1
             if not force and chunk_status[2] == 2:
-                stderr.write('Realization %s is still running.\n'%rea_name)
+                stderr.write('Realization %s is still running. Use --force if you really want to submit the realization.\n'%rea_name)
                 return 1
         """
         if restart == None:
