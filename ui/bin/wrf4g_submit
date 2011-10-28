@@ -67,7 +67,7 @@ if experiment_name:
     if int(id) < 0:
         print "Experiment %s do not exists"%experiment_name
         sys.exit(2)
-    exp.run(nrea=options.nrea,nchunk=options.nchunk,priority=options.priority,rerun=options.rerun)
+    exp.run(nrea=options.nrea,nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force)
 
 elif options.rea_name:
     rea=WRF4G.Realization(data={'name':'%s'%options.rea_name},verbose=options.verbose,dryrun=options.dryrun)
@@ -75,7 +75,7 @@ elif options.rea_name:
     if int(id) < 0:
         print "Realization %s do not exists"%options.rea_name
         sys.exit(3)
-    rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun)
+    rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force)
 elif options.rea_file:
     f=open(options.rea_file)
     for realization in f.readlines():
@@ -85,7 +85,7 @@ elif options.rea_file:
         if id < 0 :
            print "Realization with name %s do not exist"%realization
         else:
-           rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun)      
+           rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force)      
     f.close()
     
  

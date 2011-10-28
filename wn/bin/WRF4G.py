@@ -316,7 +316,7 @@ class Experiment(Component):
         name=self.get_one_field(['name'], ['id'])
         return name
            
-    def run(self,nrea=0,nchunk=0,priority=0,rerun=None):
+    def run(self,nrea=0,nchunk=0,priority=0,rerun=False,force=False):
         ncrea=0
         if rerun:
             rea_ids=self.get_realizations_id()
@@ -331,7 +331,7 @@ class Experiment(Component):
 
         for id_rea in rea_ids:
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
-            st=rea.run(nchunk=nchunk,priority=priority,rerun=rerun)
+            st=rea.run(nchunk=nchunk,priority=priority,rerun=rerun,force=force)
             if st==1:
                 ncrea=ncrea+1
                 if ncrea==nrea:
@@ -559,7 +559,7 @@ class Realization(Component):
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk 
          
-    def run(self,nchunk=0,priority=0,rerun=None):
+    def run(self,nchunk=0,priority=0,rerun=False,force=False):
         import gridway   
 
         WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
@@ -594,7 +594,7 @@ class Realization(Component):
             if chunk_status[2] == 4:
                 stderr.write('Realization %s already finished.\n'%rea_name)
                 return 1
-            elif chunk_status[2] == 2:
+            if not force and chunk_status[2] == 2:
                 stderr.write('Realization %s is still running.\n'%rea_name)
                 return 1
         """
