@@ -1,5 +1,31 @@
 #! /bin/bash
 
+
+kill_process_tree ()
+{
+    PIDS=$1
+
+    while [ -n "$PIDS" ]
+    do
+        unset NEW_CHILDS
+
+        for PID in $PIDS
+        do
+            if [ -z "$NEW_CHILDS" ]
+            then
+                NEW_CHILDS="`ps ho pid --ppid $PID`"
+            else
+                NEW_CHILDS="$NEW_CHILDS `ps ho pid --ppid $PID`"
+            fi
+
+            kill -9 $PID
+
+        done
+
+        PIDS=$NEW_CHILDS
+    done
+}
+
 # wrf4g_framewok: start and stop the Gridway and Mysql components of WRF4G.
 
 if test -z $WRF4G_LOCATION; then
@@ -74,7 +100,7 @@ case "$1" in
 	rm -f $GW_LOCATION/var/.lock
         gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
         gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
-        if test -n "$gwd_pid"; then  kill -9 $gwd_pid ;fi
+        if test -n "$gwd_pid"; then  kill_process_tree $gwd_pid ;fi
         if test $? -ne 0; then
            echo "FAILED: Gridway already stopped"
 	   exit 2
@@ -104,7 +130,7 @@ case "$1" in
 	rm -f $GW_LOCATION/var/.lock
         gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
         gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
-        if test -n "$gwd_pid"; then  kill -9 $gwd_pid ;fi
+        if test -n "$gwd_pid"; then  kill_process_tree $gwd_pid ;fi
         gwd
         ;;
     *)
