@@ -6,7 +6,7 @@ from drm4g.utils.logger import *
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: __init__.py 1198 2011-10-17 17:01:23Z carlos $"
+__revision__ = "$Id: __init__.py 1232 2011-10-26 09:09:40Z carlos $"
 
 
 def sec_to_H_M_S(sec):
@@ -75,7 +75,7 @@ class Resource (object):
         pass
 
     def staticNodes(self, host_id):
-        command_proc = subprocess.Popen('gwhost -x %s' % (host_id),
+        command_proc = subprocess.Popen('LANG=POSIX gwhost -x %s' % (host_id),
                 shell = True,
                 stdout = subprocess.PIPE,
                 stderr = subprocess.PIPE,
@@ -96,7 +96,7 @@ class Resource (object):
         properties = self.host_properties.copy()
         properties['NODECOUNT'] = self.total_cpu
         try:
-            out, err = self.Communicator.execCommand('uname -n -r -p -o')
+            out, err = self.Communicator.execCommand('LANG=POSIX uname -n -r -p -o')
             if not err:
                 re_host = self.re_host.search(out)
                 if re_host: properties.update(re_host.groupdict())
@@ -105,7 +105,7 @@ class Resource (object):
             self.logger.log(DEBUG, "stdout: " + out)
             self.logger.log(DEBUG, "stderr: " + err)
         try:
-            out, err = self.Communicator.execCommand('grep -e \"model name\" -e \"cpu MHz\" /proc/cpuinfo')
+            out, err = self.Communicator.execCommand('LANG=POSIX grep -e \"model name\" -e \"cpu MHz\" /proc/cpuinfo')
             if not err: 
                 re_cpu = self.re_cpu.match(out)
                 if re_cpu: 
@@ -116,7 +116,7 @@ class Resource (object):
             self.logger.log(DEBUG, "stdout: " + out)
             self.logger.log(DEBUG, "stderr: " + err)
         try:
-            out, err = self.Communicator.execCommand('grep -e MemTotal -e MemFree /proc/meminfo')
+            out, err = self.Communicator.execCommand('LANG=POSIX grep -e MemTotal -e MemFree /proc/meminfo')
             if not err:
                 re_mem = self.re_mem.search(out)
                 if re_mem: properties.update(dict((k, int(v)/1024) for k, v in re_mem.groupdict().items()))
@@ -125,7 +125,7 @@ class Resource (object):
             self.logger.log(DEBUG, "stdout: " + out)
             self.logger.log(DEBUG, "stderr: " + err)
         try:
-            out, err = self.Communicator.execCommand('df -B 1K $HOME')
+            out, err = self.Communicator.execCommand('LANG=POSIX df -B 1K $HOME')
             if not err:
                 properties['SIZE_DISK_MB'] = int(out.split('\n')[1].split()[1])
                 properties['FREE_DISK_MB'] = int(out.split('\n')[1].split()[3])

@@ -6,15 +6,15 @@ from drm4g.managers import sec_to_H_M_S
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: sge.py 1122 2011-08-22 07:56:18Z carlos $"
+__revision__ = "$Id: sge.py 1254 2011-10-31 08:51:49Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
-QCONF = 'qconf'
-QHOST = 'qhost'
-QSUB  = 'qsub'  
-QSTAT = 'qstat' 
-QDEL  = 'qdel'  
+QCONF = 'LANG=POSIX qconf'
+QHOST = 'LANG=POSIX qhost'
+QSUB  = 'LANG=POSIX qsub'  
+QSTAT = 'LANG=POSIX qstat' 
+QDEL  = 'LANG=POSIX qdel'  
 
 class Resource (drm4g.managers.Resource):
 

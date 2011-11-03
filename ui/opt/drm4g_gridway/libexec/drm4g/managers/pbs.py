@@ -6,14 +6,14 @@ import xml.dom.minidom
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: pbs.py 1173 2011-10-03 07:34:32Z carlos $"
+__revision__ = "$Id: pbs.py 1254 2011-10-31 08:51:49Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
-PBSNODES = 'pbsnodes' #pbsnodes - pbs node manipulation
-QSUB     = 'qsub'     #qsub - submit pbs job
-QSTAT    = 'qstat'    #qstat - show status of pbs batch jobs
-QDEL     = 'qdel'     #qdel - delete pbs batch job
+PBSNODES = 'LANG=POSIX pbsnodes' #pbsnodes - pbs node manipulation
+QSUB     = 'LANG=POSIX qsub'     #qsub - submit pbs job
+QSTAT    = 'LANG=POSIX qstat'    #qstat - show status of pbs batch jobs
+QDEL     = 'LANG=POSIX qdel'     #qdel - delete pbs batch job
 
 class Resource (drm4g.managers.Resource):
 

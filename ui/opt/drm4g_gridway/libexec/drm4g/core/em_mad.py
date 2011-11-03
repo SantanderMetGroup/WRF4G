@@ -16,7 +16,7 @@ from drm4g.utils.importlib import import_module
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: em_mad.py 1134 2011-08-26 08:22:35Z carlos $"
+__revision__ = "$Id: em_mad.py 1232 2011-10-26 09:09:40Z carlos $"
 
 GW_LOCATION = os.environ['GW_LOCATION']
 
@@ -86,7 +86,7 @@ class GwEmMad (object):
                 com.workDirectory = val.GW_RUNDIR
 		com.connect()
                 if val.GW_RUNDIR == r'~':
-                    out, err = com.execCommand('echo $HOME')
+                    out, err = com.execCommand('LANG=POSIX echo $HOME')
                     if err: 
                         raise "Couldn't obtain home directory : %s" % (' '.join(err.split('\n')))
                     self._host_list_configuration[key].GW_RUNDIR = out.strip('\n')      

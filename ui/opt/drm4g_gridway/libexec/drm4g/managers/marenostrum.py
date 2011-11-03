@@ -7,15 +7,14 @@ from drm4g.managers import sec_to_H_M_S
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: marenostrum.py 1122 2011-08-22 07:56:18Z carlos $"
+__revision__ = "$Id: marenostrum.py 1254 2011-10-31 08:51:49Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
-MNSUBMIT = 'mnsubmit' #mnsubmit - submits a job script to the queue system 
-CHECKJOB = 'checkjob' #checkjob - obtains detailed information about a specific job
-MNCANCEL = 'mncancel' #mncancel - removes his/her job from the queue system, 
-                      #           canceling the execution of the job if it was already running
-MNQ      = 'mnq'      #mnq      - shows all the jobs submitted
+MNSUBMIT = 'LANG=POSIX mnsubmit' #mnsubmit - submits a job script to the queue system 
+CHECKJOB = 'LANG=POSIX checkjob' #checkjob - obtains detailed information about a specific job
+MNCANCEL = 'LANG=POSIX mncancel' #mncancel - removes his/her job from the queue system, canceling the execution of the job if it was already running
+MNQ      = 'LANG=POSIX mnq'      #mnq      - shows all the jobs submitted
 
 class Resource (drm4g.managers.Resource):
 
