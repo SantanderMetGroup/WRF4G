@@ -54,8 +54,9 @@ def JobStatus():
     return sta
 
 def load_default_values():
-    global NP,ENVIRONMENT,REQUIREMENTS,DB_HOST,DB_PORT,DB_USER,DB_PASSWD
+    global NP,ENVIRONMENT,RESOURCES,REQUIREMENTS,DB_HOST,DB_PORT,DB_USER,DB_PASSWD
     NP=1
+    RESOURCES=''
     REQUIREMENTS=''
     ENVIRONMENT=''
 
@@ -627,6 +628,8 @@ class Realization(Component):
                 exec open('resources.wrf4g').read()     
                 job=gridway.job()
                 sandbox='file://%s/etc/templates/WRF4G.sh,file://%s/bin/vcp,file://%s/etc/db4g.conf,resources.wrf4g'%(WRF4G_LOCATION,WRF4G_LOCATION,WRF4G_LOCATION)
+                if RESOURCES:
+                    REQUIREMENTS=' | '.join(['HOSTNAME="%s"' % (resource) for resource in RESOURCES.rstrip(';').split(',')])
                 job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS,environ=ENVIRONMENT,inputsandbox=sandbox)
                 if chunki == first_id:
                     gw_id=job.submit(priority=priority)
