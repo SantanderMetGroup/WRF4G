@@ -37,13 +37,11 @@ WRF4G_INPUT="$WRF4G_LOCATION/repository/input"
 #   etc...)
 WRF4G_APPS="$WRF4G_LOCATION/repository/apps"
 
-
 ################################################
 #           RUNNING OPTIONS
 ################################################
 # Number of desired cores
 NP=1
-#RESOURCES='*'
 #WRF4G_RUN_SHARED='/tmp'
 #REQUIREMENTS='HOSTNAME = "*ui0*";'
 #WRF4G_RUN_LOCAL='/tmp'
