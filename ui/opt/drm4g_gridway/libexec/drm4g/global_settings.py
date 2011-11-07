@@ -12,6 +12,7 @@ RESOURCE_MANAGER = {
     "sge"     : "drm4g.managers.sge",
     "mnslurm" : "drm4g.managers.marenostrum",
     "fork"    : "drm4g.managers.fork",
+    "none"    : "drm4g.managers.fork",
     }
 
 #########
