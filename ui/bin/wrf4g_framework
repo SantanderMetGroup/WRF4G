@@ -126,12 +126,32 @@ case "$1" in
         ;;
     reload)
         # Only reloads gridway
-    	echo -n "Reloading Gridway ...."
-	rm -f $GW_LOCATION/var/.lock
+   	echo -n "Reloading Gridway ...."
+        rm -f $GW_LOCATION/var/.lock
         gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
         gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
         if test -n "$gwd_pid"; then  kill_process_tree $gwd_pid ;fi
+        if test $? -ne 0; then
+           echo "FAILED: Gridway already stopped"
+           exit 2
+        fi
+        grep '://' $FRAMEWORK4G_CONF > $GW_LOCATION/etc/hosts_drm4g.list
+        sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >temp; cp temp ${WRF4G_LOCATION}/etc/resources.wrf4g; rm temp
+        sed -i "s#\$HOSTNAME#$HOSTNAME#" $FRAMEWORK4G_CONF
+
+        if test -f $GW_LOCATION/var/.lock; then
+          echo -e "FAILED. \nGridway already running. Run \"$(basename $0) stop\" to stop it"
+          exit 2
+        fi
         gwd
+        st=$?
+        if test $st -ne 0; then
+           echo -e "FAILED. \nProblems starting Gridway $st"
+           exit 2
+        fi
+        echo "  OK"
+
+
         ;;
     *)
       cat << EOF

@@ -351,7 +351,7 @@ else
        vpath=$(tuple_item ${extdata_path} ${i})
        vpreprocessor=$(tuple_item ${extdata_preprocessor} ${i})
        preprocessor.${vpreprocessor} ${chunk_start_date} ${chunk_end_date} ${vpath} ${vt}
-       ./link_grib.sh grbData/*.grb
+       ./link_grib.sh grbData/*
        ungrib.exe >& ${logdir}/ungrib_${extdata_vtable}_${iyy}${imm}${idd}${ihh}.out \
          || wrf4g_exit ${ERROR_UNGRIB_FAILED}
        cat ${logdir}/ungrib_${extdata_vtable}_${iyy}${imm}${idd}${ihh}.out \
