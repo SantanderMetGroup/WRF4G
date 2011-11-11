@@ -62,7 +62,7 @@ if options.exp_name:
     elif options.long:
     	long_header()
         out=exp.ps()
-        print out
+        print out.rstrip()
     else:
         sum_header()
         out=exp.summarized_status()
@@ -72,7 +72,9 @@ elif options.rea_name:
     realization_name=options.rea_name
     rea=WRF4G.Realization(data={'name':'%s'%realization_name})
     out=rea.ps()
-    print out
+    long_header()
+    print out.rstrip()
+
 
 else:
     env=WRF4G.Environment()
