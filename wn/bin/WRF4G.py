@@ -706,8 +706,8 @@ class Realization(Component):
         dout['rea_status']=status        
         #dout={'gw_job': 4L, 'status': 40L, 'sdate': datetime.datetime(1983, 8, 25, 12, 0), 'resource': 'mycomputer', 'name': 'testc1', 'wn': 'sipc18', 'nchunks': '3/3', 'cdate': datetime.datetime(1983, 8, 25, 12, 0), 'exitcode': 0L, 'edate': datetime.datetime(1983, 8, 27, 0, 0), 'restart': datetime.datetime(1983, 8, 27, 0, 0), 'rea_status': 4}]
         if only_rea == 1 :
-            format_output(dout)
-            return ""
+            pout=format_output(dout)
+            return pout
         else:
             return dout
                            
