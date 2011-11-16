@@ -18,7 +18,7 @@ kill_process_tree ()
                 NEW_CHILDS="$NEW_CHILDS `ps ho pid --ppid $PID`"
             fi
 
-            kill -9 $PID
+            if test -n "`ps h -p $PID`"; then kill -9 $PID ;fi
 
         done
 
