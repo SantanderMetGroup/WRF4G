@@ -131,7 +131,12 @@ class vdb:
       # Conversion of the dictionary into a string with the pairs separated by commas.
       val = ""
       for field in data.keys():
-         val += "%s='%s'," % (field, data[field])
+          if data[field] != None:
+              val += "%s='%s'," % (field, data[field])
+          else:
+              val += "%s=%s," % (field, 'NULL')
+          
+         
   
       # "val" is a string with comma separated pairs: UI_experiment='sipc18',end_experiment='1998-08-01_00:00:00', 
       # Here, we remove the last comma character

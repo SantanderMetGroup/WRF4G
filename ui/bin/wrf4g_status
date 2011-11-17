@@ -57,7 +57,7 @@ if options.exp_name:
     exp=WRF4G.Experiment(data={'name':'%s'%experiment_name})
     exp.data['id']=exp.get_id_from_name()
     if exp.data['id']<0:
-        stderr.write("Experiment %s do not exists"%experiment_name)
+        stderr.write("Experiment %s do not exists\n"%experiment_name)
         exit(1)
     elif options.long:
     	long_header()

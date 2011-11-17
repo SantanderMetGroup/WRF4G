@@ -35,6 +35,7 @@ parser.add_option("-e", "--exp",metavar="name",dest="exp_name", help="Name of th
 parser.add_option("-r", "--rea",metavar="name",dest="rea_name", help="Name of the realization to sumbit")
 parser.add_option("-F", "--frea",metavar="FILE",dest="rea_file", help="File containing the name of the realization to sumbit.")
 parser.add_option("-a", "--rerun",action="store_true",default=False, dest="rerun",help="Force to run although this realization or experiment has finished")
+parser.add_option("-c", "--chunk",metavar="N",dest="repeatchunk",type="int",default=0,help="Number or the chunk to rerun. Force to run the Chunk although it has already finished. Only works together with --rerun")
 parser.add_option("-o", "--run-just-one",action="store_true",default=False, dest="runone", help="Run just the first chunk of the first realization. Only for testing purposes.")
 parser.add_option("-C", "--nchunk",metavar="N",dest="nchunk",type="int",default=0, help="Run the next N chunks not finished of each realization")
 parser.add_option("-R", "--nrea",metavar="N",dest="nrea", type="int", default=0, help="Run the next N realizations not finished of the experiment")
@@ -87,7 +88,17 @@ elif options.rea_name:
     if int(id) < 0:
         print "Realization %s do not exists"%options.rea_name
         sys.exit(3)
-    rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force)
+    
+    if options.repeatchunk!=0:
+        if options.rerun:
+            rea.run(priority=options.priority,rerun=options.rerun,force=options.force,repeatchunk=options.repeatchunk)
+        else:
+            print "To rerun a chunk the --chunk option has to be used together with --rerun"%options.rea_name
+            sys.exit(3)
+            
+    else:
+        rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force)
+        
 elif options.rea_file:
     f=open(options.rea_file)
     for realization in f.readlines():

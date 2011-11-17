@@ -559,7 +559,7 @@ class Realization(Component):
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk 
          
-    def run(self,nchunk=0,priority=0,rerun=False,force=False):
+    def run(self,nchunk=0,priority=0,rerun=False,force=False,repeatchunk=0):
         import gridway   
 
         WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
@@ -581,15 +581,27 @@ class Realization(Component):
 #                sys.exit(1)    
         
         #restart=self.get_restart()
-        rea_name=self.get_name()
+        rea_name=self.get_name()       
+      
         chunk_status=self.current_chunk_status()
-        
         first_id=chunk_status[0]
         first_id_chunk=chunk_status[1]
-        
+
+             
         if rerun:
-            first_id=first_id-first_id_chunk+1     
-            first_id_chunk=1
+            if repeatchunk != 0:
+               first_id_chunk=repeatchunk
+               chunkd=dbc.select('Chunk','id,sdate','id_rea=%s AND id_chunk=%d'%(self.data['id'],repeatchunk),verbose=self.verbose)
+               first_id=chunkd[0]['id']
+               sdate=chunkd[0]['sdate']              
+               self.set_restart(sdate)
+               self.set_cdate(sdate)
+            else:
+               first_id=first_id-first_id_chunk+1     
+               first_id_chunk=1
+               self.set_restart(None)
+               cdate=self.get_one_field(['sdate'], ['id'])
+               self.set_cdate(cdate)
         else:
             if chunk_status[2] == 4:
                 stderr.write('Realization %s already finished.\n'%rea_name)
@@ -608,9 +620,12 @@ class Realization(Component):
         [first_id_chunk,first_id]=chunkd[0].values()
         """
         
-        lchunk=self.last_chunk()
-        if nchunk != 0 and lchunk-first_id >= nchunk: 
-            lchunk=first_id+nchunk-1
+        if repeatchunk == 0:
+            lchunk=self.last_chunk()
+            if nchunk != 0 and lchunk-first_id >= nchunk: 
+                lchunk=first_id+nchunk-1
+        else:
+            lchunk=first_id
 
         for chunki in range(first_id,lchunk+1):
             chi=Chunk(data={'id':'%s'%chunki})
@@ -626,7 +641,7 @@ class Realization(Component):
                 exec open('resources.wrf4g').read()     
                 job=gridway.job()
                 sandbox='file://%s/etc/templates/WRF4G.sh,file://%s/bin/vcp,file://%s/etc/db4g.conf,resources.wrf4g'%(WRF4G_LOCATION,WRF4G_LOCATION,WRF4G_LOCATION)
-                job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS,environ=ENVIRONMENT,inputsandbox=sandbox)
+                job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS,environ=ENVIRONMENT,inputsandbox=sandbox,verbose=self.verbose)
                 if chunki == first_id:
                     gw_id=job.submit(priority=priority)
                 else:
@@ -788,7 +803,6 @@ class Chunk(Component):
         lj=vdb.parse_one_field(last_job)
         return int(lj)
     
-    
 class Job(Component):
 
     def get_reconfigurable_fields(self):
@@ -889,6 +903,7 @@ if __name__ == "__main__":
     usage="""%prog [OPTIONS] exp_values function fvalues 
              Example: %prog 
     """
+    
     
     parser = OptionParser(usage,version="%prog 1.0")
     parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
