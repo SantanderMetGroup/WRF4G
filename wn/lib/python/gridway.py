@@ -24,13 +24,13 @@ class job:
        ftemplate=name + ".gw"
        f = open (ftemplate,'w')
        template="""NAME = %s
-EXECUTABLE =/bin/bash 
-ARGUMENTS = "%s ./WRF4G.sh %s"
-INPUT_FILES   = %s
-RANK = (CPU_MHZ * 2) + FREE_MEM_MB 
-REQUIREMENTS=%s
-ENVIRONMENT=%s
-NP=%d
+EXECUTABLE   = /bin/bash 
+ARGUMENTS    = "%s ./WRF4G.sh %s"
+INPUT_FILES  = %s
+RANK         = QUEUE_FREENODECOUNT 
+REQUIREMENTS = %s
+ENVIRONMENT  = %s
+NP           = %d
 """%(name,debug,arguments,inputsandbox,req,environ,np)
        f.write(template)
        f.close()
