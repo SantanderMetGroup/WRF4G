@@ -35,7 +35,7 @@ parser.add_option("-e", "--exp",metavar="name",dest="exp_name", help="Name of th
 parser.add_option("-r", "--rea",metavar="name",dest="rea_name", help="Name of the realization to sumbit")
 parser.add_option("-F", "--frea",metavar="FILE",dest="rea_file", help="File containing the name of the realization to sumbit.")
 parser.add_option("-a", "--rerun",action="store_true",default=False, dest="rerun",help="Force to run although this realization or experiment has finished")
-parser.add_option("-c", "--chunk",metavar="N",dest="repeatchunk",type="int",default=0,help="Number or the chunk to rerun. Force to run the Chunk although it has already finished. Only works together with --rerun")
+parser.add_option("-c", "--chunk",metavar="N",dest="repeatchunk",type="int",default=0,help="Number of the chunk to rerun. This option is only valid if the -a (or --rerun) option is specified.")
 parser.add_option("-o", "--run-just-one",action="store_true",default=False, dest="runone", help="Run just the first chunk of the first realization. Only for testing purposes.")
 parser.add_option("-C", "--nchunk",metavar="N",dest="nchunk",type="int",default=0, help="Run the next N chunks not finished of each realization")
 parser.add_option("-R", "--nrea",metavar="N",dest="nrea", type="int", default=0, help="Run the next N realizations not finished of the experiment")

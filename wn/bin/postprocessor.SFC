@@ -11,7 +11,7 @@ wrfnc_file=$1        # The WRF file to postprocess
 
 if ! which nco; then
   thisdir=$(pwd)
-  cd `cat ../rootdir`
+  cd $(cat ../../rootdir)
   vcp ${WRF4G_APPS}/nco.tar.gz .
   tar xzf nco.tar.gz && rm nco.tar.gz
   cd ${thisdir}

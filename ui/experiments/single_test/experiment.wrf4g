@@ -26,6 +26,7 @@ multiple_parameters = 0
   multiparams_labels = "phys1/phys2/phys3/phys4/phys5"
 #
 clean_after_run = 0
+wrfout_name_end_date=1
 postprocessor = "SFC"
 #
 #   Override namelist.input variables here

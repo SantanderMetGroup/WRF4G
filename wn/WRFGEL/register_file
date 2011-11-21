@@ -32,6 +32,7 @@ type_list = {
   "out" : "output",
 }
 
+file_end_date=None
 stderr.write("WRFGEL(register_file)> START: %s\n" % args)
 
 if len(args) == 4 and args[0] == "out":
@@ -55,10 +56,8 @@ if not 'WRF4G_BASEPATH' in dir():
 
 # Change the name of the file in the repository (Change date to the iso format
 # and add .nc at the end of the name
-if type in type_list.keys() :
- 
-    
-    if type == "out":
+if type in type_list.keys() :    
+    if type == "out" and file_end_date:
         file_o=wrffile(file,file_end_date)
         dest_file=file_o.file_name_out_iso()
     else:
