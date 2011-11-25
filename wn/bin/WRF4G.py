@@ -752,6 +752,29 @@ class Realization(Component):
             return 1
         else:
             return 0
+
+    def stop_running_chunks(self):
+        import gridway
+        WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
+        os.environ['GW_LOCATION']='%s/opt/drm4g_gridway'%WRF4G_LOCATION
+        # SELECT Chunk.id,MAX(Job.id)  FROM Chunk,Job WHERE Chunk.id=Job.id_chunk AND Chunk.id>1 AND (Chunk.status=1 OR Chunk.status=2)  GROUP BY Chunk.id
+        condition="Chunk.id_rea=%s and Job.id_chunk=Chunk.id AND (Chunk.status=1 OR Chunk.status=2) GROUP BY Chunk.id"%self.data['id']
+        output=dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
+        chunk_id=[]
+        job_id=[]
+        for couple in output:
+            chunk_id.append(couple['id'])
+            j=Job(data={'id':couple['MAX(Job.id)']})
+            job_id.append(j.get_gw_job())
+            
+        task=gridway.job()
+        to=task.kill(job_id)
+        condition="id_rea=%s AND (status=1 OR status=2)"%self.data['id']
+        data={'status':0}
+        output=dbc.update('Chunk',data,'%s'%condition,verbose=self.verbose)
+
+            
+        
                   
 class Chunk(Component):
     """ Chunk CLASS
@@ -846,6 +869,10 @@ class Job(Component):
     def get_id_chunk(self):
         id_chunk=self.get_one_field(['id_chunk'], ['id'])
         return id_chunk
+    
+    def get_gw_job(self):
+        gw_job=self.get_one_field(['gw_job'], ['id'])
+        return gw_job
 
     def load_wn_conf(self,wn_gwres):
         wn_gwres=int(wn_gwres)
@@ -871,7 +898,6 @@ class Job(Component):
 
         # In this select statement we have the restriction of gw_job.
         jobd=dbc.select('Job','MAX(id),gw_restarted',cond,verbose=self.verbose)
-        [max_id,db_gwres]=jobd[0].values()
 
         # If last_job is bigger than this job's id, then this job should not run.
         if last_job > int(max_id):

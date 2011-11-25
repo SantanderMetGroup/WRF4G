@@ -1,0 +1,91 @@
+#!/usr/bin/python
+
+from sys import stderr,exit, path
+import sys
+import os
+import re
+
+WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
+if WRF4G_LOCATION == None:
+    sys.stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
+    sys.exit(1)  
+
+
+os.environ['DB4G_CONF']='%s/etc/db4g.conf'%WRF4G_LOCATION
+DB4G_CONF=os.environ['DB4G_CONF']
+if not os.path.isfile(DB4G_CONF):
+   print 'DB4G_CONF do not exist'
+   sys.exit(2)
+
+sys.path.append('%s/lib/python'%WRF4G_LOCATION)
+sys.path.reverse()
+from optparse import OptionParser
+import WRF4G
+
+   
+usage="""
+
+%prog [--dry-run] [--nchunk N] [--nrea N] [--priority P] [--verbose] [--force] [--help]
+
+Synopsys:
+
+Submits an experiment or realization.
+"""  
+parser = OptionParser(usage,version="%prog 1.0")
+parser.add_option("-e", "--exp",metavar="name",dest="exp_name", help="Name of the experiment to sumbit")
+parser.add_option("-r", "--rea",metavar="name",dest="rea_name", help="Name of the realization to sumbit")
+parser.add_option("-F", "--frea",metavar="FILE",dest="rea_file", help="File containing the name of the realization to sumbit.")
+
+(options, args) = parser.parse_args()
+
+experiment_name=None
+if not (options.exp_name or options.rea_name or options.rea_file):
+    # No experiment or realization given
+    if not os.path.isfile('experiment.wrf4g'):
+      print "Error. Please provide the name of the experiment to submit."
+      sys.exit(1)
+    else:
+      exp_file=open('experiment.wrf4g').read()
+      parsed=re.sub(r'\n\s+', '\n', exp_file)
+      exec parsed
+      
+      
+if experiment_name:
+    exp=WRF4G.Experiment(data={'name':'%s'%experiment_name},verbose=options.verbose,dryrun=options.dryrun)
+    id=exp.get_id_from_name()
+    if int(id) < 0:
+        print "Experiment %s do not exists"%experiment_name
+        sys.exit(2)
+    id=exp.get_id_from_name()
+    reas=exp.get_run_reas_id()
+    reas.extend(exp.get_wait_reas_id())
+    for id_rea in reas:
+        rea=WRF4G.Realization(data={'id':'%s'%id_rea},verbose=options.verbose,dryrun=options.dryrun)
+        rea.stop_running_chunks()  
+
+elif options.rea_name:
+    rea=WRF4G.Realization(data={'name':'%s'%options.rea_name},verbose=options.verbose,dryrun=options.dryrun)
+    id=rea.get_id_from_name()   
+    if int(id) < 0:
+        print "Realization %s do not exists"%options.rea_name
+        sys.exit(3)
+    rea.stop_running_chunks()
+        
+elif options.rea_file:
+    f=open(options.rea_file)
+    for realization in f.readlines():
+        realization=realization.rstrip()
+        rea=WRF4G.Realization(data={'name':'%s'%realization},verbose=options.verbose,dryrun=options.dryrun)
+        id=rea.get_id_from_name()
+        if id < 0 :
+           print "Realization with name %s do not exist"%realization
+        else:
+            rea.stop_running_chunks()               
+    f.close()
+    
+ 
+if options.dryrun:
+     WRF4G.dbc.rollback()
+else:
+     WRF4G.dbc.commit()
+WRF4G.dbc.close()

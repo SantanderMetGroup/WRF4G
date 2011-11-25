@@ -52,5 +52,11 @@ NP           = %d
          sys.exit(1)
        else:
           return out[8:]
+    
+   def kill(self,job_array):
+       for i in job_array:
+            command="%s/bin/gwkill -9 %s"%(self.gwloc,i)
+            (err,out)=commands.getstatusoutput(command)
+            sys.stderr.write(out + '\n')
         
         
