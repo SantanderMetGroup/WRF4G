@@ -14,12 +14,12 @@ extdata_path=$3      # Path to the data
 source wrf_util.sh 
 read iyy imm idd trash <<< `echo $sformateddate | tr '_T:-' '    '`
 read fyy fmm fdd trash <<< `echo $eformateddate | tr '_T:-' '    '`
-echo "Linking global data from: ${global_path}"
+echo "Linking global data from: ${extdata_path}"
 mkdir -p grbData
 for yearmonday in $(get_yearmondays $iyy $imm $idd $fyy $fmm $fdd)
 do
   year=${yearmonday:0:4}
-  for file in  ${global_path}/${year}/*_${yearmonday:0:6}_*128.grb; do 
+  for file in  ${extdata_path}/${year}/*_${yearmonday:0:6}_*128.grb; do 
     vcp -v ${file} `pwd`/grbData/
   done # end of files
 done # end of dates 

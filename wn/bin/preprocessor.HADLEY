@@ -63,13 +63,13 @@ function get_fake_soil(){
   rm ${fakesoilgrb}.echam
 }
 
-echo "Linking global data from: ${global_path}"
+echo "Linking global data from: ${extdata_path}"
 mkdir -p grbData
 
 for yearmon in $(get_yearmons $iyy $imm $fyy $fmm)
 do
   year=${yearmon:0:4}
-  vcp -v ${global_path}/HADLEY-*_${yearmon}.grb `pwd`/grbData/
+  vcp -v ${extdata_path}/HADLEY-*_${yearmon}.grb `pwd`/grbData/
   ifile=$(ls grbData/*_${yearmon}.grb)
   test -f "${ifile}" || exit
   get_fake_soil $ifile
