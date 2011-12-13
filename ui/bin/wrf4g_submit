@@ -23,7 +23,7 @@ import WRF4G
    
 usage="""
 
-%prog [--dry-run] [--nchunk N] [--nrea N] [--priority P] [--verbose] [--force] [--help]
+%prog [--dry-run] [--nchunk N] [--nrea N] [--priority P] [--verbose] [--force] [--tdep afterok | afternotok | afterany] [--help]
 
 Synopsys:
 
@@ -42,6 +42,7 @@ parser.add_option("-R", "--nrea",metavar="N",dest="nrea", type="int", default=0,
 parser.add_option("-p", "--priority",metavar="P",dest="priority", default=0,help="P is the priority the experiment or realization is going to be launched with (P is a integer between 0 and 19. 20 is an urgent job)")
 parser.add_option("-v", "--verbose",action="store_true",default=False, dest="verbose",help="Verbose mode. Explain what is being done")
 parser.add_option("-f", "--force",action="store_true",default=False, dest="force",help="Don't ask the user if he wants to submit an experiment already submitted")
+parser.add_option("-d", "--tdep", action="store", type="choice", dest="type_dep", choices=["afterok", "afternotok", "afterany"], default="afterany",help="Specify dependencies between Chunks. afterok: The chunk may be scheduled for execution only after jobs jobid have terminated with no errors.  afternotok: The chunk may be scheduled for execution only after jobs jobid have terminated with errors. afterany: The chunk may be scheduled for execution after jobs jobid have terminated, with or without errors.")
 
 (options, args) = parser.parse_args()
 
@@ -80,7 +81,7 @@ if experiment_name:
     if int(id) < 0:
         print "Experiment %s do not exists"%experiment_name
         sys.exit(2)
-    exp.run(nrea=options.nrea,nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force)
+    exp.run(nrea=options.nrea,nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force,type_dep=options.type_dep)
 
 elif options.rea_name:
     rea=WRF4G.Realization(data={'name':'%s'%options.rea_name},verbose=options.verbose,dryrun=options.dryrun)
@@ -91,13 +92,13 @@ elif options.rea_name:
     
     if options.repeatchunk!=0:
         if options.rerun:
-            rea.run(priority=options.priority,rerun=options.rerun,force=options.force,repeatchunk=options.repeatchunk)
+            rea.run(priority=options.priority,rerun=options.rerun,force=options.force,repeatchunk=options.repeatchunk,type_dep=options.type_dep)
         else:
             print "To rerun a chunk the --chunk option has to be used together with --rerun"%options.rea_name
             sys.exit(3)
             
     else:
-        rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force)
+        rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force,type_dep=options.type_dep)
         
 elif options.rea_file:
     f=open(options.rea_file)
@@ -108,7 +109,7 @@ elif options.rea_file:
         if id < 0 :
            print "Realization with name %s do not exist"%realization
         else:
-           rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force)      
+           rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force,type_dep=options.type_dep)      
     f.close()
     
  
