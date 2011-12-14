@@ -315,7 +315,7 @@ class Experiment(Component):
         name=self.get_one_field(['name'], ['id'])
         return name
            
-    def run(self,nrea=0,nchunk=0,priority=0,rerun=False,force=False):
+    def run(self,nrea=0,nchunk=0,priority=0,rerun=False,force=False,type_dep="afterany"):
         ncrea=0
         if rerun:
             rea_ids=self.get_realizations_id()
@@ -330,7 +330,7 @@ class Experiment(Component):
 
         for id_rea in rea_ids:
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
-            st=rea.run(nchunk=nchunk,priority=priority,rerun=rerun,force=force)
+            st=rea.run(nchunk=nchunk,priority=priority,rerun=rerun,force=force,type_dep=type_dep)
             if st==1:
                 ncrea=ncrea+1
                 if ncrea==nrea:
@@ -559,7 +559,7 @@ class Realization(Component):
         nchunk=vdb.parse_one_field(nchunkd)
         return nchunk 
          
-    def run(self,nchunk=0,priority=0,rerun=False,force=False,repeatchunk=0):
+    def run(self,nchunk=0,priority=0,rerun=False,force=False,repeatchunk=0,type_dep="afterany"):
         import gridway   
 
         WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
@@ -645,7 +645,7 @@ class Realization(Component):
                 if chunki == first_id:
                     gw_id=job.submit(priority=priority)
                 else:
-                    gw_id=job.submit(priority=priority,dep=gw_id)
+                    gw_id=job.submit(priority=priority,dep=gw_id,type_dep=type_dep)
                 job_data={'gw_job': gw_id,'id_chunk': str(chi.data['id']), 'hash': create_hash()}
                 job=Job(job_data,verbose=self.verbose)
                 jid=job.create()
@@ -773,8 +773,21 @@ class Realization(Component):
         data={'status':0}
         output=dbc.update('Chunk',data,'%s'%condition,verbose=self.verbose)
 
-            
-        
+    def change_priority(self, priority):
+        import gridway
+        WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
+        os.environ['GW_LOCATION']='%s/opt/drm4g_gridway'%WRF4G_LOCATION
+        # SELECT Chunk.id,MAX(Job.id)  FROM Chunk,Job WHERE Chunk.id=Job.id_chunk AND Chunk.id>1 AND (Chunk.status=1 OR Chunk.status=2)  GROUP BY Chunk.id
+        condition="Chunk.id_rea=%s and Job.id_chunk=Chunk.id AND (Chunk.status=1 OR Chunk.status=2) GROUP BY Chunk.id"%self.data['id']
+        output=dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
+        chunk_id=[]
+        job_id=[]
+        for couple in output:
+            chunk_id.append(couple['id'])
+            j=Job(data={'id':couple['MAX(Job.id)']})
+            job_id.append(j.get_gw_job())
+        task=gridway.job()
+        to=task.change_priority(priority,job_id)
                   
 class Chunk(Component):
     """ Chunk CLASS
