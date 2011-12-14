@@ -13,6 +13,7 @@ RESOURCE_MANAGER = {
     "mnslurm" : "drm4g.managers.marenostrum",
     "fork"    : "drm4g.managers.fork",
     "none"    : "drm4g.managers.fork",
+    "cream"   : "drm4g.managers.cream",
     }
 
 #########

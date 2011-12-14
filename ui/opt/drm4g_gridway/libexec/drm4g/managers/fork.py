@@ -4,7 +4,7 @@ import os
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: fork.py 1254 2011-10-31 08:51:49Z carlos $"
+__revision__ = "$Id: fork.py 1301 2011-11-16 09:18:35Z carlos $"
 
 SH = 'LANG=POSIX /bin/bash'
 
