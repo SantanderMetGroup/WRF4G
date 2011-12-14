@@ -111,7 +111,8 @@ typedef enum
   GW_MSG_END_JOB,
   GW_MSG_END,
   GW_MSG_DISENGAGE,
-  GW_MSG_USERS
+  GW_MSG_USERS,
+  GW_MSG_PRIORITY
 } gw_msg_type_t;
 
 typedef enum

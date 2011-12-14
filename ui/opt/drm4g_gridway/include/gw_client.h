@@ -60,7 +60,8 @@ typedef enum {
    GW_CLIENT_SIGNAL_HOLD,
    GW_CLIENT_SIGNAL_RELEASE,
    GW_CLIENT_SIGNAL_RESCHEDULE,
-   GW_CLIENT_SIGNAL_LIMIT
+   GW_CLIENT_SIGNAL_LIMIT,
+   GW_CLIENT_SIGNAL_PRIORITY
 } gw_client_signal_t;
 
 /* -------------------------------------------------------------------------- */

@@ -69,11 +69,11 @@ int gw_job_pool_dm_recover (gw_dm_mad_t * em_mad);
 
 void gw_job_pool_tm_recover (gw_am_t *dm_am);
 
-void gw_job_pool_dep_check(int job_id);
+void gw_job_pool_dep_check(int job_id, int exit_code);
 
 void gw_job_pool_dep_set(int job_id, int *deps);
 
-void gw_job_pool_dep_cp (const int * src, int **dst);
+void gw_job_pool_dep_cp (const int * src, int **dst,  int finally);
 
 void gw_job_pool_dep_consistency();
 
