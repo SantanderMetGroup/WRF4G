@@ -73,7 +73,7 @@ void gw_job_pool_dep_check(int job_id, int exit_code);
 
 void gw_job_pool_dep_set(int job_id, int *deps);
 
-void gw_job_pool_dep_cp (const int * src, int **dst,  int finally);
+void gw_job_pool_dep_cp (const int * src, int **dst);
 
 void gw_job_pool_dep_consistency();
 

@@ -133,6 +133,8 @@ typedef struct gw_job_s
     int pinc;
     
     int fixed_priority;
+
+    int type_dep;
     
     gw_em_state_t  em_state;
     gw_tm_state_t  tm_state;
