@@ -54,10 +54,10 @@ class Job (drm4g.managers.Job):
         return job_id          
 
     def jobStatus(self):
-        out, err = self.Communicator.execCommand('LANG=POSIX ps -e')
-        if [line for line in out.splitlines() if self.JobId in line]:
+        out, err = self.Communicator.execCommand('LANG=POSIX ps --no-heading -p %s' %(self.JobId))
+        if out:
             return 'ACTIVE'
-        else:   
+        else:
             return 'DONE'
     
     def jobCancel(self):
