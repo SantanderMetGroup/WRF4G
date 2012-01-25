@@ -6,7 +6,7 @@ import xml.dom.minidom
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: pbs.py 1254 2011-10-31 08:51:49Z carlos $"
+__revision__ = "$Id: pbs.py 1362 2012-01-17 12:14:28Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
@@ -17,60 +17,46 @@ QDEL     = 'LANG=POSIX qdel'     #qdel - delete pbs batch job
 
 class Resource (drm4g.managers.Resource):
 
-    host_properties = {
-        'LRMS_NAME'    : 'PBS',
-        'LRMS_TYPE'    : 'PBS',
-        }
-
-    queue_default = {
-        'QUEUE_NAME'           : 'default',
-        'QUEUE_NODECOUNT'      : 0,
-        'QUEUE_FREENODECOUNT'  : 0,
-        'QUEUE_MAXTIME'        : 0,
-        'QUEUE_MAXCPUTIME'     : 0,
-        'QUEUE_MAXCOUNT'       : 0,
-        'QUEUE_MAXRUNNINGJOBS' : 0,
-        'QUEUE_MAXJOBSINQUEUE' : 0,
-        'QUEUE_STATUS'         : '0',
-        'QUEUE_DISPATCHTYPE'   : 'batch',
-        'QUEUE_PRIORITY'       : 'NULL',
-        }
-    
-
+    def lrmsProperties(self):
+        return ('PBS', 'PBS') 
+ 
     def dynamicNodes(self):
         out, err = self.Communicator.execCommand('%s -x' % (PBSNODES))
         if err: 
             raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
         out_parser = xml.dom.minidom.parseString(out)
-        self.total_cpu  = sum([int(elem.getElementsByTagName('np')[0].firstChild.data) \
+        total_cpu  = sum([int(elem.getElementsByTagName('np')[0].firstChild.data) \
             for elem in out_parser.getElementsByTagName('Node')])
         auxCpu = ','.join([elem.getElementsByTagName('jobs')[0].firstChild.data \
             for elem in out_parser.getElementsByTagName('Node') \
                 if elem.getElementsByTagName('jobs')]).count(',')
-        if auxCpu != 0 : self.free_cpu = self.total_cpu - (auxCpu + 1)
-        else : self.free_cpu = self.total_cpu - auxCpu
+        if auxCpu != 0 : free_cpu = total_cpu - (auxCpu + 1)
+        else : free_cpu = total_cpu - auxCpu
+        return (str(total_cpu), str(free_cpu))
 
-    def queues(self, Host):
+    def queuesProperties(self, searchQueue, project):
         out, err = self.Communicator.execCommand('%s -q' % (QSTAT))
         #output line --> Queue Memory CPU_Time Walltime Node Run Que Lm State
         if err:
             raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
-        self.queue_default['QUEUE_NODECOUNT']     = self.total_cpu
-        self.queue_default['QUEUE_FREENODECOUNT'] = self.free_cpu
         queues = []
-        for values in out.split('\n')[5:-3]:
-            queue_name, _, CPU_Time, Walltime, _, _, _, Lm = values.split()[0:8]
-            if queue_name == Host.QUEUE_NAME or not Host.QUEUE_NAME:
-                queue = self.queue_default.copy()
-                queue['QUEUE_NAME'] = queue_name
-                Time = re.compile(r'(\d+):\d+:\d+')
-                if CPU_Time != '--':
-                    queue['QUEUE_MAXCPUTIME'] = int(Time.search(CPU_Time).group(1)) * 60
-                if Walltime != '--':
-                    queue['QUEUE_MAXTIME'] = int(Time.search(CPU_Time).group(1)) * 60
-                if Lm != '--': queue['QUEUE_MAXRUNNINGJOBS'] = Lm
+        for val in out.split('\n')[5:-3]:
+            queueName, _, cpuTime, wallTime, _, _, _, lm = val.split()[0:8]
+            if queueName == searchQueue or not searchQueue:
+                queue              = drm4g.managers.Queue()
+                queue.Name         = queueName
+                queue.Nodes        = self.TotalCpu
+                queue.FreeNodes    = self.FreeCpu
+                queue.DispatchType = 'batch'
+                time = re.compile(r'(\d+):\d+:\d+')
+                if cpuTime != '--':
+                    queue.MaxCpuTime = str(int(time.search(cpuTime).group(1)) * 60)
+                if wallTime != '--':
+                    queue.MaxTime    = str(int(time.search(cpuTime).group(1)) * 60)
+                if lm != '--': 
+                    queue.MaxRunningJobs = lm
                 queues.append(queue)
-        return self._queues_string(queues)
+        return queues
 
 class Job (drm4g.managers.Job):
    
@@ -120,12 +106,15 @@ class Job (drm4g.managers.Job):
         if parameters.has_key('maxMemory'):
             args += '#PBS -l mem=%smb\n' % (parameters['maxMemory'])
         if parameters.has_key('tasksPerNode'):
-            args += '#PBS -l nodes=$count:ppn=$tasksPerNode\n'
+            args += '#PBS -l nodes=%d:ppn=$tasksPerNode\n' % (int(parameters['count']) / int(parameters['tasksPerNode']))
         else:
             args += '#PBS -l nodes=$count\n'
         args += '#PBS -v %s\n' % (','.join(['%s=%s' %(k, v) for k, v in parameters['environment'].items()]))
         args += 'cd $directory\n'
-        args += '$executable\n'
+        if parameters['jobType'] == "mpi":
+            args += 'mpi -np $count $executable\n'
+        else:
+            args += '$executable\n'
         return Template(args).safe_substitute(parameters)
 
 

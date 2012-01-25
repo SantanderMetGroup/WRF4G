@@ -6,7 +6,7 @@ from drm4g.utils.logger import *
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: __init__.py 1232 2011-10-26 09:09:40Z carlos $"
+__revision__ = "$Id: __init__.py 1361 2012-01-17 10:26:27Z carlos $"
 
 
 def sec_to_H_M_S(sec):
@@ -14,68 +14,41 @@ def sec_to_H_M_S(sec):
     h, m = divmod(m, 60) 
     return "%d:%02d:%02d" % (h, m, s) 
 
-class ResourceException(Exception):
-    pass 
+class ResourceException(Exception): pass 
+class JobException(Exception):      pass
     
 class Resource (object):
-
-    host_properties = {
-        'HOSTNAME'     : 'NULL',
-        'ARCH'         : 'NULL',
-        'OS_NAME'      : 'NULL',
-        'OS_VERSION'   : 'NULL',
-        'CPU_MODEL'    : 'NULL', 
-        'CPU_MHZ'      :  0, 
-        'CPU_FREE'     :  0,
-        'CPU_SMP'      :  0, 
-        'NODECOUNT'    :  0,
-        'FREENODECOUNT':  0,
-        'FREE_MEM_MB'  :  0, 
-        'SIZE_MEM_MB'  :  0,
-        'FREE_DISK_MB' :  0, 
-        'SIZE_DISK_MB' :  0,
-        'LRMS_NAME'    : 'NULL', 
-        'LRMS_TYPE'    : 'NULL',
-        } 
-    #Operation hostProperties
-    re_host = re.compile(r'(?P<HOSTNAME>.+) (?P<OS_VERSION>.+) (?P<ARCH>.+) (?P<OS_NAME>.+)')
-    re_cpu  = re.compile(r'^model name\s*:\s*(?P<CPU_MODEL>.+)\s*cpu MHz\s*:\s*(?P<CPU_MHZ>\d+).*')
-    re_mem  = re.compile(r'MemTotal:\s*(?P<SIZE_MEM_MB>\d+).*\s*MemFree:\s*(?P<FREE_MEM_MB>\d+)')
 
     logger = get_logger('drm4g.managers')
    
     def __init__(self):
         self._communicator = None
-        self._totalCpu     = 0
-        self._freeCpu      = 0
+        self._totalCpu     = "0"
+        self._freeCpu      = "0"
 
     def setCommunicator(self, communicator):
         self._communicator = communicator
 
     def getCommunicator(self):
         return self._communicator	
-     
+    Communicator = property(getCommunicator, setCommunicator)
+ 
     def setFreeCpu(self, freeCpu):
         self._freeCpu = freeCpu
 
     def getFreeCpu(self):
         return self._freeCpu
+    FreeCpu = property(getFreeCpu, setFreeCpu)
 
     def getTotalCpu(self):
         return self._totalCpu
 
     def setTotalCpu(self, totalCpu):
         self._totalCpu = totalCpu
+    TotalCpu     = property(getTotalCpu, setTotalCpu)    
 
-    Communicator = property(getCommunicator, setCommunicator)    
-    free_cpu     = property(getFreeCpu, setFreeCpu)
-    total_cpu    = property(getTotalCpu, setTotalCpu)    
-
-    def dynamicNodes(self):
-        pass
-
-    def staticNodes(self, host_id):
-        command_proc = subprocess.Popen('LANG=POSIX gwhost -x %s' % (host_id),
+    def staticNodes(self, hid, total_cpu):
+        command_proc = subprocess.Popen('LANG=POSIX gwhost -x %s' % (hid),
                 shell = True,
                 stdout = subprocess.PIPE,
                 stderr = subprocess.PIPE,
@@ -85,73 +58,67 @@ class Resource (object):
             raise ResourceException(' '.join(stderr.split('\n')))
         out_parser = xml.dom.minidom.parseString(stdout)
         busy = int(out_parser.getElementsByTagName('USED_SLOTS')[0].firstChild.data)
-        free_cpu = self.total_cpu - busy
-        if free_cpu < 0 : self.free_cpu = 0
-        else: self.free_cpu = free_cpu
+        free_cpu = str(int(total_cpu) - busy)
+        if free_cpu < 0 : 
+           free_cpu = "0"
+        return (total_cpu , free_cpu)
         
-    def queues(self, Host = None):
-        pass
-        
-    def hostProperties(self):
-        properties = self.host_properties.copy()
-        properties['NODECOUNT'] = self.total_cpu
+    def hostProperties(self): 
         try:
             out, err = self.Communicator.execCommand('LANG=POSIX uname -n -r -m -o')
             if not err:
-                re_host = self.re_host.search(out)
-                if re_host: properties.update(re_host.groupdict())
+                return out.split() #hostname,os_version,arch,os_name 
         except Exception, e:
-            self.logger.log(DEBUG, "Could not obtain OS: " + str(e))
-            self.logger.log(DEBUG, "stdout: " + out)
-            self.logger.log(DEBUG, "stderr: " + err)
+            self.logger.log(DEBUG, str(e))
+            return ('NULL', 'NULL', 'NULL', 'NULL')
+
+    def cpuProperties(self): 
         try:
             out, err = self.Communicator.execCommand('LANG=POSIX grep -e \"model name\" -e \"cpu MHz\" /proc/cpuinfo')
-            if not err: 
-                re_cpu = self.re_cpu.match(out)
-                if re_cpu: 
-                    properties['CPU_MODEL']= re_cpu.groupdict()['CPU_MODEL'] 
-                    properties['CPU_MHZ']= int(re_cpu.groupdict()['CPU_MHZ'])
+            if not err:
+                re_cpu = re.compile(r'^model name\s*:\s*(.+)\s*cpu MHz\s*:\s*(\d+).*').match(out) 
+                if re_cpu:
+                    return re_cpu.groups()
+                else:
+                    return ('NULL','0') 
         except Exception, e:
-            self.logger.log(DEBUG, "Could not obtain CPU: " + str(e))
-            self.logger.log(DEBUG, "stdout: " + out)
-            self.logger.log(DEBUG, "stderr: " + err)
+            self.logger.log(DEBUG, str(e))
+            return ('NULL','0') 
+      
+    def memProperties(self):
         try:
             out, err = self.Communicator.execCommand('LANG=POSIX grep -e MemTotal -e MemFree /proc/meminfo')
             if not err:
-                re_mem = self.re_mem.search(out)
-                if re_mem: properties.update(dict((k, int(v)/1024) for k, v in re_mem.groupdict().items()))
+                re_mem = re.compile(r'MemTotal:\s*(\d+).*\s*MemFree:\s*(\d+)').search(out)
+                if re_mem: 
+                    return re_mem.groups()
+                else:
+                    return ('0','0')
         except Exception, e:
-            self.logger.log(DEBUG, "Could not obtain Mem: " + str(e))
-            self.logger.log(DEBUG, "stdout: " + out)
-            self.logger.log(DEBUG, "stderr: " + err)
+            self.logger.log(DEBUG, str(e))
+            return ('0','0')
+     
+    def diskProperties(self):
         try:
             out, err = self.Communicator.execCommand('LANG=POSIX df -B 1K $HOME')
             if not err:
-                properties['SIZE_DISK_MB'] = int(out.split('\n')[1].split()[1])
-                properties['FREE_DISK_MB'] = int(out.split('\n')[1].split()[3])
+                line2 = out.split('\n')[1] 
+                return (line2.split()[1] , line2.split()[3])
+            else:
+                return ('0', '0')
         except Exception, e:
-            self.logger.log(DEBUG, "Could not obtain Mem_Disk: " + str(e))
-            self.logger.log(DEBUG, "stdout: " + out)
-            self.logger.log(DEBUG, "stderr: " + err)
-        return self._host_string(properties)
-    
-    def _host_string(self, properties):
-        for k, v in properties.items():
-            if type(v) == str: properties[k] = '"%s"' % (v)
-            else: properties[k] = '%d' % (v)
-        return ' '.join(['%s=%s' % (k, v) for k, v in properties.items()])
-        
-    def _queues_string(self, properties):
-        args = []
-        for i, vals in enumerate(properties):
-            for k, v in vals.items():
-                if type(v) == str: aux = '"%s"' % (v)
-                else: aux = '%d' % (v)
-                args.append('%s[%d]=%s' % (k, i, aux))
-        return ' '.join(args)
+            self.logger.log(DEBUG, str(e))
+            return ('0', '0')
 
-class JobException(Exception):
-    pass 
+    # To overload
+    def dynamicNodes(self):
+        pass
+  
+    def queuesProperties(self, searchQueue, project):
+        pass
+
+    def lrmsProperties(self):
+        pass
 
 class Job (object):
     
@@ -159,7 +126,7 @@ class Job (object):
         self._communicator = None
         self._jobId        = "NULL"
         self._status       = "NULL"
-        self._lock = __import__('threading').Lock()
+        self._lock         = __import__('threading').Lock()
     
     def setStatus(self, status):
         self._lock.acquire()
@@ -214,7 +181,6 @@ class Job (object):
             raise JobException('Error copying wrapper_drm4g :' + str(e))
 
     # To overload 
-   
     def jobSubmit(self, remoteFileNameWrapper):
         pass
         
@@ -227,22 +193,21 @@ class Job (object):
     def jobTemplate(self, rsl2):
         pass
 
+class Queue:
     
+    def __init__(self):
+        self._name           = "NULL"
+        self._nodes          = "0"
+        self._freeNodes      = "0"
+        self._maxTime        = "0"
+        self._maxCpuTime     = "0"
+        self._maxCount       = "0"
+        self._maxRunningJobs = "0"
+        self._maxJobsWoutCpu = "0"
+        self._status         = "NULL"
+        self._dispatchType   = "NULL"
+        self._priority       = "NULL"
 
-class Queue (object):
-    
-    _name           = "NULL"
-    _nodes          = "0"
-    _freeNodes      = "0"
-    _maxTime        = "0"
-    _maxCpuTime     = "0"
-    _maxCount       = "0"
-    _maxRunningJobs = "0"
-    _maxJobsWoutCpu = "0"
-    _status         = "NULL"
-    _dispatchType   = "NULL"
-    _priority       = "NULL"
-    
     def setName(self, name):
         self._name = name
     
@@ -325,6 +290,7 @@ class Queue (object):
         @return: the information of the queue
         @rtype: string
         """
+        i = str(i)
         return  'QUEUE_NAME[' + i + ']="' + self.Name + '" QUEUE_NODECOUNT[' + i + ']=' + self.Nodes + \
             ' QUEUE_FREENODECOUNT[' + i + ']=' + self.FreeNodes + ' QUEUE_MAXTIME[' + i +']=' + self.MaxTime + \
             ' QUEUE_MAXCPUTIME[' + i + ']=' + self.MaxCpuTime + ' QUEUE_MAXCOUNT[' + i + ']=' + self.MaxCount + \
@@ -332,28 +298,30 @@ class Queue (object):
             self.MaxJobsWoutCpu + ' QUEUE_STATUS[' + i + ']="' + self.Status + '" QUEUE_DISPATCHTYPE[' + i + ']="'+ \
             self.DispatchType + '" QUEUE_PRIORITY[' + i +']="' + self.Priority + '" '
     
-class Host (object):
-    
-    _name       = "NULL"
-    _arch       = "NULL"
-    _os         = "NULL"
-    _osVersion  = "NULL"
-    _cpuModel   = "NULL"
-    _cpuMhz     = "0"
-    _freeCpu    = "0"
-    _cpuSmp     = "0"
-    _nodeCount  = "0"
-    _sizeMemMB  = "0"
-    _freeMemMB  = "0"
-    _sizeDiskMB = "0"
-    _freeDiskMB = "0"
-    _forkName   = "NULL"
-    _lrmsName   = "NULL"
-    _lrmsType   = "NULL"
-    _queues     = []
-    
-    def addQueue(self, queue):
-        self._queues.append(queue)
+class HostInformation:
+   
+    def __init__(self):
+        self._name       = "NULL"
+        self._arch       = "NULL"
+        self._os         = "NULL"
+        self._osVersion  = "NULL"
+        self._cpuModel   = "NULL"
+        self._cpuMhz     = "0"
+        self._freeCpu    = "0"
+        self._cpuSmp     = "0"
+        self._nodeCount  = "0"
+        self._sizeMemMB  = "0"
+        self._freeMemMB  = "0"
+        self._sizeDiskMB = "0"
+        self._freeDiskMB = "0"
+        self._forkName   = "NULL"
+        self._lrmsName   = "NULL"
+        self._lrmsType   = "NULL"
+        self._queues     = [] 
+ 
+    def addQueue(self, queues):
+        for queue in queues:
+            self._queues.append(queue)
         
     def showQueues(self):
         return self._queues
@@ -476,12 +444,13 @@ class Host (object):
         @rtype: string 
         """
         info_host = 'HOSTNAME="' + self.Name + '" ARCH="' + self.Arch + '" OS_NAME="' + \
-            self.Os + ' OS_VERSION="' + self.OsVersion + '" CPU_MODEL="' + self.CpuModel + \
-            ' CPU_MHZ=' + self.CpuMhz + ' CPU_FREE=' + self.FreeCpu + ' CPU_SMP=' + self.CpuSmp + \
+            self.Os + '" OS_VERSION="' + self.OsVersion + '" CPU_MODEL="' + self.CpuModel + \
+            '" CPU_MHZ=' + self.CpuMhz + ' CPU_FREE=' + self.FreeCpu + ' CPU_SMP=' + self.CpuSmp + \
             ' NODECOUNT=' + self.NodeCount + ' SIZE_MEM_MB=' + self.SizeMemMB + ' FREE_MEM_MB=' + \
             self.FreeMemMB + ' SIZE_DISK_MB=' + self.SizeDiskMB + ' FREE_DISK_MB=' + self.FreeDiskMB + \
-            ' FORK_NAME="' + self.ForkName + ' LRMS_NAME="' + self.LrmsName + '" LRMS_TYPE="' + self.LrmsType + '" '
+            ' FORK_NAME="' + self.ForkName + '" LRMS_NAME="' + self.LrmsName + '" LRMS_TYPE="' + self.LrmsType + '" '
+        info_queue = ""
         for i, queue in enumerate(self._queues):
-            info_host += queue.info(i)
-        return info_host		    
+            info_queue += queue.info(i)
+        return info_host + info_queue		    
        

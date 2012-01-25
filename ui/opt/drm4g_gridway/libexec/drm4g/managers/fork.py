@@ -4,45 +4,33 @@ import os
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: fork.py 1301 2011-11-16 09:18:35Z carlos $"
+__revision__ = "$Id: fork.py 1357 2012-01-10 19:59:38Z carlos $"
 
 SH = 'LANG=POSIX /bin/bash'
 
 class Resource (drm4g.managers.Resource):    
 
-    host_properties = {
-        'LRMS_NAME'    : 'FORK',
-        'LRMS_TYPE'    : 'FORK',
-        }
- 
-    queue_default = {
-        'QUEUE_NAME'           : 'default',
-        'QUEUE_NODECOUNT'      : 0,
-        'QUEUE_FREENODECOUNT'  : 0,
-        'QUEUE_MAXTIME'        : 0,
-        'QUEUE_MAXCPUTIME'     : 0,
-        'QUEUE_MAXCOUNT'       : 0,
-        'QUEUE_MAXRUNNINGJOBS' : 0,
-        'QUEUE_MAXJOBSINQUEUE' : 0,
-        'QUEUE_STATUS'         : '0',
-        'QUEUE_DISPATCHTYPE'   : 'Immediate',
-        'QUEUE_PRIORITY'       : 'NULL',
-        }
+
+    def lrmsProperties(self):
+        return ('FORK' ,'FORK')
 
     def dynamicNodes(self):
         out, err = self.Communicator.execCommand('LANG=POSIX grep -c processor /proc/cpuinfo')
         if err: 
             raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
-        self.total_cpu = int(out.rstrip('\n')) 
+        total_cpu = int(out.rstrip('\n')) 
         out, err = self.Communicator.execCommand('LANG=POSIX ps -ef | grep .wrapper | grep -v grep | wc -l') 
         if err: 
             raise drm4g.managers.ResourceException(' '.join(err.split('\n')))        
-        self.free_cpu = self.total_cpu - int(out.rstrip('\n'))
+        return (str(total_cpu) , str(total_cpu - int(out.rstrip('\n'))))
 
-    def queues(self, Host):
-        self.queue_default['QUEUE_NODECOUNT']     = self.total_cpu
-        self.queue_default['QUEUE_FREENODECOUNT'] = self.free_cpu
-        return self._queues_string([self.queue_default])
+    def queuesProperties(self, searchQueue, project):
+        queue = drm4g.managers.Queue()
+        queue.Name         = 'default'
+        queue.Nodes        = self.TotalCpu
+        queue.FreeNodes    = self.FreeCpu
+        queue.DispatchType = 'Immediate'
+        return [queue]
 
 class Job (drm4g.managers.Job):
     
@@ -57,7 +45,7 @@ class Job (drm4g.managers.Job):
         out, err = self.Communicator.execCommand('LANG=POSIX ps --no-heading -p %s' %(self.JobId))
         if out:
             return 'ACTIVE'
-        else:
+        else:   
             return 'DONE'
     
     def jobCancel(self):

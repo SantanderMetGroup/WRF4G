@@ -7,7 +7,7 @@ from drm4g.managers import sec_to_H_M_S
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: marenostrum.py 1254 2011-10-31 08:51:49Z carlos $"
+__revision__ = "$Id: marenostrum.py 1359 2012-01-16 10:11:25Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
@@ -18,25 +18,8 @@ MNQ      = 'LANG=POSIX mnq'      #mnq      - shows all the jobs submitted
 
 class Resource (drm4g.managers.Resource):
 
-    host_properties = {
-        'LRMS_NAME'    : 'MNSLURM',
-        'LRMS_TYPE'    : 'MNSLURM',
-        }
-
-    queue_default = {
-        'QUEUE_NAME'           : 'default',
-        'QUEUE_NODECOUNT'      : 0,
-        'QUEUE_FREENODECOUNT'  : 0,
-        'QUEUE_MAXTIME'        : 0,
-        'QUEUE_MAXCPUTIME'     : 0,
-        'QUEUE_MAXCOUNT'       : 0,
-        'QUEUE_MAXRUNNINGJOBS' : 0,
-        'QUEUE_MAXJOBSINQUEUE' : 0,
-        'QUEUE_STATUS'         : '0',
-        'QUEUE_DISPATCHTYPE'   : 'batch',
-        'QUEUE_PRIORITY'       : 'NULL',
-        }
-
+    def lrmsProperties(self):
+        return ('MNSLRUM', 'MNSLURM')
 
     def dynamicNodes(self):
         out, err = self.Communicator.execCommand('%s --xml' % (MNQ))
@@ -44,13 +27,17 @@ class Resource (drm4g.managers.Resource):
             raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
         out_parser = xml.dom.minidom.parseString(out)
         cluster = out_parser.getElementsByTagName('Data')[0].getElementsByTagName('cluster')[0]
-        self.total_cpu = int(cluster.getAttribute('LocalUpProcs'))
-        self.free_cpu = self.total_cpu - int(cluster.getAttribute('LocalAllocProcs'))
-
-    def queues(self, Host):
-        self.queue_default['QUEUE_NODECOUNT']     = self.total_cpu
-        self.queue_default['QUEUE_FREENODECOUNT'] = self.free_cpu
-        return self._queues_string([self.queue_default])
+        total_cpu = int(cluster.getAttribute('LocalUpProcs'))
+        free_cpu  = total_cpu - int(cluster.getAttribute('LocalAllocProcs'))
+        return (str(total_cpu), str(free_cpu))
+     
+    def queuesProperties(self, searchQueue, project):
+        queue              = drm4g.managers.Queue()
+        queue.Name         = 'default'
+        queue.Nodes        = self.TotalCpu
+        queue.FreeNodes    = self.FreeCpu
+        queue.DispatchType = 'Immediate'
+        return [queue]
 
 class Job (drm4g.managers.Job):
     
@@ -113,6 +100,9 @@ class Job (drm4g.managers.Job):
             walltime = self.walltime_default
         args += '# @ wall_clock_limit = %s\n' % (walltime)
         args += ''.join(['export %s=%s\n' % (k, v) for k, v in parameters['environment'].items()])
-        args += 'srun $executable\n'
+        if parameters['jobType'] == "mpi":
+            args += 'srun $executable\n'
+        else:
+            args += '$executable\n'
         return Template(args).safe_substitute(parameters)
 

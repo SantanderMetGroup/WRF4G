@@ -8,15 +8,15 @@ from string import Template
 from drm4g.utils.rsl2 import Rsl2Parser
 from drm4g.utils.list import List 
 from drm4g.utils.logger import *
+from drm4g.core.configure import readHostList, parserHost
 from drm4g.utils.dynamic import ThreadPool
-from drm4g.core.configure import hostparse
 from drm4g.utils.message import Send
 from drm4g.global_settings import COMMUNICATOR, RESOURCE_MANAGER
 from drm4g.utils.importlib import import_module
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: em_mad.py 1232 2011-10-26 09:09:40Z carlos $"
+__revision__ = "$Id: em_mad.py 1357 2012-01-10 19:59:38Z carlos $"
 
 GW_LOCATION = os.environ['GW_LOCATION']
 
@@ -65,11 +65,13 @@ class GwEmMad (object):
     message = Send()
 
     def __init__(self):
-	self._callback_interval = 30 #seconds
-	self._max_thread        = 100
-	self._min_thread        = 5
-        self._JID_list          = List()
-        self._host_list_configuration, self._com_list, self._job_list  = {}, {}, {}
+	self._callback_interval    = 30 #seconds
+	self._max_thread           = 100
+	self._min_thread           = 5
+        self._JID_list             = List()
+        self._host_list_conf       = { } 
+        self._com_list             = { }
+        self._resource_module_list = { }
 	        
     def do_INIT(self, args):
 	"""
@@ -78,20 +80,22 @@ class GwEmMad (object):
         @type args : string
 	"""
 	try:
-            self._host_list_configuration = hostparse()
-	    for key, val in self._host_list_configuration.items():
-		com = getattr(import_module(COMMUNICATOR[val.SCHEME]), 'Communicator')()
-		com.hostName = val.HOST
-	        com.userName = val.USERNAME
-                com.workDirectory = val.GW_RUNDIR
-		com.connect()
-                if val.GW_RUNDIR == r'~':
+            hostList = readHostList()
+            for hostname, url in hostList.items():
+                hostConf = parserHost(hostname, url)
+                self._host_list_conf[hostname] = hostConf
+                com = getattr(import_module(COMMUNICATOR[hostConf.SCHEME]), 'Communicator')()
+                com.hostName = hostConf.HOST
+                com.userName = hostConf.USERNAME
+                com.workDirectory = hostConf.GW_RUNDIR
+                com.connect()
+                self._com_list[hostname] = com
+                if hostConf.GW_RUNDIR == r'~':
                     out, err = com.execCommand('LANG=POSIX echo $HOME')
-                    if err: 
+                    if err:
                         raise "Couldn't obtain home directory : %s" % (' '.join(err.split('\n')))
-                    self._host_list_configuration[key].GW_RUNDIR = out.strip('\n')      
-		self._com_list[key] = com
-                self._job_list[key]= import_module(RESOURCE_MANAGER[val.LRMS_TYPE])             
+                    self._host_list_conf[hostname].GW_RUNDIR = out.strip('\n')
+                self._resource_module_list[hostname] = import_module(RESOURCE_MANAGER[hostConf.LRMS_TYPE])
 	    out = 'INIT - SUCCESS -'
 	except Exception, e:
 	    out = 'INIT - FAILURE %s' % (str(e)) 
@@ -108,19 +112,19 @@ class GwEmMad (object):
         try:
             HOST, JM = HOST_JM.rsplit('/',1)
             # Init ResourceManager class
-            job = getattr(self._job_list[HOST], 'Job')()
+            job = getattr(self._resource_module_list[HOST], 'Job')()
             job.Communicator = self._com_list[HOST]
             # Parse rsl
             rsl_var = Rsl2Parser(RSL).parser()
-            workingDirectory = self._host_list_configuration[HOST].GW_RUNDIR
-            rsl_var['environment']['GW_RUNDIR'] =  workingDirectory
-            if self._host_list_configuration[HOST].GW_LOCALDIR:
-                rsl_var['environment']['GW_LOCALDIR'] = self._host_list_configuration[HOST].GW_LOCALDIR
-            if self._host_list_configuration[HOST].PROJECT:
-                rsl_var['PROJECT'] = self._host_list_configuration[HOST].PROJECT
+            hostConf = self._host_list_conf[HOST]
+            rsl_var['environment']['GW_RUNDIR'] = hostConf.GW_RUNDIR
+            if hostConf.GW_LOCALDIR:
+                rsl_var['environment']['GW_LOCALDIR'] = hostConf.GW_LOCALDIR
+            if hostConf.PROJECT:
+                rsl_var['PROJECT'] = hostConf.PROJECT
             rsl_wrapper_directory = rsl_var.setdefault('directory',rsl_var['executable'].split('/')[0])
             for k in "stdout", "stderr", "directory", "executable":
-                rsl_var[k] = "%s/%s" % (workingDirectory, rsl_var[k])
+                rsl_var[k] = "%s/%s" % (hostConf.GW_RUNDIR, rsl_var[k])
             # Create and copy wrapper_drm4g 
             local_wrapper_directory  = '%s/var/%s/wrapper_drm4g.%s' % (GW_LOCATION, JID, RSL.split('.')[-1])
             remote_wrapper_directory = '%s/.wrapper_drm4g' % (rsl_wrapper_directory)
@@ -128,8 +132,8 @@ class GwEmMad (object):
             job.createWrapper(local_wrapper_directory, string_template)
             job.copyWrapper(local_wrapper_directory, remote_wrapper_directory)
             # Execute wrapper_drm4g 
-            path_script = Template('$directory/.wrapper_drm4g').safe_substitute(rsl_var)
-            job.JobId = job.jobSubmit(path_script)
+            pathScript = Template('$directory/.wrapper_drm4g').safe_substitute(rsl_var)
+            job.JobId = job.jobSubmit(pathScript)
             self._JID_list.put(JID, job)
             out = 'SUBMIT %s SUCCESS %s:%s' % (JID, HOST, job.JobId)
         except Exception, e:
@@ -174,10 +178,10 @@ class GwEmMad (object):
         """
         OPERATION, JID, HOST_JM, RSL = args.split()
         try:
-            host, remote_job_id = HOST_JM.split(':')
-            job = getattr(self._job_list[host], 'Job')()
+            host, remoteJobId = HOST_JM.split(':')
+            job = getattr(self._resource_module_list[host], 'Job')()
             job.Communicator = self._com_list[host]
-            job.JobId = remote_job_id
+            job.JobId = remoteJobId
             job.refreshJobStatus()
             self._JID_list.put(JID, job)
             out = 'RECOVER %s SUCCESS %s' % (JID, job.Status)

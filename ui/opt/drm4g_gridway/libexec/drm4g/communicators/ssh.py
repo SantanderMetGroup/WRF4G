@@ -35,7 +35,7 @@ import drm4g.communicators
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: ssh.py 1197 2011-10-17 16:26:41Z carlos $"
+__revision__ = "$Id: ssh.py 1357 2012-01-10 19:59:38Z carlos $"
 
 class Communicator (drm4g.communicators.Communicator):
     
@@ -50,7 +50,7 @@ class Communicator (drm4g.communicators.Communicator):
         ("rsa", r"~/.ssh/id_rsa"),
         ("dsa", r"~/.ssh/id_dsa"),
         )
-    
+    port    = 22
     timeout = 20 # seconds
  
     def __init__(self):
@@ -78,12 +78,12 @@ class Communicator (drm4g.communicators.Communicator):
                         sock.settimeout(self.timeout)
                     except:
                         pass 
-                    sock.connect((self.hostName, 22))  
+                    sock.connect((self.hostName, self.port))  
                     self._trans = paramiko.Transport(sock)
                     self._trans.connect(username = self.userName, pkey = key)
                     if self._trans.is_authenticated(): break
                 except socket.gaierror:
-                    raise drm4g.communicators.ComException('Hostname not known :' + self.hostName)
+                    raise drm4g.communicators.ComException('Could not resolve hostname ' + self.hostName)
                 except Exception: pass
         finally: self._lock.release()            
         if not self._isAuthenticated():
@@ -106,7 +106,7 @@ class Communicator (drm4g.communicators.Communicator):
         self._lock.acquire()
         try: sftp = paramiko.SFTPClient.from_transport(self._trans)
         finally: self._lock.release()
-        to_dir = self._set_dir(urlparse(url).path)    
+        to_dir = self._setDir(urlparse(url).path)    
         sftp.mkdir(to_dir)
         try: sftp.close()
         except Exception: pass
@@ -119,11 +119,11 @@ class Communicator (drm4g.communicators.Communicator):
         finally: self._lock.release()
         if 'file://' in source_url:
             from_dir = urlparse(source_url).path
-            to_dir   = self._set_dir(urlparse(destination_url).path)
+            to_dir   = self._setDir(urlparse(destination_url).path)
             sftp.put(from_dir, to_dir)
             if execution_mode == 'X': sftp.chmod(to_dir, 0755)#execution permissions
         else:
-            from_dir = self._set_dir(urlparse(source_url).path)
+            from_dir = self._setDir(urlparse(source_url).path)
             to_dir   = urlparse(destination_url).path
             sftp.get(from_dir, to_dir)
         try: sftp.close()
@@ -135,7 +135,7 @@ class Communicator (drm4g.communicators.Communicator):
         self._lock.acquire()
         try: sftp = paramiko.SFTPClient.from_transport(self._trans)
         finally: self._lock.release()
-        to_dir = self._set_dir(urlparse(url).path) 
+        to_dir = self._setDir(urlparse(url).path) 
         try: sftp.listdir(to_dir)
         except IOError: pass
         else: self._rmdirRecursive(to_dir,sftp)
@@ -165,10 +165,9 @@ class Communicator (drm4g.communicators.Communicator):
             except IOError: self._rmdirRecursive(file_or_dir,sftp)
         sftp.rmdir(path) 
   
-    def _set_dir(self, path):
-        work_dir = self.getWorkDir()
-        if work_dir != r'~':
-            return re.compile(r'^~').sub(work_dir, path)
+    def _setDir(self, path):
+        if self.workDirectory != r'~':
+            return re.compile(r'^~').sub(self.workDirectory, path)
         else:
             return '.%s' % (path[1:])
 

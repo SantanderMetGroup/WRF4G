@@ -6,42 +6,43 @@ from drm4g.utils.url import urlparse
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: configure.py 1124 2011-08-22 08:52:04Z carlos $"
+__revision__ = "$Id: configure.py 1357 2012-01-10 19:59:38Z carlos $"
 
-__all__ = ['ConfigureException', 'hostparse','HostConfiguration']
 
 class ConfigureException(Exception):
     pass
   
-def hostparse():
-        
+def readHostList():
     path = os.path.join(os.environ['GW_LOCATION'], PATH_HOST)    
     if not os.path.exists(path): 
         raise ConfigureException('Wrong PATH_HOST')
     lines = cleaner(path)
-    data_hosts = { }
+    hostList = { }
     for i, line in enumerate(lines.split('\n')):
         if line :
             if len (line.split()) != 2:
                 raise ConfigureException('The line %d doesn\'t have two columns' % (i))
-            alias, url = line.split()
-            url_result = urlparse(url)
-            scheme     = url_result.scheme.lower()
-            name       = url_result.host
-            username   = url_result.username
-            params     = url_result.params
-            if not name:
-                raise ConfigureException('%s doesn\'t have hostname' % (alias))
-            if not username and (scheme != 'local'):
-                raise ConfigureException('%s doesn\'t have username' % (alias))
-            if not COMMUNICATOR.has_key(scheme):
-                raise ConfigureException('%s has a wrong scheme "%s"' % (alias, scheme))
-            if not params.has_key('LRMS_TYPE'):
-                raise ConfigureException('%s doesn\'t have a LRMS_TYPE' % (alias))
-            if not RESOURCE_MANAGER.has_key(params['LRMS_TYPE']):
-                raise ConfigureException('%s has a wrong LRMS_TYPE "%s"' % (alias, params['LRMS_TYPE']))
-            data_hosts [alias] = HostConfiguration(scheme, name, username, params)
-    return data_hosts
+            hostname, url = line.split()
+            hostList[hostname] = url
+    return hostList
+
+def parserHost(hostname, url):
+    url_result = urlparse(url)
+    scheme     = url_result.scheme.lower()
+    name       = url_result.host
+    username   = url_result.username
+    params     = url_result.params
+    if not name:
+        raise ConfigureException('%s doesn\'t have hostname' % (hostname))
+    if not username and (scheme != 'local'):
+        raise ConfigureException('%s doesn\'t have username' % (hostname)) 
+    if not COMMUNICATOR.has_key(scheme):
+        raise ConfigureException('%s has a wrong scheme "%s"' % (hostname, scheme))        
+    if not params.has_key('LRMS_TYPE'):
+        raise ConfigureException('%s doesn\'t have a LRMS_TYPE' % (hostname))
+    if not RESOURCE_MANAGER.has_key(params['LRMS_TYPE']):
+        raise ConfigureException('%s has a wrong LRMS_TYPE "%s"' % (hostname, params['LRMS_TYPE']))
+    return HostConfiguration(scheme, name, username, params)
                 
 class HostConfiguration(object):
         

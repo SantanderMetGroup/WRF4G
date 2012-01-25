@@ -6,7 +6,7 @@ from drm4g.managers import sec_to_H_M_S
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: sge.py 1254 2011-10-31 08:51:49Z carlos $"
+__revision__ = "$Id: sge.py 1362 2012-01-17 12:14:28Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
@@ -18,24 +18,8 @@ QDEL  = 'LANG=POSIX qdel'
 
 class Resource (drm4g.managers.Resource):
 
-    host_properties = {
-        'LRMS_NAME'    : 'SGE',
-        'LRMS_TYPE'    : 'SGE',
-        }
-    
-    queue_default = {
-        'QUEUE_NAME'           : 'default',
-        'QUEUE_NODECOUNT'      : 0,
-        'QUEUE_FREENODECOUNT'  : 0,
-        'QUEUE_MAXTIME'        : 0,
-        'QUEUE_MAXCPUTIME'     : 0,
-        'QUEUE_MAXCOUNT'       : 0,
-        'QUEUE_MAXRUNNINGJOBS' : 0,
-        'QUEUE_MAXJOBSINQUEUE' : 0,
-        'QUEUE_STATUS'         : '0',
-        'QUEUE_DISPATCHTYPE'   : 'batch',
-        'QUEUE_PRIORITY'       : 'NULL',
-        }
+    def lrmsProperties(self):
+        return ('SGE', 'SGE')
 
     def dynamicNodes(self):
         out, err = self.Communicator.execCommand('%s -xml' % (QHOST))
@@ -44,40 +28,45 @@ class Resource (drm4g.managers.Resource):
         out_parser = xml.dom.minidom.parseString(out)
         slots = [elem.getElementsByTagName('hostvalue')[1].firstChild.data \
             for elem in out_parser.getElementsByTagName('qhost')[0].getElementsByTagName('host')]
-        self.total_cpu = sum([int(elem) for elem in slots if elem != '-']) 
+        total_cpu = sum([int(elem) for elem in slots if elem != '-']) 
         out, err = self.Communicator.execCommand('%s -s r -xml' % (QSTAT))
         if err: 
             raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
         out_parser = xml.dom.minidom.parseString(out) 
-        usedCpu = sum ([int(elem.firstChild.data) for elem in out_parser.getElementsByTagName('slots')])
-        self.free_cpu = self.total_cpu - usedCpu
+        busy = sum ([int(elem.firstChild.data) for elem in out_parser.getElementsByTagName('slots')])
+        return (str(total_cpu), str(total_cpu - busy))
 
-    def queues(self, Host):
-        self.queue_default['QUEUE_NODECOUNT']     = self.total_cpu
-        self.queue_default['QUEUE_FREENODECOUNT'] = self.free_cpu
-        if Host.PROJECT and not Host.QUEUE_NAME:
-            return self._queues_string([self.queue_default])
+    def queuesProperties(self, searchQueue, project):
+        if not searchQueue and project:
+            queue              = drm4g.managers.Queue()
+            queue.Name         = 'default'
+            queue.Nodes        = self.TotalCpu
+            queue.FreeNodes    = self.FreeCpu
+            queue.DispatchType = 'batch'
+            return [queue]
         else:
             out, err = self.Communicator.execCommand('%s -sql' % (QCONF))
-            #output line --> Queue Memory CPU_Time Walltime Node Run Que Lm State
             if err:
                 raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
             queues = []
-            for queue_name in out.strip('\n').split():
-                if queue_name == Host.QUEUE_NAME or not Host.QUEUE_NAME:
-                    queue = self.queue_default.copy()
-                    queue['QUEUE_NAME'] = queue_name
-                    out, err = self.Communicator.execCommand('%s -sq %s' % (QCONF, queue_name))
+            for queueName in out.strip('\n').split():
+                if queueName == searchQueue or not searchQueue:
+                    queue              = drm4g.managers.Queue()
+                    queue.Name         = queueName
+                    queue.DispatchType = 'batch'
+                    queue.Nodes        = self.TotalCpu
+                    queue.FreeNodes    = self.FreeCpu
+                    out, err = self.Communicator.execCommand('%s -sq %s' % (QCONF, queueName))
                     if err:
                         raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
                     re_Walltime = re.compile(r'h_rt\s*(\d+):\d+:\d+')
                     if re_Walltime.search(out):
-                        queue['QUEUE_MAXTIME'] = int(re_Walltime.search(out).group(1)) * 60
+                        queue.MaxTime = str(int(re_Walltime.search(out).group(1)) * 60)
                     re_Cputime = re.compile(r'h_cpu\s*(\d+):\d+:\d+')
                     if re_Cputime.search(out):
-                        queue['QUEUE_MAXTIME'] = int(re_Cputime.search(out).group(1)) * 60
+                        queue.MaxCpuTime = str(int(re_Cputime.search(out).group(1)) * 60)
                     queues.append(queue)
-            return self._queues_string(queues)
+            return queues
 
 class Job (drm4g.managers.Job):
 
@@ -123,7 +112,7 @@ class Job (drm4g.managers.Job):
         args += '#$ -N JID_%s\n' % (parameters['environment']['GW_JOB_ID'])
         if parameters.has_key('PROJECT'): 
             args += '#$ -P $PROJECT\n'
-        if parameters.has_key('queue') and parameters.has_key('queue') != self.queue_default['QUEUE_NAME']:
+        if parameters['queue'] != 'default':
             args += '#$ -q $queue\n'
         args += '#$ -o $stdout\n'
         args += '#$ -e $stderr\n'
@@ -133,10 +122,20 @@ class Job (drm4g.managers.Job):
             args += '#$ -l cput=%s\n' % (sec_to_H_M_S(parameters['maxCpuTime']))
         if parameters.has_key('maxMemory'): 
             args += '#$ -l mem_free=%sM\n' % (parameters['maxMemory'])
-        args += '#$ -l num_proc=$count\n'
+        if parameters['jobType'] == "mpi":
+            if parameters.has_key('tasksPerNode'):
+                cpus = int(parameters['count']) / int(parameters['tasksPerNode'])
+                args += '#$ -pe *mpi* %d\n' % (cpus)
+            else:
+                args += '#$ -pe *mpi* $count\n'
+        else:
+            args += '#$ -l num_proc=$count\n'
         args += '#$ -v %s\n' % (','.join(['%s=%s' %(k, v) for k, v in parameters['environment'].items()]))
         args += 'cd $directory\n'
-        args += '$executable\n'
+        if parameters['jobType'] == "mpi":
+            args += 'mpi -np $count $executable\n'
+        else:
+            args += '$executable\n'
         return Template(args).safe_substitute(parameters)
 
    

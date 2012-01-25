@@ -2,7 +2,8 @@ import sys
 import os
 import threading
 from drm4g.utils.logger import *
-from drm4g.core.configure import hostparse
+from drm4g.core.configure import readHostList, parserHost
+from drm4g.managers import HostInformation
 from drm4g.utils.dynamic import ThreadPool
 from drm4g.utils.message import Send
 from drm4g.global_settings import COMMUNICATOR, RESOURCE_MANAGER
@@ -11,7 +12,7 @@ import traceback
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: im_mad.py 1199 2011-10-17 17:07:38Z carlos $"
+__revision__ = "$Id: im_mad.py 1357 2012-01-10 19:59:38Z carlos $"
 
 class GwImMad (object):
     """
@@ -47,10 +48,10 @@ class GwImMad (object):
     message = Send()
     
     def __init__(self):
-        self._min_thread = 2
+        self._min_thread = 4
         self._max_thread = 10 
-        self._host_list_configuration  = { }
-        self._list_resource = { }
+        self._host_list_conf = { }
+        self._resource_list  = { }
  
     def do_INIT(self, args):
         """
@@ -58,20 +59,7 @@ class GwImMad (object):
         @param args : arguments of operation
         @type args : string
         """
-        try:
-            self._host_list_configuration = hostparse()
-            for key, val in self._host_list_configuration.items():
-                com = getattr(import_module(COMMUNICATOR[val.SCHEME]), 'Communicator')()
-                com.hostName = val.HOST
-                com.userName = val.USERNAME
-                com.workDirectory = val.GW_RUNDIR
-                com.connect()
-                resource = getattr(import_module(RESOURCE_MANAGER[val.LRMS_TYPE]), 'Resource')()
-                resource.Communicator = com 
-                self._list_resource[key] = resource
-            out = 'INIT - SUCCESS -'
-        except Exception, e:
-            out = 'INIT - FAILURE %s' % (str(e))
+        out = 'INIT - SUCCESS -'
         self.message.stdout(out)
         self.logger.log(DEBUG, '--> ' + out)
         
@@ -82,7 +70,23 @@ class GwImMad (object):
         @type args : string
         """
         OPERATION, HID, HOST, ARGS = args.split()
-        out = 'DISCOVER %s SUCCESS %s' % (HID, ' '.join([host for host in self._host_list_configuration.keys()]))
+        try:
+            hostList = readHostList()
+            for hostname, url in hostList.items():
+                hostConf = parserHost(hostname, url)
+                self._host_list_conf[hostname] = hostConf
+                if not self._resource_list.has_key(hostname):
+                    com = getattr(import_module(COMMUNICATOR[hostConf.SCHEME]), 'Communicator')()
+                    com.hostName = hostConf.HOST
+                    com.userName = hostConf.USERNAME
+                    com.connect()
+                    resource = getattr(import_module(RESOURCE_MANAGER[hostConf.LRMS_TYPE]), 'Resource')()
+                    resource.Communicator = com
+                    self._resource_list[hostname] = resource   
+            out = 'DISCOVER %s SUCCESS %s' % (HID, ' '.join([hostname for hostname in hostList.keys()]))
+        except Exception, e:
+            out = 'DISCOVER - FAILURE %s' % (str(e))
+            self.logger.log(DEBUG, ' '.join(traceback.format_exc().splitlines()))
         self.message.stdout(out)
         self.logger.log(DEBUG, '--> ' + out)
  
@@ -94,18 +98,21 @@ class GwImMad (object):
         """
         OPERATION, HID, HOST, ARGS = args.split()
         try:
-            if self._host_list_configuration.has_key(HOST):
-                resource = self._list_resource[HOST]
-                if self._host_list_configuration[HOST].NODECOUNT:
-                    resource.total_cpu = int(self._host_list_configuration[HOST].NODECOUNT)
-                    resource.staticNodes(HID)
-                else:
-                    resource.dynamicNodes()
-                host_properties   = resource.hostProperties()
-                queues_properties = resource.queues(self._host_list_configuration[HOST])
-                out = 'MONITOR %s SUCCESS %s %s' % (HID, host_properties, queues_properties)
-            else: 
-                out = 'MONITOR %s FAILURE %s is not configured' % (HID, HOST)
+            hostConf = self._host_list_conf[HOST]
+            resource = self._resource_list[HOST]
+            if hostConf.NODECOUNT:
+                resource.TotalCpu, resource.FreeCpu  = resource.staticNodes(HID, hostConf.NODECOUNT)
+            else:
+                resource.TotalCpu, resource.FreeCpu  = resource.dynamicNodes()
+            hostInfo = HostInformation()
+            hostInfo.Name, hostInfo.OsVersion, hostInfo.Arch, hostInfo.Os  = resource.hostProperties()
+            hostInfo.NodeCount                       = resource.TotalCpu
+            hostInfo.CpuModel  , hostInfo.CpuMhz     = resource.cpuProperties()
+            hostInfo.SizeMemMB , hostInfo.FreeMemMB  = resource.memProperties()
+            hostInfo.SizeDiskMB, hostInfo.FreeDiskMB = resource.diskProperties()
+            hostInfo.LrmsName  , hostInfo.LrmsType   = resource.lrmsProperties()
+            hostInfo.addQueue(resource.queuesProperties(hostConf.QUEUE_NAME, hostConf.PROJECT)) 
+            out = 'MONITOR %s SUCCESS %s' % (HID, hostInfo.info())
         except Exception, e:
             out = 'MONITOR %s FAILURE %s' % (HID, str(e))
             self.logger.log(DEBUG, ' '.join(traceback.format_exc().splitlines()))
