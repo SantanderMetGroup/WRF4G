@@ -58,7 +58,7 @@ case "$1" in
           echo -e "FAILED. \nGridway already running. Run \"$(basename $0) stop\" to stop it" 
           exit 2
         fi
-	gwd
+        gwd
         st=$?
         if test $st -ne 0; then 
            echo -e "FAILED. \nProblems starting Gridway $st"
@@ -101,10 +101,6 @@ case "$1" in
         gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
         gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
         if test -n "$gwd_pid"; then  kill_process_tree $gwd_pid ;fi
-        if test $? -ne 0; then
-           echo "FAILED: Gridway already stopped"
-	   exit 2
-        fi
         echo "  OK"
         
         grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
@@ -112,9 +108,11 @@ case "$1" in
         if [ $DB_LOCAL -eq 1 ]; then
 	  echo -n "Stopping Mysql ...."
           mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
-          if test -n "$mysql_pid" ; then mysql_ppid=$(ps h -p $mysql_pid -o ppid); fi
-	  if test -n "$mysql_ppid"; then kill -9 $mysql_ppid ;fi
-	  if test -n "$mysql_pid" ;then  kill -9 $mysql_pid ;fi
+          if test -n "`ps h -p $mysql_pid`" ; then 
+            mysql_ppid=$(ps h -p $mysql_pid -o ppid)
+	    if test -n $mysql_ppid; then kill -9 $mysql_ppid ;fi
+	    if test -n $mysql_pid ; then  kill -9 $mysql_pid ;fi
+          fi
 	  echo "  OK"
         fi
         ;;
@@ -131,10 +129,6 @@ case "$1" in
         gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
         gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
         if test -n "$gwd_pid"; then  kill_process_tree $gwd_pid ;fi
-        if test $? -ne 0; then
-           echo "FAILED: Gridway already stopped"
-           exit 2
-        fi
         grep '://' $FRAMEWORK4G_CONF > $GW_LOCATION/etc/hosts_drm4g.list
         sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >temp; cp temp ${WRF4G_LOCATION}/etc/resources.wrf4g; rm temp
         sed -i "s#\$HOSTNAME#$HOSTNAME#" $FRAMEWORK4G_CONF
