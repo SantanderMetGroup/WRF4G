@@ -96,7 +96,7 @@ class Resource (object):
         properties = self.host_properties.copy()
         properties['NODECOUNT'] = self.total_cpu
         try:
-            out, err = self.Communicator.execCommand('LANG=POSIX uname -n -r -p -o')
+            out, err = self.Communicator.execCommand('LANG=POSIX uname -n -r -m -o')
             if not err:
                 re_host = self.re_host.search(out)
                 if re_host: properties.update(re_host.groupdict())
