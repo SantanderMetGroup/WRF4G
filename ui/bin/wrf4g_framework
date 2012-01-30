@@ -98,6 +98,10 @@ case "$1" in
     stop)
 	echo -n "Stopping Gridway ...."
 	rm -f $GW_LOCATION/var/.lock
+        if test ! -f $GW_LOCATION/var/gwd.port; then
+          echo -e "FAILED. \nGridway already stopped. Run \"$(basename $0) start\" to run it" 
+          exit 2
+          fi
         gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
         gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
         if test -n "$gwd_pid"; then  kill_process_tree $gwd_pid ;fi
@@ -107,6 +111,10 @@ case "$1" in
         source db4g.conf.temp; rm db4g.conf.temp
         if [ $DB_LOCAL -eq 1 ]; then
 	  echo -n "Stopping Mysql ...."
+          if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
+            echo -e "FAILED. \nMysql already stopped. Run \"$(basename $0) start\" to run it" 
+            exit 2
+          fi
           mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
           if test -n "`ps h -p $mysql_pid`" ; then 
             mysql_ppid=$(ps h -p $mysql_pid -o ppid)
