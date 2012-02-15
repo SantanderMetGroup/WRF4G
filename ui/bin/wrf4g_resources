@@ -1,0 +1,11 @@
+#! /bin/bash
+
+if test -z $WRF4G_LOCATION; then
+   echo '$WRF4G_LOCATION variable not established. Please export WRF4G_LOCATION and try again'
+   exit 1
+fi
+
+export GW_LOCATION=$WRF4G_LOCATION/opt/drm4g_gridway
+
+$GW_LOCATION/bin/gwhost $*
+
