@@ -93,8 +93,8 @@ typedef struct gw_host_s
 
     int  size_mem_mb;
     int  free_mem_mb;
-    int  size_disk_mb;
-    int  free_disk_mb;
+    long size_disk_mb;
+    long free_disk_mb;
 
     char *fork_name;
     char *lrms_name;
