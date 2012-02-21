@@ -29,6 +29,6 @@ if test -z "${destdir}"; then
 fi
 
 cd ${basedir}/wn
- tar czv --exclude=".svn" \
+ tar czv -h --exclude=".svn" \
     --exclude="WPS" --exclude="WRFV3" --exclude="openmpi" \
     -f ${destdir}/WRF4G-${version}${tag}.tar.gz *
