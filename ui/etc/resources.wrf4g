@@ -43,6 +43,6 @@ WRF4G_APPS="$WRF4G_LOCATION/repository/apps"
 # Number of desired cores
 NP=1
 #WRF4G_RUN_SHARED='/tmp'
-REQUIREMENTS='ARCH = "x86*"'
+REQUIREMENTS='ARCH = "x86_64"'
 #WRF4G_RUN_LOCAL='/tmp'
 
