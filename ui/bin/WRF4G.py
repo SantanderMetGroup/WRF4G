@@ -911,6 +911,7 @@ class Job(Component):
 
         # In this select statement we have the restriction of gw_job.
         jobd=dbc.select('Job','MAX(id),gw_restarted',cond,verbose=self.verbose)
+        [max_id,db_gwres]=jobd[0].values()
 
         # If last_job is bigger than this job's id, then this job should not run.
         if last_job > int(max_id):
