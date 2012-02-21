@@ -1,1 +1,437 @@
-../../wn/bin/fortnml
+#! /usr/bin/python
+#
+# fortnml
+#
+# ------------------------------------------------------------------------
+# Copyleft 2009, Jesus Fernandez <jesusff IN THE DOMAIN gmail DOT com>
+#
+# Santader Meteorology Group, Universidad de Cantabria, Spain
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ------------------------------------------------------------------------
+
+import sys
+
+def listify(item):
+  if type(item) == type([]):
+    return item
+  else:
+    return [item,]
+
+def math_expansion(expr):
+  try:
+    exec("rval=%s" % expr)
+    return "%s" % rval
+  except:
+    return expr
+
+def coerce_value_list(vlist):
+  vlist = map(math_expansion, vlist)
+  try:
+    values=[int(element) for element in vlist]
+  except ValueError:
+    try:
+      values=[float(element) for element in vlist]
+    except ValueError:
+      values=[value.strip() for value in vlist]
+  return values
+
+class FortranNamelistRecord:
+  def __init__(self, name):
+    self.name = name
+    self.data = {}
+    self.ordered_keys = []
+  def setValue(self, variable, value):
+    self.data[variable] = listify(value)
+    if not variable in self.ordered_keys:
+      self.ordered_keys.append(variable)
+  def delVariable(self, variable):
+    if variable in self.ordered_keys:
+      del self.data[variable]
+      self.ordered_keys.remove(variable)
+  def appendValue(self, variable, value):
+    if not variable in self.ordered_keys:
+      self.ordered_keys.append(variable)
+      self.data[variable]=[]
+    self.data[variable].extend(listify(value))
+  def hasVariable(self, var):
+    return var in self.ordered_keys
+  def __str__(self):
+    rval = "&%s\n" % self.name
+    for key in self.ordered_keys:
+      thisvar = "  %-24s =" % key
+      for item in self.data[key]:
+        if type(item) == type("hello"):
+          if not item.startswith("'") and not item.startswith("."):
+            item = "'%s'" % item
+        if len(thisvar) < 75:
+          thisvar += " %s," % item
+        else:
+          rval += "%s\n" % thisvar
+          thisvar = 28*" "+" %s," % item
+      rval += "%s\n" % thisvar
+    rval += "/\n"
+    return rval
+  def __getitem__(self, item):
+    return self.data[item]
+
+class FortranNamelist:
+  def __init__(self, namelist_file):
+    """read contents of namelist file and return dictionary containing all options
+    
+    Created 20/01/08 by Thom Chubb.
+    Modified 20/01/08 by Thom Chubb and Valerio Bisignesi
+    Modified 20/05/09 by Jesus Fernandez 
+      Implemented as a class
+      Added support for multi-line variables
+    """
+    self.namelist_file = namelist_file
+    fid=open(namelist_file, 'r')
+    data = fid.readlines()
+    fid.close()
+    self.record_dict={}
+    self.ordered_records=[]
+    is_comment = True
+    for line in data:
+      if '&' in line:
+        # Then this line is a namelist title
+        is_comment=False
+        current_label = line.strip().lstrip('&')
+        current_label = current_label.lower()
+        self.record_dict[current_label] = FortranNamelistRecord(current_label)
+        if not current_label in self.ordered_records:
+          self.ordered_records.append(current_label)
+      elif line.strip() == "/":
+        # Then lines following this are comments until the next '&'
+        is_comment=True
+      elif '=' in line:
+        # Then this line contains variable information to be stored
+        if not is_comment:
+          variable,values = line.split('=')
+          variable = variable.lower()
+          values = values.strip().rstrip(',')
+          if values.startswith("'") and values.endswith("'") and not "'" in values[1:-1]:
+            # This is a single string with comma-separated values. Do not interpret it as 
+            # as comma-separated strings.
+            values = values[1:-1]
+          else:
+            values = coerce_value_list(values.split(','))
+          self.record_dict[current_label].setValue(variable.strip(), values)
+      else:
+        if not is_comment:
+          # This line contains variable information to be added to the last variable read
+          values = line.strip().rstrip(',')
+          values = coerce_value_list(values.split(','))
+          self.record_dict[current_label].appendValue(variable.strip(), values)
+  def __getitem__(self, item):
+    return self.record_dict[item]
+  def printNamelist(self, record=None):
+    rval = ""
+    if record:
+      rval += "%s\n" % str(self.record_dict[record])
+    else:  
+      for rec in self.ordered_records:
+        rval += "%s\n" % str(self.record_dict[rec])
+    return rval
+  def setValue(self, variable, value, record=""):
+    if record:
+      if not self.record_dict.has_key(record):
+        self.record_dict[record] = FortranNamelistRecord(record)
+        if not record in self.ordered_records:
+          self.ordered_records.append(record)
+      self[record].setValue(variable, value)
+    else:
+      gotit=False
+      for rec in self.ordered_records:
+        if self[rec].hasVariable(variable):
+          self[rec].setValue(variable, value)
+          gotit=True
+          break
+      if not gotit:
+        raise KeyError, "The variable '%s' was not found and no record was specified!" % variable
+  def getValue(self, variable, record=""):
+    if record:
+      return self[record][variable]
+    else:
+      gotit=False
+      for rec in self.ordered_records:
+        if self[rec].hasVariable(variable):
+          return self[rec][variable]
+          gotit=True
+          break
+      if not gotit:
+        raise KeyError, "The variable '%s' was not found." % variable
+  def hasVariable(self, variable, record=""):
+    if record:
+      return self[record].hasVariable(variable)
+    else:
+      rval = False
+      for rec in self.ordered_records:
+        if self[rec].hasVariable(variable):
+          rval = True
+          break
+      return rval
+  def variableList(self):
+    rval = []
+    for rec in self.ordered_records:
+      rval.extend(self[rec].ordered_keys)
+    return rval
+  def appendValue(self, variable, value, record=""):
+    if record:
+      self[record].appendValue(variable, value)
+    else:
+      gotit=False
+      for rec in self.ordered_records:
+        if self[rec].hasVariable(variable):
+          self[rec].appendValue(variable, value)
+          gotit = True
+          break
+      if not gotit:
+        raise KeyError, "The variable '%s' was not found and no record was specified!" % variable
+  def delVariable(self, variable, record=""):
+    if record:
+      self[record].delVariable(variable)
+    else:
+      for rec in self.ordered_records:
+        if self[rec].hasVariable(variable):
+          self[rec].delVariable(variable)
+          break
+  def overWriteNamelist(self):
+    fid = open(self.namelist_file, 'w')
+    fid.write(self.printNamelist())
+    fid.close()
+
+class WrfNamelist(FortranNamelist):
+  # Get an updated list for your WRF version with:
+  # grep '^rconfig' Registry |awk '$5=="max_domains"{printf "  %s,\n", tolower($8)}' | sort | uniq
+  # "feedback" wrongly appears as max_dom var (how can this be posible?)
+  # was removed by hand
+  MAX_DOM_VARIABLES = [
+    "allowed", "bdyfrq", "bldt", "bl_pbl_physics", "cen_lat",
+    "cen_lon", "chem_opt", "c_k", "coriolis2d", "c_s", "cudt",
+    "cu_physics", "cycle_x", "cycle_y", "dampcoef", "diff_6th_factor",
+    "diff_6th_opt", "do_coriolis", "do_curvature", "do_gradp", "dt",
+    "dx", "dy", "emdiv", "end_day", "end_hour", "end_minute",
+    "end_month", "end_second", "end_year", "epssm", "e_sn", "e_vert",
+    "e_we", "fdda_end", "fdda_start", "fgdt", "fine_input_stream",
+    "gmt", "grid_fdda", "gsmdt", "h_mom_adv_order", "h_sca_adv_order",
+    "id", "input_from_file", "input_from_hires", "i_parent_start", "isice",
+    "isoilwater", "isurban", "iswater", "j_parent_start", "julday", "julyr",
+    "khdif", "kvdif", "map_proj", "max_step_increase_pct", "max_time_step",
+    "min_time_step", "mix_full_field", "mix_isotropic", "mix_upper_bound",
+    "moad_cen_lat", "moad_grid_ratio", "moad_time_step_ratio", "mp_physics",
+    "mp_physics_dfi", "naer", "nested", "non_hydrostatic", "obs_coef_mois",
+    "obs_coef_pstr", "obs_coef_temp", "obs_coef_wind", "obs_ionf",
+    "obs_nobs_prt", "obs_nudge_mois", "obs_nudge_opt", "obs_nudge_pstr",
+    "obs_nudge_temp", "obs_nudge_wind", "obs_rinxy", "obs_twindo",
+    "open_xe", "open_xs", "open_ye", "open_ys", "parent_grid_ratio",
+    "parent_id", "parent_time_step_ratio", "pd_chem", "pd_moist",
+    "pd_moist_dfi", "pd_scalar", "pd_tke", "periodic_x", "periodic_y",
+    "pert_coriolis", "polar", "progn", "pxlsm_smois_init", "radt",
+    "ra_lw_physics", "ra_sw_physics", "sf_sfclay_physics", "sf_surface_physics",
+    "slope_rad", "smdiv", "specified", "s_sn", "stand_lon", "start_day",
+    "start_hour", "starting_time_step", "start_minute", "start_month",
+    "start_second", "start_year", "stencil_half_width", "s_vert",
+    "swap_x", "swap_y", "s_we", "symmetric_xe", "symmetric_xs", "symmetric_ye",
+    "symmetric_ys", "target_cfl", "time_step_sound", "tke_drag_coefficient",
+    "tke_heat_flux", "tke_upper_bound", "top_lid", "topo_shading",
+    "top_radiation", "true_lat1", "true_lat2", "ucmcall",
+    "v_mom_adv_order", "v_sca_adv_order", "zdamp", "ztop",
+  ]
+  def __init__(self, namelist_file):
+    FortranNamelist.__init__(self, namelist_file)
+  def setMaxDomValue(self, variable, value, record=""):
+    mxd = self['domains']['max_dom'][0]
+    if record:
+      self[record].setValue(variable, coerce_value_list(mxd*[value,]))
+    else:
+      gotit=False
+      for rec in self.ordered_records:
+        if self[rec].hasVariable(variable):
+          self[rec].setValue(variable, coerce_value_list(mxd*[value,]))
+          gotit=True
+          break
+      if not gotit:
+        raise KeyError, "The variable was not found and no record was specified!"
+  def trimMaxDom(self):
+    mxd = self['domains']['max_dom'][0]
+    for var in self.variableList():
+      if var in self.MAX_DOM_VARIABLES:
+        self.setValue(var, self.getValue(var)[:mxd])
+  def printWrfWarning(self, message):
+    sys.stderr.write("WRF Check Warning: %s\n" % message)
+  def wrfCheck(self):
+    """
+    Check for some recomendations/mandatory WRF specific issues in the namelist.
+    """
+    tsratio = self.getValue('time_step')[0] * 1000 / self.getValue('dx')[0]
+    if   tsratio > 6: self.printWrfWarning("Time step is larger than 6 times dx (%f)" % tsratio)
+    elif tsratio < 5: self.printWrfWarning("Time step is shorter than 5 times dx (%f)" % tsratio)
+    raratio = self.getValue('radt')[0] * 1000 / self.getValue('dx')[0]
+    if   raratio > 1.1: self.printWrfWarning("radt is larger than dx (%f)" % raratio)
+    if   raratio < 0.9: self.printWrfWarning("radt is shorter than dx (%f)" % raratio)
+    #
+    # SST update
+    #
+    if self.hasVariable('sst_update', 'physics'):
+      if self.getValue('sst_update','physics')[0] == 1 and not self.hasVariable('auxinput4_inname', 'time_control'):
+         self.printWrfWarning("sst_update enabled but auxinput4_inname not defined! Fixing... (check interval!)")
+         self['time_control'].setValue('auxinput4_inname', "wrflowinp_d<domain>")
+         self['time_control'].setValue('io_form_auxinput4', 2)
+         self['time_control'].setValue('auxinput4_end_h', 0)
+         self.setMaxDomValue('auxinput4_interval', 360, 'time_control')
+    #
+    # CAM radiation
+    #
+    if self.getValue('ra_lw_physics')[0] == 3 and not self.hasVariable('paerlev', 'physics'):
+      self.printWrfWarning('CAM radiation selected but paerlev/levsiz/cam_abs_dim1/cam_abs_dim2 was not set. Fixing...')
+      self['physics'].setValue('paerlev', 29)
+      self['physics'].setValue('levsiz', 59)
+      self['physics'].setValue('cam_abs_dim1', 4)
+      self['physics'].setValue('cam_abs_dim2', self.getValue('e_vert')[0])
+    if self.getValue('ra_lw_physics')[0] == 3 and self.getValue('cam_abs_dim2')[0]!=self.getValue('e_vert')[0]:
+      self.printWrfWarning('cam_abs_dim2 not set to e_vert. Fixing...')
+      self['physics'].setValue('cam_abs_dim2', self.getValue('e_vert')[0])
+    #
+    # PBL issues
+    #
+    if self.getValue('bl_pbl_physics')[0] == 1 and self.getValue('sf_sfclay_physics')[0] != 1:
+      self.printWrfWarning('YSU PBL selected but the surface layer selected is not 1. Fixing...')
+      self['physics'].setValue('sf_sfclay_physics', 1)
+    #
+    # LSM issues
+    #
+    if self.getValue('sf_surface_physics')[0] == 7 and self.getValue('num_soil_layers')[0] != 2:
+      self.printWrfWarning('Pleim Xiu LSM selected but the soil levels are not 2. Fixing...')
+      self['physics'].setValue('num_soil_layers', 2)
+    if self.getValue('sf_surface_physics')[0] == 3 and self.getValue('num_soil_layers')[0] != 6:
+      self.printWrfWarning('RUC LSM selected but the soil levels are not 6. Fixing...')
+      self['physics'].setValue('num_soil_layers', 6)
+    if self.getValue('sf_surface_physics')[0] == 2 and self.getValue('num_soil_layers')[0] != 4:
+      self.printWrfWarning('Noah LSM selected but the soil levels are not 4. Fixing...')
+      self['physics'].setValue('num_soil_layers', 4)
+    if self.getValue('sf_surface_physics')[0] == 1 and self.getValue('num_soil_layers')[0] != 5:
+      self.printWrfWarning('Simple soil selected but the soil levels are not 5. Fixing...')
+      self['physics'].setValue('num_soil_layers', 5)
+  def extendMaxDomVariables(self):
+    #
+    # Provide enough columns in max_dom variables. Risky stuff..
+    #
+    for var in self.MAX_DOM_VARIABLES:
+      if self.hasVariable(var):
+        theval = self.getValue(var)
+        if len(theval) < self.getValue("max_dom")[0]:
+          self.printWrfWarning('Variable %s = %s requires as many entries as domains.' % (var, theval))
+          self.setValue(var, theval + (self.getValue("max_dom")[0]-len(theval))*[theval[-1],])
+          self.printWrfWarning('Filling with last domain entry!! -> %s = %s' % (var, self.getValue(var)))
+
+if __name__ == "__main__":
+  from optparse import OptionParser
+  def splitvar(varopt):
+    if '@' in varopt:
+      return varopt.split('@')
+    else:
+      return varopt, ""
+  parser = OptionParser()
+  parser.add_option(
+    "-f", "--file", dest="namelist",
+    help="Namelist file", metavar="NAMELIST"
+  )
+  parser.set_defaults(
+    quiet=False, wrf=False, overwrite=False, trim=False,
+    variable_a="", variable_s="", variable_m="", variable_d="",nitems=0
+  )
+  parser.add_option(
+    "-q", "--quiet", action="store_true",
+    help="Don't dump the namelist to stdout"
+  )
+  parser.add_option(
+    "-w", "--wrf", action="store_true", default=False,
+    help="WRF namelist.input parse mode"
+  )
+  parser.add_option(
+    "-a", "--append", metavar="VARIABLE[@RECORD]", dest="variable_a",
+    help="Append the provided values to this namelist entry. A specific record can be specified through variable@record syntax"
+  )
+  parser.add_option(
+    "-r", "--record", metavar="RECORD", dest="thisrecord",
+    help="Dump only the selected RECORD"
+  )
+  parser.add_option(
+    "-s", "--set", metavar="VARIABLE[@RECORD]", dest="variable_s",
+    help="Set the provided values to this namelist entry. A specific record can be specified through variable@record syntax"
+  )
+  parser.add_option(
+    "-m", "--max-dom", metavar="VARIABLE[@RECORD]", dest="variable_m",
+    help="Set the provided (single) value to this namelist entry as many times as the max_dom@domains specifies. WRF mode (--wrf) implied even if not set"
+  )
+  parser.add_option(
+    "-n", metavar="NITEMS", dest="nitems", type='int',
+    help="Repeat the value provided NITEMS times. Only used when in set (-s) or append (-a) mode"
+  )
+  parser.add_option(
+    "-d", "--delete", metavar="VARIABLE[@RECORD]", dest="variable_d",
+    help="Delete a VARIABLE. The record can be specified through the VARIABLE@RECORD syntax"
+  )
+  parser.add_option(
+    "-o", "--overwrite", action="store_true",
+    help="Overwrite the provided namelist with the result"
+  )
+  parser.add_option(
+    "-t", "--trim", action="store_true",
+    help="Trim the length of the array variables to the maximum number of domains"
+  )
+  (opt, args) = parser.parse_args()
+
+  if not opt.namelist:
+    sys.stderr.write("Missing namelist argument!")
+    sys.exit()
+  if (opt.variable_s or opt.variable_a or opt.variable_m) and not args:
+    sys.stderr.write("Missing values to set/append!")
+    sys.exit()
+  if opt.variable_m or opt.trim:
+    opt.wrf = True
+  if opt.wrf:
+    nml = WrfNamelist(opt.namelist)
+  else:
+    nml = FortranNamelist(opt.namelist)
+
+  if opt.variable_s:
+    variable, record = splitvar(opt.variable_s)
+    if opt.nitems:
+      args = [args[0] for i in range(opt.nitems)]
+    nml.setValue(variable, coerce_value_list(args), record)
+  elif opt.variable_a:
+    variable, record = splitvar(opt.variable_a)
+    if opt.nitems:
+      args = [args[0] for i in range(opt.nitems)]
+    nml.appendValue(variable, coerce_value_list(args), record)
+  elif opt.variable_m:
+    variable, record = splitvar(opt.variable_m)
+    nml.setMaxDomValue(variable, args[0], record)
+  elif opt.variable_d:
+    variable, record = splitvar(opt.variable_d)
+    nml.delVariable(variable, record)
+
+  if opt.trim:
+    nml.trimMaxDom()
+  if opt.wrf:
+    nml.wrfCheck()
+  if opt.overwrite:
+    nml.overWriteNamelist()
+  elif not opt.quiet:
+    if opt.thisrecord:
+      print nml.printNamelist(opt.thisrecord)
+    else:
+      print nml.printNamelist()
