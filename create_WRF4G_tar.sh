@@ -2,7 +2,7 @@
 export LANG=C
 FOLDER="/tmp"
 echo "Creating WRF4G.tar.gz in ${FOLDER}"
-cp -RpL ui/ ${FOLDER}/
+cp -R ui/ ${FOLDER}/
 svn info>${FOLDER}/ui/svn_info.txt
 svn_tag=$(svn info | grep '^Revision:' | sed -e 's/^Revision: //')
 cd ${FOLDER}/
