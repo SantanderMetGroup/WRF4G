@@ -20,6 +20,10 @@ def get_time_step(coarse_dx, factor):
   ival = map(lambda x: x<=tstep, HOUR_DIVISORS).index(0) - 1
   return HOUR_DIVISORS[ival]
 
+def get_met_em_dx():
+  shcmd = "ncdump -h $(\ls -1 met_em*.nc | head -1) | grep 'DX =' | sed -e 's/^\t//' | tr '=;' ' ' | awk '{printf \"%i\", $2}'"
+  return int(os.popen(shcmd).read().strip())
+
 class fake_strptime:
   "This works with any python, unlike the datetime.datetime.strptime method"
   def __init__(self, strdate, strfmt):
@@ -74,12 +78,16 @@ if os.path.exists("met_em.d01.%s.nc" % start_date):
   nmli.setValue("num_metgrid_levels", get_num_metgrid_levels())
   nmli.setValue("num_metgrid_soil_levels", get_num_metgrid_soil_levels())
 #
-#  Compute the grid spacings
+#  Compute the grid spacings. Read them from met_em files if the projection is lat-lon.
 #
 nmli.setValue("grid_id", range(1, maxdom+1))
 pid = nmlw.getValue("parent_id")
 pgr = nmlw.getValue("parent_grid_ratio")
-thisdx = nmlw.getValue("dx")[0]
+proj = nmlw.getValue("map_proj")[0]
+if proj == "lat-lon":
+  thisdx = get_met_em_dx()
+else:
+  thisdx = nmlw.getValue("dx")[0]
 alldx = [thisdx,]
 for idom in range(1,maxdom):
   thisdx = alldx[pid[idom]-1]/pgr[idom]
