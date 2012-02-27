@@ -94,8 +94,13 @@ for idom in range(1,maxdom):
   alldx.append(thisdx)
 nmli.setValue("dx", alldx)
 nmli.setValue("dy", alldx) # May be an issue for global WRF
+#
+# Compute the time step. 
+#
 if timestep_dxfactor.startswith("manual:"):
   nmli.setValue("time_step", int(timestep_dxfactor[7:]))
+elif timestep_dxfactor.startswith("adaptative:"):
+  nmli.setValue("use_adaptive_time_step", ".true.", "domains")
 else:
   nmli.setValue("time_step",
     get_time_step(nmli.getValue("dx")[0], eval(timestep_dxfactor))
