@@ -55,7 +55,7 @@ if options.exp_name:
     exp=WRF4G.Experiment(data={'name':'%s'%options.exp_name},verbose=options.verbose,dryrun=options.dryrun)
     id=exp.get_id_from_name()
     if int(id) < 0:
-        print "Experiment %s do not exists"%options.exp_name
+        print "Experiment %s does not exists"%options.exp_name
         sys.exit(2)
     else:
         id=exp.get_id_from_name()
@@ -69,7 +69,7 @@ elif options.rea_name:
     rea=WRF4G.Realization(data={'name':'%s'%options.rea_name},verbose=options.verbose,dryrun=options.dryrun)
     id=rea.get_id_from_name()   
     if int(id) < 0:
-        print "Realization %s do not exists"%options.rea_name
+        print "Realization %s does not exists"%options.rea_name
         sys.exit(3)
     else:
         rea.stop_running_chunks()
@@ -82,7 +82,7 @@ elif options.rea_file:
             rea=WRF4G.Realization(data={'name':'%s'%realization},verbose=options.verbose,dryrun=options.dryrun)
             id=rea.get_id_from_name()
             if int(id) < 0 :
-                print "Realization with name %s do not exist"%realization
+                print "Realization with name %s does not exist"%realization
             else:
                 rea.stop_running_chunks()
     finally:
