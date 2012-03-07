@@ -42,7 +42,7 @@ parser.add_option("-R", "--nrea",metavar="N",dest="nrea", type="int", default=0,
 parser.add_option("-p", "--priority",metavar="P",dest="priority", default=0,help="P is the priority the experiment or realization is going to be launched with (P is a integer between 0 and 19. 20 is an urgent job)")
 parser.add_option("-v", "--verbose",action="store_true",default=False, dest="verbose",help="Verbose mode. Explain what is being done")
 parser.add_option("-f", "--force",action="store_true",default=False, dest="force",help="Don't ask the user if he wants to submit an experiment already submitted")
-parser.add_option("-d", "--tdep", action="store", type="choice", dest="type_dep", choices=["afterok", "afternotok", "afterany"], default="afterany",help="Specify dependencies between Chunks. afterok: The chunk may be scheduled for execution only after jobs jobid have terminated with no errors.  afternotok: The chunk may be scheduled for execution only after jobs jobid have terminated with errors. afterany: The chunk may be scheduled for execution after jobs jobid have terminated, with or without errors.")
+parser.add_option("-d", "--tdep", action="store", type="choice", dest="type_dep", choices=["afterok", "afternotok", "afterany"], default="afterok",help="Specify dependencies between Chunks. afterok: The chunk may be scheduled for execution only after jobs jobid have terminated with no errors.  afternotok: The chunk may be scheduled for execution only after jobs jobid have terminated with errors. afterany: The chunk may be scheduled for execution after jobs jobid have terminated, with or without errors.")
 
 (options, args) = parser.parse_args()
 
