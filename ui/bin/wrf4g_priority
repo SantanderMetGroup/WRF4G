@@ -28,7 +28,9 @@ usage="""
 
 Synopsys:
 
-Change the priority of an experiment or realization.
+Change the priority of an experiment or realization. The priority must be in range [0,20] 
+and default value is 0. When a chunk gets a priority of 20, it becomes an urgent. 
+This chunk is dispatched as soon as possible, bypassing all the scheduling policies. 
 """  
 parser = OptionParser(usage,version="%prog 1.0")
 parser.add_option("-n", "--dry-run",action="store_true", default=False, dest="dryrun",help="Perform a trial run with no changes made")
