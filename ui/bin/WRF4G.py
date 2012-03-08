@@ -146,34 +146,29 @@ class Component:
         else: return -1
     
     def loadfromDB(self,list_query,fields):
-     """    
-     Given an array with the fields to check in the query, this function loads into 
-     self.data the Wrf4gElement values.
-     Returns:
-     0-->OK
-     1-->ERROR
-     """
-
-     wheresta=''
-     
-     for field in list_query:
-         wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
-     wheresta=wheresta[4:]    
-     #dic=dbc.select(self.element,list2fields(fields), wheresta, verbose=1 )
-     dic=dbc.select(self.element,list2fields(fields),wheresta, verbose=self.verbose )
-     self.__init__(dic[0])
-     if id>0: return id
-     else: return -1
+        """    
+        Given an array with the fields to check in the query, this function loads into 
+        self.data the Wrf4gElement values.
+        Returns:
+        0-->OK
+        1-->ERROR
+        """
+        wheresta=''
+        for field in list_query:
+            wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
+        wheresta=wheresta[4:]    
+        dic=dbc.select(self.element,list2fields(fields),wheresta, verbose=self.verbose )
+        self.__init__(dic[0])
+        if id>0: return id
+        else: return -1
      
     def create(self):
- 
         """
         Create experiment
         Returns id:
         id > 0 --> Creation Worked.
         -1--> Creation Failed
         """
-        
         id=dbc.insert(self.element,self.data,verbose=self.verbose)
         self.data['id']=id
         if id>0: return id
@@ -186,8 +181,6 @@ class Component:
         id >0 --> Creation Worked.
         -1--> Creation Failed
         """
-        
-        
         ddata={}
         for field in self.get_reconfigurable_fields():
             ddata[field]=self.data[field]
@@ -201,32 +194,27 @@ class Component:
         Delete a row of Component. It clears the DB and all the data related to it. 
         """
         if self.verbose: stderr.write("Deleting %s with id %s\n"%(self.element,self.data['id']))
-        
         condition='id=%s'%self.data['id']
         o=dbc.delete_row(self.element,condition)
         return 0
     
     def get_one_field(self,val,cond):
-        
-        
         condition=''
         for field in cond:
-          condition="%s AND %s='%s'" %(condition,field,self.data[field])
+            condition="%s AND %s='%s'" %(condition,field,self.data[field])
         condition=condition[4:]   
         
         dic=dbc.select(self.element,list2fields(val),condition, verbose=self.verbose )
         return dic[0][val[0]]
 
     def update_fields(self,val,cond):
-        
-        
         ddata={}
         for field in val:
             ddata[field]=self.data[field]
         
         condition=''
         for field in cond:
-          condition="%s AND %s='%s'" %(condition,field,self.data[field])
+            condition="%s AND %s='%s'" %(condition,field,self.data[field])
         condition=condition[4:]
         
         oc=dbc.update(self.element,ddata,condition,verbose=self.verbose)
@@ -243,9 +231,10 @@ class Component:
         0--> Database do not have to be changed.
         1--> Change DataBase
         2--> Error. Experiment configuration not suitable with database
-        """       
-        
-
+        """      
+        if (self.element == "Experiment") and (len(self.data['name'])>512): 
+            stderr.write("Experiment name must be maximun 512 characters")
+            exit(9)
         id=self.get_id(self.get_distinct_fields())
         if self.verbose == 1: stderr.write("FLAG Reconfigure=%d\nexp_id= %s\n"%(self.reconfigure,id))
         # Experiment exists in database
@@ -286,8 +275,8 @@ class Component:
         return self.data['id']    
 
 class Experiment(Component):
-    
-    """  Experiment CLASS
+    """ 
+    Experiment CLASS
     """
     def get_no_reconfigurable_fields(self):
         return ['id','multiple_dates','multiple_parameters','basepath']
@@ -341,9 +330,8 @@ class Experiment(Component):
         return cdate           
     
     def ps(self):
-        
         output=''
-        if self.data['id'] < 0:     sys.exit(19)
+        if self.data['id'] < 0:sys.exit(19)
         rea_ids=self.get_realizations_id()
         dout=[]
         for id_rea in rea_ids:
@@ -351,7 +339,6 @@ class Experiment(Component):
             dout=rea.ps()
             output=output + format_output(dout)
         return output
-
     
     def summarized_status(self):
         prepared=len(self.get_prepared_reas_id())
@@ -448,7 +435,8 @@ class Experiment(Component):
         output=vcp.copy_file('experiment.wrf4g',exp_dir,verbose=self.verbose) 
          
 class Realization(Component):
-    """ Realization CLASS
+    """ 
+    Realization CLASS
     """
     
     def get_no_reconfigurable_fields(self):
@@ -509,7 +497,6 @@ class Realization(Component):
         else:
             finished=False
         return finished
-
 
     def get_init_status(self):
         
@@ -790,7 +777,8 @@ class Realization(Component):
         to=task.change_priority(priority,job_id)
                   
 class Chunk(Component):
-    """ Chunk CLASS
+    """ 
+    Chunk CLASS
     """
 
     def get_no_reconfigurable_fields(self):
