@@ -235,6 +235,9 @@ class Component:
         if (self.element == "Experiment") and (len(self.data['name'])>512): 
             stderr.write("Experiment name must be maximun 512 characters")
             exit(9)
+        if (self.element == "Experiment") and (len(self.data['name'])==0): 
+            stderr.write("Experiment name can not be null")    
+            exit(9)
         id=self.get_id(self.get_distinct_fields())
         if self.verbose == 1: stderr.write("FLAG Reconfigure=%d\nexp_id= %s\n"%(self.reconfigure,id))
         # Experiment exists in database
