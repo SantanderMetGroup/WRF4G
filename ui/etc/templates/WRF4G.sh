@@ -100,7 +100,7 @@ function wrf4g_exit(){
        ;;
     92)
        output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} 92)
-       exit 0
+       exit 92
        ;;
     93)
        output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} 93)
