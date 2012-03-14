@@ -273,7 +273,7 @@ if test -z "${chunk_size_h}"; then
     let chunk_size_h=${sec}/3600
 fi
 
-if test "${multiple_dates}" -eq "0" -a -z "${NI_restart_interval}"; then
+if test -z "${NI_restart_interval}"; then
     let NI_restart_interval=${chunk_size_h}*60
 fi
 
