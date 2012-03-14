@@ -84,30 +84,30 @@ function wrf4g_exit(){
   case $excode in
     0)
        if test $(grep -c "SUCCESS COMPLETE WRF" rsl.out.0000) -eq 1 ;then
-          output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 40)
+          output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${ERROR_MISSING_WRF4GSRC})
        else
-	  output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41)
+	  output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${ERROR_MISSING_WRF4GBIN})
 	  excode=${ERROR_UNEXPECTED_WRF_TERMINATION}
        fi
        ;;
     ${ERROR_UNGRIB_FAILED})
        ls -lR >& ${logdir}/ls.wps
-       output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41)
+       output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${ERROR_MISSING_WRF4GBIN})
        ;;
-    91)
-       output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} 91)
+    ${EXIT_CHUNK_ALREADY_FINISHED})
+       output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} ${EXIT_CHUNK_ALREADY_FINISHED})
        exit 0
        ;;
-    92)
-       output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} 92)
-       exit 92
+    ${EXIT_CHUNK_SHOULD_NOT_RUN})
+       output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} ${EXIT_CHUNK_SHOULD_NOT_RUN})
+       exit ${EXIT_CHUNK_SHOULD_NOT_RUN}
        ;;
-    93)
-       output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} 93)
-       exit 93
+    ${EXIT_PREVIOUS_CHUNK_NOT_FINISHED_CORRECT})
+       output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} ${EXIT_PREVIOUS_CHUNK_NOT_FINISHED_CORRECT})
+       exit ${EXIT_PREVIOUS_CHUNK_NOT_FINISHED_CORRECT}
        ;;
     *)
-       output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 41)
+       output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${ERROR_MISSING_WRF4GBIN})
        ;;
   esac
   output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} ${excode})
@@ -150,7 +150,7 @@ load_default_config
 #
 mkdir bin
 mv vcp bin
-source resources.wrf4g                        || exit 21
+source resources.wrf4g || exit ${ERROR_MISSING_RESOURCESWRF4G}
 #sed -e 's/\ *=\ */=/' experiment.wrf4g > source.it  || exit 22
 #source source.it && rm source.it
 
@@ -184,7 +184,7 @@ export PATH="${ROOTDIR}/bin:$PATH"
 export LD_LIBRARY_PATH=${ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
 export PYTHONPATH=${ROOTDIR}/lib/python:${ROOTDIR}/lib/shared_libs:$PYTHONPATH
 chmod +x ${ROOTDIR}/bin/* 
-vcp ${WRF4G_APPS}/WRF4G-${WRF4G_VERSION}.tar.gz . || exit 40 # We do not have yet the wrf4g_exit_codes ${ERROR_MISSING_WRF4GSRC}
+vcp ${WRF4G_APPS}/WRF4G-${WRF4G_VERSION}.tar.gz . || exit ${ERROR_MISSING_WRF4GSRC}
 tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz  || exit ${ERROR_MISSING_WRF4GSRC}
 chmod +x ${ROOTDIR}/bin/* 
 
@@ -204,7 +204,7 @@ if [ $? -ne 0 ];then
 fi
 
 suf=$RANDOM # This is a fix to solve the problem with source.
-sed -e 's/\ *=\ */=/' experiment.wrf4g > source.$suf        || exit ${ERROR_MISSING_WRFINPUT}
+sed -e 's/\ *=\ */=/' experiment.wrf4g > source.$suf || exit ${ERROR_MISSING_WRFINPUT}
 source source.$suf && rm source.$suf
 
 # Update Job Status in DB
@@ -212,16 +212,16 @@ job_conf="gw_job=${GW_JOB_ID},id_chunk=${WRF4G_ID_CHUNK},resource=${GW_HOSTNAME}
 WRF4G_JOB_ID=$(WRF4G.py Job load_wn_conf  $job_conf $GW_RESTARTED) 
 exitcode=$?
 if test $exitcode -ne 0; then      
-   if test $exitcode -eq 89; then
-        exit 89
-   elif test  $exitcode -eq 91; then
-        wrf4g_exit 91
-   elif test  $exitcode -eq 92; then
-        wrf4g_exit 92
-   elif test  $exitcode -eq 93; then
-        wrf4g_exit 93
+   if test $exitcode -eq ${EXIT_CANNOT_CONTACT_DB}; then
+        exit ${EXIT_CANNOT_CONTACT_DB}
+   elif test  $exitcode -eq ${EXIT_CHUNK_ALREADY_FINISHED}; then
+        wrf4g_exit ${EXIT_CHUNK_ALREADY_FINISHED}
+   elif test  $exitcode -eq ${EXIT_CHUNK_SHOULD_NOT_RUN}; then
+        wrf4g_exit ${EXIT_CHUNK_SHOULD_NOT_RUN}
+   elif test  $exitcode -eq ${EXIT_PREVIOUS_CHUNK_NOT_FINISHED_CORRECT}; then
+        wrf4g_exit ${${EXIT_PREVIOUS_CHUNK_NOT_FINISHED_CORRECT}}
    else
-        exit 88
+        exit ${EXIT_WRF4G_NOT_WORKING}
    fi
 fi
 
@@ -313,7 +313,7 @@ if test ${wps_stored} -eq "1"; then
     vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || wrf4g_exit ${ERROR_VCP_FAILED} namelist.wps
   cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ${ERROR_GETTING_WPS}
     namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_rerun} ${timestep_dxfactor}
-    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 20)
+    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${ERROR_MISSING_EXPERIMENTSWRF4G})
     download_file real $(date_wrf2iso ${chunk_start_date})
   cd ${LOCALDIR}
 else
@@ -336,7 +336,7 @@ else
     #
     #   Preprocessor
     #
-    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 21)
+    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${ERROR_MISSING_RESOURCESWRF4G})
 
     #extdata_vtable=NCEP
     #extdata_preprocessor=NNR1
