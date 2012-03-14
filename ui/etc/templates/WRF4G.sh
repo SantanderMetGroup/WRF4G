@@ -347,14 +347,15 @@ else
     i=1
     for vt in ${extdata_vtable/,/ }; do
        fortnml --overwrite -f namelist.wps -s prefix@ungrib ${vt}
+       test -f Vtable && rm Vtable 
        ln -s ungrib/Variable_Tables/Vtable.${vt} Vtable
        vpath=$(tuple_item ${extdata_path} ${i})
        vpreprocessor=$(tuple_item ${extdata_preprocessor} ${i})
        preprocessor.${vpreprocessor} ${chunk_start_date} ${chunk_end_date} ${vpath} ${vt}
        ./link_grib.sh grbData/*
-       ungrib.exe >& ${logdir}/ungrib_${extdata_vtable}_${iyy}${imm}${idd}${ihh}.out \
+       ungrib.exe >& ${logdir}/ungrib_${vt}_${iyy}${imm}${idd}${ihh}.out \
          || wrf4g_exit ${ERROR_UNGRIB_FAILED}
-       cat ${logdir}/ungrib_${extdata_vtable}_${iyy}${imm}${idd}${ihh}.out \
+       cat ${logdir}/ungrib_${vt}_${iyy}${imm}${idd}${ihh}.out \
         | grep -q -i 'Successful completion of ungrib' || wrf4g_exit ${ERROR_UNGRIB_FAILED}     
        rm -rf grbData
        rm GRIBFILE.*
