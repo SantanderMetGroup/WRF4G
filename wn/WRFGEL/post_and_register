@@ -48,7 +48,7 @@ function do_all(){
         echo "$3 was already postprocessed"
       else
         postprocessor.${postprocessor} $3 >> ${logfile} 2>&1
-	if ! which nco; then
+	if ! which ncatted; then
 	  thisdir=$(pwd)
 	  cd $(cat ../../rootdir)
 	  vcp ${WRF4G_APPS}/nco.tar.gz .
