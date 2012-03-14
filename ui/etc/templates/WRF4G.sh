@@ -460,7 +460,7 @@ cd ${LOCALDIR}/WRFV3/run || wrf4g_exit $ERROR_CANNOT_ACCESS_LOCALDIR
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
     # This time is also useful to copy the wpsout data
     sleep 30
-    bash -x wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
+    bash wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
     echo $! > monitor.pid   
     wait $(cat monitor.pid)
 
