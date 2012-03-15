@@ -106,6 +106,10 @@ function wrf4g_exit(){
        output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} ${EXIT_PREVIOUS_CHUNK_NOT_FINISHED_CORRECT})
        exit ${EXIT_PREVIOUS_CHUNK_NOT_FINISHED_CORRECT}
        ;;
+    ${EXIT_RESTART_MISMATCH})
+       output=$(WRF4G.py Job set_exitcode id=${WRF4G_JOB_ID} ${EXIT_RESTART_MISMATCH})
+       exit ${EXIT_RESTART_MISMATCH}
+       ;;
     *)
        output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${ERROR_MISSING_WRF4GBIN})
        ;;
@@ -296,7 +300,7 @@ elif test $(date2int ${restart_date}) -ge $(date2int ${chunk_start_date}) -a $(d
    download_file rst $(date_wrf2iso ${restart_date}) || wrf4g_exit ${ERROR_RST_DOWNLOAD_FAILED}
    mv wrfrst* WRFV3/run 
 else
-   wrf4g_exit ${EXIT_CHUNK_SHOULD_NOT_RUN}
+   wrf4g_exit ${EXIT_RESTART_MISMATCH}
 fi
 
 read iyy imm idd ihh trash <<< $(echo ${chunk_start_date} | tr '_:T-' '    ')
