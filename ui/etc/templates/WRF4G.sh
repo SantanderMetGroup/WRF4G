@@ -1,7 +1,5 @@
 #! /bin/bash -x
 
-# WRF4G_ini.sh
-#
 
 function load_default_config (){
  #
@@ -198,6 +196,7 @@ chmod +x ${ROOTDIR}/bin/*
 #
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
+source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
 export PATH="${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
 chmod +x ${ROOTDIR}/WRFGEL/*
 
@@ -264,7 +263,7 @@ mkdir -p ${logdir}
 # Redirect output and error file descriptors
 exec &>log/WRF4G.log
 
-out=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 11)
+out=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_DOWN_BIN})
 #WRF4G.py Chunk should_I_run id=${WRF4G_ID_CHUNK} || wrf4g_exit ${ERROR_PREVIOUS_CHUNK_NOT_FINISHED}
   
   
@@ -296,16 +295,16 @@ if  test ${restart_date} == "None"; then
 elif test $(date2int ${restart_date}) -ge $(date2int ${chunk_start_date}) -a $(date2int ${restart_date}) -le $(date2int ${chunk_end_date}); then
    export chunk_restart_date=${restart_date}
    export chunk_rerun=".T."  
-   output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 12)
+   output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_DOWN_RESTART})
    download_file rst $(date_wrf2iso ${restart_date}) || wrf4g_exit ${ERROR_RST_DOWNLOAD_FAILED}
    mv wrfrst* WRFV3/run 
 else
    wrf4g_exit ${EXIT_RESTART_MISMATCH}
 fi
 
-read iyy imm idd ihh trash <<< $(echo ${chunk_start_date} | tr '_:T-' '    ')
+read iyy imm idd ihh trash <<< $(echo ${chunk_start_date}   | tr '_:T-' '    ')
 read ryy rmm rdd rhh trash <<< $(echo ${chunk_restart_date} | tr '_:T-' '    ')
-read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}   | tr '_:T-' '    ')
+read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}     | tr '_:T-' '    ')
 
 #
 #   Must WPS run or are the boundaries and initial conditions available?
@@ -331,11 +330,11 @@ else
     #
     #   Modify the namelist
     #
-    fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
-    fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
-    fortnml_set  namelist.wps max_dom               ${max_dom}
-    fortnml_set  namelist.wps prefix                "'${extdata_vtable}'"
-    fortnml_set  namelist.wps interval_seconds     ${extdata_interval}
+    fortnml_setn namelist.wps start_date       ${max_dom} "'${chunk_start_date}'"
+    fortnml_setn namelist.wps end_date         ${max_dom} "'${chunk_end_date}'"
+    fortnml_set  namelist.wps max_dom          ${max_dom}
+    fortnml_set  namelist.wps prefix           "'${extdata_vtable}'"
+    fortnml_set  namelist.wps interval_seconds ${extdata_interval}
 
     #
     #   Preprocessor
@@ -368,12 +367,12 @@ else
      done
 
      fortnml --overwrite -f namelist.wps -s fg_name@metgrid "${vts}" 
-     output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 22)
+     output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_UNGRIB})
 
     #
     #   Run metgrid
     #
-    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 23)
+    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_METGRID})
       fortnml_vardel namelist.wps opt_output_from_metgrid_path
       fortnml_vardel namelist.wps opt_output_from_geogrid_path
       fortnml_vardel namelist.wps opt_metgrid_tbl_path
@@ -399,7 +398,7 @@ else
     #------------------------------------------------------------------
     #                              REAL
     #------------------------------------------------------------------
-   output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 24)
+   output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_DOWN_WPS})
       clean_real
       ln -s ../../WPS/met_em.d??.????-??-??_??:00:00.nc .
       fix_ptop
@@ -434,9 +433,9 @@ else
     #
 
     if test "${save_wps}" -eq 1; then
-        output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 25)
+        output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_UPLIAD_WPS})
         post_and_register --no-bg wps "${chunk_start_date}"
-        WRF4G.py Chunk set_wps id=${WRF4G_ID_CHUNK} 1
+        WRF4G.py Chunk set_wps id=${WRF4G_ID_CHUNK} ${JOB_STATUS_SUBMITTED}
     fi
   cd ${LOCALDIR} || wrf4g_exit $ERROR_CANNOT_ACCESS_LOCALDIR
 fi
@@ -449,7 +448,7 @@ fi
 #------------------------------------------------------------------
 cd ${LOCALDIR}/WRFV3/run || wrf4g_exit $ERROR_CANNOT_ACCESS_LOCALDIR
   if test -n "${icbcprocessor}"; then
-    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 26)
+    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_ICBCPROCESOR})
       icbcprocessor.${icbcprocessor} >&  ${logdir}/icbcproc_${ryy}${rmm}${rdd}${rhh}.out
   fi
     
@@ -459,7 +458,7 @@ cd ${LOCALDIR}/WRFV3/run || wrf4g_exit $ERROR_CANNOT_ACCESS_LOCALDIR
     fi
 	
     fortnml -o -f namelist.input -s debug_level 0
-    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} 29)
+    output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_WRF})
     ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrapper.exe wrf.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
     # This time is also useful to copy the wpsout data
