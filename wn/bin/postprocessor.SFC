@@ -9,7 +9,7 @@ wrfnc_file=$1        # The WRF file to postprocess
 # and creating a postprocessed file with the same name to be uploaded by register_file
 #
 
-if ! which nco; then
+if ! which ncks; then
   thisdir=$(pwd)
   cd $(cat ../../rootdir)
   vcp ${WRF4G_APPS}/nco.tar.gz .
