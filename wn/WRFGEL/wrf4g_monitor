@@ -8,9 +8,9 @@ wrf_pid=$1
 #
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
-source ${ROOTDIR}/resources.wrf4g                           || exit ${ERROR_MISSING_WRF4GCNF}
+source ${ROOTDIR}/resources.wrf4g                               || exit ${ERROR_MISSING_WRF4GCNF}
 suf=$RANDOM # This is a fix to solve the problem with source.
-sed -e 's/\ *=\ */=/' ${ROOTDIR}/experiment.wrf4g > source.$suf        || exit ${ERROR_MISSING_WRFINPUT}
+sed -e 's/\ *=\ */=/' ${ROOTDIR}/experiment.wrf4g > source.$suf || exit ${ERROR_MISSING_WRFINPUT}
 source source.$suf && rm source.$suf
 
 file_patterns="wrfout wrfrst wrfrain wrfxtrm wrf24hc"
@@ -67,11 +67,11 @@ function clean_while_running(){
           if ! ls -l /proc/$wrf_pid/fd | grep ${file}; then # Make sure it is not open...
             time_debug "Uploading ${file} (start)"
             if test $(filetype $file) == "out" -a ${wrfout_name_end_date} -eq 1; then
-                edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
+              edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
             fi
             post_and_register --no-bg $(filetype $file) $(filedate $file) $file $edate
             if test $patt == "wrfrst" -a $dom == "d01"; then
-		WRF4G.py Realization set_restart id=${WRF4G_ID_REALIZATION} $(filedate $file) # In the future kill the job if it can't contact the DB
+              output=$(WRF4G.py Realization set_restart id=${WRF4G_ID_REALIZATION} $(filedate $file)) # In the future kill the job if it can't contact the DB
             fi
             time_debug "Uploading ${file} (end)"
           else
