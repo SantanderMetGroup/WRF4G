@@ -126,13 +126,34 @@ case "$1" in
            exit 2
         fi
         echo "  OK"
-
-
+        ;;
+    status)
+        if test ! -f $GW_LOCATION/var/gwd.port; then
+          echo "GridWay Stopped" 
+        else  
+          gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
+          gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
+          if test -n "$gwd_pid"; then  
+            echo "GridWay Runnning"
+          else
+            echo "GridWay Stopped"
+          fi
+        fi
+        if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
+          echo "Mysql Stopped"
+        else
+          mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
+          if test $(ps -p $mysql_pid | grep -m1 -c $mysql_pid) -eq 1; then
+            echo "Mysql Running"
+          else
+            echo "Mysql Stopped"
+          fi
+        fi
         ;;
     *)
       cat << EOF
 USAGE 
-  $(basename $0) {start|stop|restart|reload}
+  $(basename $0) {start|stop|restart|status|reload}
 
 SYNOPSYS
   wrf4g_framework manages WRF4G framework components: drm4g and database. 
