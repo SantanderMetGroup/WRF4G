@@ -12,9 +12,6 @@ source ${ROOTDIR}/resources.wrf4g                           || exit ${ERROR_MISS
 suf=$RANDOM # This is a fix to solve the problem with source.
 sed -e 's/\ *=\ */=/' ${ROOTDIR}/experiment.wrf4g > source.$suf        || exit ${ERROR_MISSING_WRFINPUT}
 source source.$suf && rm source.$suf
-#PID=$(cat ${LOCALDIR}/WRFV3/run/wrf.pid)
-
-
 
 file_patterns="wrfout wrfrst wrfrain wrfxtrm wrf24hc"
 wait_s=60
@@ -67,10 +64,8 @@ function clean_while_running(){
           time_debug "Skipping initial restart file ${file}"
           continue
         else
-          #if ! /usr/sbin/lsof | grep ${file}; then # Make sure it is not open...
           if ! ls -l /proc/$wrf_pid/fd | grep ${file}; then # Make sure it is not open...
             time_debug "Uploading ${file} (start)"
-            #if test $patt == "wrfout"; then
             if test $(filetype $file) == "out" -a ${wrfout_name_end_date} -eq 1; then
                 edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
             fi
