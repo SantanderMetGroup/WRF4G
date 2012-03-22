@@ -102,8 +102,8 @@ class Resource (object):
         try:
             out, err = self.Communicator.execCommand('LANG=POSIX df -B 1K $HOME')
             if not err:
-                line2 = out.split('\n')[1] 
-                return (line2.split()[1] , line2.split()[3])
+                line_elements = out.strip().split()
+                return (line_elements[-5] , line_elements[-3])
             else:
                 return ('0', '0')
         except Exception, e:
