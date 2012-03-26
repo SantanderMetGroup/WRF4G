@@ -25,14 +25,9 @@ function time_debug(){
 
 function all_but_last() {
   pattern=$1
-  if test "${pattern:3:3}" = "rst"; then
-    # Do not wait for 2 rst files to upload the first
-    ls ${pattern}* 2> /dev/null
-  else
-    nfiles=$(ls ${pattern}* 2>/dev/null | wc -l)
-    if test ${nfiles} -gt 1; then
-      ls ${pattern}* 2> /dev/null | head -n $((${nfiles} - 1))
-    fi
+  nfiles=$(ls ${pattern}* 2>/dev/null | wc -l)
+  if test ${nfiles} -gt 1; then
+    ls ${pattern}* 2> /dev/null | head -n $((${nfiles} - 1))
   fi
 }
 
