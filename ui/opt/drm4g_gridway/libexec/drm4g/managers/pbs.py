@@ -112,7 +112,7 @@ class Job (drm4g.managers.Job):
         args += '#PBS -v %s\n' % (','.join(['%s=%s' %(k, v) for k, v in parameters['environment'].items()]))
         args += 'cd $directory\n'
         if parameters['jobType'] == "mpi":
-            args += 'mpi -np $count $executable\n'
+            args += 'mpiexec -np $count $executable\n'
         else:
             args += '$executable\n'
         return Template(args).safe_substitute(parameters)
