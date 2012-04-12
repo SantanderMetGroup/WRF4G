@@ -1,15 +1,23 @@
 #!/usr/bin/python
 
-from sys import stderr, exit
-import MySQLdb
+from sys import stderr, exit, path, version_info
 import os
+
+try:
+    if version_info < (2,5):
+        pathMySQL = 'MySQL_2.4'
+    else:
+        pathMySQL = 'MySQL_2.x'
+    path.append(os.path.join(os.path.dirname(__file__), pathMySQL))
+    import MySQLdb
+except Exception, e:
+    print 'Caught exception: %s: %s' % (e.__class__, str(e))
+    print 'Please check that LD_LIBRARY_PATH includes the directory $WRF4G_LOCATION/lib/shared_libs'
+    exit(-1)
+        
 # there is a bug with rlcompleter in Centos 6. When used, the $PS1 (in our case \033[?1034h$) is writen into stdout
-#import rlcompleter
-#import readline
 from re import search
 from optparse import OptionParser
-#readline.parse_and_bind("tab: complete")
-#sys.path.append("/oceano/gmeteo/users/valva/python/MySQL-python/") 
 
 
 def parse_one_field(dict):
@@ -317,4 +325,4 @@ if __name__ == "__main__":
 
 
 
-   
+  
