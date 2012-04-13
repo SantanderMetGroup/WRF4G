@@ -10,6 +10,7 @@ try:
    import vdb
 except:
    path.append(os.path.join(os.path.dirname(__file__), '..','lib','python'))
+   import vdb
 from datetime import datetime
 from optparse import OptionParser
 
