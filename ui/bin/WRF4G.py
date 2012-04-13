@@ -4,11 +4,14 @@ from sys import stdout,stderr,exit,path
 path.reverse()
 import sys
 import inspect
-import vdb
+import os
 import vcp
+try: 
+   import vdb
+except:
+   path.append(os.path.join(os.path.dirname(__file__), '..','lib','python'))
 from datetime import datetime
 from optparse import OptionParser
-import os
 
 def datetime2datewrf (date_object):
     return date_object.strftime("%Y-%m-%d_%H:%M:%S")
