@@ -11,16 +11,10 @@ except ImportError:
         print 'Please, set GW_LOCATION variable'
         sys.exit(-1)
     try:
-        if platform.architecture()[0] == '32bit':
-            if sys.version_info < (2,5):
-                sys.path.append(os.path.join(GW_LOCATION, 'libexec', 'drm4g', 'utils', 'Cryptos', 'Crypto24_i686'))
-            else:
-                sys.path.append(os.path.join(GW_LOCATION, 'libexec', 'drm4g', 'utils', 'Cryptos', 'Crypto_i686'))
+        if sys.version_info < (2,5):
+            sys.path.append(os.path.join(GW_LOCATION, 'libexec', 'drm4g', 'utils', 'Cryptos', 'Crypto24_x86_64'))
         else:
-            if sys.version_info < (2,5):
-                sys.path.append(os.path.join(GW_LOCATION, 'libexec', 'drm4g', 'utils', 'Cryptos', 'Crypto24_x86_64'))
-            else:
-                sys.path.append(os.path.join(GW_LOCATION, 'libexec','drm4g','utils', 'Cryptos', 'Crypto_x86_64'))
+            sys.path.append(os.path.join(GW_LOCATION, 'libexec', 'drm4g', 'utils', 'Cryptos', 'Crypto_x86_64'))
         sys.path.append(os.path.join(GW_LOCATION, 'libexec','drm4g','utils'))
         import paramiko
     except Exception, e:
