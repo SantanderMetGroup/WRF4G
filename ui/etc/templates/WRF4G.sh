@@ -1,5 +1,8 @@
-#! /bin/bash -x
-
+#! /bin/bash
+#
+# In order to run this script in verbose mode run the 
+# gwsubmit command with the verbose option. DO NOT ADD -x 
+# to the first of this script
 
 function load_default_config (){
  #
@@ -21,7 +24,7 @@ function date2int(){
 
 function WRF4G_prepare (){
   #
-  #  Move all executables out of LOCALDIRvcp
+  #  Move all executables out of LOCALDIR
   #
   mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
   mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
