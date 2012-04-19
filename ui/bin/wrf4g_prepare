@@ -281,7 +281,7 @@ data="name=${experiment_name},sdate=${start_date},edate=${end_date},multiple_par
 id=$(WRF4G.py $WRF4G_FLAGS Experiment  prepare $data )
 if test $?  -ne 0; then
    echo $id >&2
-   echo "Check that wrf4g_framework is running" &>2
+   echo "Check that wrf4g_framework is running" >&2
    exit $?
 fi
 
