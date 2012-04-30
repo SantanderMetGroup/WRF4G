@@ -21,8 +21,8 @@ def get_time_step(coarse_dx, factor):
   return HOUR_DIVISORS[ival]
 
 def get_met_em_dx():
-  shcmd = "ncdump -h $(\ls -1 met_em*.nc | head -1) | grep 'DX =' | sed -e 's/^\t//' | tr '=;' ' ' | awk '{printf \"%i\", $2}'"
-  return int(os.popen(shcmd).read().strip())
+  shcmd = "ncdump -h $(\ls -1 met_em*.nc | head -1) | grep 'DX =' | sed -e 's/^\t//' | tr '=;' ' ' | awk '{printf \"%f\", $2}'"
+  return round(os.popen(shcmd).read().strip(), 2)
 
 class fake_strptime:
   "This works with any python, unlike the datetime.datetime.strptime method"
