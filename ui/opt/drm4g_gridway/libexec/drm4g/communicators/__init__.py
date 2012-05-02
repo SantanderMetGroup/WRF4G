@@ -76,6 +76,15 @@ class Communicator(object):
         """
         pass
 
+    def checkOutLock(self, destination_url):
+        """
+        @param destination_url: url of the folder to check out if .lock file exists
+        @type destination_url: string
+        @return: False, if .lock file do not exist or True, if It exists
+        @rtype: boolean
+        """
+        pass
+
     def setWorkDir(self, path_work_directory):
         self._path_work = path_work_directory
 

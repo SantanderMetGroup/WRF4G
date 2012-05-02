@@ -135,7 +135,25 @@ class Communicator (drm4g.communicators.Communicator):
         else: self._rmdirRecursive(to_dir,sftp)
     	try: sftp.close()
         except Exception: pass
-        
+
+    def checkOutLock(self, url):
+        if not self._isAuthenticated():
+            self.connect()
+        self._lock.acquire()
+        try: sftp = paramiko.SFTPClient.from_transport(self._trans)
+        finally: self._lock.release()
+        to_dir = self._setDir(urlparse(url).path)
+        try:
+            file = sftp.open('%s/.lock' % (to_dir))
+        except Exception:
+            output = False
+        else:
+            file.close()
+            output = True        
+        try: sftp.close()
+        except Exception: pass
+        return output
+
     def close(self):
         self._lock.acquire()
         try:

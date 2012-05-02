@@ -8,7 +8,7 @@ from drm4g.utils.dynamic import ThreadPool
 from drm4g.utils.logger import *
 from drm4g.core.configure import readHostList, parserHost
 from drm4g.utils.message import Send
-from drm4g.global_settings import COMMUNICATOR, Debug
+from drm4g.global_settings import COMMUNICATOR
 from drm4g.utils.importlib import import_module
 
 __version__ = '0.1'
@@ -132,6 +132,7 @@ class GwTmMad (object):
         """
         OPERATION, JID, TID, EXE_MODE, SRC_URL, DST_URL = args.split()
         try:
+            self._com_list[urlparse(SRC_URL).host].rmDirectory(SRC_URL)
             self._com_list[urlparse(SRC_URL).host].mkDirectory(SRC_URL)
             out = 'MKDIR %s - SUCCESS -' % (JID)
         except Exception, e:
@@ -147,7 +148,8 @@ class GwTmMad (object):
         """
         OPERATION, JID, TID, EXE_MODE, SRC_URL, DST_URL = args.split()
         try:
-            if not Debug: 
+            clean = self._com_list[urlparse(SRC_URL).host].checkOutLock(SRC_URL)
+            if not clean: 
                 self._com_list[urlparse(SRC_URL).host].rmDirectory(SRC_URL)
             out = 'RMDIR %s - SUCCESS -' % (JID)
         except Exception, e:

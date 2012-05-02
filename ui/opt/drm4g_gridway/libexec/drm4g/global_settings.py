@@ -22,10 +22,3 @@ RESOURCE_MANAGER = {
 
 PATH_HOST = r"etc/hosts_drm4g.list"
 
-
-########
-# DEBUG#
-########
-
-Debug = False  #To enable debug DEBUG = True. The Working Directory won't be removed by DRM4G 
-

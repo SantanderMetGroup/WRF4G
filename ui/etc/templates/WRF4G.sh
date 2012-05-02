@@ -405,6 +405,13 @@ export LOCALDIR
 echo ${ROOTDIR} > rootdir
 echo ${PWD} > ${ROOTDIR}/localdir
 
+#
+# GridWay won't remove ROOTDIR directory if clean_after_run is 0
+#
+if test "${clean_after_run}" -eq 0; then
+    touch ${ROOTDIR}/.lock
+fi
+
 #   Make log directory
 logdir=${LOCALDIR}/log
 mkdir -p ${logdir}

@@ -39,9 +39,13 @@ class Communicator(drm4g.communicators.Communicator):
             
     def rmDirectory(self, url):
         to_dir = self._setDir(urlparse(url).path)    
-        out, err = self.execCommand("LANG=POSIX rm -rf %s" % (to_dir))
+        out, err = self.execCommand("rm -rf %s" % (to_dir))
         if err:
             raise drm4g.communicators.ComException("Couldn't remove: %s" %(to_dir))
+    
+    def checkOutLock(self, url):   
+        to_dir = self._setDir(urlparse(url).path)
+        return os.path.isfile( '%s/.lock'% (to_dir))
 
     #internal
     
