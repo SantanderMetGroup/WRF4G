@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: ascii -*-
 # Copyright (C) 2008  Dwayne C. Litzenberger <dlitz@dlitz.net>
 # Copyright (C) 2008  Open Systems Canada Limited

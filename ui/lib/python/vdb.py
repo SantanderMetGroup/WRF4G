@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 from sys import stderr, exit, path, version_info
 import os
