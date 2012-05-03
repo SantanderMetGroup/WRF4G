@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from optparse import OptionParser
+
 from re import match, search
 from sys import exit, stderr, argv
 from commands import getstatusoutput
@@ -8,10 +9,10 @@ from os import popen, getcwd, getenv, WEXITSTATUS
 from os.path import abspath, isdir, basename, dirname
 import datetime
 
-URL_BAD_FORMED   = 1
-COPY_ERROR       = 2
-CREATE_DIR_ERROR = 3
-DELETE_FILE_ERROR= 3
+URL_BAD_FORMED=1
+COPY_ERROR=2
+CREATE_DIR_ERROR=3
+DELETE_FILE_ERROR=3
 
 class VCPURL:
     """
@@ -85,28 +86,9 @@ class VCPURL:
                   stderr.write( "The url is not well formed. // \n")
                   exit(URL_BAD_FORMED)
           
-          self.command={'file'  : {'ls'    : "'ls -1 %s' %self.file",
-                                   'mkdir' : "'mkdir -p %s' %self.file",
-                                   'rm'    : "'rm -rf %s' %self.file", 
-                                   'rename': "'mv %s %s' %(orig,dest)",
-                                   'name'  : "self.file"},
-                        'rsync' : {'ls'    : "'ssh -q %s ls -1 %s' %(self.usercomputer, self.file)",
-                                   'mkdir' : "'ssh -q %s mkdir -p %s' %(self.usercomputer,self.file)", 
-                                   'rm'    : "'ssh -q %s rm -rf %s' %(self.usercomputer, self.file)" ,
-                                   'rename': "'ssh -q %s mv %s %s'%(self.usercomputer,orig,dest)",
-                                   'name'  : "self.file"},
-                        'gsiftp': {'ls'    : "'uberftp %s \"ls %s\" | awk \"NR>2\"' %(self.computer, self.file)",
-                                   'mkdir' : "'uberftp %s \"mkdir %s\"' %(self.computer, self.file)",
-                                   'rm'    : "'uberftp %s \"rm -r %s\"' %(self.computer, self.file)", 
-                                   'rename': "'uberftp %s \"rename %s %s\"'%(self.computer,orig,dest)",
-                                   'name'  : "self.file"},
-                        'lfn'   : {'ls'    : "'lfc-ls %s' %(self.file)",
-                                   'mkdir' : "'lfc-mkdir -p %s' %(self.file)",
-                                   'rename': "",
-                                   'rm'    : "'lcg-rec-del --vo  %s -cp %s' %(self.user,self.file)",
-                                   'name'  : "self.file"},
-                                   },
-                        }
+          self.command={'file': {'ls':"'ls -1 %s' %self.file" ,'mkdir':"'mkdir -p %s' %self.file" ,'rm':"'rm -rf %s' %self.file"  , 'rename':"'mv %s %s' %(orig,dest)", "name":"self.file"}, 
+          'rsync' : {'ls':"'ssh -q %s ls -1 %s' %(self.usercomputer, self.file)",'mkdir': "'ssh -q %s mkdir -p %s' %(self.usercomputer,self.file)", 'rm':"'ssh -q %s rm -rf %s' %(self.usercomputer, self.file)" ,  'rename': "'ssh -q %s mv %s %s'%(self.usercomputer,orig,dest)",'name':"self.file"} , 
+          'gsiftp': {'ls':"'uberftp %s \"ls %s\" | awk \"NR>2\"' %(self.computer, self.file)" ,'mkdir':"'uberftp %s \"mkdir %s\"' %(self.computer, self.file)" ,'rm':"'uberftp %s \"rm -r %s\"' %(self.computer, self.file)"  , 'rename':"'uberftp %s \"rename %s %s\"'%(self.computer,orig,dest)" , 'name': "self.file"}}
         
 
     def __str__(self):
@@ -155,6 +137,15 @@ class VCPURL:
         if verbose: stderr.write(command + "\n")
         (err,out)=getstatusoutput(command)
         err=WEXITSTATUS(err)
+        """if err != 0 :
+            g=search("No such file or directory",out)
+            if g:
+               # In case of error return an empty list
+               return []
+            else:
+               stderr.write("Error listing file: " + str(err) + "\n" + out + "\n")
+               exit(COPY_ERROR)
+        """
         if err != 0 : return []
         out_list=out.split("\n")
         if self.protocol == "gsiftp":
@@ -187,6 +178,7 @@ class VCPURL:
         if err != 0 :
             stderr.write("Error creating dir: " + str(err) + "\n" + out)
             exit(CREATE_DIR_ERROR)
+        
         return  
  
     def rm(self,verbose=False):
@@ -229,7 +221,7 @@ class wrffile :
         if g:
            [base_file,date_file]=g.groups() 
            self.date=datewrf2datetime(date_file)
-        else:
+        else :
             # wrfrst_d01_19910101T120000Z.nc
             g=search("(.*)(\d{8}T\d{6}Z)",url)
             if not g:
@@ -242,6 +234,7 @@ class wrffile :
         self.file_name=basename(base_file)
         self.dir_name=dirname(base_file)
        
+     
     def date_wrf(self):
          return datetime2datewrf(self.date)
     def date_iso(self):
@@ -259,51 +252,27 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
     orig=VCPURL(origin)
     dest=VCPURL(destination)
     if dest.protocol == 'ln' and orig.protocol != 'file':
-        dest.protocol = 'file'
-    matrix={'file': {'file':  {'verbose'  : '-v', 
-                               'recursive': '-R',
-                               'command'  : "'cp %(verbose)s %(recursive)s %(orig)s %(dest)s' %param",
-                               'orig'     : "orig.file",
-                               'dest'     : "dest.file"},
-                     'rsync': {'verbose'  : '-v', 
-                               'recursive': '',
-                               'command'  : "'rsync -au %(verbose)s %(recursive)s %(orig)s %(dest)s' %param",
-                               'orig'     : "orig.file",
-                               'dest'     : "dest"}, 
-                     'ln':    {'verbose'  : '-v',
-                               'recursive': '', 
-                               'command'  : "'ln -s %(verbose)s %(recursive)s %(orig)s %(dest)s' %param",
-                               'orig'     : "orig.file",
-                               'dest'     : "dest.file"},
-                     'gsiftp':{'verbose'  : '-v',
-                               'recursive': '-r -cd', 
-                               'command'  : "'globus-url-copy %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                               'orig'     : "str(orig)",
-                               'dest'     : "str(dest)"},
-                     'lfn'  : {'vervose'  : '-v',
-                               'recursive': '',
-                               'command'  : "'lcg-rec-cr -vo  -lp %(orig)s -cp %(dest)s %(verbose)s' %param",
-                               'orig'     : "orig.file",
-                               'dest'     : "dest.file"},
-                     }, 
-            'gsiftp':{'file': {'verbose'  : '-v',
-                               'recursive': '-r -cd',
-                               'command'  : "'globus-url-copy %(verbose)s %(recursive)s %(orig)s %(dest)s' %param",
-                               'orig'     : "str(orig)",
-                               'dest'     : "str(dest)"},
-                      },
-            'rsync': {'file': {'verbose'  : '-v',
-                               'recursive': '',
-                               'command'  : "'rsync -au %(verbose)s %(recursive)s %(orig)s %(dest)s' %param",
-                               'orig'     : "orig",
-                               'dest'     : "dest.file"},
-                      },
-            'lfn'  : {'file': {'vervose'  : '-v',
-                               'recursive': '',
-                               'command'  : "lcg-del -a lfn:/grid/planck/morgan/file.txt",
-                               },
-                      },
-            }
+      dest.protocol = 'file'
+    matrix={
+    'file': 
+        {'file':  
+            {'verbose': '-v', 'recursive':'-R', 'command': "'cp %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 'orig':"orig.file", 'dest': "dest.file"}, 
+        'rsync':  
+            {'verbose': '-v', 'recursive':'', 'command': "'rsync -au %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 'orig':"orig.file", 'dest': "dest"}, 
+        'ln':  
+            {'verbose': '-v', 'recursive':'', 'command': "'ln -s %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 'orig':"orig.file", 'dest': "dest.file"}, 
+        'gsiftp': 
+            {'verbose': '-v', 'recursive':'-r -cd', 'command': "'globus-url-copy %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 'orig':"str(orig)", 'dest': "str(dest)"}
+        }, 
+    'gsiftp':
+        {'file':
+                {'verbose': '-v', 'recursive':'-r -cd', 'command': "'globus-url-copy %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 'orig':"str(orig)", 'dest': "str(dest)"}
+        }, 
+    'rsync':
+        {'file' :
+                {'verbose': '-v', 'recursive':'', 'command': "'rsync -au %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 'orig':"orig", 'dest': "dest.file"}
+        }
+    }
         
     param=matrix[orig.protocol][dest.protocol]
     orig_file=eval(param['orig'])
@@ -313,15 +282,15 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
     # FILE --> GRIDFTP & GRIDFTP -->FILE
     # the globus-url-copy has a strange behavior when copy directories. To indicate that
     # a file is a directory it's necesary that the end of the name is a /.
-    if (dest.protocol=="gsiftp" or orig.protocol=="gsiftp"):
-        if recursive:
-            orig_file=orig_file + "/"
-            dest_file=dest_file + "/"
-        else:
-            if origin.find("*") != -1 :
-                dest_file = dest_file + "/"
-            elif dest.protocol=="file" and isdir(dest.file) :
-                dest_file = dest_file + "/" + basename(orig_file)
+    if (dest.protocol=="gsiftp" or orig.protocol=="gsiftp") :
+      if recursive:
+        orig_file=orig_file + "/"
+        dest_file=dest_file + "/"
+      else:
+          if origin.find("*") != -1 :
+              dest_file = dest_file + "/"
+          elif dest.protocol=="file" and isdir(dest.file) :
+              dest_file = dest_file + "/" + basename(orig_file)
     
     # Convert origin, destination and command to the appropiate one.
     param['orig']=orig_file
@@ -330,48 +299,49 @@ def copy_file(origin,destination,verbose=False,recursive=False,streams=False):
     if not verbose: param[verbose]=""
     command=eval(param['command'])   
     
-    if verbose : stderr.write(command + "\n")
+    if verbose :    stderr.write(command + "\n")
     (err,out)=getstatusoutput(command)       
     
     if err != 0 :
-        stderr.write("Error copying file: " + str(err) + "\n" + out + "\n")
-        exit(COPY_ERROR)
+      stderr.write("Error copying file: " + str(err) + "\n" + out + "\n")
+      exit(COPY_ERROR)
+    
     return out
+
 
 #    FUNCTIONS FOR MANAGE DATES      #
 def datewrf2datetime (datewrf):
-    g=match("(\d{4})-(\d{2})-(\d{2})_(\d{2}):(\d{2}):(\d{2})",datewrf)
-    if not g :
-        stderr.write("Error: Date is not well formed\n")
-        exit(DATE_BAD_FORMED)
-    date_tuple=g.groups()
-    date_object=datetime.datetime(*tuple(map(int,date_tuple)))
-    return date_object
+  g=match("(\d{4})-(\d{2})-(\d{2})_(\d{2}):(\d{2}):(\d{2})",datewrf)
+  if not g :
+      stderr.write("Error: Date is not well formed\n")
+      exit(DATE_BAD_FORMED)
+  date_tuple=g.groups()  
+  date_object=datetime.datetime(*tuple(map(int,date_tuple)))
+  return date_object
   
 def dateiso2datetime (dateiso):
-    g=match("(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z",dateiso)
-    if not g :
-        stderr.write("Error: Date is not well formed\n")
-        exit(DATE_BAD_FORMED)
-    date_tuple=g.groups()
-    date_object=datetime.datetime(*tuple(map(int,date_tuple)))
-    return date_object
+  g=match("(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z",dateiso)
+  if not g :
+      stderr.write("Error: Date is not well formed\n")
+      exit(DATE_BAD_FORMED)
+  date_tuple=g.groups()  
+  date_object=datetime.datetime(*tuple(map(int,date_tuple)))
+  return date_object
   
 def datetime2datewrf (date_object):
     return date_object.strftime("%Y-%m-%d_%H:%M:%S")
-
 def datetime2dateiso (date_object):
     return date_object.strftime("%Y%m%dT%H%M%SZ")   
 
+
 def get_env_vars(var_list):
-    for var in var_list.keys():
+    for var in var_list.keys()  :
         var_value = getenv( var ,"Error")
         if var_value  == "Error" :
             stderr.write("Error: %s not defined. Define the environment variable or give it as an argument to this function." % var + "\n")
             exit(1)            
         var_list[var]= var_value
     return var_list
-
 #***************************************************************************#
 #                                        VCP (MAIN)                                                     #
 #***************************************************************************#
@@ -395,11 +365,11 @@ if __name__ == "__main__":
    parser.add_option("-r", "--recursive",action="store_true", dest="recursive", default=False,help="Copy directories recursively")
    
    (options, args) = parser.parse_args()
-   if options.verbose: stderr.write(" ".join(argv) + "\n")
+   if options.verbose:    stderr.write(" ".join(argv) + "\n")
    
    if len(args) != 2:
-       parser.error("Incorrect number of arguments")
-       exit(1)
+      parser.error("Incorrect number of arguments")
+      exit(1)
    
    output=copy_file(args[0],args[1],verbose=options.verbose,recursive=options.recursive,streams=options.streams)   
    print output
