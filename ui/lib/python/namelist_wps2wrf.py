@@ -1,4 +1,5 @@
-#! /usr/bin/python
+#!/usr/bin/env python
+
 import os, sys
 import fortran_namelist as fn
 
