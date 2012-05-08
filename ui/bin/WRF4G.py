@@ -57,7 +57,7 @@ def JobStatus():
     return sta
 
 def load_default_values():
-    global NP,ENVIRONMENT,REQUIREMENTS,DB_HOST,DB_PORT,DB_USER,DB_PASSWD
+    global NP,ENVIRONMENT,REQUIREMENTS,WRF4G_DB_HOST,WRF4G_DB_PORT,WRF4G_DB_USER,WRF4G_DB_PASSWD
     NP=1
     REQUIREMENTS=''
     ENVIRONMENT=''
@@ -95,7 +95,7 @@ if DB4G_CONF == None:
 exec open(DB4G_CONF).read() 
 
 load_default_values()
-dbc=vdb.vdb(host=DB_HOST, user=DB_USER, db=DB_WRF4G, port=DB_PORT, passwd=DB_PASSWD)
+dbc=vdb.vdb(host=WRF4G_DB_HOST, user=WRF4G_DB_USER, db=WRF4G_DB_DATABASE, port=WRF4G_DB_PORT, passwd=WRF4G_DB_PASSWD)
 
 
 class Environment:

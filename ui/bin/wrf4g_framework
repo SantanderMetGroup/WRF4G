@@ -41,12 +41,12 @@ case "$1" in
 	echo "  OK"
 
  
-        #while [ $(netstat -atn |grep -m1 -c ":$DB_PORT ") -eq 1 ];do
-        #     let DB_PORT++
+        #while [ $(netstat -atn |grep -m1 -c ":$WRF4G_DB_PORT ") -eq 1 ];do
+        #     let WRF4G_DB_PORT++
         #done
         grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
         source db4g.conf.temp
-        if [ $DB_LOCAL -eq 1 ]; then
+        if [ $WRF4G_DB_LOCAL -eq 1 ]; then
 	   cd $MYSQL_LOCATION
 	   echo -n "Starting Mysql ......."
 
@@ -57,16 +57,16 @@ case "$1" in
                 exit 3
               fi
            fi
-           if [ $(netstat -atn |grep LISTEN | grep -m1 -c ":$DB_PORT ") -eq 1 ]; then
-               echo -e "FAILED.\nAnother process is listening on port $DB_PORT.\nChange DB_PORT in \$WRF4G_LOCATION/etc/framework4g.conf to start mysql on a different port."
+           if [ $(netstat -atn |grep LISTEN | grep -m1 -c ":$WRF4G_DB_PORT ") -eq 1 ]; then
+               echo -e "FAILED.\nAnother process is listening on port $WRF4G_DB_PORT.\nChange WRF4G_DB_PORT in \$WRF4G_LOCATION/etc/framework4g.conf to start mysql on a different port."
                exit 4         
            fi
-	   #sed -i "s/DB_PORT.*$/DB_PORT=$DB_PORT/"  $WRF4G_LOCATION/etc/framework4g.conf
-	   nohup ./bin/mysqld_safe --no-defaults --port=$DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock &>/dev/null &
+	   #sed -i "s/WRF4G_DB_PORT.*$/WRF4G_DB_PORT=$WRF4G_DB_PORT/"  $WRF4G_LOCATION/etc/framework4g.conf
+	   nohup ./bin/mysqld_safe --no-defaults --port=$WRF4G_DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock &>/dev/null &
            cd - &>/dev/null
        	   echo "OK"
          fi
-         sed 's/DB_LOCAL.*/# DataBase Configuration/' db4g.conf.temp >${WRF4G_LOCATION}/etc/db4g.conf
+         sed 's/WRF4G_DB_LOCAL.*/# DataBase Configuration/' db4g.conf.temp >${WRF4G_LOCATION}/etc/db4g.conf
          rm db4g.conf.temp   
        ;;
     stop)
@@ -83,7 +83,7 @@ case "$1" in
         
         grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
         source db4g.conf.temp; rm db4g.conf.temp
-        if [ $DB_LOCAL -eq 1 ]; then
+        if [ $WRF4G_DB_LOCAL -eq 1 ]; then
 	  echo -n "Stopping Mysql ...."
           if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
             echo -e "FAILED. \nMysql already stopped. Run \"$(basename $0) start\" to run it" 
