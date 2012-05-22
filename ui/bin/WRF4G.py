@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from sys import stdout,stderr,exit,path
-path.reverse()
 import sys
 import inspect
 import os
@@ -9,7 +8,7 @@ import vcp
 try: 
    import vdb
 except:
-   path.append(os.path.join(os.path.dirname(__file__), '..','lib','python'))
+   path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
    import vdb
 from datetime import datetime
 from optparse import OptionParser
@@ -600,8 +599,8 @@ class Realization(Component):
             if chunk_status[2] == 4:
                 stderr.write('Realization %s already finished.\n'%rea_name)
                 return 1
-            if not force and chunk_status[2] == 2:
-                stderr.write('Realization %s is still running. Use --force if you really want to submit the realization.\n'%rea_name)
+            if not force and ( chunk_status[2] == 2 or chunk_status[2] == 1) :
+                stderr.write('Realization %s is still submitting. Use --force if you really want to submit the realization.\n'%rea_name)
                 return 1
         """
         if restart == None:
