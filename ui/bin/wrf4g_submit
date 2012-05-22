@@ -16,8 +16,7 @@ if not os.path.isfile(DB4G_CONF):
    print 'DB4G_CONF do not exist'
    sys.exit(2)
 
-sys.path.append('%s/lib/python'%WRF4G_LOCATION)
-sys.path.reverse()
+sys.path.insert(0,'%s/lib/python'%WRF4G_LOCATION)
 from optparse import OptionParser
 import WRF4G
    

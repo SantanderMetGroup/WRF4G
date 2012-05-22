@@ -107,23 +107,17 @@ case "$1" in
     reload)
         # Only reloads gridway
    	echo -n "Reloading GridWay ...."
-        rm -f $GW_LOCATION/var/.lock
-        gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
-        gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
-        if test -n "$gwd_pid"; then  kill -9 $gwd_pid ;fi
         grep '://' $FRAMEWORK4G_CONF > $GW_LOCATION/etc/hosts_drm4g.list
         sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >temp; cp temp ${WRF4G_LOCATION}/etc/resources.wrf4g; rm temp
         sed -i "s#\$HOSTNAME#$HOSTNAME#" $FRAMEWORK4G_CONF
-
-        if test -f $GW_LOCATION/var/.lock; then
-          echo -e "FAILED. \nGridWay already running. Run \"$(basename $0) stop\" to stop it"
+        gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
+        gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
+        if test -n "$gwd_pid"; then  
+          CHILDS="`ps ho pid --ppid $gwd_pid`"
+          kill -9 $CHILDS
+        else
+          echo -e "FAILED. \nProblems reloading GridWay $st"
           exit 2
-        fi
-        gwd
-        st=$?
-        if test $st -ne 0; then
-           echo -e "FAILED. \nProblems starting GridWay $st"
-           exit 2
         fi
         echo "  OK"
         ;;

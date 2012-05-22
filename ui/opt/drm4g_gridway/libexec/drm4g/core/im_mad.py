@@ -98,6 +98,19 @@ class GwImMad (object):
         """
         OPERATION, HID, HOST, ARGS = args.split()
         try:
+            if not self._host_list_conf.has_key(HOST):
+                hostList = readHostList()
+                for hostname, url in hostList.items():
+                    hostConf = parserHost(hostname, url)
+                    self._host_list_conf[hostname] = hostConf
+                    if not self._resource_list.has_key(hostname):
+                        com = getattr(import_module(COMMUNICATOR[hostConf.SCHEME]), 'Communicator')()
+                        com.hostName = hostConf.HOST
+                        com.userName = hostConf.USERNAME
+                        com.connect()
+                        resource = getattr(import_module(RESOURCE_MANAGER[hostConf.LRMS_TYPE]), 'Resource')()
+                        resource.Communicator = com
+                        self._resource_list[hostname] = resource
             hostConf = self._host_list_conf[HOST]
             resource = self._resource_list[HOST]
             if hostConf.NODECOUNT:

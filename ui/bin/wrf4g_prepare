@@ -73,9 +73,7 @@ userdir=`pwd`
 #  Prepare environment
 #
 export PATH=${WRF4G_LOCATION}/bin:${PATH}
-export PYTHONPATH=${PYTHONPATH}:${WRF4G_LOCATION}/lib/python
-
-
+export PYTHONPATH=${WRF4G_LOCATION}/lib/python:${PYTHONPATH}
 
 function get_ni_vars(){
   set | grep '^NI_' | sed -e 's/^NI_\(.*\)=.*$/\1/'

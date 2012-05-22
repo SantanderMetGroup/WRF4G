@@ -8,7 +8,7 @@ try:
         pathMySQL = 'MySQL_2.4'
     else:
         pathMySQL = 'MySQL_2.x'
-    path.append(os.path.join(os.path.dirname(__file__), pathMySQL))
+    path.insert(0, os.path.join(os.path.dirname(__file__), pathMySQL))
     import MySQLdb
 except Exception, e:
     print 'Caught exception: %s: %s' % (e.__class__, str(e))
