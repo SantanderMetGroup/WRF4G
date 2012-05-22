@@ -2,7 +2,6 @@ import drm4g.managers
 from string import Template
 from drm4g.managers import sec_to_H_M_S
 import re
-import xml.dom.minidom
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
@@ -21,17 +20,15 @@ class Resource (drm4g.managers.Resource):
         return ('PBS', 'PBS') 
  
     def dynamicNodes(self):
-        out, err = self.Communicator.execCommand('%s -x' % (PBSNODES))
+        out, err = self.Communicator.execCommand("%s | egrep 'np' | awk -F = '{print $2}'" % (PBSNODES))
         if err: 
             raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
-        out_parser = xml.dom.minidom.parseString(out)
-        total_cpu  = sum([int(elem.getElementsByTagName('np')[0].firstChild.data) \
-            for elem in out_parser.getElementsByTagName('Node')])
-        auxCpu = ','.join([elem.getElementsByTagName('jobs')[0].firstChild.data \
-            for elem in out_parser.getElementsByTagName('Node') \
-                if elem.getElementsByTagName('jobs')]).count(',')
-        if auxCpu != 0 : free_cpu = total_cpu - (auxCpu + 1)
-        else : free_cpu = total_cpu - auxCpu
+        total_cpu  = sum([int(elem) for elem in out.split()])
+        out, err = self.Communicator.execCommand("%s | egrep ' jobs' | awk -F = '{print $2}'" % (PBSNODES))
+        if err:
+            raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
+        busy_cpu = out.count('/')
+        free_cpu = total_cpu - busy_cpu  
         return (str(total_cpu), str(free_cpu))
 
     def queuesProperties(self, searchQueue, project):
@@ -50,11 +47,17 @@ class Resource (drm4g.managers.Resource):
                 queue.DispatchType = 'batch'
                 time = re.compile(r'(\d+):\d+:\d+')
                 if cpuTime != '--':
-                    queue.MaxCpuTime = str(int(time.search(cpuTime).group(1)) * 60)
+                    try:
+                        queue.MaxCpuTime = str(int(time.search(cpuTime).group(1)) * 60)
+                    except: pass
                 if wallTime != '--':
-                    queue.MaxTime    = str(int(time.search(cpuTime).group(1)) * 60)
-                if lm != '--': 
-                    queue.MaxRunningJobs = lm
+                    try:
+                        queue.MaxTime    = str(int(time.search(cpuTime).group(1)) * 60)
+                    except: pass
+                if lm != '--':
+                    try: 
+                        queue.MaxRunningJobs = lm
+                    except: pass
                 queues.append(queue)
         return queues
 
@@ -70,7 +73,7 @@ class Job (drm4g.managers.Job):
                   'S': 'SUSPENDED', #Job is suspend.
                   'C': 'DONE',	    #Job finalize.
                 }
-
+    
     def jobSubmit(self, path_script):
         out, err = self.Communicator.execCommand('%s %s' % (QSUB, path_script))
         if err: 
@@ -78,14 +81,13 @@ class Job (drm4g.managers.Job):
         return out.strip() #job_id
 
     def jobStatus(self):
-        out, err = self.Communicator.execCommand('%s %s -x' % (QSTAT, self.JobId))
-        if 'qstat: Unknown Job Id' in err :
+        out, err = self.Communicator.execCommand('%s %s' % (QSTAT, self.JobId))
+        if 'Unknown Job Id' in err :
             return 'DONE'
         elif err:
             return 'UNKNOWN'
         else:
-            out_parser = xml.dom.minidom.parseString(out)
-            state = out_parser.getElementsByTagName('job_state')[0].firstChild.data
+            state = out.split()[-2]
             return self.states_pbs.setdefault(state, 'UNKNOWN')
     
     def jobCancel(self):
@@ -96,6 +98,8 @@ class Job (drm4g.managers.Job):
     def jobTemplate(self, parameters):
         args  = '#!/bin/bash\n'
         args += '#PBS -N JID_%s\n' % (parameters['environment']['GW_JOB_ID'])
+        if parameters.has_key('PROJECT'):
+            args += '#PBS -P $PROJECT\n'
         args += '#PBS -q $queue\n'
         args += '#PBS -o $stdout\n'
         args += '#PBS -e $stderr\n'
