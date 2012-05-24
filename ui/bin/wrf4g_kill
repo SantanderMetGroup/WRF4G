@@ -24,11 +24,11 @@ import WRF4G
    
 usage="""
 
-%prog [--dry-run] [--{exp Experiment |rea Realization|frea File}] [--verbose] [--force] [--help]
+%prog [--dry-run] [--{exp Experiment |rea Realization|frea File}] [--verbose] [--help]
 
 Synopsys:
 
-Kill an experiment or realization. Only the ckunks, that have not done, will go back to "Prepared" status.
+Kill an experiment or realization. Only the ckunks, which have not done, will go back to "Prepared" status.
 """  
 parser = OptionParser(usage,version="%prog 1.0")
 parser.add_option("-n", "--dry-run",action="store_true", default=False, dest="dryrun",help="Perform a trial run with no changes made")
