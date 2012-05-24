@@ -356,12 +356,7 @@ fi
 #else
 #  id=$(WRF4G.py $WRF4G_FLAGS Experiment delete id=${id_exp}) 
 #fi
-printf "Warning: Your are using resources.wrf4g located in the directory "
-if test -f resources.wrf4g; then
-  echo "${PWD}"
-else
-  echo "${WRF4G_LOCATION}/etc/resources.wrf4g"  
-fi
+
 if test -f resources.wrf4g.orig; then
   mv resources.wrf4g.orig resources.wrf4g
 else 
