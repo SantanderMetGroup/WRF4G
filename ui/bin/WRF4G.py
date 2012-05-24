@@ -61,7 +61,7 @@ def load_default_values():
     REQUIREMENTS=''
     ENVIRONMENT=''
 
-def format_output(dout,ext=False):
+def format_output(dout,number_of_characters, ext=False):
     dreastatus={0:'P',1:'W',2:'R',3: 'F',4:'D'}
     djobstatus=JobStatus()
     if dout['exitcode']==None:
@@ -72,9 +72,10 @@ def format_output(dout,ext=False):
     runt=(int(dout['cdate'].strftime("%s"))-int(dout['sdate'].strftime("%s")))*100.    
     totalt=int(dout['edate'].strftime("%s"))-int(dout['sdate'].strftime("%s"))
     per=runt/totalt
-    if dout['status'] < 10 and dout['status']>0 and dout['rea_status'] != 4:  dout['rea_status']=1  
-    
-    return  '%-18s %-5s %-2s %-6s %-10s %-10s %-13s %2s %2.2f\n'%(dout['name'][0:17],dout['gw_job'],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],exitcode,per)
+    if dout['status'] < 10 and dout['status'] > 0 and dout['rea_status'] != 4: 
+        dout['rea_status']=1  
+    string_to_print = '%-'+ str(number_of_characters) + 's %-5s %-2s %-6s %-10s %-10s %-13s %2s %2.2f'
+    return  string_to_print  % (dout['name'][0:number_of_characters],dout['gw_job'],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],exitcode,per)
     #if ext==True:
         #print "%10s %10s %10s"%(dout['sdate'],dout['restart'],dout['edate'])    
         
@@ -335,24 +336,23 @@ class Experiment(Component):
         cdate=self.get_one_field(['basepath'], ['id'])
         return cdate           
     
-    def ps(self):
+    def ps(self, number_of_characters):
         output=''
         if self.data['id'] < 0:sys.exit(19)
         rea_ids=self.get_realizations_id()
         dout=[]
         for id_rea in rea_ids:
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
-            dout=rea.ps()
-            output=output + format_output(dout)
-        return output
+            rea.ps(number_of_characters)
     
-    def summarized_status(self):
+    def summarized_status(self, number_of_characters=20):
         prepared=len(self.get_prepared_reas_id())
         wait=len(self.get_wait_reas_id())
         run=len(self.get_run_reas_id())
         done=len(self.get_done_reas_id())
         fail=len(self.get_fail_reas_id())
-        return '%-10s %-3d %-3d %-3d %-3d %-3d'%(self.get_name(),prepared,wait,run,done,fail)
+        string_to_print = '%-'+ str(number_of_characters) + 's %-3d %-3d %-3d %-3d %-3d'
+        print string_to_print % (self.get_name(),prepared,wait,run,done,fail)
                           
     def get_realizations_id(self):
         """    
@@ -680,13 +680,11 @@ class Realization(Component):
                 output=vcp.copy_file('%s/%s/%s'%(WRF4G_BASEPATH,exp_name,'resources.wrf4g'),'.',verbose=self.verbose)           
             self.prepared=1   
         
-    def ps(self):
-        only_rea=0
+    def ps(self, number_of_characters):
         if 'id' in self.data.keys():
-           self.data['name']=self.get_name()
+            self.data['name']=self.get_name()
         else:
             self.data['id']=self.get_id(['name'])
-            only_rea=1
             if self.data['id']== -1:
                 sys.stderr.write('Realization with name %s does not exists \n'%self.data['name'])
                 sys.exit(1)            
@@ -713,11 +711,7 @@ class Realization(Component):
         dout.update(djob)
         dout['rea_status']=status        
         #dout={'gw_job': 4L, 'status': 40L, 'sdate': datetime.datetime(1983, 8, 25, 12, 0), 'resource': 'mycomputer', 'name': 'testc1', 'wn': 'sipc18', 'nchunks': '3/3', 'cdate': datetime.datetime(1983, 8, 25, 12, 0), 'exitcode': 0L, 'edate': datetime.datetime(1983, 8, 27, 0, 0), 'restart': datetime.datetime(1983, 8, 27, 0, 0), 'rea_status': 4}]
-        if only_rea == 1 :
-            pout=format_output(dout)
-            return pout
-        else:
-            return dout
+        print format_output(dout, number_of_characters)
                            
     def prepare_storage(self):          
         RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
