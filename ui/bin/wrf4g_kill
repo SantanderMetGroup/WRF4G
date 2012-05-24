@@ -24,7 +24,7 @@ import WRF4G
    
 usage="""
 
-%prog [--dry-run] [--nchunk N] [--nrea N] [--verbose] [--force] [--help]
+%prog [--dry-run] [--{exp Experiment |rea Realization|frea File}] [--verbose] [--force] [--help]
 
 Synopsys:
 

@@ -22,7 +22,7 @@ import WRF4G
    
 usage="""
 
-%prog [--dry-run] [--nchunk N] [--nrea N] [--priority P] [--verbose] [--force] [--tdep afterok | afternotok | afterany] [--help]
+%prog [--dry-run] [--{exp Experiment|rea Realization|frea File|chunk ChunK|nchunk Number_of_chunks|nrea Number_of_realizations}] [--rerun] [--run-just-one][--priority P] [--verbose] [--force] [--tdep afterok | afternotok | afterany] [--help]
 
 Synopsys:
 

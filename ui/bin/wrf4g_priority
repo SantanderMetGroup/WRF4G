@@ -18,13 +18,12 @@ if not os.path.isfile(DB4G_CONF):
    sys.exit(2)
 
 sys.path.insert(0,'%s/lib/python'%WRF4G_LOCATION)
-sys.path.reverse()
 from optparse import OptionParser
 import WRF4G
 
 usage="""
 
-%prog [--dry-run] [--nchunk N] [--nrea N] [--priority P] [--verbose] [--help]
+%prog [--dry-run] [--{exp Experiment |rea Realization |frea File}] [--priority P] [--verbose] [--help]
 
 Synopsys:
 
