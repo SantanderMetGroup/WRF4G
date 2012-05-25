@@ -238,7 +238,7 @@ if test -f resources.wrf4g; then
   mv resources.wrf4g resources.wrf4g.orig
   sed -e 's/\ *=\ */=/' resources.wrf4g.orig > resources.wrf4g
 else
-  echo "${WRF4G_LOCATION}/etc/resources.wrf4g"
+  echo "${WRF4G_LOCATION}/etc/"
   sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >resources.wrf4g|| exit ${ERROR_MISSING_WRF4GSRC}
 fi
 
