@@ -232,13 +232,13 @@ function cycle_time(){
 #
 export DB4G_CONF=${WRF4G_LOCATION}/etc/db4g.conf ; source $DB4G_CONF
 
-printf "Warning: You are using resources.wrf4g located in the directory "
+printf "Warning: You are using resources.wrf4g located in the "
 if test -f resources.wrf4g; then
-  echo "${PWD}."
+  echo "${PWD} directory."
   mv resources.wrf4g resources.wrf4g.orig
   sed -e 's/\ *=\ */=/' resources.wrf4g.orig > resources.wrf4g
 else
-  echo "${WRF4G_LOCATION}/etc/"
+  echo "${WRF4G_LOCATION}/etc/ directory."
   sed -e 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g | sed -e "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" >resources.wrf4g|| exit ${ERROR_MISSING_WRF4GSRC}
 fi
 
