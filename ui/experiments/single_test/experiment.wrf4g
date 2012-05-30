@@ -33,6 +33,7 @@ postprocessor = "SFC"
 #
 # Single valued:
 #
+NI_restart_interval = 720
 NI_spec_bdy_width = 10
 NI_spec_zone = 1
 NI_relax_zone = 9
