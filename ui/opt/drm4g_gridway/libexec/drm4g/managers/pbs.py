@@ -37,28 +37,34 @@ class Resource (drm4g.managers.Resource):
         if err:
             raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
         queues = []
-        for val in out.split('\n')[5:-3]:
-            queueName, _, cpuTime, wallTime, _, _, _, lm = val.split()[0:8]
-            if queueName == searchQueue or not searchQueue:
-                queue              = drm4g.managers.Queue()
-                queue.Name         = queueName
-                queue.Nodes        = self.TotalCpu
-                queue.FreeNodes    = self.FreeCpu
-                queue.DispatchType = 'batch'
-                time = re.compile(r'(\d+):\d+:\d+')
-                if cpuTime != '--':
-                    try:
-                        queue.MaxCpuTime = str(int(time.search(cpuTime).group(1)) * 60)
-                    except: pass
-                if wallTime != '--':
-                    try:
-                        queue.MaxTime    = str(int(time.search(cpuTime).group(1)) * 60)
-                    except: pass
-                if lm != '--':
-                    try: 
-                        queue.MaxRunningJobs = lm
-                    except: pass
-                queues.append(queue)
+        for val in out.split('\n')[5:]:
+            try:
+                queueName, _, cpuTime, wallTime, _, _, _, lm = val.split()[0:8]
+            except:
+                pass
+            else:    
+                if (queueName == searchQueue) or not searchQueue:
+                    queue              = drm4g.managers.Queue()
+                    queue.Name         = queueName
+                    queue.Nodes        = self.TotalCpu
+                    queue.FreeNodes    = self.FreeCpu
+                    queue.DispatchType = 'batch'
+                    time = re.compile(r'(\d+):(\d+):\d+')
+                    if cpuTime != '--':
+                        try:
+                            hours, minutes   = time.search(cpuTime).groups()
+                            queue.MaxCpuTime = str(int(hours) * 60 + int(minutes))
+                        except: pass
+                    if wallTime != '--':
+                        try:
+                            hours, minutes   = time.search(wallTime).groups()
+                            queue.MaxTime    = str(int(hours) * 60 + int(minutes))
+                        except: pass
+                    if lm != '--':
+                        try: 
+                            queue.MaxRunningJobs = lm
+                        except: pass
+                    queues.append(queue)
         return queues
 
 class Job (drm4g.managers.Job):
