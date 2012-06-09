@@ -1,1 +1,0 @@
-../../../ui/lib/python/_mysql_exceptions.py

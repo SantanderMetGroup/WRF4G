@@ -4,12 +4,9 @@ from sys import stderr, exit, path, version_info
 import os
 
 try:
-    if version_info < (2,5):
-        pathMySQL = 'MySQL_2.4'
-    else:
-        pathMySQL = 'MySQL_2.x'
-    path.insert(0, os.path.join(os.path.dirname(__file__), pathMySQL))
-    import MySQLdb
+    path.insert(0, os.path.join(os.path.dirname(__file__), "pymysql"))
+    import pymysql as MySQLdb
+    MySQLdb.install_as_MySQLdb() 
 except Exception, e:
     print 'Caught exception: %s: %s' % (e.__class__, str(e))
     print 'Please check that LD_LIBRARY_PATH includes the directory $WRF4G_LOCATION/lib/shared_libs'
@@ -45,10 +42,8 @@ class vdb:
        
 
    def __init__(self, host="ui01.macc.unican.es", user="gridway", db="cam", port=13306, passwd="ui01"):
-   # connect
      try:
        self.con = MySQLdb.connect(host=host, user=user, db=db, port=port, passwd=passwd)
-      # db = MySQLdb.connect('host'=host, 'user'=user,'db'=db,'port'=port,'passwd'=passwd)
      except MySQLdb.Error, e:
        print "Error %d: %s" % (e.args[0], e.args[1])
        exit(9)
