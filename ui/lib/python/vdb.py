@@ -4,7 +4,7 @@ from sys import stderr, exit, path, version_info
 import os
 
 try:
-    path.insert(0, os.path.join(os.path.dirname(__file__), "pymysql"))
+    path.insert(0, os.path.dirname(__file__))
     import pymysql as MySQLdb
     MySQLdb.install_as_MySQLdb() 
 except Exception, e:
