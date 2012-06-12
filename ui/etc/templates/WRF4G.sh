@@ -228,8 +228,6 @@ function run_wrf (){
 	prepare_local_environment
     fi
 	
-    fortnml -o -f namelist.input -s debug_level 0
-     
     ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrapper.exe wrf.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
     # This time is also useful to copy the wpsout data
