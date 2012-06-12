@@ -59,19 +59,15 @@ function clean_while_running(){
           time_debug "Skipping initial restart file ${file}"
           continue
         else
-          if ! ls -l /proc/$wrf_pid/fd | grep ${file}; then # Make sure it is not open...
-            time_debug "Uploading ${file} (start)"
-            if test $(filetype $file) == "out" -a ${wrfout_name_end_date} -eq 1; then
-              edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
-            fi
-            post_and_register --no-bg $(filetype $file) $(filedate $file) $file $edate
-            if test $patt == "wrfrst" -a $dom == "d01"; then
-              output=$(WRF4G.py Realization set_restart id=${WRF4G_REALIZATION_ID} $(filedate $file)) # In the future kill the job if it can't contact the DB
-            fi
-            time_debug "Uploading ${file} (end)"
-          else
-            time_debug "${file} still open, skipping"
+          time_debug "Uploading ${file} (start)"
+          if test $(filetype $file) == "out" -a ${wrfout_name_end_date} -eq 1; then
+            edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
           fi
+          post_and_register --no-bg $(filetype $file) $(filedate $file) $file $edate
+          if test $patt == "wrfrst" -a $dom == "d01"; then
+            output=$(WRF4G.py Realization set_restart id=${WRF4G_REALIZATION_ID} $(filedate $file)) # In the future kill the job if it can't contact the DB
+          fi
+          time_debug "Uploading ${file} (end)"
         fi
       done
     done
