@@ -83,6 +83,9 @@ class HostConfiguration(object):
     def get_project(self):
         return self._params.setdefault('PROJECT')
 
+    def get_mpi_tag(self):
+        return self._params.setdefault('MPI_TAG','mpi')
+
     HOST        = property(get_hostname)
     USERNAME    = property(get_username)
     SCHEME      = property(get_scheme)
@@ -92,4 +95,4 @@ class HostConfiguration(object):
     GW_RUNDIR   = property(get_run_dir, set_run_dir)
     GW_LOCALDIR = property(get_local_dir)
     PROJECT     = property(get_project)
-   
+    MPI_TAG     = property(get_mpi_tag)

@@ -122,6 +122,7 @@ class GwEmMad (object):
                 rsl_var['environment']['GW_LOCALDIR'] = hostConf.GW_LOCALDIR
             if hostConf.PROJECT:
                 rsl_var['PROJECT'] = hostConf.PROJECT
+            rsl_var['mpi'] = hostConf.MPI_TAG
             rsl_wrapper_directory = rsl_var.setdefault('directory',rsl_var['executable'].split('/')[0])
             for k in "stdout", "stderr", "directory", "executable":
                 rsl_var[k] = "%s/%s" % (hostConf.GW_RUNDIR, rsl_var[k])

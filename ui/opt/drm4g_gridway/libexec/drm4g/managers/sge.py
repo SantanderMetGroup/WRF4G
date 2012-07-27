@@ -59,12 +59,18 @@ class Resource (drm4g.managers.Resource):
                     out, err = self.Communicator.execCommand('%s -sq %s' % (QCONF, queueName))
                     if err:
                         raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
-                    re_Walltime = re.compile(r'h_rt\s*(\d+):\d+:\d+')
+                    re_Walltime = re.compile(r'h_rt\s*(\d+):(\d+):\d+')
                     if re_Walltime.search(out):
-                        queue.MaxTime = str(int(re_Walltime.search(out).group(1)) * 60)
-                    re_Cputime = re.compile(r'h_cpu\s*(\d+):\d+:\d+')
+                        try:
+                            hours, minutes   = re_Walltime.search(out).groups()
+                            queue.MaxTime    = str(int(hours) * 60 + int(minutes))
+                        except: pass
+                    re_Cputime = re.compile(r'h_cpu\s*(\d+):(\d+):\d+')
                     if re_Cputime.search(out):
-                        queue.MaxCpuTime = str(int(re_Cputime.search(out).group(1)) * 60)
+                        try: 
+                            hours, minutes   = re_Cputime.search(out).groups()
+                            queue.MaxCpuTime = str(int(hours) * 60 + int(minutes))
+                        except: pass
                     queues.append(queue)
             return queues
 
@@ -123,7 +129,7 @@ class Job (drm4g.managers.Job):
         if parameters.has_key('maxMemory'): 
             args += '#$ -l mem_free=%sM\n' % (parameters['maxMemory'])
         if (parameters['jobType'] == "mpi") or (int(parameters['count']) > 1):
-            args += '#$ -pe mpi $count\n'
+            args += '#$ -pe $mpi $count\n'
         args += '#$ -v %s\n' % (','.join(['%s=%s' %(k, v) for k, v in parameters['environment'].items()]))
         args += 'cd $directory\n'
         if parameters['jobType'] == "mpi":
