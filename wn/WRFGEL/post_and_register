@@ -17,7 +17,7 @@ logfile="../../log/wrfgel.out"
 
 function kill_wrf(){
   kill -9 $(cat wrf.pid)
-  exit ${EXIT_REGISTER_FAILED}
+  exit ${ERROR_REGISTER_FAILED}
 }
 
 function do_all(){
