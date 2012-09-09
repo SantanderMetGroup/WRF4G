@@ -41,7 +41,7 @@ function filetype(){
 }
 
 function current_date(){
- tail -100 rsl.out.0000 | grep "Timing for main: time" | sort -r | head -1 | awk '{print $5}'
+	tail -100000 rsl.out.0000 | grep "Timing for main: time" | sort -r | head -1 | awk '{print $5}'
 }
 
 function filedate(){
