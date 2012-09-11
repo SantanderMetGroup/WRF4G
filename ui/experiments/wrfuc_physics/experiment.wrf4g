@@ -1,4 +1,4 @@
-# WRF input for WRF (V3.0) simulations by Meteorology & Data Maining group of
+# WRF input for WRF (V3.0) simulations by Meteorology & Data Mining group of
 # Dept. de Matematica Aplicada de la Universidad de Cantabria. Lluis i Jesus
 # (March. 2009)
 #
@@ -28,6 +28,11 @@ multiple_parameters = 1
 clean_after_run = 1
 wrfout_name_end_date = 0
 postprocessor = "SFC"
+
+# Parallel configuration  
+real_parallel = 0
+wrf_parallel  = 1
+
 #
 #   Override namelist.input variables here
 #
