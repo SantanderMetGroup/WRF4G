@@ -438,7 +438,9 @@ class Experiment(Component):
             
         output=vcp.copy_file(DB4G_CONF,exp_dir,verbose=self.verbose)
         output=vcp.copy_file(RESOURCES_WRF4G,exp_dir,verbose=self.verbose) 
-        output=vcp.copy_file('experiment.wrf4g',exp_dir,verbose=self.verbose) 
+        output=vcp.copy_file('experiment.wrf4g',exp_dir,verbose=self.verbose)
+        if os.path.exists('prolog.conf'):
+            output=vcp.copy_file('prolog.conf',exp_dir,verbose=self.verbose)  
          
 class Realization(Component):
     """ 

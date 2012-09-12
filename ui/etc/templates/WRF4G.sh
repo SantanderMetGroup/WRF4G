@@ -40,13 +40,15 @@ function WRF4G_structure (){
 }
 
 function WRF4G_prepare (){
-    #
-    #  Move all executables out of LOCALDIR
-    #
-    mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
-    mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
-    mv ${LOCALDIR}/WRFV3/run/real.exe      ${ROOTDIR}/bin/
-    mv ${LOCALDIR}/WRFV3/run/wrf.exe       ${ROOTDIR}/bin/
+    if [ ${WRF_VERSION} != "local_wrf" ]; then
+        #
+        #  Move all executables out of LOCALDIR
+        #
+        mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
+        mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
+        mv ${LOCALDIR}/WRFV3/run/real.exe      ${ROOTDIR}/bin/
+        mv ${LOCALDIR}/WRFV3/run/wrf.exe       ${ROOTDIR}/bin/
+    fi
     umask 002
 }
 
@@ -56,6 +58,20 @@ function prepare_runtime_environment(){
     local_openmpi=0
     LAUNCHER_REAL="";LAUNCHER_WRF=""
     MPI_LAUNCHER="mpirun -np $GW_NP $MPI_ENV"
+
+    if [ ${WRF_VERSION} != "local_wrf" ]; then
+        export OPAL_PREFIX=${ROOTDIR}/openmpi
+        export PATH=$OPAL_PREFIX/bin:$PATH
+        export LD_LIBRARY_PATH=$OPAL_PREFIX/lib:$LD_LIBRARY_PATH
+    fi
+    
+    vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/prolog.conf . &>/dev/null
+    if [ $? -ne 0 ]; then 
+    	echo "* `date`: Using default configuration ... "
+    else
+    	echo "* `date`: Using ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/prolog.conf configuration ... "
+    	source prolog.conf
+    fi
 
     if [ $real_parallel -eq 1 ]; then
         prepare_openmpi=1
@@ -71,16 +87,21 @@ function prepare_runtime_environment(){
     # binary and input files. Otherwise copy them.
     if [ $prepare_openmpi -eq 1 ]; then
 	if test -n "${WRF4G_RUN_LOCAL}"; then    
-	    local_openmpi=1	   
+            local_openmpi=1	   
 	fi
     fi
-    export OPAL_PREFIX=${ROOTDIR}/openmpi
-    export PATH=$OPAL_PREFIX/bin:$PATH
-    export LD_LIBRARY_PATH=$OPAL_PREFIX/lib:$LD_LIBRARY_PATH
+    
+    if [ ${WRF_VERSION} != "local_wrf" ]; then
+    	export OPAL_PREFIX=${ROOTDIR}/openmpi
+    	export PATH=$OPAL_PREFIX/bin:$PATH
+    	export LD_LIBRARY_PATH=$OPAL_PREFIX/lib:$LD_LIBRARY_PATH
+    fi
 }
 
 function prepare_local_environment (){
-    mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
+    if [ ${WRF_VERSION} != "local_wrf" ]; then
+        mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
+    fi	
     cp -R ${LOCALDIR}/WRFV3/run ${ROOTDIR}/runshared
     $MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/WRFGEL/load_wrfbin.sh	
     prepare_openmpi=0
@@ -89,15 +110,13 @@ function prepare_local_environment (){
 function transfer_output_log (){
     ls -l >& ${logdir}/ls.wrf
     test -f namelist.output && cp namelist.output ${logdir}/
-    test -f ../configure.wrf_wrf && cp ../configure.wrf_wrf ${logdir}/
-    test -f ../configure.wrf_real && cp ../configure.wrf_real ${logdir}/
-    test -f ../../WPS/configure.wps && cp ../../WPS/configure.wps ${logdir}/
-    if test -e rsl.out.0000; then
-        mkdir -p rsl_wrf
-        mv rsl.* rsl_wrf/
-        mv rsl_wrf ${logdir}/
+    if [ ${WRF_VERSION} != "local_wrf" ]; then
+    	test -f ../configure.wrf_wrf && cp ../configure.wrf_wrf ${logdir}/
+    	test -f ../configure.wrf_real && cp ../configure.wrf_real ${logdir}/
+    	test -f ../../WPS/configure.wps && cp ../../WPS/configure.wps ${logdir}/
     fi
     test -f namelist.input && cp namelist.input ${logdir}/
+    
     echo "**********************************************************************************"
     echo "WRF4G was deployed in ... "
     echo "    $ROOTDIR"
@@ -163,7 +182,7 @@ function run_metgrid (){
     fortnml_setn namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
     fortnml_setn namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
     
-    ${ROOTDIR}/bin/metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
+    metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
         || wrf4g_exit ${ERROR_METGRID_FAILED}
     cat ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out \
         |  grep -q -i 'Successful completion of metgrid' \
@@ -193,10 +212,17 @@ function run_real (){
     ${LAUNCHER_REAL} ${ROOTDIR}/bin/wrapper.exe real.exe \
         >& ${logdir}/real_${ryy}${rmm}${rdd}${rhh}.out \
         || wrf4g_exit ${ERROR_REAL_FAILED}
-    cat ${logdir}/real_${iyy}${imm}${idd}${ihh}.out \
-        |  grep -q -i 'SUCCESS COMPLETE REAL_EM' \
-        || wrf4g_exit ${ERROR_REAL_FAILED}
     
+    if [ ${real_parallel} -ne 1 ]; then
+        if test $(grep -c "SUCCESS COMPLETE REAL_EM" ${logdir}/real_${ryy}${rmm}${rdd}${rhh}.out) -ne 1 ;then
+            wrf4g_exit ${ERROR_REAL_FAILED}
+        fi			
+    else
+        if test $(grep -c "SUCCESS COMPLETE REAL_EM" rsl.out.0000) -ne 1 ;then
+            wrf4g_exit ${ERROR_REAL_FAILED} 	
+        fi
+    fi
+
     if test -e rsl.out.0000; then
         mkdir -p rsl_real
         mv rsl.* rsl_real/
@@ -228,6 +254,8 @@ function run_wrf (){
 	prepare_local_environment
     fi
 	
+    fortnml -o -f namelist.input -s debug_level 0
+     
     ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrapper.exe wrf.exe >& ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out &
     # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
     # This time is also useful to copy the wpsout data
@@ -236,11 +264,26 @@ function run_wrf (){
     echo $! > monitor.pid   
     wait $(cat monitor.pid)
 	
-    if test $(grep -c "SUCCESS COMPLETE WRF" rsl.out.0000) -eq 1 ;then
-        excode=0
+    if [ ${wrf_parallel} -ne 1 ]; then
+        if test $(grep -c "SUCCESS COMPLETE WRF" ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out) -eq 1 ;then
+            excode=0
+        else
+            excode=${ERROR_UNEXPECTED_WRF_TERMINATION}	
+        fi	
     else
-        excode=${ERROR_UNEXPECTED_WRF_TERMINATION}
+        if test $(grep -c "SUCCESS COMPLETE WRF" rsl.out.0000) -eq 1 ;then
+            excode=0
+        else
+            excode=${ERROR_UNEXPECTED_WRF_TERMINATION}
+        fi
     fi
+
+    if test -e rsl.out.0000; then
+        mkdir -p rsl_wrf
+        mv rsl.* rsl_wrf/
+        mv rsl_wrf ${logdir}/
+    fi
+
     wrf4g_exit $excode
 }  
 
@@ -330,7 +373,7 @@ export RESOURCES_WRF4G="${ROOTDIR}/resources.wrf4g"
 export DB4G_CONF="${ROOTDIR}/db4g.conf"
 export PATH="${ROOTDIR}/bin:$PATH"
 export LD_LIBRARY_PATH=${ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
-export PYTHONPATH=${ROOTDIR}/lib/python:${ROOTDIR}/lib/shared_libs:$PYTHONPATH
+export PYTHONPATH=${ROOTDIR}/lib/python:$PYTHONPATH
 chmod +x ${ROOTDIR}/bin/* 
 vcp ${WRF4G_APPS}/WRF4G-${WRF4G_VERSION}.tar.gz . || exit ${ERROR_MISSING_WRF4GSRC}
 tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz || exit ${ERROR_MISSING_WRF4GSRC}
@@ -343,7 +386,8 @@ source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
 export PATH="${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
-chmod +x ${ROOTDIR}/WRFGEL/*
+chmod +x ${ROOTDIR}/WRFGEL/*   
+
 
 #
 #   Try to download experiment from realization folder. If it doesn't exist download it from experiment.
