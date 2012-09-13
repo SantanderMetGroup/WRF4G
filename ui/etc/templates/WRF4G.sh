@@ -65,12 +65,12 @@ function prepare_runtime_environment(){
         export LD_LIBRARY_PATH=$OPAL_PREFIX/lib:$LD_LIBRARY_PATH
     fi
     
-    vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/prolog.conf . &>/dev/null
+    vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/prolog.wrf4g . &>/dev/null
     if [ $? -ne 0 ]; then 
     	echo "* `date`: Using default configuration ... "
     else
-    	echo "* `date`: Using ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/prolog.conf configuration ... "
-    	source prolog.conf
+    	echo "* `date`: Using ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/prolog.wrf4g configuration ... "
+    	source prolog.wrf4g
     fi
 
     if [ $real_parallel -eq 1 ]; then
