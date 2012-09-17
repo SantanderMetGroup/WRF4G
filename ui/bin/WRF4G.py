@@ -251,7 +251,7 @@ class Component:
             # Experiment is different that the one found in the database
             if id == -1:
                 if self.reconfigure == False:
-                    stderr.write("Error: %s with the same name and different parameters already exists. If you want to overwrite some parameters, try the reconfigure option\n." %self.element) 
+                    stderr.write("Error: %s with the same name and different parameters already exists.\nIf you want to overwrite some parameters, try the reconfigure option.\n" %self.element) 
                     exit(9)
                 else: 
                     id=self.get_id(self.get_no_reconfigurable_fields())
