@@ -41,7 +41,7 @@ function filetype(){
 }
 
 function current_date(){
-	tail -100000 rsl.out.0000 | grep "Timing for main: time" | sort -r | head -1 | awk '{print $5}'
+  tail -100000 rsl.out.0000 | grep "Timing for main: time" | sort -r | head -1 | awk '{print $5}'
 }
 
 function filedate(){
@@ -90,8 +90,8 @@ function clean_all(){
                 edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
           fi
           post_and_register --no-bg $(filetype $file) $(filedate $file) $file $edate
-           if test $(filetype $file) == "rst" -a $dom == "d01"; then
-		WRF4G.py Realization set_restart id=${WRF4G_REALIZATION_ID} $(filedate $file) # In the future kill the job if it can't contact the DB
+          if test $(filetype $file) == "rst" -a $dom == "d01"; then
+            WRF4G.py Realization set_restart id=${WRF4G_REALIZATION_ID} $(filedate $file) # In the future kill the job if it can't contact the DB
           fi
           time_debug "Uploading ${file} (end)"
         fi
@@ -102,7 +102,7 @@ function clean_all(){
   if test -f tslist; then
     ofile="wrfts_$(date_wrf2iso ${chunk_restart_date}).tar.gz"
     cd T/
-      tar czf ../${ofile} *.TS
+    tar czf ../${ofile} *.TS
     cd ..
     register_file -v ts date_not_used ${ofile}
   fi
