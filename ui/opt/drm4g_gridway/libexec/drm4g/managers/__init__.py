@@ -58,10 +58,11 @@ class Resource (object):
             raise ResourceException(' '.join(stderr.split('\n')))
         out_parser = xml.dom.minidom.parseString(stdout)
         busy = int(out_parser.getElementsByTagName('USED_SLOTS')[0].firstChild.data)
-        free_cpu = str(int(total_cpu) - busy)
-        if free_cpu < 0 : 
-           free_cpu = "0"
-        return (total_cpu , free_cpu)
+        if busy > int (total_cpu) :
+           return (total_cpu , "0")
+        else:
+           free_cpu = str(int(total_cpu) - busy)
+           return (total_cpu , free_cpu)
         
     def hostProperties(self): 
         try:
