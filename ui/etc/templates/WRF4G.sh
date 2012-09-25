@@ -212,17 +212,17 @@ function run_real (){
   ${LAUNCHER_REAL} ${ROOTDIR}/bin/wrapper.exe real.exe \
     >& ${logdir}/real_${ryy}${rmm}${rdd}${rhh}.out \
     || wrf4g_exit ${ERROR_REAL_FAILED}
-  
+
   if [ ${real_parallel} -ne 1 ]; then
-    if test $(grep -c "SUCCESS COMPLETE REAL_EM" ${logdir}/real_${ryy}${rmm}${rdd}${rhh}.out) -ne 1 ;then
-      wrf4g_exit ${ERROR_REAL_FAILED}
-    fi			
+    log_file=${logdir}/real_${ryy}${rmm}${rdd}${rhh}.out			
   else
-    if test $(grep -c "SUCCESS COMPLETE REAL_EM" rsl.out.0000) -ne 1 ;then
-      wrf4g_exit ${ERROR_REAL_FAILED} 	
-    fi
+    log_file=rsl.out.0000
   fi
   
+  if test $(grep -c "SUCCESS COMPLETE REAL_EM" ${log_file}) -ne 1 ;then
+      wrf4g_exit ${ERROR_REAL_FAILED}
+  fi
+
   if test -e rsl.out.0000; then
     mkdir -p rsl_real
     mv rsl.* rsl_real/
@@ -265,17 +265,15 @@ function run_wrf (){
   wait $(cat monitor.pid)
   
   if [ ${wrf_parallel} -ne 1 ]; then
-    if test $(grep -c "SUCCESS COMPLETE WRF" ${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out) -eq 1 ;then
-      excode=0
-    else
-      excode=${ERROR_UNEXPECTED_WRF_TERMINATION}	
-    fi	
+    log_file=${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out
   else
-     if test $(grep -c "SUCCESS COMPLETE WRF" rsl.out.0000) -eq 1 ;then
-       excode=0
-     else
-       excode=${ERROR_UNEXPECTED_WRF_TERMINATION}
-     fi
+    log_file=rsl.out.0000
+  fi
+     
+  if test $(grep -c "SUCCESS COMPLETE WRF" ${log_file}) -eq 1 ;then
+    excode=0
+  else
+    excode=${ERROR_UNEXPECTED_WRF_TERMINATION}
   fi
   
   if test -e rsl.out.0000; then
@@ -387,7 +385,6 @@ source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
 export PATH="${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
 chmod +x ${ROOTDIR}/WRFGEL/*   
-
 
 #
 #   Try to download experiment from realization folder. If it doesn't exist download it from experiment.
