@@ -40,10 +40,6 @@ case "$1" in
         fi
 	echo "  OK"
 
- 
-        #while [ $(netstat -atn |grep -m1 -c ":$WRF4G_DB_PORT ") -eq 1 ];do
-        #     let WRF4G_DB_PORT++
-        #done
         grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
         source db4g.conf.temp
         if [ $WRF4G_DB_LOCAL -eq 1 ]; then
@@ -61,8 +57,8 @@ case "$1" in
                echo -e "FAILED.\nAnother process is listening on port $WRF4G_DB_PORT.\nChange WRF4G_DB_PORT in \$WRF4G_LOCATION/etc/framework4g.conf to start MySQL on a different port."
                exit 4         
            fi
-	   #sed -i "s/WRF4G_DB_PORT.*$/WRF4G_DB_PORT=$WRF4G_DB_PORT/"  $WRF4G_LOCATION/etc/framework4g.conf
-	   nohup ./bin/mysqld_safe --no-defaults --port=$WRF4G_DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock &>/dev/null &
+	   
+           nohup ./bin/mysqld_safe --no-defaults --port=$WRF4G_DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock &>/dev/null &
            cd - &>/dev/null
        	   echo " OK"
          fi
@@ -128,7 +124,7 @@ case "$1" in
           gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
           gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
           if test -n "$gwd_pid"; then  
-            echo "GridWay Runnning"
+            echo "GridWay Running"
           else
             echo "GridWay Stopped"
           fi
