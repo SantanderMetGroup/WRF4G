@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from sys import stderr,exit, path
+import exceptions
 import sys
 import os
 import re
@@ -23,7 +23,7 @@ import WRF4G
 
 usage="""
 
-%prog [--dry-run] [--{exp Experiment |rea Realization |frea File}] [--priority P] [--verbose] [--help]
+%prog [--{exp Experiment |rea Realization |frea File}] [--priority P] [--verbose] [--help]
 
 Synopsys:
 
@@ -32,7 +32,6 @@ and default value is 0. When a chunk gets a priority of 20, it becomes an urgent
 This chunk is dispatched as soon as possible, bypassing all the scheduling policies. 
 """  
 parser = OptionParser(usage,version="%prog 1.0")
-parser.add_option("-n", "--dry-run",action="store_true", default=False, dest="dryrun",help="Perform a trial run with no changes made")
 parser.add_option("-e", "--exp",metavar="name",dest="exp_name", help="Name of the experiment to sumbit")
 parser.add_option("-r", "--rea",metavar="name",dest="rea_name", help="Name of the realization to sumbit")
 parser.add_option("-F", "--frea",metavar="FILE",dest="rea_file", help="File containing the name of the realization to change of the priority")
@@ -42,53 +41,55 @@ parser.add_option("-p", "--priority",type="int",dest="priority", help="The prior
 (options, args) = parser.parse_args()
 
 if not options.priority: parser.print_help()
-
-if not (options.exp_name or options.rea_name or options.rea_file):
-    # No experiment or realization given
-    if not os.path.isfile('experiment.wrf4g'):
-        print "Error. Please provide the name of the experiment to submit."
-        sys.exit(1)
-    else:
-        exp_file=open('experiment.wrf4g').read()
-        parsed=re.sub(r'\n\s+', '\n', exp_file)
-        exec parsed
-
-if options.exp_name:
-    exp=WRF4G.Experiment(data={'name':'%s'%options.exp_name},verbose=options.verbose,dryrun=options.dryrun)
-    id=exp.get_id_from_name()
-    if int(id) < 0:
-        print "Experiment %s do not exists"%options.exp_name
-        sys.exit(2)
-    else:
-        reas=exp.get_run_reas_id()
-        reas.extend(exp.get_wait_reas_id())
-        for id_rea in reas:
-            rea=WRF4G.Realization(data={'id':'%s'%id_rea},verbose=options.verbose,dryrun=options.dryrun)
-            rea.change_priority(options.priority)
-
-elif options.rea_name:
-    rea=WRF4G.Realization(data={'name':'%s'%options.rea_name},verbose=options.verbose,dryrun=options.dryrun)
-    id=rea.get_id_from_name()   
-    if int(id) < 0:
-        print "Realization %s do not exists"%options.rea_name
-        sys.exit(3)
-    else:
-        rea.change_priority(options.priority)
-        
-elif options.rea_file:
-    f=open(options.rea_file)
-    for realization in f.readlines():
-        realization=realization.rstrip()
-        rea=WRF4G.Realization(data={'name':'%s'%realization},verbose=options.verbose,dryrun=options.dryrun)
-        id=rea.get_id_from_name()
+try:
+    if not (options.exp_name or options.rea_name or options.rea_file):
+        # No experiment or realization given
+        if not os.path.isfile('experiment.wrf4g'):
+            print "Error. Please provide the name of the experiment to submit."
+            sys.exit(1)
+        else:
+            exp_file=open('experiment.wrf4g').read()
+            parsed=re.sub(r'\n\s+', '\n', exp_file)
+            exec parsed
+    if options.exp_name:
+        exp=WRF4G.Experiment(data={'name':'%s'%options.exp_name},verbose=options.verbose)
+        id=exp.get_id_from_name()
         if int(id) < 0:
-            print "Realization with name %s do not exist"%realization
+            print "Experiment %s do not exists"%options.exp_name
+            sys.exit(2)
+        else:
+            reas=exp.get_run_reas_id()
+            reas.extend(exp.get_wait_reas_id())
+            for id_rea in reas:
+                rea=WRF4G.Realization(data={'id':'%s'%id_rea},verbose=options.verbose)
+                rea.change_priority(options.priority)
+
+    elif options.rea_name:
+        rea=WRF4G.Realization(data={'name':'%s'%options.rea_name},verbose=options.verbose)
+        id=rea.get_id_from_name()   
+        if int(id) < 0:
+            print "Realization %s do not exists"%options.rea_name
+            sys.exit(3)
         else:
             rea.change_priority(options.priority)
-    f.close()
-    
-if options.dryrun:
-     WRF4G.dbc.rollback()
+        
+    elif options.rea_file:
+        try:
+            f=open(options.rea_file)
+            for realization in f.readlines():
+                realization=realization.rstrip()
+            rea=WRF4G.Realization(data={'name':'%s'%realization},verbose=options.verbose)
+            id=rea.get_id_from_name()
+            if int(id) < 0:
+                print "Realization with name %s do not exist"%realization
+            else:
+                rea.change_priority(options.priority)
+        finally: 
+            f.close()
+except exceptions.SystemExit:
+    WRF4G.dbc.commit()
+    WRF4G.dbc.close()    
+    sys.exit(-1)
 else:
-     WRF4G.dbc.commit()
-WRF4G.dbc.close()
+    WRF4G.dbc.commit()
+    WRF4G.dbc.close()

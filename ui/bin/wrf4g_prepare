@@ -21,22 +21,22 @@ if test ${#} -ge 1; then
   while test "$*"; do
     case $1 in   
       --dry-run)
-          isdry="yes"
-	  WRF4G_FLAGS="$WRF4G_FLAGS --dry-run"
+        isdry="yes"
+	WRF4G_FLAGS="$WRF4G_FLAGS --dry-run"
         ;;      
       --reconfigure)
-      	  reconfigure="yes"
-          WRF4G_FLAGS="$WRF4G_FLAGS -r"
+      	reconfigure="yes"
+        WRF4G_FLAGS="$WRF4G_FLAGS -r"
         ;;
       --verbose)
-          verbose="yes"
-          WRF4G_FLAGS="$WRF4G_FLAGS -v" 
+        verbose="yes"
+        WRF4G_FLAGS="$WRF4G_FLAGS -v" 
         ;;
       --rerun)
-          rerun="yes"
+        rerun="yes"
         ;;
       --help)
-      cat << EOF
+        cat << EOF
 USAGE 
   $(basename $0)  [--dry-run] [--reconfigure] [--verbose] [--help]
 
@@ -51,8 +51,8 @@ OPTIONS
   --help           Shows this help
 
 EOF
-       exit 
-          ;;
+        exit 
+        ;;
       *)
         echo "Unknown argument: $1"
         exit
@@ -63,8 +63,8 @@ EOF
 fi
 
 if test -z $WRF4G_LOCATION; then
-	echo '$WRF4G_LOCATION variable not established. Please export WRF4G_LOCATION and try again'
-	exit 1
+  echo '$WRF4G_LOCATION variable not established. Please export WRF4G_LOCATION and try again'
+  exit 1
 fi
 
 userdir=`pwd`
@@ -107,7 +107,7 @@ function rematch(){
   pattern=$1
   string=$2
   if test "${pattern:0:10}" = "from_file:"; then
-	grep -q "$string" $(echo ${pattern} | sed -e 's/from_file://')
+    grep -q "$string" $(echo ${pattern} | sed -e 's/from_file://')
   else
     echo "$string" | grep -Eq "^${pattern}$"
   fi
@@ -181,12 +181,12 @@ function cycle_hindcasts(){
     echo "WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},multiparams_label=${multiparams_label}"
     id_rea=$(WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},multiparams_label=${multiparams_label})
     if test $?  -ne 0; then
-           exit
+      exit
     fi
 
     if test ${id_rea} -ge 0; then
-        #create_wrf4g_realization(id_exp,name,sdate,edate,status,cdate)
-        cycle_chunks  ${realization_name} ${id_rea} ${current_date} ${final_date}
+      #create_wrf4g_realization(id_exp,name,sdate,edate,status,cdate)
+      cycle_chunks  ${realization_name} ${id_rea} ${current_date} ${final_date}
     fi
     #
     #  Cycle dates
@@ -204,7 +204,6 @@ function cycle_time(){
   end_date=$4
   multiparams_label=$5
   
-   
   case ${multiple_dates} in
     1)
       test -n "${simulation_length_h}" || exit
@@ -215,12 +214,12 @@ function cycle_time(){
       echo "---> Continuous run">&2
       id_rea=$(WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${realization_name},sdate=${start_date},edate=${end_date},status=0,cdate=${start_date},multiparams_label=${multiparams_label})
       if test $?  -ne 0; then
-           echo $id >&2 
-           exit $?
+        echo $id >&2 
+        exit $?
       fi
 
       if test ${id_rea} -ge 0; then
-            cycle_chunks  ${realization_name} ${id_rea} ${start_date} ${end_date}
+        cycle_chunks  ${realization_name} ${id_rea} ${start_date} ${end_date}
       fi
       ;;
   esac
@@ -252,97 +251,95 @@ export WRF4G_EXPERIMENT="${experiment_name}"
 #  Initial override of namelist values
 #
 if test "${multiple_parameters}" -ne "0"; then
-    if [ -z ${multiparams_labels// /} ]; then
-        mlabel=${multiparams_combinations// /}
-        multiparams_labels=$(py_sort_mlabels ${mlabel})        
-    else
-        mlabel=${multiparams_labels// /}
-        multiparams_labels=$(py_sort_mlabels ${mlabel})
-    fi
+  if [ -z ${multiparams_labels// /} ]; then
+    mlabel=${multiparams_combinations// /}
+    multiparams_labels=$(py_sort_mlabels ${mlabel})        
+  else
+    mlabel=${multiparams_labels// /}
+    multiparams_labels=$(py_sort_mlabels ${mlabel})
+  fi
 else
-	multiparams_labels=''   
+  multiparams_labels=''   
 fi
 
 if test -z "${chunk_size_h}"; then
-    sec=$(datediff_s ${end_date} ${start_date})
-    let chunk_size_h=${sec}/3600
+  sec=$(datediff_s ${end_date} ${start_date})
+  let chunk_size_h=${sec}/3600
 fi
 
 if test -z "${NI_restart_interval}"; then
-    let NI_restart_interval=${chunk_size_h}*60
+  let NI_restart_interval=${chunk_size_h}*60
 fi
 
 data="name=${experiment_name},sdate=${start_date},edate=${end_date},multiple_parameters=${multiple_parameters},multiple_dates=${multiple_dates},basepath=${WRF4G_BASEPATH},multiparams_labels=${multiparams_labels}"  #,experiment_description=\'${experiment_description}\'"
 id=$(WRF4G.py $WRF4G_FLAGS Experiment  prepare $data )
 if test $?  -ne 0; then
-	echo $id >&2
-	exit $?
+  echo $id >&2
+  exit $?
 fi
 
 if test ${id} -ge 0; then
-	echo "Preparing namelist...">&2
-	if ! is_dry_run; then 
-    	vcp ${WRF4G_APPS}/WRFbin-${WRF_VERSION}.tar.gz . >/dev/null
-    	tar -xzvf WRFbin-${WRF_VERSION}.tar.gz WRFV3/run/namelist.input >&2;  rm -f WRFbin-${WRF_VERSION}.tar.gz
-    	mv WRFV3/run/namelist.input namelist.input; rm -rf WRFV3
-    	namelist=`pwd`/namelist.input
-    	if test -f ${namelist}; then
-   	    	cp ${namelist} ${userdir}/namelist.input.base
-            rm ${namelist}
-	    	fortnml -wof namelist.input.base -s max_dom ${max_dom}
-    	else
-            echo "There is not a namelist template for WRF ${wrf_ver} (File ${namelist} does not exist) "
-            exit 10
-    	fi
+  echo "Preparing namelist...">&2
+  if ! is_dry_run; then 
+    vcp ${WRF4G_APPS}/WRFbin-${WRF_VERSION}.tar.gz . >/dev/null
+    tar -xzvf WRFbin-${WRF_VERSION}.tar.gz WRFV3/run/namelist.input >&2;  rm -f WRFbin-${WRF_VERSION}.tar.gz
+    mv WRFV3/run/namelist.input namelist.input; rm -rf WRFV3
+    namelist=`pwd`/namelist.input
+    if test -f ${namelist}; then
+      cp ${namelist} ${userdir}/namelist.input.base
+      rm ${namelist}
+      fortnml -wof namelist.input.base -s max_dom ${max_dom}
+    else
+      echo "There is not a namelist template for WRF ${wrf_ver} (File ${namelist} does not exist) "
+      exit 10
+    fi
 
-		for var in $(get_ni_vars); do
-			fnvar=${var/__/@}
-			fortnml -wof namelist.input.base -s $fnvar -- $(eval echo \$NI_${var})
-		done
+    for var in $(get_ni_vars); do
+      fnvar=${var/__/@}
+      fortnml -wof namelist.input.base -s $fnvar -- $(eval echo \$NI_${var})
+    done
 	
-		for var in $(get_nim_vars); do
-			fnvar=${var/__/@}
-			fortnml -wof namelist.input.base -s $fnvar -- $(eval "echo \$NIM_${var} | tr ',' ' '")
-		done
+    for var in $(get_nim_vars); do
+      fnvar=${var/__/@}
+      fortnml -wof namelist.input.base -s $fnvar -- $(eval "echo \$NIM_${var} | tr ',' ' '")
+    done
 	  
-		for var in $(get_nin_vars); do
-	    	fnvar=${var/__/@}
-	    	fortnml -wof namelist.input.base -m $fnvar -- $(eval echo \$NIN_${var})
-		done
-    
-    	cp namelist.input.base namelist.input
-      
-	fi
-    
-	#
-	#  Multiparams support. Physical parameters overwritten!
-	#
-	mlabels=${multiparams_labels}
-	if test "${multiple_parameters}" -ne "0"; then
-		icomb=1
-		for mpid in $(echo ${multiparams_combinations} | tr '/' ' '); do
-    		realabel=$(tuple_item ${multiparams_labels//\//,} ${icomb})
-    		echo -e "\n--->Realization: multiparams=${realabel} ${start_date} ${end_date}">&2
-    		if_not_dry cp namelist.input.base namelist.input
-    		iparam=1
-    		for var in $(echo ${multiparams_variables} | tr ',' ' '); do
-        		thisparam=$(tuple_item ${mpid} ${iparam})
-        		if echo ${thisparam} | grep -q ':' ; then
-            		if_not_dry fortnml_setm namelist.input $var ${thisparam//:/ }
-        		else
-            		nitems=$(tuple_item ${multiparams_nitems} ${iparam})
-            		if_not_dry fortnml_setn namelist.input $var ${nitems} ${thisparam}
-        		fi
-        		let iparam++
-    		done           
-			cycle_time "${experiment_name}__${realabel}" ${id} ${start_date} ${end_date} ${realabel}
-    		let icomb++
-		done 
-	else
-		echo -e "\n---> Single params run">&2
-		cycle_time "${experiment_name}" ${id} ${start_date} ${end_date}
-	fi
-		if_not_dry rm namelist.input namelist.input.base
+    for var in $(get_nin_vars); do
+      fnvar=${var/__/@}
+      fortnml -wof namelist.input.base -m $fnvar -- $(eval echo \$NIN_${var})
+    done
 
+    cp namelist.input.base namelist.input
+  fi
+    
+  #
+  #  Multiparams support. Physical parameters overwritten!
+  #
+  mlabels=${multiparams_labels}
+  if test "${multiple_parameters}" -ne "0"; then
+    icomb=1
+    for mpid in $(echo ${multiparams_combinations} | tr '/' ' '); do
+      realabel=$(tuple_item ${multiparams_labels//\//,} ${icomb})
+      echo -e "\n--->Realization: multiparams=${realabel} ${start_date} ${end_date}">&2
+      if_not_dry cp namelist.input.base namelist.input
+      iparam=1
+      for var in $(echo ${multiparams_variables} | tr ',' ' '); do
+        thisparam=$(tuple_item ${mpid} ${iparam})
+        if echo ${thisparam} | grep -q ':' ; then
+          if_not_dry fortnml_setm namelist.input $var ${thisparam//:/ }
+        else
+          nitems=$(tuple_item ${multiparams_nitems} ${iparam})
+          if_not_dry fortnml_setn namelist.input $var ${nitems} ${thisparam}
+        fi
+        let iparam++
+      done           
+      cycle_time "${experiment_name}__${realabel}" ${id} ${start_date} ${end_date} ${realabel}
+      let icomb++
+    done 
+  else
+    echo -e "\n---> Single params run">&2
+    cycle_time "${experiment_name}" ${id} ${start_date} ${end_date}
+  fi
+  if_not_dry rm namelist.input namelist.input.base
 fi
 

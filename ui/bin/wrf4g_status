@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from sys import stderr,stdout,exit,path
+import exceptions
 import os
 import re
 
@@ -48,42 +49,44 @@ parser.add_option("-n", "--ncharacters",default=20,type="int",dest="number_of_ch
 
 (options, args) = parser.parse_args()
 
-if options.exp_name:
-    experiment_name=options.exp_name
-    exp=WRF4G.Experiment(data={'name':'%s'%experiment_name})
-    exp.data['id']=exp.get_id_from_name()
-    if exp.data['id']<0:
-        stderr.write("Experiment %s do not exists\n"%experiment_name)
-        exit(1)
-    elif options.long:
-    	long_header(options.number_of_characters)
-        exp.ps(options.number_of_characters)
-    else:
-        sum_header(options.number_of_characters)
-        exp.summarized_status(options.number_of_characters)
-        
-elif options.rea_name:
-    realization_name=options.rea_name
-    rea=WRF4G.Realization(data={'name':'%s'%realization_name})
-    long_header(options.number_of_characters)
-    rea.ps(options.number_of_characters)
-
-else:
-    env=WRF4G.Environment()
-    lexp=env.list_experiments()
-    
-    if options.long:
-    	long_header(options.number_of_characters)
-        for id_exp in lexp:
-            exp=WRF4G.Experiment(data={'id':'%s'%id_exp})
+try:
+    if options.exp_name:
+        experiment_name=options.exp_name
+        exp=WRF4G.Experiment(data={'name':'%s'%experiment_name})
+        exp.data['id']=exp.get_id_from_name()
+        if exp.data['id']<0:
+            stderr.write("Experiment %s do not exists\n"%experiment_name)
+            exit(1)
+        elif options.long:
+    	    long_header(options.number_of_characters)
             exp.ps(options.number_of_characters)
+        else:
+            sum_header(options.number_of_characters)
+            exp.summarized_status(options.number_of_characters)
+    elif options.rea_name:
+        realization_name=options.rea_name
+        rea=WRF4G.Realization(data={'name':'%s'%realization_name})
+        long_header(options.number_of_characters)
+        rea.ps(options.number_of_characters)
     else:
-    	sum_header(options.number_of_characters)
-    	for id_exp in lexp:
-            exp=WRF4G.Experiment(data={'id':'%s'%id_exp})    	
-            out=exp.summarized_status(options.number_of_characters)
-           
-WRF4G.dbc.commit()
-WRF4G.dbc.close()
+        env=WRF4G.Environment()
+        lexp=env.list_experiments()
+        if options.long:
+    	    long_header(options.number_of_characters)
+            for id_exp in lexp:
+                exp=WRF4G.Experiment(data={'id':'%s'%id_exp})
+                exp.ps(options.number_of_characters)
+        else:
+    	    sum_header(options.number_of_characters)
+    	    for id_exp in lexp:
+                exp=WRF4G.Experiment(data={'id':'%s'%id_exp})    	
+                out=exp.summarized_status(options.number_of_characters)
+except exceptions.SystemExit:
+    WRF4G.dbc.rollback()
+    WRF4G.dbc.close()
+    exit(-1)
+else: 
+    WRF4G.dbc.commit()
+    WRF4G.dbc.close()
 
 

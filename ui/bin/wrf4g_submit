@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from sys import stderr,exit, path
+import exceptions
 import sys
 import os
 import re
@@ -13,7 +14,7 @@ if WRF4G_LOCATION == None:
 os.environ['DB4G_CONF']='%s/etc/db4g.conf'%WRF4G_LOCATION
 DB4G_CONF=os.environ['DB4G_CONF']
 if not os.path.isfile(DB4G_CONF):
-   print 'DB4G_CONF do not exist'
+   print 'DB4G_CONF does not exist'
    sys.exit(2)
 
 sys.path.insert(0,'%s/lib/python'%WRF4G_LOCATION)
@@ -63,57 +64,59 @@ BE CAREFULL!
      
 If you really want to run this command use the --force option
 """
-   
    sys.exit(2)
-   
- 
-      
-if options.runone:
-    nrea=1
-    nchunk=1    
-if options.exp_name:
-    experiment_name=options.exp_name
 
-if experiment_name:
-    exp=WRF4G.Experiment(data={'name':'%s'%experiment_name},verbose=options.verbose,dryrun=options.dryrun)
-    id=exp.get_id_from_name()
-    if int(id) < 0:
-        print "Experiment %s does not exists"%experiment_name
-        sys.exit(2)
-    exp.run(nrea=options.nrea,nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force,type_dep=options.type_dep)
+try:
+    if options.runone:
+        nrea=1
+        nchunk=1    
+    if options.exp_name:
+        experiment_name=options.exp_name
 
-elif options.rea_name:
-    rea=WRF4G.Realization(data={'name':'%s'%options.rea_name},verbose=options.verbose,dryrun=options.dryrun)
-    id=rea.get_id_from_name()   
-    if int(id) < 0:
-        print "Realization %s does not exists"%options.rea_name
-        sys.exit(3)
-    
-    if options.repeatchunk!=0:
-        if options.rerun:
-            rea.run(priority=options.priority,rerun=options.rerun,force=options.force,repeatchunk=options.repeatchunk,type_dep=options.type_dep)
-        else:
-            print "To rerun a chunk the --chunk option has to be used together with --rerun"%options.rea_name
+    if experiment_name:
+        exp=WRF4G.Experiment(data={'name':'%s'%experiment_name},verbose=options.verbose,dryrun=options.dryrun)
+        id=exp.get_id_from_name()
+        if int(id) < 0:
+            print "Experiment %s does not exists"%experiment_name
+            sys.exit(2)
+        exp.run(nrea=options.nrea,nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force,type_dep=options.type_dep)
+
+    elif options.rea_name:
+        rea=WRF4G.Realization(data={'name':'%s'%options.rea_name},verbose=options.verbose,dryrun=options.dryrun)
+        id=rea.get_id_from_name()   
+        if int(id) < 0:
+            print "Realization %s does not exists"%options.rea_name
             sys.exit(3)
-            
-    else:
-        rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force,type_dep=options.type_dep)
-        
-elif options.rea_file:
-    f=open(options.rea_file)
-    for realization in f.readlines():
-        realization=realization.rstrip()
-        rea=WRF4G.Realization(data={'name':'%s'%realization},verbose=options.verbose,dryrun=options.dryrun)
-        id=rea.get_id_from_name()
-        if id < 0 :
-           print "Realization with name %s does not exist"%realization
+        if options.repeatchunk!=0:
+            if options.rerun:
+                rea.run(priority=options.priority,rerun=options.rerun,force=options.force,repeatchunk=options.repeatchunk,type_dep=options.type_dep)
+            else:
+                print "To rerun a chunk the --chunk option has to be used together with --rerun"%options.rea_name
+                sys.exit(3)
         else:
-           rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force,type_dep=options.type_dep)      
-    f.close()
+            rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force,type_dep=options.type_dep)
+        
+    elif options.rea_file:
+        try:
+            f=open(options.rea_file)
+            for realization in f.readlines():
+                realization=realization.rstrip()
+                rea=WRF4G.Realization(data={'name':'%s'%realization},verbose=options.verbose,dryrun=options.dryrun)
+                id=rea.get_id_from_name()
+                if id < 0 :
+                    print "Realization with name %s does not exist"%realization
+                else:
+                    rea.run(nchunk=options.nchunk,priority=options.priority,rerun=options.rerun,force=options.force,type_dep=options.type_dep)      
+        finally:     
+            f.close()
     
- 
-if options.dryrun:
-     WRF4G.dbc.rollback()
+except exceptions.SystemExit:
+    WRF4G.dbc.rollback()
+    WRF4G.dbc.close()
+    exit(-1)      
 else:
-     WRF4G.dbc.commit()
-WRF4G.dbc.close()
+    if options.dryrun:
+        WRF4G.dbc.rollback()
+    else:
+        WRF4G.dbc.commit()
+    WRF4G.dbc.close()
