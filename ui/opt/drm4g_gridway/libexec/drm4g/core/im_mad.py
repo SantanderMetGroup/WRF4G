@@ -72,17 +72,6 @@ class GwImMad (object):
         OPERATION, HID, HOST, ARGS = args.split()
         try:
             hostList = readHostList()
-            for hostname, url in hostList.items():
-                hostConf = parserHost(hostname, url)
-                self._host_list_conf[hostname] = hostConf
-                if not self._resource_list.has_key(hostname):
-                    com = getattr(import_module(COMMUNICATOR[hostConf.SCHEME]), 'Communicator')()
-                    com.hostName = hostConf.HOST
-                    com.userName = hostConf.USERNAME
-                    com.connect()
-                    resource = getattr(import_module(RESOURCE_MANAGER[hostConf.LRMS_TYPE]), 'Resource')()
-                    resource.Communicator = com
-                    self._resource_list[hostname] = resource   
             out = 'DISCOVER %s SUCCESS %s' % (HID, ' '.join([hostname for hostname in hostList.keys()]))
         except Exception, e:
             out = 'DISCOVER - FAILURE %s' % (str(e))
@@ -101,31 +90,35 @@ class GwImMad (object):
             if not self._host_list_conf.has_key(HOST):
                 hostList = readHostList()
                 for hostname, url in hostList.items():
-                    hostConf = parserHost(hostname, url)
-                    self._host_list_conf[hostname] = hostConf
-                    if not self._resource_list.has_key(hostname):
-                        com = getattr(import_module(COMMUNICATOR[hostConf.SCHEME]), 'Communicator')()
-                        com.hostName = hostConf.HOST
-                        com.userName = hostConf.USERNAME
-                        com.connect()
-                        resource = getattr(import_module(RESOURCE_MANAGER[hostConf.LRMS_TYPE]), 'Resource')()
-                        resource.Communicator = com
-                        self._resource_list[hostname] = resource
+                    if HOST == hostname:
+                        hostConf = parserHost(hostname, url)
+                        self._host_list_conf[hostname] = hostConf
+                        if not self._resource_list.has_key(hostname):
+                            com = getattr(import_module(COMMUNICATOR[hostConf.SCHEME]), 'Communicator')()
+                            com.hostName = hostConf.HOST
+                            com.userName = hostConf.USERNAME
+                            com.connect()
+                            resource = getattr(import_module(RESOURCE_MANAGER[hostConf.LRMS_TYPE]), 'Resource')()
+                            resource.Communicator = com
+                            self._resource_list[hostname] = resource
             hostConf = self._host_list_conf[HOST]
-            resource = self._resource_list[HOST]
-            if hostConf.NODECOUNT:
-                resource.TotalCpu, resource.FreeCpu  = resource.staticNodes(HID, hostConf.NODECOUNT)
+            if self._resource_list.has_key(HOST):
+                resource = self._resource_list[HOST]
+                if hostConf.NODECOUNT:
+                    resource.TotalCpu, resource.FreeCpu  = resource.staticNodes(HID, hostConf.NODECOUNT)
+                else:
+                    resource.TotalCpu, resource.FreeCpu  = resource.dynamicNodes()
+                hostInfo = HostInformation()
+                hostInfo.Name, hostInfo.OsVersion, hostInfo.Arch, hostInfo.Os  = resource.hostProperties()
+                hostInfo.NodeCount                       = resource.TotalCpu
+                hostInfo.CpuModel  , hostInfo.CpuMhz     = resource.cpuProperties()
+                hostInfo.SizeMemMB , hostInfo.FreeMemMB  = resource.memProperties()
+                hostInfo.SizeDiskMB, hostInfo.FreeDiskMB = resource.diskProperties()
+                hostInfo.LrmsName  , hostInfo.LrmsType   = resource.lrmsProperties()
+                hostInfo.addQueue(resource.queuesProperties(hostConf.QUEUE_NAME, hostConf.PROJECT)) 
+                out = 'MONITOR %s SUCCESS %s' % (HID, hostInfo.info())
             else:
-                resource.TotalCpu, resource.FreeCpu  = resource.dynamicNodes()
-            hostInfo = HostInformation()
-            hostInfo.Name, hostInfo.OsVersion, hostInfo.Arch, hostInfo.Os  = resource.hostProperties()
-            hostInfo.NodeCount                       = resource.TotalCpu
-            hostInfo.CpuModel  , hostInfo.CpuMhz     = resource.cpuProperties()
-            hostInfo.SizeMemMB , hostInfo.FreeMemMB  = resource.memProperties()
-            hostInfo.SizeDiskMB, hostInfo.FreeDiskMB = resource.diskProperties()
-            hostInfo.LrmsName  , hostInfo.LrmsType   = resource.lrmsProperties()
-            hostInfo.addQueue(resource.queuesProperties(hostConf.QUEUE_NAME, hostConf.PROJECT)) 
-            out = 'MONITOR %s SUCCESS %s' % (HID, hostInfo.info())
+                out = 'MONITOR %s FAILURE %s is not configured correctly' % (HID, HOST)
         except Exception, e:
             out = 'MONITOR %s FAILURE %s' % (HID, str(e))
             self.logger.log(DEBUG, ' '.join(traceback.format_exc().splitlines()))

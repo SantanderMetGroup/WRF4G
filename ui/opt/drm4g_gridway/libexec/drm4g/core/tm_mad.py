@@ -77,19 +77,7 @@ class GwTmMad (object):
         @param args : arguments of operation
         @type args : string 
         """
-        try:
-            hostList = readHostList()
-            for hostname, url in hostList.items():
-                hostConf = parserHost(hostname, url)
-                com = getattr(import_module(COMMUNICATOR[hostConf.SCHEME]), 'Communicator')()
-                com.hostName      = hostConf.HOST
-                com.userName      = hostConf.USERNAME
-                com.workDirectory = hostConf.GW_RUNDIR
-                com.connect()
-                self._com_list[hostname] = com
-            out = 'INIT - - SUCCESS -'
-        except Exception, e:
-            out = 'INIT - - FAILURE %s' % (str(e))
+        out = 'INIT - - SUCCESS -'
         self.message.stdout(out)
         self.logger.log(DEBUG, '--> ' + out)
 
@@ -132,6 +120,8 @@ class GwTmMad (object):
         """
         OPERATION, JID, TID, EXE_MODE, SRC_URL, DST_URL = args.split()
         try:
+            if not self._com_list.has_key(urlparse(SRC_URL).host):
+                self._create_com(urlparse(SRC_URL).host)
             self._com_list[urlparse(SRC_URL).host].rmDirectory(SRC_URL)
             self._com_list[urlparse(SRC_URL).host].mkDirectory(SRC_URL)
             out = 'MKDIR %s - SUCCESS -' % (JID)
@@ -148,6 +138,8 @@ class GwTmMad (object):
         """
         OPERATION, JID, TID, EXE_MODE, SRC_URL, DST_URL = args.split()
         try:
+            if not self._com_list.has_key(urlparse(SRC_URL).host):
+                self._create_com(urlparse(SRC_URL).host)
             clean = self._com_list[urlparse(SRC_URL).host].checkOutLock(SRC_URL)
             if not clean: 
                 self._com_list[urlparse(SRC_URL).host].rmDirectory(SRC_URL)
@@ -170,6 +162,8 @@ class GwTmMad (object):
                 url = DST_URL
             else:
                 url = SRC_URL
+            if not self._com_list.has_key(urlparse(url).host):
+                self._create_com(urlparse(url).host)
             self._com_list[urlparse(url).host].copy(SRC_URL, DST_URL, EXE_MODE)
             out = 'CP %s %s SUCCESS -' % (JID, TID)
         except Exception, e:
@@ -204,3 +198,20 @@ class GwTmMad (object):
                     self.logger.log(DEBUG, '--> WRONG COMMAND')
         except Exception, e: 
             self.logger.log(DEBUG, '--> ' + str(e))
+
+    def _create_com(self, host):
+        hostList = readHostList()
+        for hostname, url in hostList.items():
+            if hostname == host:
+                try:
+                    hostConf = parserHost(hostname, url)
+                    com = getattr(import_module(COMMUNICATOR[hostConf.SCHEME]), 'Communicator')()
+                    com.hostName      = hostConf.HOST
+                    com.userName      = hostConf.USERNAME
+                    com.workDirectory = hostConf.GW_RUNDIR
+                    com.connect()
+                except:
+                    raise "It couldn't be connected to %s" %(host)                    
+                else:
+                    self._com_list[hostname] = com
+

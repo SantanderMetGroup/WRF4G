@@ -79,26 +79,7 @@ class GwEmMad (object):
 	@param args : arguments of operation
         @type args : string
 	"""
-	try:
-            hostList = readHostList()
-            for hostname, url in hostList.items():
-                hostConf = parserHost(hostname, url)
-                self._host_list_conf[hostname] = hostConf
-                com = getattr(import_module(COMMUNICATOR[hostConf.SCHEME]), 'Communicator')()
-                com.hostName = hostConf.HOST
-                com.userName = hostConf.USERNAME
-                com.workDirectory = hostConf.GW_RUNDIR
-                com.connect()
-                self._com_list[hostname] = com
-                if hostConf.GW_RUNDIR == r'~':
-                    out, err = com.execCommand('LANG=POSIX echo $HOME')
-                    if err:
-                        raise "Couldn't obtain home directory : %s" % (' '.join(err.split('\n')))
-                    self._host_list_conf[hostname].GW_RUNDIR = out.strip('\n')
-                self._resource_module_list[hostname] = import_module(RESOURCE_MANAGER[hostConf.LRMS_TYPE])
-	    out = 'INIT - SUCCESS -'
-	except Exception, e:
-	    out = 'INIT - FAILURE %s' % (str(e)) 
+	out = 'INIT - SUCCESS -'
 	self.message.stdout(out)
 	self.logger.log(DEBUG, '--> ' + out)
     
@@ -112,6 +93,8 @@ class GwEmMad (object):
         try:
             HOST, JM = HOST_JM.rsplit('/',1)
             # Init ResourceManager class
+            if not self._resource_module_list.has_key(HOST):
+                self._create_com(HOST) 
             job = getattr(self._resource_module_list[HOST], 'Job')()
             job.Communicator = self._com_list[HOST]
             # Parse rsl
@@ -180,6 +163,8 @@ class GwEmMad (object):
         OPERATION, JID, HOST_JM, RSL = args.split()
         try:
             host, remoteJobId = HOST_JM.split(':')
+            if not self._resource_module_list.has_key(host):
+                self._create_com(host)
             job = getattr(self._resource_module_list[host], 'Job')()
             job.Communicator = self._com_list[host]
             job.JobId = remoteJobId
@@ -261,3 +246,27 @@ class GwEmMad (object):
                     self.logger.log(DEBUG, '--> WRONG COMMAND')
         except Exception, e:
             self.logger.log(DEBUG, '--> ' + str(e))
+
+    def _create_com(self, host):
+        hostList = readHostList()
+        for hostname, url in hostList.items():
+            if hostname == host:
+                try:
+                    hostConf = parserHost(hostname, url)
+                    self._host_list_conf[hostname] = hostConf
+                    com = getattr(import_module(COMMUNICATOR[hostConf.SCHEME]), 'Communicator')()
+                    com.hostName = hostConf.HOST
+                    com.userName = hostConf.USERNAME
+                    com.workDirectory = hostConf.GW_RUNDIR
+                    com.connect()
+                except:
+                    raise "It couldn't be connected to %s" %(host)
+                else:
+                    self._com_list[hostname] = com
+                    if hostConf.GW_RUNDIR == r'~':
+                        out, err = com.execCommand('echo $HOME')
+                        if err:
+                            raise "Couldn't obtain home directory : %s" % (' '.join(err.split('\n')))
+                        self._host_list_conf[hostname].GW_RUNDIR = out.strip('\n')
+                    self._resource_module_list[hostname] = import_module(RESOURCE_MANAGER[hostConf.LRMS_TYPE])
+ 
