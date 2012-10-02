@@ -214,12 +214,12 @@ function run_real (){
     || wrf4g_exit ${ERROR_REAL_FAILED}
 
   if [ ${real_parallel} -ne 1 ]; then
-    log_file=${logdir}/real_${ryy}${rmm}${rdd}${rhh}.out			
+    log_file_real=${logdir}/real_${ryy}${rmm}${rdd}${rhh}.out			
   else
-    log_file=rsl.out.0000
+    log_file_real=rsl.out.0000
   fi
   
-  if test $(grep -c "SUCCESS COMPLETE REAL_EM" ${log_file}) -ne 1 ;then
+  if test $(grep -c "SUCCESS COMPLETE REAL_EM" ${log_file_real}) -ne 1 ;then
       wrf4g_exit ${ERROR_REAL_FAILED}
   fi
 
@@ -260,17 +260,18 @@ function run_wrf (){
   # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
   # This time is also useful to copy the wpsout data
   sleep 30
-  bash wrf4g_monitor $(cat wrf.pid) >& ${logdir}/monitor.log &
-  echo $! > monitor.pid   
-  wait $(cat monitor.pid)
   
   if [ ${wrf_parallel} -ne 1 ]; then
-    log_file=${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out
+    log_file_wrf=${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out
   else
-    log_file=rsl.out.0000
+    log_file_wrf=rsl.out.0000
   fi
-     
-  if test $(grep -c "SUCCESS COMPLETE WRF" ${log_file}) -eq 1 ;then
+   
+  bash wrf4g_monitor $(cat wrf.pid) $log_file_wrf >& ${logdir}/monitor.log &
+  echo $! > monitor.pid
+  wait $(cat monitor.pid)
+   
+  if test $(grep -c "SUCCESS COMPLETE WRF" ${log_file_wrf}) -eq 1 ;then
     excode=0
   else
     excode=${ERROR_UNEXPECTED_WRF_TERMINATION}
@@ -452,7 +453,7 @@ if test "${clean_after_run}" -eq 0; then
 fi
 
 #   Make log directory
-logdir=${LOCALDIR}/log
+logdir=${LOCALDIR}/log; export logdir
 mkdir -p ${logdir}
 #   Redirect output and error file descriptors
 exec &>log/WRF4G.log

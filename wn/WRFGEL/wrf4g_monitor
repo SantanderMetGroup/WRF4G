@@ -3,6 +3,7 @@
 # wrf4g_monitor
 #
 wrf_pid=$1
+log_file_wrf=$2
 #
 #  Load configuration files
 #
@@ -41,7 +42,7 @@ function filetype(){
 }
 
 function current_date(){
-  tail -100000 rsl.out.0000 | grep "Timing for main: time" | sort -r | head -1 | awk '{print $5}'
+  tail -100000 ${log_file_wrf} | grep "Timing for main: time" | sort -r | head -1 | awk '{print $5}'
 }
 
 function filedate(){
