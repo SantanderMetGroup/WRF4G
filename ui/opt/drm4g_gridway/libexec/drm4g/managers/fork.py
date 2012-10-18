@@ -6,7 +6,7 @@ __version__ = '0.1'
 __author__  = 'Carlos Blanco'
 __revision__ = "$Id: fork.py 1357 2012-01-10 19:59:38Z carlos $"
 
-SH = 'LANG=POSIX /bin/bash'
+SH = '/bin/bash'
 
 class Resource (drm4g.managers.Resource):    
 
@@ -15,11 +15,11 @@ class Resource (drm4g.managers.Resource):
         return ('FORK' ,'FORK')
 
     def dynamicNodes(self):
-        out, err = self.Communicator.execCommand('LANG=POSIX grep -c processor /proc/cpuinfo')
+        out, err = self.Communicator.execCommand('grep -c processor /proc/cpuinfo')
         if err: 
             raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
         total_cpu = int(out.rstrip('\n')) 
-        out, err = self.Communicator.execCommand('LANG=POSIX ps -ef | grep .wrapper | grep -v grep | wc -l') 
+        out, err = self.Communicator.execCommand('ps -ef | grep .wrapper | grep -v grep | wc -l') 
         if err: 
             raise drm4g.managers.ResourceException(' '.join(err.split('\n')))        
         return (str(total_cpu) , str(total_cpu - int(out.rstrip('\n'))))
@@ -42,7 +42,7 @@ class Job (drm4g.managers.Job):
         return job_id          
 
     def jobStatus(self):
-        out, err = self.Communicator.execCommand('LANG=POSIX ps --no-heading -p %s' %(self.JobId))
+        out, err = self.Communicator.execCommand('ps --no-heading -p %s' %(self.JobId))
         if out:
             return 'ACTIVE'
         else:   
@@ -52,9 +52,9 @@ class Job (drm4g.managers.Job):
         jobs_to_kill = [self.JobId]
         while jobs_to_kill:
             for job in jobs_to_kill:
-                 out, err = self.Communicator.execCommand('LANG=POSIX ps ho pid --ppid %s' % (job)) 
+                 out, err = self.Communicator.execCommand('ps ho pid --ppid %s' % (job)) 
                  jobs_to_kill = [line.lstrip() for line in out.splitlines()] + jobs_to_kill
-                 out, err = self.Communicator.execCommand('LANG=POSIX kill -9 %s' % (job))
+                 out, err = self.Communicator.execCommand('kill -9 %s' % (job))
                  if err:
                      raise drm4g.managers.JobException('Could not kill %s : %s' % (job, ' '.join(err.split('\n'))))
                  jobs_to_kill.remove(job)
