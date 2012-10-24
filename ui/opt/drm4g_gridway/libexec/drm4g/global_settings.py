@@ -14,6 +14,7 @@ RESOURCE_MANAGER = {
     "fork"    : "drm4g.managers.fork",
     "none"    : "drm4g.managers.fork",
     "cream"   : "drm4g.managers.cream",
+    "altamira"   : "drm4g.managers.altamira",
     }
 
 #########
