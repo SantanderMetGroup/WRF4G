@@ -14,6 +14,7 @@ SQUEUE  = 'squeue'   #show status of jobs
 SCANCEL = 'scancel'  #delete a job
 
 class Resource (drm4g.managers.Resource):
+    MAX_RESOURCES = 1000
 
     def lrmsProperties(self):
         return ('NEPTUNO', 'NEPTUNO')
