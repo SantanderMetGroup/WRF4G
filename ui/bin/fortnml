@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/python
 #
 # fortnml
 #
@@ -29,6 +29,15 @@ def listify(item):
   else:
     return [item,]
 
+def flat_list(l):
+  rval = []
+  for item in l:
+    if type(item) == type([]):
+      rval.extend(item)
+    else:
+      rval.append(item)
+  return rval
+
 def math_expansion(expr):
   try:
     exec("rval=%s" % expr)
@@ -36,8 +45,20 @@ def math_expansion(expr):
   except:
     return expr
 
-def coerce_value_list(vlist):
-  vlist = map(math_expansion, vlist)
+def asterisk_expansion(expr):
+  if '*' in expr:
+    [mult, value] = expr.split('*')
+    rval = int(mult)*[value,]
+    return map(math_expansion, rval)
+  else:
+    return expr
+
+def coerce_value_list(vlist, math_exp=True):
+  if math_exp:
+    vlist = map(math_expansion, vlist)
+  else:
+    vlist = map(asterisk_expansion, vlist)
+    vlist = flat_list(vlist)
   try:
     values=[int(element) for element in vlist]
   except ValueError:
@@ -67,13 +88,16 @@ class FortranNamelistRecord:
     self.data[variable].extend(listify(value))
   def hasVariable(self, var):
     return var in self.ordered_keys
-  def __str__(self):
+  def printRecord(self, sorted=False):
     rval = "&%s\n" % self.name
-    for key in self.ordered_keys:
+    keys = self.ordered_keys
+    if sorted:
+      keys.sort()
+    for key in keys:
       thisvar = "  %-24s =" % key
       for item in self.data[key]:
         if type(item) == type("hello"):
-          if not item.startswith("'") and not item.startswith("."):
+          if not item.startswith("'") and not item[:2].upper() in [".T", ".F"]:
             item = "'%s'" % item
         if len(thisvar) < 75:
           thisvar += " %s," % item
@@ -83,11 +107,13 @@ class FortranNamelistRecord:
       rval += "%s\n" % thisvar
     rval += "/\n"
     return rval
+  def __str__(self):
+    self.printRecord(sorted=False)
   def __getitem__(self, item):
     return self.data[item]
 
 class FortranNamelist:
-  def __init__(self, namelist_file):
+  def __init__(self, namelist_file, math_exp):
     """read contents of namelist file and return dictionary containing all options
     
     Created 20/01/08 by Thom Chubb.
@@ -97,6 +123,7 @@ class FortranNamelist:
       Added support for multi-line variables
     """
     self.namelist_file = namelist_file
+    self.math_exp = math_exp
     fid=open(namelist_file, 'r')
     data = fid.readlines()
     fid.close()
@@ -104,6 +131,7 @@ class FortranNamelist:
     self.ordered_records=[]
     is_comment = True
     for line in data:
+      if line.strip().startswith('!'): continue
       if '&' in line:
         # Then this line is a namelist title
         is_comment=False
@@ -126,23 +154,26 @@ class FortranNamelist:
             # as comma-separated strings.
             values = values[1:-1]
           else:
-            values = coerce_value_list(values.split(','))
+            values = coerce_value_list(values.split(','), self.math_exp)
           self.record_dict[current_label].setValue(variable.strip(), values)
       else:
         if not is_comment:
           # This line contains variable information to be added to the last variable read
           values = line.strip().rstrip(',')
-          values = coerce_value_list(values.split(','))
+          values = coerce_value_list(values.split(','), self.math_exp)
           self.record_dict[current_label].appendValue(variable.strip(), values)
   def __getitem__(self, item):
     return self.record_dict[item]
-  def printNamelist(self, record=None):
+  def printNamelist(self, record=None, sorted=False):
     rval = ""
     if record:
-      rval += "%s\n" % str(self.record_dict[record])
-    else:  
-      for rec in self.ordered_records:
-        rval += "%s\n" % str(self.record_dict[rec])
+      rval += "%s\n" % self.record_dict[record].printRecord(sorted)
+    else:
+      records = self.ordered_records
+      if sorted:
+        records.sort() 
+      for rec in records:
+        rval += "%s\n" % self.record_dict[rec].printRecord(sorted)
     return rval
   def setValue(self, variable, value, record=""):
     if record:
@@ -216,50 +247,56 @@ class WrfNamelist(FortranNamelist):
   # Get an updated list for your WRF version with:
   # grep '^rconfig' Registry |awk '$5=="max_domains"{printf "  %s,\n", tolower($8)}' | sort | uniq
   # "feedback" wrongly appears as max_dom var (how can this be posible?)
-  # was removed by hand
+  # and was removed by hand. "frames_per_outfile" and "history_interval"
+  # were missing and added by hand.
+  # Last updated from WRF v3.3.1 Registry.EM (J. Fernandez, 20120203)
   MAX_DOM_VARIABLES = [
-    "allowed", "bdyfrq", "bldt", "bl_pbl_physics", "cen_lat",
-    "cen_lon", "chem_opt", "c_k", "coriolis2d", "c_s", "cudt",
-    "cu_physics", "cycle_x", "cycle_y", "dampcoef", "diff_6th_factor",
-    "diff_6th_opt", "do_coriolis", "do_curvature", "do_gradp", "dt",
-    "dx", "dy", "emdiv", "end_day", "end_hour", "end_minute",
-    "end_month", "end_second", "end_year", "epssm", "e_sn", "e_vert",
-    "e_we", "fdda_end", "fdda_start", "fgdt", "fine_input_stream",
-    "gmt", "grid_fdda", "gsmdt", "h_mom_adv_order", "h_sca_adv_order",
-    "id", "input_from_file", "input_from_hires", "i_parent_start", "isice",
-    "isoilwater", "isurban", "iswater", "j_parent_start", "julday", "julyr",
-    "khdif", "kvdif", "map_proj", "max_step_increase_pct", "max_time_step",
+    "allowed", "bdyfrq", "bl_pbl_physics", "bldt", "c_k", "c_s", "cen_lat",
+    "cen_lon", "chem_adv_opt", "chem_opt", "coriolis2d", "cu_diag",
+    "cu_physics", "cudt", "cycle_x", "cycle_y", "dampcoef", "decoupled",
+    "dfi_stage", "diff_6th_factor", "diff_6th_opt", "do_coriolis",
+    "do_curvature", "do_gradp", "dt", "dx", "dy", "e_sn", "e_vert", "e_we",
+    "emdiv", "end_day", "end_hour", "end_minute", "end_month", "end_second",
+    "end_year", "epssm", "fdda_end", "fdda_start", "fgdt", "fgdtzero",
+    "fine_input_stream", "gmt", "grav_settling", "grid_fdda", "gsmdt",
+    "h_mom_adv_order", "h_sca_adv_order", "i_parent_start", "id",
+    "input_from_file", "input_from_hires", "isice", "islake", "isoilwater",
+    "isurban", "iswater", "j_parent_start", "julday", "julyr", "khdif",
+    "kvdif", "map_proj", "max_step_increase_pct", "max_time_step",
     "min_time_step", "mix_full_field", "mix_isotropic", "mix_upper_bound",
-    "moad_cen_lat", "moad_grid_ratio", "moad_time_step_ratio", "mp_physics",
-    "mp_physics_dfi", "naer", "nested", "non_hydrostatic", "obs_coef_mois",
-    "obs_coef_pstr", "obs_coef_temp", "obs_coef_wind", "obs_ionf",
-    "obs_nobs_prt", "obs_nudge_mois", "obs_nudge_opt", "obs_nudge_pstr",
-    "obs_nudge_temp", "obs_nudge_wind", "obs_rinxy", "obs_twindo",
-    "open_xe", "open_xs", "open_ye", "open_ys", "parent_grid_ratio",
-    "parent_id", "parent_time_step_ratio", "pd_chem", "pd_moist",
-    "pd_moist_dfi", "pd_scalar", "pd_tke", "periodic_x", "periodic_y",
-    "pert_coriolis", "polar", "progn", "pxlsm_smois_init", "radt",
-    "ra_lw_physics", "ra_sw_physics", "sf_sfclay_physics", "sf_surface_physics",
-    "slope_rad", "smdiv", "specified", "s_sn", "stand_lon", "start_day",
-    "start_hour", "starting_time_step", "start_minute", "start_month",
-    "start_second", "start_year", "stencil_half_width", "s_vert",
-    "swap_x", "swap_y", "s_we", "symmetric_xe", "symmetric_xs", "symmetric_ye",
-    "symmetric_ys", "target_cfl", "time_step_sound", "tke_drag_coefficient",
-    "tke_heat_flux", "tke_upper_bound", "top_lid", "topo_shading",
-    "top_radiation", "true_lat1", "true_lat2", "ucmcall",
-    "v_mom_adv_order", "v_sca_adv_order", "zdamp", "ztop",
+    "moad_cen_lat", "moad_grid_ratio", "moad_time_step_ratio",
+    "moist_adv_dfi_opt", "moist_adv_opt", "mp_physics", "mp_physics_dfi",
+    "naer", "nested", "non_hydrostatic", "obs_coef_mois", "obs_coef_pstr",
+    "obs_coef_temp", "obs_coef_wind", "obs_ionf", "obs_no_pbl_nudge_q",
+    "obs_no_pbl_nudge_t", "obs_no_pbl_nudge_uv", "obs_nudge_mois",
+    "obs_nudge_opt", "obs_nudge_pstr", "obs_nudge_temp", "obs_nudge_wind",
+    "obs_prt_freq", "obs_rinxy", "obs_twindo", "open_xe", "open_xs", "open_ye",
+    "open_ys", "parent_grid_ratio", "parent_id", "parent_time_step_ratio",
+    "periodic_x", "periodic_y", "pert_coriolis", "polar", "pole_lat",
+    "pole_lon", "prec_acc_dt", "progn", "pxlsm_smois_init", "pxlsm_soil_nudge",
+    "ra_lw_physics", "ra_sw_physics", "radt", "s_sn", "s_vert", "s_we",
+    "scalar_adv_opt", "sf_sfclay_physics", "sf_surface_physics",
+    "sf_urban_physics", "shcu_physics", "slope_rad", "smdiv", "specified",
+    "stand_lon", "start_day", "start_hour", "start_minute", "start_month",
+    "start_second", "start_year", "starting_time_step", "stencil_half_width",
+    "swap_x", "swap_y", "symmetric_xe", "symmetric_xs", "symmetric_ye",
+    "symmetric_ys", "target_cfl", "target_hcfl", "time_step_sound",
+    "tke_adv_opt", "tke_drag_coefficient", "tke_heat_flux", "tke_upper_bound",
+    "top_lid", "top_radiation", "topo_shading", "tracer_adv_opt", "tracer_opt",
+    "true_lat1", "true_lat2", "v_mom_adv_order", "v_sca_adv_order", "zdamp",
+    "ztop", "frames_per_outfile", "history_interval" 
   ]
-  def __init__(self, namelist_file):
-    FortranNamelist.__init__(self, namelist_file)
+  def __init__(self, namelist_file, math_exp):
+    FortranNamelist.__init__(self, namelist_file, math_exp)
   def setMaxDomValue(self, variable, value, record=""):
     mxd = self['domains']['max_dom'][0]
     if record:
-      self[record].setValue(variable, coerce_value_list(mxd*[value,]))
+      self[record].setValue(variable, coerce_value_list(mxd*[value,], self.math_exp))
     else:
       gotit=False
       for rec in self.ordered_records:
         if self[rec].hasVariable(variable):
-          self[rec].setValue(variable, coerce_value_list(mxd*[value,]))
+          self[rec].setValue(variable, coerce_value_list(mxd*[value,], self.math_exp))
           gotit=True
           break
       if not gotit:
@@ -392,6 +429,14 @@ if __name__ == "__main__":
     "-t", "--trim", action="store_true",
     help="Trim the length of the array variables to the maximum number of domains"
   )
+  parser.add_option(
+    "--no-math-expansion", action="store_false", dest="mathexp", default=True,
+    help="Avoid solving math operations on the right-hand-side of the keywords. The default is to expand expressions such as interval_seconds = 24*3600. This behaviour is not appropriate when dealing with namelist.output files, where expressions such as H_MOM_ADV_ORDER = 11*5, have a different meaning."
+  )
+  parser.add_option(
+    "--sort", action="store_true",
+    help="Avoid solving math operations on the right-hand-side of the keywords. The default is to expand expressions such as interval_seconds = 24*3600. This behaviour is not appropriate when dealing with namelist.output files, where expressions such as H_MOM_ADV_ORDER = 11*5, have a different meaning."
+  )
   (opt, args) = parser.parse_args()
 
   if not opt.namelist:
@@ -403,20 +448,20 @@ if __name__ == "__main__":
   if opt.variable_m or opt.trim:
     opt.wrf = True
   if opt.wrf:
-    nml = WrfNamelist(opt.namelist)
+    nml = WrfNamelist(opt.namelist, opt.mathexp)
   else:
-    nml = FortranNamelist(opt.namelist)
+    nml = FortranNamelist(opt.namelist, opt.mathexp)
 
   if opt.variable_s:
     variable, record = splitvar(opt.variable_s)
     if opt.nitems:
       args = [args[0] for i in range(opt.nitems)]
-    nml.setValue(variable, coerce_value_list(args), record)
+    nml.setValue(variable, coerce_value_list(args, opt.mathexp), record)
   elif opt.variable_a:
     variable, record = splitvar(opt.variable_a)
     if opt.nitems:
       args = [args[0] for i in range(opt.nitems)]
-    nml.appendValue(variable, coerce_value_list(args), record)
+    nml.appendValue(variable, coerce_value_list(args, opt.mathexp), record)
   elif opt.variable_m:
     variable, record = splitvar(opt.variable_m)
     nml.setMaxDomValue(variable, args[0], record)
@@ -432,6 +477,6 @@ if __name__ == "__main__":
     nml.overWriteNamelist()
   elif not opt.quiet:
     if opt.thisrecord:
-      print nml.printNamelist(opt.thisrecord)
+      print nml.printNamelist(opt.thisrecord, sorted=opt.sort)
     else:
-      print nml.printNamelist()
+      print nml.printNamelist(sorted=opt.sort)
