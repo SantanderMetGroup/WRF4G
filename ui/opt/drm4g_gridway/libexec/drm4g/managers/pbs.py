@@ -116,7 +116,9 @@ class Job (drm4g.managers.Job):
         if parameters.has_key('maxMemory'):
             args += '#PBS -l vmem=%sMB\n' % (parameters['maxMemory'])
         if parameters.has_key('tasksPerNode'):
-            args += '#PBS -l nodes=%d:ppn=$tasksPerNode\n' % (int(parameters['count']) / int(parameters['tasksPerNode']))
+            node_count = int(parameters['count']) / int(parameters['tasksPerNode'])
+            if node_count == 0: node_count = 1
+            args += '#PBS -l nodes=%d:ppn=$tasksPerNode\n' % (node_count)
         else:
             args += '#PBS -l nodes=$count\n'
         args += '#PBS -v %s\n' % (','.join(['%s=%s' %(k, v) for k, v in parameters['environment'].items()]))
