@@ -42,9 +42,16 @@ class Job (drm4g.managers.Job):
     #clock_wall_time is mandatory
     walltime_default = '3600' # 1 hours 
     #mn job status <--> GridWay job status
-    states_mn = {
-                  'PENDING' : 'PENDING',
-                  'RUNNING' : 'ACTIVE',    
+    states_altamira = {
+                  'CANCELLED': 'DONE',
+                  'COMPLETED' : 'DONE',
+                  'COMPLETING': 'ACTIVE',
+                  'RUNNING'   : 'ACTIVE',
+                  'NODE_FAIL' : 'FAILED',
+                  'FAILED'    : 'FAILED',
+                  'PENDING'   : 'PENDING',
+                  'SUSPENDED' : 'SUSPENDED',
+                  'TIMEOUT'   : 'FAILED',
                 }                 
     
     def jobSubmit(self, path_script):
@@ -62,9 +69,8 @@ class Job (drm4g.managers.Job):
         elif not out: 
             return 'DONE'
         else:
-            out_parser = xml.dom.minidom.parseString(out)
             state = out.split()[3]
-            return self.states_mn.setdefault(state, 'UNKNOWN')
+            return self.states_altamira.setdefault(state, 'UNKNOWN')
     
     def jobCancel(self):
         out, err = self.Communicator.execCommand('%s %s' % (MNCANCEL, self.JobId))
