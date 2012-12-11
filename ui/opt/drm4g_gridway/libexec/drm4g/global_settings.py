@@ -10,10 +10,11 @@ COMMUNICATOR = {
 RESOURCE_MANAGER = {
     "pbs"     : "drm4g.managers.pbs",
     "sge"     : "drm4g.managers.sge",
-    "mnslurm" : "drm4g.managers.marenostrum",
     "fork"    : "drm4g.managers.fork",
     "none"    : "drm4g.managers.fork",
     "cream"   : "drm4g.managers.cream",
+    "slurm"   : "drm4g.managers.slurm",
+    "mnslurm" : "drm4g.managers.marenostrum",
     "altamira": "drm4g.managers.altamira",
     "neptuno" : "drm4g.managers.neptuno",
     }
