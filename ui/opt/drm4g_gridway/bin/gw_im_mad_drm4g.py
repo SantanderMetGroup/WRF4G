@@ -12,7 +12,7 @@ if sys.version_info < (2,4) and sys.version_info > (3,0):
     print 'The version number of the Python must be > = 2.4 and < 3.0'
     sys.exit(-1)
 try:
-    sys.path.insert(0,os.path.join(GW_LOCATION, 'libexec'))
+    sys.path.append(os.path.join(GW_LOCATION, 'libexec'))
 except Exception, e:
     print 'Caught exception: %s: %s' % (e.__class__, str(e))
     traceback.print_exc(file=sys.stdout)

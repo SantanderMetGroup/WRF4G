@@ -32,6 +32,8 @@ discover (){
         
                 INFO="$INFO $HOSTNAME"
             done < $HOSTLIST
+            echo "DISCOVER - SUCCESS $INFO"
+            return
         else
             echo "DISCOVER - FAILURE Can't access $HOSTLIST file (cwd is `pwd`)"
             return
