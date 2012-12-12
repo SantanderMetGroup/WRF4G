@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 from re import match, search
-from sys import exit, stderr, argv
+from sys import sdout
 from commands import getstatusoutput
-from os import popen, getcwd, getenv
 from os.path import abspath, isdir, basename, dirname
 import datetime
 
@@ -11,7 +10,7 @@ import datetime
 def http_protocol(protocol):
     if protocol == 'http' or protocol == 'https':
         return True
-    else
+    else :
         return False
 
 class VCPURL:
@@ -158,7 +157,7 @@ class VCPURL:
             * a.ls("file*")
         """
         if http_protocol(self.protocol):
-            raise Expection("This method is not available for " + self.protocol " protocol")
+            raise Expection("This method is not available for " + self.protocol + " protocol")
         
         command = eval(self.command[self.protocol]['ls'])
         if verbose:
@@ -193,7 +192,7 @@ class VCPURL:
         Create the directory pointed by self
         """
         if http_protocol(self.protocol):
-            raise Expection("This method is not available for " + self.protocol " protocol")
+            raise Expection("This method is not available for " + self.protocol + " protocol")
         
         command = eval(self.command[self.protocol]['mkdir'])
         if verbose:
@@ -209,7 +208,7 @@ class VCPURL:
         Delete a file or folder
         """
         if http_protocol(self.protocol):
-            raise Expection("This method is not available for " + self.protocol " protocol")
+            raise Expection("This method is not available for " + self.protocol + " protocol")
         
         command = eval(self.command[self.protocol]['rm'])
         if verbose: 
@@ -225,7 +224,7 @@ class VCPURL:
         Rename self into newname
         """
         if http_protocol(self.protocol):
-            raise Expection("This method is not available for " + self.protocol " protocol")
+            raise Expection("This method is not available for " + self.protocol + " protocol")
         
         orig = eval(self.command[self.protocol]['name'])
         dest_folder = dirname(orig)
@@ -381,8 +380,7 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
 def datewrf2datetime (datewrf):
     g = match("(\d{4})-(\d{2})-(\d{2})_(\d{2}):(\d{2}):(\d{2})", datewrf)
     if not g :
-        stdout.write("Error: Date is not well formed\n")
-        exit(DATE_BAD_FORMED)
+        raise Exception("Date is not well formed")
     date_tuple = g.groups()
     date_object = datetime.datetime(*tuple(map(int, date_tuple)))
     return date_object
@@ -390,8 +388,7 @@ def datewrf2datetime (datewrf):
 def dateiso2datetime (dateiso):
     g = match("(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z", dateiso)
     if not g :
-        stdout.write("Error: Date is not well formed\n")
-        exit(DATE_BAD_FORMED)
+        raise Expection("Date is not well formed")
     date_tuple = g.groups() 
     date_object = datetime.datetime(*tuple(map(int, date_tuple)))
     return date_object
