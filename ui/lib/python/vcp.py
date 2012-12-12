@@ -5,7 +5,7 @@ from sys import sdout
 from commands import getstatusoutput
 from os.path import abspath, isdir, basename, dirname
 import datetime
-
+import time
 
 def http_protocol(protocol):
     if protocol == 'http' or protocol == 'https':
@@ -289,14 +289,18 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
     Copies origin in destination. Both are arrays containing the following field 
     [protocol,user,computer,port,file]
     """
+    if verbose :
+        stdout.write("Starting to copy ...\n")
     orig = VCPURL(origin)
-    dest = VCPURL(destination)
     if http_protocol(dest.protocol):
         raise Expection("Unable to copy if the destination protocol is " + dest.protocol)
     if http_protocol(orig.protocol) and dest.protocol != 'file':
         raise Expection("Unable to copy if the destination protocol is not file://")
     if dest.protocol == 'ln' and orig.protocol != 'file':
         dest.protocol = 'file'
+    dest = VCPURL(destination)
+    if verbose :
+        stdout.write("Copying from" + orig.__str__() + " to " + dest.__str__() + "\n")
 
     matrix = {'file': {'file':   {'verbose'  : '-v', 
                                   'recursive': '-R', 
@@ -368,12 +372,18 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
         param[recursive] = ""
     if not verbose: 
         param[verbose] = ""
+    if verbose:
+        start = time.time()
     command = eval(param['command'])
     if verbose :
-        stdout.write(command + "\n")
+        stdout.write("Command to copy " + command + "\n")
     (err, out) = getstatusoutput(command)
     if err != 0 :
         raise Expection("Error copying file: " + str(err))
+    if verbose :
+        elapsed = (start - time.time())/60
+        stdout.write("Command to copy " + command + "\n")
+        stdout.write("The copy lasted " + elapsed + " minutes\n")
     return 0
 
 #    FUNCTIONS FOR MANAGE DATES      #
