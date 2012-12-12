@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from re import match, search
-from sys import sdout
+from sys import stderr
 from commands import getstatusoutput
 from os.path import abspath, isdir, basename, dirname
 import datetime
@@ -161,7 +161,7 @@ class VCPURL:
         
         command = eval(self.command[self.protocol]['ls'])
         if verbose:
-            stdout.write(command + "\n")
+            stderr.write(command + "\n")
         (err, out) = getstatusoutput(command)
         if err != 0 :
             raise Expection("Error creating dir: " + str(err))
@@ -196,7 +196,7 @@ class VCPURL:
         
         command = eval(self.command[self.protocol]['mkdir'])
         if verbose:
-            stdout.write(command + "\n")
+            stderr.write(command + "\n")
         (err, out) = getstatusoutput(command)
         
         if err != 0 :
@@ -212,7 +212,7 @@ class VCPURL:
         
         command = eval(self.command[self.protocol]['rm'])
         if verbose: 
-            stdout.write(command + "\n")
+            stderr.write(command + "\n")
         (err, out) = getstatusoutput(command)
         
         if err != 0 : 
@@ -231,7 +231,7 @@ class VCPURL:
         dest = dest_folder + "/" + newname
         command = eval(self.command[self.protocol]['rename'])
         if verbose: 
-            stdout.write(command + "\n")
+            stderr.write(command + "\n")
         (err, out) = getstatusoutput(command)
         if err != 0 :
             raise Expection("Error listing file: " + str(err))
@@ -290,17 +290,17 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
     [protocol,user,computer,port,file]
     """
     if verbose :
-        stdout.write("Starting to copy ...\n")
+        stderr.write("Starting to copy ...\n")
     orig = VCPURL(origin)
+    dest = VCPURL(destination)
     if http_protocol(dest.protocol):
         raise Expection("Unable to copy if the destination protocol is " + dest.protocol)
     if http_protocol(orig.protocol) and dest.protocol != 'file':
         raise Expection("Unable to copy if the destination protocol is not file://")
     if dest.protocol == 'ln' and orig.protocol != 'file':
         dest.protocol = 'file'
-    dest = VCPURL(destination)
     if verbose :
-        stdout.write("Copying from" + orig.__str__() + " to " + dest.__str__() + "\n")
+        stderr.write("Copying from " + orig.__str__() + " to " + dest.__str__() + "\n")
 
     matrix = {'file': {'file':   {'verbose'  : '-v', 
                                   'recursive': '-R', 
@@ -376,14 +376,13 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
         start = time.time()
     command = eval(param['command'])
     if verbose :
-        stdout.write("Command to copy " + command + "\n")
+        stderr.write("Command to copy " + command + "\n")
     (err, out) = getstatusoutput(command)
     if err != 0 :
         raise Expection("Error copying file: " + str(err))
     if verbose :
-        elapsed = (start - time.time())/60
-        stdout.write("Command to copy " + command + "\n")
-        stdout.write("The copy lasted " + elapsed + " minutes\n")
+        elapsed = str((time.time()- start)/60)
+        stderr.write("The copy lasted " + elapsed + " minutes\n")
     return 0
 
 #    FUNCTIONS FOR MANAGE DATES      #

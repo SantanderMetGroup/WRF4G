@@ -6,7 +6,7 @@ import sys
 import traceback 
 
 try:
-    os.path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
     import vcp
 except Exception, e:
     print 'Caught exception: %s: %s' % (e.__class__, str(e))
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         exit(1)
         
     try:
-        output = copy_file(args[0], 
+        output = vcp.copy_file(args[0], 
                            args[1], 
                            verbose=options.verbose, 
                            recursive=options.recursive, 
