@@ -15,6 +15,7 @@ function load_default_config (){
   wrf_parallel=1
   VCPDEBUG="-v"
   global_preprocessor="default"
+  ERROR_MISSING_RESOURCESWRF4G=21
 }
 
 function date2int(){
@@ -339,12 +340,10 @@ function wrf4g_exit(){
 load_default_config
 
 #
-#  Prepare files and get variables.
+#  Get variables.
 #
-mkdir bin
-mv vcp bin
-source resources.wrf4g \
-  || exit ${ERROR_MISSING_RESOURCESWRF4G}
+
+source resources.wrf4g || exit ${ERROR_MISSING_RESOURCESWRF4G}
 
 export WRF4G_EXPERIMENT=$1
 export WRF4G_REALIZATION=$2
@@ -355,37 +354,27 @@ export chunk_start_date=$6
 export chunk_end_date=$7
 
 #
-#  Change ROOTDIR if necesary
-#
-ROOTDIR=$(pwd)
-if test -n "${WRF4G_RUN_SHARED}"; then
-  mkdir -p ${WRF4G_RUN_SHARED}/${WRF4G_REALIZATION}/${WRF4G_NCHUNK}
-  cd ${WRF4G_RUN_SHARED}/${WRF4G_REALIZATION}/${WRF4G_NCHUNK}
-  mv ${ROOTDIR}/bin ${ROOTDIR}/db4g.conf ${ROOTDIR}/resources.wrf4g .
-fi 
-ROOTDIR=$(pwd)
-
-#
 #   Expand the WRF4G scripts
 #
+ROOTDIR=$(pwd)
+tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz || exit ${ERROR_MISSING_WRF4GSRC}
+chmod +x ${ROOTDIR}/bin/*
+chmod +x ${ROOTDIR}/WRFGEL/*
+
+#
+#   Load functions and set the PATH
+#
+
 export RESOURCES_WRF4G="${ROOTDIR}/resources.wrf4g"
 export DB4G_CONF="${ROOTDIR}/db4g.conf"
 export PATH="${ROOTDIR}/bin:$PATH"
 export LD_LIBRARY_PATH=${ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
 export PYTHONPATH=${ROOTDIR}/lib/python:$PYTHONPATH
-chmod +x ${ROOTDIR}/bin/* 
-vcp ${WRF4G_APPS}/WRF4G-${WRF4G_VERSION}.tar.gz . || exit ${ERROR_MISSING_WRF4GSRC}
-tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz || exit ${ERROR_MISSING_WRF4GSRC}
-chmod +x ${ROOTDIR}/bin/* 
+export PATH="${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
 
-#
-#   Load functions and set the PATH
-#
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
-export PATH="${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
-chmod +x ${ROOTDIR}/WRFGEL/*   
 
 #
 #   Try to download experiment from realization folder. If it doesn't exist download it from experiment.
@@ -394,10 +383,7 @@ vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/experiment.wrf4g 
 if [ $? -ne 0 ];then 
   vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/experiment.wrf4g . || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
 fi
-
-suf=$RANDOM # This is a fix to solve the problem with source.
-sed -e 's/\ *=\ */=/' experiment.wrf4g > source.$suf || exit ${ERROR_MISSING_WRFINPUT}
-source source.$suf && rm source.$suf
+source experiment.wrf4g
 
 #
 #   Update Job Status in DB
