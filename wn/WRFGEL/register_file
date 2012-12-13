@@ -1,11 +1,18 @@
 #!/usr/bin/env python
-from vcp import *      
+      
 from commands import getstatusoutput
 from optparse import OptionParser
-from sys import exit   
-from sys import stderr  
-from os.path import basename
-import WRF4G
+import sys   
+import os  
+
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
+    import vcp
+    import WRF4G
+except Exception, e:
+    print 'Caught exception: %s: %s' % (e.__class__, str(e))
+    traceback.print_exc(file=sys.stdout)
+    sys.exit(-1)
 
 
 RESOURCES_WRF4G_NOT_DEFINED=1
@@ -26,37 +33,41 @@ parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default
 (options, args) = parser.parse_args()
 verbose=options.verbose
 
-
 type_list = {
-  "rst" : "restart",
-  "out" : "output",
-}
+             "rst" : "restart",
+             "out" : "output",
+             }
 
 file_end_date=None
-stderr.write("WRFGEL(register_file)> START: %s\n" % args)
+sys.stderr.write("WRFGEL(register_file)> START: %s\n" % args)
 
 if len(args) == 4 and args[0] == "out":
-  [type,date,file,file_end_date] = args
+    [type,date,file,file_end_date] = args
 elif len(args) == 3 and args[0] in type_list.keys() + ["ts",]:
-  [type,date,file] = args
+    [type,date,file] = args
 elif len(args) == 2 and args[0] == "wps":
-  [type,date] = args
+    [type,date] = args
 else:
-  parser.error("Incorrect number of arguments")
-  exit(1)
+    parser.error("Incorrect number of arguments")
+    sys.exit(1)
 
 # Check that the environment variables has been established and import their values
-env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","RESOURCES_WRF4G": ""}
-env_var=get_env_vars(env_var)
+env_var = {}
+for var in [ "WRF4G_EXPERIMENT" , "WRF4G_REALIZATION", "RESOURCES_WRF4G"] :
+    var_value = os.getenv(var)
+    if not var_value :
+        sys.stderr.write( var + " is not defined\n")
+        sys.exit(-1)
+    env_var[var] = var_value
 exec(open(env_var["RESOURCES_WRF4G"]).read())
 # List all the variables in the script and search WRF4G_BASEPATH
 if not 'WRF4G_BASEPATH' in dir():
-  stderr.write("Error: WRF4G_BASEPATH is not defined\n")
-  exit(1)
+    sys.stderr.write("Error: WRF4G_BASEPATH is not defined\n")
+    sys.exit(-1)
 
 # Change the name of the file in the repository (Change date to the iso format
 # and add .nc at the end of the name
-if type in type_list.keys() :    
+if type in type_list.keys() :
     if type == "out" and file_end_date:
         file_o=wrffile(file,file_end_date)
         dest_file=file_o.file_name_out_iso()
@@ -64,46 +75,57 @@ if type in type_list.keys() :
         file_o=wrffile(file)
         dest_file=file_o.file_name_iso()
         
-
     dest_folder="%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
     dest= dest_folder + "/" + dest_file
     
-    if verbose: stderr.write( "Copying %s -> %s\n" %(file, dest))
-    output=copy_file(file,dest +".part", verbose=verbose)
-    if verbose: stderr.write(output + "\n")
-    VCPURL(dest + ".part").rename(basename(dest))
-    input=VCPURL(file)
-    # Delete the file from local disk 
-    if verbose: stderr.write("Deleting file %s\n" %file)
+    if verbose:
+        sys.stderr.write( "Copying %s -> %s\n" %(file, dest))
+    try:
+        vcp.copy_file(file,dest +".part", verbose=verbose)
+    except Exception, e:
+        sys.stderr(file + " has not copied to " + dest + "\n")
+        sys.exit(-1)
+    vcp.VCPURL(dest + ".part").rename(os.path.basename(dest))
+    input=vcp.VCPURL(file)
+    # Delete the file from local disk
+    if verbose:
+        sys.stderr.write("Deleting file %s\n" %file)
     input.rm()
 
 elif type == "ts":
     dest_folder="%s/%s/%s/output" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"])
     dest= dest_folder + "/" + file
-    if verbose: stderr.write( "Copying %s -> %s\n" %(file, dest))
-    output=copy_file(file,dest +".part", verbose=verbose)
-    if verbose: stderr.write(output + "\n")
-    VCPURL(dest + ".part").rename(basename(dest))
-    input=VCPURL(file)
-    # Delete the file from local disk 
-    if verbose: stderr.write("Deleting file %s\n" %file)
+    if verbose:
+        sys.stderr.write( "Copying %s -> %s\n" %(file, dest))
+    try:
+        vcp.copy_file(file,dest +".part", verbose=verbose)
+        sys.exit(-1)
+    except Exception, e:
+        sys.stderr(file + " has not copied to " + dest + "\n")
+    vcp.VCPURL(dest + ".part").rename(os.path.basename(dest))
+    input=vcp.VCPURL(file)
+    # Delete the file from local disk
+    if verbose:
+        sys.stderr.write("Deleting file %s\n" %file)
     input.rm()
 
-else :    
+else :
     # If the files are WPS, add the date to the name. Three files have to be uploaded: wrfinput_d0?,wrfbdy_d0? and wrflowinp_d0?
     #The command: $ upload_file wps     1990-01-01_00:00:00
     # will create in the repositore three files with the following format: wrfinput_d01_19900101T000000Z
-    wps_dir=VCPURL(".")
-    wps_files=wps_dir.ls("wrf[lbif]*_d\d\d")   
-
-    suffix="_" + datetime2dateiso(datewrf2datetime(date))+ ".nc"
-
+    wps_dir=vcp.VCPURL(".")
+    wps_files=wps_dir.ls("wrf[lbif]*_d\d\d")
+    suffix="_" + vcp.datetime2dateiso(vcp.datewrf2datetime(date))+ ".nc"
+    
     for wps_file in wps_files :
-        dest_file=basename(wps_file)
+        dest_file=os.path.basename(wps_file)
         dest="%s/%s/%s/%s/%s%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],"realout",dest_file,suffix)
         if verbose:
-             stderr.write("origin: %s destiny: %s\n" % (wps_file,dest))
-        output=copy_file(wps_file,dest, verbose=verbose) 
-        if verbose: stderr.write(output + "\n")
-
-stderr.write("WRFGEL(register_file)> END: %s\n" % args)
+            sys.stderr.write("origin: %s destiny: %s\n" % (wps_file,dest))
+        try:
+            vcp.copy_file(wps_file,dest, verbose=verbose)
+        except Exception, e:
+            sys.stderr(wps_file + " has not copied to " + dest + "\n")
+            sys.exit(-1)
+    
+sys.stderr.write("WRFGEL(register_file)> END: %s\n" % args)
