@@ -8,16 +8,10 @@ import os
 try:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
     import vcp
-    import WRF4G
 except Exception, e:
     print 'Caught exception: %s: %s' % (e.__class__, str(e))
     traceback.print_exc(file=sys.stdout)
     sys.exit(-1)
-
-
-RESOURCES_WRF4G_NOT_DEFINED=1
-DATE_BAD_FORMED=2
-TOO_MANY_DATES=3
 
 usage="""%prog file_type date [file_name] [file_end_date]
 
@@ -69,10 +63,10 @@ if not 'WRF4G_BASEPATH' in dir():
 # and add .nc at the end of the name
 if type in type_list.keys() :
     if type == "out" and file_end_date:
-        file_o=wrffile(file,file_end_date)
+        file_o=vcp.wrffile(file,file_end_date)
         dest_file=file_o.file_name_out_iso()
     else:
-        file_o=wrffile(file)
+        file_o=vcp.wrffile(file)
         dest_file=file_o.file_name_iso()
         
     dest_folder="%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
@@ -99,9 +93,9 @@ elif type == "ts":
         sys.stderr.write( "Copying %s -> %s\n" %(file, dest))
     try:
         vcp.copy_file(file,dest +".part", verbose=verbose)
-        sys.exit(-1)
     except Exception, e:
         sys.stderr(file + " has not copied to " + dest + "\n")
+        sys.exit(-1)
     vcp.VCPURL(dest + ".part").rename(os.path.basename(dest))
     input=vcp.VCPURL(file)
     # Delete the file from local disk

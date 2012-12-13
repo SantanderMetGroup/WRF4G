@@ -33,10 +33,11 @@ if len(args) == 2 :
 else :
     parser.error("Incorrect number of arguments")
     sys.exit(-1)
-    
+
 # Check that the environment variables has been established and import their values
+env_var = {}
 for var in [ "WRF4G_EXPERIMENT" , "WRF4G_REALIZATION", "RESOURCES_WRF4G"] :
-    var_value = getenv(var)
+    var_value = os.getenv(var)
     if not var_value :
         sys.stderr.write( var + " is not defined\n")
         sys.exit(-1)
@@ -65,7 +66,7 @@ orig_c=vcp.VCPURL(orig_folder)
 
 for file in orig_c.ls(pattern[type]):
     # file will follow the pattern: wrfrst_d01_19900101T000000Z.nc or wrflowinp_d08_19900101T000000Z.nc
-    file_c=wrffile(file)
+    file_c=vcp.wrffile(file)
     if type == "rst" :
         dest=file_c.file_name + file_c.date_wrf()
     else: 
@@ -76,5 +77,6 @@ for file in orig_c.ls(pattern[type]):
     try:
         vcp.copy_file( orig_folder + "/" + file ,dest, verbose=verbose)
     except Exception, e:
-        sys.stderr.write('Caught exception: %s: %s\n' % (e.__class__, str(e)))
+        sys.stderr(file + " has not copied to " + dest + "\n")
+        sys.exit(-1)
     sys.stderr.write("WRFGEL(download_file)> END: %s\n" % args)
