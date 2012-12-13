@@ -113,7 +113,7 @@ class FortranNamelistRecord:
     return self.data[item]
 
 class FortranNamelist:
-  def __init__(self, namelist_file, math_exp):
+  def __init__(self, namelist_file, math_exp=True):
     """read contents of namelist file and return dictionary containing all options
     
     Created 20/01/08 by Thom Chubb.
@@ -286,7 +286,7 @@ class WrfNamelist(FortranNamelist):
     "true_lat1", "true_lat2", "v_mom_adv_order", "v_sca_adv_order", "zdamp",
     "ztop", "frames_per_outfile", "history_interval" 
   ]
-  def __init__(self, namelist_file, math_exp):
+  def __init__(self, namelist_file, math_exp=True):
     FortranNamelist.__init__(self, namelist_file, math_exp)
   def setMaxDomValue(self, variable, value, record=""):
     mxd = self['domains']['max_dom'][0]
@@ -301,10 +301,25 @@ class WrfNamelist(FortranNamelist):
           break
       if not gotit:
         raise KeyError, "The variable was not found and no record was specified!"
+  def checkMaxDomPatterns(self, var):
+    prefixes = ["start_", "end_"]
+    suffixes = ["_inname", "_outname", "_interval"]
+    rval = False
+    for prefix in prefixes:
+      if var.startswith(prefix):
+        rval = True
+        break
+    for suffix in suffixes:
+      if var.endswith(suffix):
+        rval = True
+        break
+    return rval
   def trimMaxDom(self):
     mxd = self['domains']['max_dom'][0]
+    if opt.ncols:
+       mxd = opt.ncols
     for var in self.variableList():
-      if var in self.MAX_DOM_VARIABLES:
+      if opt.ncols or var in self.MAX_DOM_VARIABLES:# or self.checkMaxDomPatterns(var):
         self.setValue(var, self.getValue(var)[:mxd])
   def printWrfWarning(self, message):
     sys.stderr.write("WRF Check Warning: %s\n" % message)
@@ -418,6 +433,10 @@ if __name__ == "__main__":
     help="Repeat the value provided NITEMS times. Only used when in set (-s) or append (-a) mode"
   )
   parser.add_option(
+    "--force-trim", metavar="NCOLS", dest="ncols", type='int',
+    help="Force trimming the arrays in the namelist to a maximum of NCOLS items. Beware that this option trims every option, even those not limited by the max_dom entry, such as the eta_levels variable."
+  )
+  parser.add_option(
     "-d", "--delete", metavar="VARIABLE[@RECORD]", dest="variable_d",
     help="Delete a VARIABLE. The record can be specified through the VARIABLE@RECORD syntax"
   )
@@ -435,7 +454,11 @@ if __name__ == "__main__":
   )
   parser.add_option(
     "--sort", action="store_true",
-    help="Avoid solving math operations on the right-hand-side of the keywords. The default is to expand expressions such as interval_seconds = 24*3600. This behaviour is not appropriate when dealing with namelist.output files, where expressions such as H_MOM_ADV_ORDER = 11*5, have a different meaning."
+    help="Sort the records and options within each record in alphabetical order. This option is useful to compare to namelist which could be formatted in different order."
+  )
+  parser.add_option(
+    "--no-wrf-checks", action="store_false", dest="wrfcheck", default=True,
+    help="Avoid WRF checks and automagic modifications even if WRF mode was requested to recognize the max_dom option and trim the output or set multi-valued options."
   )
   (opt, args) = parser.parse_args()
 
@@ -469,9 +492,9 @@ if __name__ == "__main__":
     variable, record = splitvar(opt.variable_d)
     nml.delVariable(variable, record)
 
-  if opt.trim:
+  if opt.trim or opt.ncols:
     nml.trimMaxDom()
-  if opt.wrf:
+  if opt.wrf and opt.wrfcheck:
     nml.wrfCheck()
   if opt.overwrite:
     nml.overWriteNamelist()
