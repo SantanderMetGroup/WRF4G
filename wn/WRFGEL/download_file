@@ -1,16 +1,17 @@
 #!/usr/bin/env python
-from vcp import *  
-from os import getenv
+
 from commands import getstatusoutput
 from optparse import OptionParser
-from sys import exit   
-from sys import stderr  
-from re import search
-import datetime
+import os
+import sys  
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
+    import vcp
+except Exception, e:
+    print 'Caught exception: %s: %s' % (e.__class__, str(e))
+    traceback.print_exc(file=sys.stdout)
+    sys.exit(-1)
 
-RESOURCES_WRF4G_NOT_DEFINED=1
-DATE_BAD_FORMED=2
-TOO_MANY_DATES=3
 
 usage="""%prog type date
 
@@ -28,37 +29,41 @@ parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default
 verbose=options.verbose
 
 if len(args) == 2 :
-  [ type, date ] = args
+    type, date  = args
 else :
-  parser.error("Incorrect number of arguments")
-  exit(1)
-
-if verbose: stderr.write("donwload file in debug mode.... \n")
-
+    parser.error("Incorrect number of arguments")
+    sys.exit(-1)
+    
 # Check that the environment variables has been established and import their values
-env_var={"WRF4G_EXPERIMENT": "" , "WRF4G_REALIZATION": "","RESOURCES_WRF4G": ""}
-env_var=get_env_vars(env_var)
+for var in [ "WRF4G_EXPERIMENT" , "WRF4G_REALIZATION", "RESOURCES_WRF4G"] :
+    var_value = getenv(var)
+    if not var_value :
+        sys.stderr.write( var + " is not defined\n")
+        sys.exit(-1)
+    env_var[var] = var_value
+
 exec(open(env_var["RESOURCES_WRF4G"]).read())
 # List all the variables in the script and search WRF4G_BASEPATH
 if not 'WRF4G_BASEPATH' in dir():
-  stderr.write("Error: WRF4G_BASEPATH is not defined\n")
-  exit(1)
+    sys.stderr.write("Error: WRF4G_BASEPATH is not defined\n")
+    sys.exit(-1)
 
-stderr.write("WRFGEL(download_file)> START: %s\n" % args)
+sys.stderr.write("WRFGEL(download_file)> START: %s\n" % args)
 
 type_list={
-  "rst" : "restart",
-  "real" : "realout"
-}
+           "rst"  : "restart",
+           "real" : "realout"
+           }
+
 pattern = {
-  "rst" : "wrfrst*" + date + "*" ,
-  "real" : "wrf[lbif]*_d\d\d_" + date + "*"
-} 
+           "rst"  : "wrfrst*"           + date + "*" ,
+           "real" : "wrf[lbif]*_d\d\d_" + date + "*"
+           } 
 
 orig_folder="%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
-orig_c=VCPURL(orig_folder)
+orig_c=vcp.VCPURL(orig_folder)
 
-for file in  orig_c.ls(pattern[type]):
+for file in orig_c.ls(pattern[type]):
     # file will follow the pattern: wrfrst_d01_19900101T000000Z.nc or wrflowinp_d08_19900101T000000Z.nc
     file_c=wrffile(file)
     if type == "rst" :
@@ -66,9 +71,10 @@ for file in  orig_c.ls(pattern[type]):
     else: 
         # From wrflowinp_d08_ we remove the _ at the end
         dest=file_c.file_name[:-1]
-        
-    if verbose: stderr.write("origin: %s destiny: %s \n" % (orig_folder + "/" + file ,dest)) 
-    output=copy_file( orig_folder + "/" + file ,dest, verbose=verbose)
-    if verbose: stderr.write(output + "\n")
-    
-stderr.write("WRFGEL(download_file)> END: %s\n" % args)
+    if verbose: 
+        sys.stderr.write("origin: %s destiny: %s \n" % (orig_folder + "/" + file ,dest))
+    try:
+        vcp.copy_file( orig_folder + "/" + file ,dest, verbose=verbose)
+    except Exception, e:
+        sys.stderr.write('Caught exception: %s: %s\n' % (e.__class__, str(e)))
+    sys.stderr.write("WRFGEL(download_file)> END: %s\n" % args)
