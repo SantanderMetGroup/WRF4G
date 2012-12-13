@@ -17,7 +17,7 @@ except Exception, e:
 #                                        VCP (MAIN)                                                     #
 #***************************************************************************#
 
-if __name__ == "__main__":
+def main():
     usage = """%prog [OPTIONS] SOURCE DEST
     Example: %prog -r -p 10 /tmp/prueba gsiftp://se01.macc.unican.es/tmp/valva
     URL examples:
@@ -33,12 +33,9 @@ if __name__ == "__main__":
     parser.add_option("-r", "--recursive", action="store_true", dest="recursive", default=False, help="Copy directories recursively")
     
     (options, args) = parser.parse_args()
-    if options.verbose:
-        stdout.write(" ".join(argv) + "\n")
     if len(args) != 2:
         parser.error("Incorrect number of arguments")
-        exit(1)
-        
+        sys.exit(-1)
     try:
         output = vcp.copy_file(args[0], 
                            args[1], 
@@ -49,5 +46,6 @@ if __name__ == "__main__":
         print 'Caught exception: %s: %s' % (e.__class__, str(e))
         traceback.print_exc(file=sys.stdout)
         sys.exit(-1)
-    
-       
+
+if __name__ == "__main__":
+    main()
