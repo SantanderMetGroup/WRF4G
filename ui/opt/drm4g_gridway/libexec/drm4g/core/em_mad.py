@@ -92,11 +92,13 @@ class GwEmMad (object):
         OPERATION, JID, HOST_JM, RSL = args.split()
         try:
             HOST, JM = HOST_JM.rsplit('/',1)
+ 
             # Init ResourceManager class
             if not self._resource_module_list.has_key(HOST):
                 self._create_com(HOST) 
             job = getattr(self._resource_module_list[HOST], 'Job')()
             job.Communicator = self._com_list[HOST]
+
             # Parse rsl
             rsl_var = Rsl2Parser(RSL).parser()
             hostConf = self._host_list_conf[HOST]
@@ -109,12 +111,14 @@ class GwEmMad (object):
             rsl_wrapper_directory = rsl_var.setdefault('directory',rsl_var['executable'].split('/')[0])
             for k in "stdout", "stderr", "directory", "executable":
                 rsl_var[k] = "%s/%s" % (hostConf.GW_RUNDIR, rsl_var[k])
+
             # Create and copy wrapper_drm4g 
-            local_wrapper_directory  = '%s/var/%s/wrapper_drm4g.%s' % (GW_LOCATION, JID, RSL.split('.')[-1])
+            local_wrapper_directory  = '%s/wrapper_drm4g.%s' % (RSL.rsplit('/',1)[0] , RSL.split('.')[-1])
             remote_wrapper_directory = '%s/.wrapper_drm4g' % (rsl_wrapper_directory)
             string_template = job.jobTemplate(rsl_var)
             job.createWrapper(local_wrapper_directory, string_template)
             job.copyWrapper(local_wrapper_directory, remote_wrapper_directory)
+
             # Execute wrapper_drm4g 
             pathScript = Template('$directory/.wrapper_drm4g').safe_substitute(rsl_var)
             job.JobId = job.jobSubmit(pathScript)
