@@ -100,7 +100,7 @@ nmli.setValue("dy", alldx) # May be an issue for global WRF
 #
 if timestep_dxfactor.startswith("manual:"):
   nmli.setValue("time_step", int(timestep_dxfactor[7:]))
-elif timestep_dxfactor.startswith("adaptative:"):
+elif timestep_dxfactor.startswith("adaptive:"):
   nmli.setValue("use_adaptive_time_step", ".true.", "domains")
 else:
   nmli.setValue("time_step",

@@ -314,12 +314,12 @@ class WrfNamelist(FortranNamelist):
         rval = True
         break
     return rval
-  def trimMaxDom(self):
+  def trimMaxDom(self, ncols=None):
     mxd = self['domains']['max_dom'][0]
-    if opt.ncols:
-       mxd = opt.ncols
+    if ncols:
+       mxd = ncols
     for var in self.variableList():
-      if opt.ncols or var in self.MAX_DOM_VARIABLES:# or self.checkMaxDomPatterns(var):
+      if ncols or var in self.MAX_DOM_VARIABLES:# or self.checkMaxDomPatterns(var):
         self.setValue(var, self.getValue(var)[:mxd])
   def printWrfWarning(self, message):
     sys.stderr.write("WRF Check Warning: %s\n" % message)
@@ -493,7 +493,7 @@ if __name__ == "__main__":
     nml.delVariable(variable, record)
 
   if opt.trim or opt.ncols:
-    nml.trimMaxDom()
+    nml.trimMaxDom(opt.ncols)
   if opt.wrf and opt.wrfcheck:
     nml.wrfCheck()
   if opt.overwrite:
