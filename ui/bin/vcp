@@ -21,11 +21,13 @@ def main():
     usage = """%prog [OPTIONS] SOURCE DEST
     Example: %prog -r -p 10 /tmp/prueba gsiftp://se01.macc.unican.es/tmp/valva
     URL examples:
-    LFC              lfn://vo.prod.eela-eu.eu@computer:/grid/valva
+    
     GRIDFTP          gridftp://computer:2812/grid/valva
     RSYNC            rsync://valva@computer:34/grid/valva
     SIMBOLIC LINK    ln:///valva or ln:valva
-    FILE             valva
+    FILE             file:/valva
+    HTTPS            https://www.meteo.unican.es/work/WRF4G.tar.gz
+    HTTP             http://www.meteo.unican.es/work/WRF4G.tar.gz
     """
     parser = OptionParser(usage, version="%prog 1.0")
     parser.add_option("-p", dest="streams", help="Specify the number of parallel data connections should be used.", metavar="STREAMS")
