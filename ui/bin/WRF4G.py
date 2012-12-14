@@ -4,12 +4,18 @@ from sys import stdout,stderr,exit,path
 import sys
 import inspect
 import os
-import vcp
 try: 
-   import vdb
+    import vdb
+    import vcp
 except:
-   path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
-   import vdb
+    path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
+    try:
+        import vdb
+        import vcp
+    except Exception, e:
+        print 'Caught exception: %s: %s' % (e.__class__, str(e))
+        sys.exit(-1)
+
 from datetime import datetime
 from optparse import OptionParser
 
