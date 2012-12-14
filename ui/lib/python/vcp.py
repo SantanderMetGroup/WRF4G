@@ -351,7 +351,7 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
     if (dest.protocol == "rsync" or orig.protocol == "rsync") :
         if (isfile(orig.file) and (isdir(dest.file) or isdir(dest.rsplit('/',1)[0]))) or \
            (isdir(orig.file)  and isdir(dest.file)) or \
-           (orig[-1] == "*"   and isdir(orig[:-1])  and isdir(dest.file)):
+           (orig.file[-1] == "*"  and isdir(orig.file[:-1]) and isdir(dest.file)):
             orig.protocol = "file"
             dest.protocol = "file"
 
