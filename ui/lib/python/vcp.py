@@ -1,9 +1,7 @@
-#!/usr/bin/env python
-
 from re import match, search
 from sys import stderr
 from commands import getstatusoutput
-from os.path import abspath, isdir, basename, dirname
+from os.path import abspath, isdir, isfile, basename, dirname
 import datetime
 import time
 
@@ -83,7 +81,7 @@ class VCPURL:
                         if self.computer.find("@") != -1 :
                             (self.user, self.computer) = self.computer.split("@")
                     else :
-                        raise Expection("Url is not well formed")
+                        raise Exception("Url is not well formed")
                         
             self.command = {'file'  : {'ls'    : "'ls -1 %s'    %self.file" ,
                                        'mkdir' : "'mkdir -p %s' %self.file" ,
@@ -157,14 +155,14 @@ class VCPURL:
             * a.ls("file*")
         """
         if http_protocol(self.protocol):
-            raise Expection("This method is not available for " + self.protocol + " protocol")
+            raise Exception("This method is not available for " + self.protocol + " protocol")
         
         command = eval(self.command[self.protocol]['ls'])
         if verbose:
             stderr.write(command + "\n")
         (err, out) = getstatusoutput(command)
         if err != 0 :
-            raise Expection("Error creating dir: " + str(err))
+            raise Exception("Error creating dir: " + str(err))
             
         out_list = out.split("\n")
         if self.protocol == "gsiftp":
@@ -192,7 +190,7 @@ class VCPURL:
         Create the directory pointed by self
         """
         if http_protocol(self.protocol):
-            raise Expection("This method is not available for " + self.protocol + " protocol")
+            raise Exception("This method is not available for " + self.protocol + " protocol")
         
         command = eval(self.command[self.protocol]['mkdir'])
         if verbose:
@@ -200,7 +198,7 @@ class VCPURL:
         (err, out) = getstatusoutput(command)
         
         if err != 0 :
-            raise Expection("Error creating dir: " + str(err))
+            raise Exception("Error creating dir: " + str(err))
         return 0
     
     def rm(self, verbose=False):
@@ -208,7 +206,7 @@ class VCPURL:
         Delete a file or folder
         """
         if http_protocol(self.protocol):
-            raise Expection("This method is not available for " + self.protocol + " protocol")
+            raise Exception("This method is not available for " + self.protocol + " protocol")
         
         command = eval(self.command[self.protocol]['rm'])
         if verbose: 
@@ -216,7 +214,7 @@ class VCPURL:
         (err, out) = getstatusoutput(command)
         
         if err != 0 : 
-            raise Expection("Error deleting file: " + str(err))
+            raise Exception("Error deleting file: " + str(err))
         return 0
     
     def rename(self, newname, verbose=False):
@@ -224,7 +222,7 @@ class VCPURL:
         Rename self into newname
         """
         if http_protocol(self.protocol):
-            raise Expection("This method is not available for " + self.protocol + " protocol")
+            raise Exception("This method is not available for " + self.protocol + " protocol")
         
         orig = eval(self.command[self.protocol]['name'])
         dest_folder = dirname(orig)
@@ -234,7 +232,7 @@ class VCPURL:
             stderr.write(command + "\n")
         (err, out) = getstatusoutput(command)
         if err != 0 :
-            raise Expection("Error listing file: " + str(err))
+            raise Exception("Error listing file: " + str(err))
         return 0
     
 
@@ -294,9 +292,9 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
     orig = VCPURL(origin)
     dest = VCPURL(destination)
     if http_protocol(dest.protocol):
-        raise Expection("Unable to copy if the destination protocol is " + dest.protocol)
+        raise Exception("Unable to copy if the destination protocol is " + dest.protocol)
     if http_protocol(orig.protocol) and dest.protocol != 'file':
-        raise Expection("Unable to copy if the destination protocol is not file://")
+        raise Exception("Unable to copy if the destination protocol is not file://")
     if dest.protocol == 'ln' and orig.protocol != 'file':
         dest.protocol = 'file'
     if verbose :
@@ -348,11 +346,24 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
                                   'dest'     : "dest.file"},
                        },
               }
-    
+
+    #If "orig" and "dest" are on the same machine, VCP will copy using cp command
+    if (dest.protocol == "rsync" or orig.protocol == "rsync") :
+        if (isfile(orig.file) and (isdir(dest.file) or isdir(dest.rsplit('/',1)[0]))) or \
+           (isdir(orig.file)  and isdir(dest.file)) or \
+           (orig[-1] == "*"   and isdir(orig[:-1])  and isdir(dest.file)):
+            orig.protocol = "file"
+            dest.protocol = "file"
+
     param = matrix[orig.protocol][dest.protocol]
     orig_file = eval(param['orig'])
     dest_file = eval(param['dest'])
     
+    #In order to copy using cp command "orig" and "dest" have to be "orig.file" and "dest.file"
+    if (dest.protocol == "file" or orig.protocol == "file") :
+        param['orig'] = orig.file
+        param['dest'] = dest.file
+
     # FILE --> GRIDFTP & GRIDFTP -->FILE
     # the globus-url-copy has a strange behavior when copy directories. To indicate that
     # a file is a directory it's necesary that the end of the name is a /.
@@ -365,6 +376,7 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
                 dest_file = dest_file + "/"
             elif dest.protocol == "file" and isdir(dest.file) :
                 dest_file = dest_file + "/" + basename(orig_file)
+    
     # Convert origin, destination and command to the appropiate one.
     param['orig'] = orig_file
     param['dest'] = dest_file
@@ -379,7 +391,7 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
         stderr.write("Command to copy " + command + "\n")
     (err, out) = getstatusoutput(command)
     if err != 0 :
-        raise Expection("Error copying file: " + str(err))
+        raise Exception("Error copying file: " + str(err))
     if verbose :
         elapsed = str((time.time()- start)/60)
         stderr.write("The copy lasted " + elapsed + " minutes\n")
@@ -397,7 +409,7 @@ def datewrf2datetime (datewrf):
 def dateiso2datetime (dateiso):
     g = match("(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z", dateiso)
     if not g :
-        raise Expection("Date is not well formed")
+        raise Exception("Date is not well formed")
     date_tuple = g.groups() 
     date_object = datetime.datetime(*tuple(map(int, date_tuple)))
     return date_object
