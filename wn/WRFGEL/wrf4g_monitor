@@ -9,10 +9,9 @@ log_file_wrf=$2
 #
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
-source ${ROOTDIR}/resources.wrf4g                               || exit ${ERROR_MISSING_WRF4GCNF}
-suf=$RANDOM # This is a fix to solve the problem with source.
-sed -e 's/\ *=\ */=/' ${ROOTDIR}/experiment.wrf4g > source.$suf || exit ${ERROR_MISSING_WRFINPUT}
-source source.$suf && rm source.$suf
+source ${ROOTDIR}/resources.wrf4g                          || exit ${ERROR_MISSING_WRF4GCNF}
+sed --in-place 's/\ *=\ */=/' ${ROOTDIR}/experiment.wrf4g  || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
+source ${ROOTDIR}/experiment.wrf4g
 
 file_patterns="wrfout wrfrst wrfrain wrfxtrm wrf24hc"
 wait_s=60
@@ -88,11 +87,11 @@ function clean_all(){
           # This time the files cannot be open by any process. We are uploading everything
           time_debug "Uploading ${file} (start)"
           if test $(filetype $file) == "out" -a ${wrfout_name_end_date} -eq 1; then
-                edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
+            edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
           fi
           post_and_register --no-bg $(filetype $file) $(filedate $file) $file $edate
           if test $(filetype $file) == "rst" -a $dom == "d01"; then
-            WRF4G.py Realization set_restart id=${WRF4G_REALIZATION_ID} $(filedate $file) # In the future kill the job if it can't contact the DB
+            output=$(WRF4G.py Realization set_restart id=${WRF4G_REALIZATION_ID} $(filedate $file)) # In the future kill the job if it can't contact the DB
           fi
           time_debug "Uploading ${file} (end)"
         fi
@@ -114,8 +113,8 @@ while true
 do
   let i++
   if test $i -eq 10;then
-     output=$(WRF4G.py Realization set_cdate id=${WRF4G_REALIZATION_ID} $(current_date))
-     i=0
+    output=$(WRF4G.py Realization set_cdate id=${WRF4G_REALIZATION_ID} $(current_date))
+    i=0
   fi
   if ps aux | awk '$2=='${wrf_pid}'' | grep -q wrf.exe
   then
