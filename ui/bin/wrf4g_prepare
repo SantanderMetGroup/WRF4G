@@ -242,7 +242,7 @@ fi
 
 sed --in-place 's/\ *=\ */=/' $RESOURCES_WRF4G
 source $RESOURCES_WRF4G
-sed --in-place 's/\ *=\ */=/' experiment.wrf4g  || exit ${ERROR_MISSING_WRFINPUT}
+sed --in-place 's/\ *=\ */=/' experiment.wrf4g  || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
 source experiment.wrf4g
 source ${WRF4G_LOCATION}/lib/bash/wrf_util.sh   || exit ${ERROR_MISSING_WRFUTIL}
 export WRF4G_EXPERIMENT="${experiment_name}"
