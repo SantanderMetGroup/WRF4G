@@ -13,39 +13,51 @@ class Logger():
     def __init__(self, loggingFileConf):
         logging.config.fileConfig(loggingFileConf)
         
-    def get_logger(loggerName):
+    def getLogger(self, loggerName):
         return logging.getLogger(loggerName)
     
     
 """
-Example of logging file conf
+Example of logging file configuration:
+  * The first handler lets a log file grow to a certain size, then open a new file and log to that.
+  * The second handler does basic configuration for the logging system.   
 
 [loggers]
-keys=root,simpleExample
+keys=root
 
 [handlers]
-keys=consoleHandler
+keys=hand01,hand02
 
 [formatters]
-keys=simpleFormatter
+keys=form01
 
 [logger_root]
-level=DEBUG
-handlers=consoleHandler
+level=NOTSET
+propagate=1
+channel=
+parent=
+qualname=(root)
+handlers=hand01,hand02
 
-[logger_simpleExample]
-level=DEBUG
-handlers=consoleHandler
-qualname=simpleExample
-propagate=0
+[handler_hand01]
+class=handlers.RotatingFileHandler
+level=NOTSET
+formatter=form01
+filename=logrecv.log
+mode=w
+maxBytes=1000000 
+backupCount=30
+args=('logrecv.log', 'w' ,1000000, 30)
 
-[handler_consoleHandler]
+[handler_hand02]
 class=StreamHandler
-level=DEBUG
-formatter=simpleFormatter
-args=(sys.stdout,)
+level=NOTSET
+formatter=form01
+stream=sys.stderr
+args=(sys.stderr,)
 
-[formatter_simpleFormatter]
-format=%(asctime)s - %(name)s - %(levelname)s - %(message)s
+[formatter_form01]
+format=%(asctime)s %(levelname)-9s %(name)-8s %(message)s
 datefmt=
+
 """
