@@ -1,7 +1,10 @@
 import sys
 import os
 import threading
-from drm4g.utils.logger import *
+
+WRF4G_LOCATION = os.environ['WRF4G_LOCATION']
+sys.path.insert(0, os.path.join(WRF4G_LOCATION, 'lib','python'))
+import logging_wrf4g
 from drm4g.core.configure import readHostList, parserHost
 from drm4g.managers import HostInformation
 from drm4g.utils.dynamic import ThreadPool
@@ -44,7 +47,7 @@ class GwImMad (object):
 		it contains a list of host attributes.
     """
 
-    logger = get_logger('drm4g.core.im_mad')
+    logger = logging_wrf4g.getLogger('drm4g.core.im_mad')
     message = Send()
     
     def __init__(self):
@@ -61,7 +64,7 @@ class GwImMad (object):
         """
         out = 'INIT - SUCCESS -'
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
         
     def do_DISCOVER(self, args):
         """
@@ -75,9 +78,8 @@ class GwImMad (object):
             out = 'DISCOVER %s SUCCESS %s' % (HID, ' '.join([hostname for hostname in hostList.keys()]))
         except Exception, e:
             out = 'DISCOVER - FAILURE %s' % (str(e))
-            self.logger.log(DEBUG, ' '.join(traceback.format_exc().splitlines()))
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
  
     def do_MONITOR(self, args):
         """
@@ -121,9 +123,8 @@ class GwImMad (object):
                 out = 'MONITOR %s FAILURE %s is not configured correctly' % (HID, HOST)
         except Exception, e:
             out = 'MONITOR %s FAILURE %s' % (HID, str(e))
-            self.logger.log(DEBUG, ' '.join(traceback.format_exc().splitlines()))
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)           
+        self.logger.debug(out)
  
     def do_FINALIZE(self, args):
         """
@@ -133,7 +134,7 @@ class GwImMad (object):
         """
         out =  'FINALIZE - SUCCESS -'
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
         sys.exit(0)
         
     methods = { 'INIT'	  : do_INIT,
@@ -150,7 +151,7 @@ class GwImMad (object):
             pool = ThreadPool(self._min_thread, self._max_thread)
             while True:
                 input = sys.stdin.readline().split()
-                self.logger.log(DEBUG, '<-- '  + ' '.join(input))
+                self.logger.debug(' '.join(input))
                 OPERATION = input[0].upper()
                 if len(input) == 4 and self.methods.has_key(OPERATION):
                     if OPERATION != 'MONITOR':
@@ -159,7 +160,7 @@ class GwImMad (object):
                         pool.add_task(self.methods[OPERATION], self, ' '.join(input))
                 else:
                     self.message.stdout('WRONG COMMAND')
-                    self.logger.log(DEBUG, '--> WRONG COMMAND')
+                    self.logger.debug(out)
         except Exception, e:
-            self.logger.log(DEBUG, '--> ' + str(e))
+            self.logger.warning(str(e))
             

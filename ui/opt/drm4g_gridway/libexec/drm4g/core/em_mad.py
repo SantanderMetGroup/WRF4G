@@ -4,10 +4,13 @@ import re
 import time
 import os
 import threading
+
+WRF4G_LOCATION = os.environ['WRF4G_LOCATION']
+sys.path.insert(0, os.path.join(WRF4G_LOCATION, 'lib','python'))
+import logging_wrf4g
 from string import Template
 from drm4g.utils.rsl2 import Rsl2Parser
 from drm4g.utils.list import List 
-from drm4g.utils.logger import *
 from drm4g.core.configure import readHostList, parserHost
 from drm4g.utils.dynamic import ThreadPool
 from drm4g.utils.message import Send
@@ -17,8 +20,6 @@ from drm4g.utils.importlib import import_module
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
 __revision__ = "$Id: em_mad.py 1357 2012-01-10 19:59:38Z carlos $"
-
-GW_LOCATION = os.environ['GW_LOCATION']
 
 class GwEmMad (object):
     """
@@ -61,7 +62,7 @@ class GwEmMad (object):
     -INFO: If RESULT is FAILURE, it contains the cause of failure. Otherwise, 
         if OPERATION is POLL or CALLBACK,it contains the state of the job.
     """
-    logger = get_logger('drm4g.core.em_mad')
+    logger = logging_wrf4g.getLogger('drm4g.core.em_mad')
     message = Send()
 
     def __init__(self):
@@ -81,7 +82,7 @@ class GwEmMad (object):
 	"""
 	out = 'INIT - SUCCESS -'
 	self.message.stdout(out)
-	self.logger.log(DEBUG, '--> ' + out)
+	self.logger.debug(out)
     
     def do_SUBMIT(self, args):
         """
@@ -127,7 +128,7 @@ class GwEmMad (object):
         except Exception, e:
             out = 'SUBMIT %s FAILURE %s' % (JID, str(e))
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
 
     def do_FINALIZE(self, args):
         """
@@ -137,7 +138,7 @@ class GwEmMad (object):
         """
         out = 'FINALIZE - SUCCESS -'
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
         sys.exit(0)    
     
     def do_POLL(self, args):
@@ -156,7 +157,7 @@ class GwEmMad (object):
         except Exception, e:
             out = 'POLL %s FAILURE %s' % (JID, str(e))
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
         
     def do_RECOVER(self, args):
         """
@@ -178,7 +179,7 @@ class GwEmMad (object):
         except Exception, e:
             out = 'RECOVER %s FAILURE %s' % (JID, str(e))    
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
             
     def do_CALLBACK(self):
         """
@@ -196,11 +197,11 @@ class GwEmMad (object):
                             self._JID_list.delete(JID)
                         out = 'CALLBACK %s SUCCESS %s' % (JID, newStatus)
                         self.message.stdout(out)
-                        self.logger.log(DEBUG, '--> ' + out)
+                        self.logger.debug(out)
                 except Exception, e:
                     out = 'CALLBACK %s FAILURE %s' % (JID, str(e))
                     self.message.stdout(out)
-                    self.logger.log(DEBUG, '--> ' + out)
+                    self.logger.debug(out)
                 time.sleep(0.1)
         
     def do_CANCEL(self, args):
@@ -219,7 +220,7 @@ class GwEmMad (object):
         except Exception, e:
             out = 'CANCEL %s FAILURE %s' % (JID, str(e))    
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
         
     methods = {'INIT'    : do_INIT,
                'SUBMIT'  : do_SUBMIT,
@@ -238,7 +239,7 @@ class GwEmMad (object):
             pool = ThreadPool(self._min_thread, self._max_thread)
             while True:
                 input = sys.stdin.readline().split()
-                self.logger.log(DEBUG, '<-- ' + ' '.join(input))
+                self.logger.debug(' '.join(input))
                 OPERATION = input[0].upper()
                 if len(input) == 4 and self.methods.has_key(OPERATION):
                     if OPERATION == 'FINALIZE' or OPERATION == 'INIT':
@@ -247,9 +248,9 @@ class GwEmMad (object):
                         pool.add_task(self.methods[OPERATION], self, ' '.join(input))    
                 else:
                     self.message.stdout('WRONG COMMAND')
-                    self.logger.log(DEBUG, '--> WRONG COMMAND')
+                    self.logger.debug(out)
         except Exception, e:
-            self.logger.log(DEBUG, '--> ' + str(e))
+            self.logger.warning(str(e))
 
     def _create_com(self, host):
         hostList = readHostList()
@@ -264,13 +265,17 @@ class GwEmMad (object):
                     com.workDirectory = hostConf.GW_RUNDIR
                     com.connect()
                 except:
-                    raise "It couldn't be connected to %s" %(host)
+                    out = "It couldn't be connected to %s" %(host)
+                    self.logger.warning(out)
+                    raise out
                 else:
                     self._com_list[hostname] = com
                     if hostConf.GW_RUNDIR == r'~':
                         out, err = com.execCommand('echo $HOME')
                         if err:
-                            raise "Couldn't obtain home directory : %s" % (' '.join(err.split('\n')))
+                            out = "Couldn't obtain home directory : %s" % (' '.join(err.split('\n')))
+                            self.logger.warning(out)
+                            raise out
                         self._host_list_conf[hostname].GW_RUNDIR = out.strip('\n')
                     self._resource_module_list[hostname] = import_module(RESOURCE_MANAGER[hostConf.LRMS_TYPE])
  
