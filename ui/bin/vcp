@@ -46,7 +46,6 @@ def main():
                            streams=options.streams)
     except Exception, e:
         print 'Caught exception: %s: %s' % (e.__class__, str(e))
-        traceback.print_exc(file=sys.stdout)
         sys.exit(-1)
 
 if __name__ == "__main__":
