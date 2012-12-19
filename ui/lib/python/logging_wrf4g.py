@@ -13,8 +13,8 @@ class Logger():
     def __init__(self, loggingFileConf):
         logging.config.fileConfig(loggingFileConf)
         
-    def getLogger(self, loggerName):
-        return logging.getLogger(loggerName)
+def getLogger(loggerName):
+    return logging.getLogger(loggerName)
     
     
 """
