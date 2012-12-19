@@ -14,6 +14,7 @@ function load_default_config (){
   real_parallel=0
   wrf_parallel=1
   VCPDEBUG="-v"
+  VCPRECURSIVE="-r"
   global_preprocessor="default"
   ERROR_MISSING_RESOURCESWRF4G=21
 }
@@ -132,7 +133,7 @@ function transfer_output_log (){
 
 function download_wps (){
   output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_DOWN_WPS})
-  vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/'*' . || wrf4g_exit ${ERROR_VCP_FAILED}
+  vcp ${VCPDEBUG} ${VCPRECURSIVE} ${WRF4G_DOMAINPATH}/${domain_name}/'*' . || wrf4g_exit ${ERROR_VCP_FAILED}
 }
 
 function run_modify_namelist (){ 
@@ -221,7 +222,7 @@ function run_real (){
   fi
   
   if test $(grep -c "SUCCESS COMPLETE REAL_EM" ${log_file_real}) -ne 1 ;then
-      wrf4g_exit ${ERROR_REAL_FAILED}
+    wrf4g_exit ${ERROR_REAL_FAILED}
   fi
 
   if test -e rsl.out.0000; then
@@ -383,6 +384,7 @@ vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/experiment.wrf4g 
 if [ $? -ne 0 ];then 
   vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/experiment.wrf4g . || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
 fi
+sed --in-place 's/\ *=\ */=/' experiment.wrf4g 
 source experiment.wrf4g
 
 #
