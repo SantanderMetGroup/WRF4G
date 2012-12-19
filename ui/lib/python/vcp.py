@@ -11,8 +11,8 @@ except Exception:
     print 'Caught exception: %s: %s' % (e.__class__, str(e))
 logger = logging_wrf4g.getLogger('vcp')
 
-def http_protocol(protocol):
-    if protocol == 'http' or protocol == 'https':
+def http_ftp_protocol(protocol):
+    if protocol == 'http' or protocol == 'https' or protocol == 'ftp':
         return True
     else :
         return False
@@ -108,6 +108,11 @@ class VCPURL:
                                        'rm'    : "" , 
                                        'rename': "" , 
                                        'name'  : "self.file"},
+                            'ftp'   : {'ls'   : "" ,
+                                       'mkdir' : "" ,
+                                       'rm'    : "" , 
+                                       'rename': "" , 
+                                       'name'  : "self.file"},    
                             'rsync' : {'ls'    : "'ssh -q %s ls -1 %s'    %(self.usercomputer, self.file)", 
                                        'mkdir' : "'ssh -q %s mkdir -p %s' %(self.usercomputer,self.file)", 
                                        'rm'    : "'ssh -q %s rm -rf %s'   %(self.usercomputer, self.file)" , 
@@ -164,7 +169,7 @@ class VCPURL:
             * a.ls()
             * a.ls("file*")
         """
-        if http_protocol(self.protocol):
+        if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
             logger.warning(out)
             raise Exception(out)
@@ -203,7 +208,7 @@ class VCPURL:
         """
         Create the directory pointed by self
         """
-        if http_protocol(self.protocol):
+        if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
             logger.warning(out)
             raise Exception(out)
@@ -223,7 +228,7 @@ class VCPURL:
         """
         Delete a file or folder
         """
-        if http_protocol(self.protocol):
+        if http_ftp_protocol(self.protocol):
             raise Exception("This method is not available for " + self.protocol + " protocol")
         
         command = eval(self.command[self.protocol]['rm'])
@@ -241,7 +246,7 @@ class VCPURL:
         """
         Rename self into newname
         """
-        if http_protocol(self.protocol):
+        if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
             logger.warning(out)
             raise Exception(out)
@@ -286,7 +291,7 @@ class wrffile :
             if not g:
                 out="File name is not well formed"
                 logger.warning(out)
-            raise Exception(out)
+                raise Exception(out)
             else :
                 base_file, date_file = g.groups()
                 self.date = dateiso2datetime(date_file)
@@ -319,11 +324,11 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
         stderr.write(out + "\n")
     orig = VCPURL(origin)
     dest = VCPURL(destination)
-    if http_protocol(dest.protocol):
+    if http_ftp_protocol(dest.protocol):
         out="Unable to copy if the destination protocol is " + dest.protocol
         logger.warning(out)
         raise Exception(out)
-    if http_protocol(orig.protocol) and dest.protocol != 'file':
+    if http_ftp_protocol(orig.protocol) and dest.protocol != 'file':
         out="Unable to copy if the destination protocol is not file://"
         logger.warning(out)
         raise Exception(out)
@@ -374,6 +379,12 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
                                   'dest'     : "dest.file"},
                         },
               'http': {'file' : {'verbose'   : '-v', 
+                                  'recursive': '-r', 
+                                  'command'  : "'wget %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "orig", 
+                                  'dest'     : "dest.file"},
+                       },
+              'ftp' : {'file' : {'verbose'   : '-v', 
                                   'recursive': '-r', 
                                   'command'  : "'wget %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
                                   'orig'     : "orig", 

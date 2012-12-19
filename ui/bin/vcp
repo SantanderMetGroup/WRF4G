@@ -28,6 +28,7 @@ def main():
     FILE             file:/valva
     HTTPS            https://www.meteo.unican.es/work/WRF4G.tar.gz
     HTTP             http://www.meteo.unican.es/work/WRF4G.tar.gz
+    FTP              ftp://www.meteo.unican.es/work/WRF4G.tar.gz
     """
     parser = OptionParser(usage, version="%prog 1.0")
     parser.add_option("-p", dest="streams", help="Specify the number of parallel data connections should be used.", metavar="STREAMS")
