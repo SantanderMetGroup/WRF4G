@@ -27,15 +27,15 @@ function date2int(){
 function WRF4G_structure (){
   out=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_DOWN_BIN})
 
-  vcp ${WRF4G_APPS}/WRFbin-${WRF_VERSION}.tar.gz . 
+  vcp ${VCPDEBUG} ${WRF4G_APPS}/WRFbin-${WRF_VERSION}.tar.gz . 
   tar xzf WRFbin-${WRF_VERSION}.tar.gz || wrf4g_exit ${ERROR_MISSING_WRFbin}
   rm WRFbin-${WRF_VERSION}.tar.gz
 
-  vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/namelist.input  WRFV3/run/namelist.input \
+  vcp ${VCPDEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/namelist.input  WRFV3/run/namelist.input \
     || wrf4g_exit ${ERROR_MISSING_NAMELIST}
 
   #   If there are additional files, expand them
-  vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/wrf4g_files.tar.gz ${ROOTDIR} &>/dev/null
+  vcp ${VCPDEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/wrf4g_files.tar.gz ${ROOTDIR} &>/dev/null
   if test -f ${ROOTDIR}/wrf4g_files.tar.gz; then
     tar xzf ${ROOTDIR}/wrf4g_files.tar.gz && rm ${ROOTDIR}/wrf4g_files.tar.gz
   fi
@@ -67,7 +67,7 @@ function prepare_runtime_environment(){
     export LD_LIBRARY_PATH=$OPAL_PREFIX/lib:$LD_LIBRARY_PATH
   fi
   
-  vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/prolog.wrf4g . &>/dev/null
+  vcp ${VCPDEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/prolog.wrf4g . &>/dev/null
   if [ $? -ne 0 ]; then 
     echo "* `date`: Using default configuration ... "
   else
@@ -380,9 +380,9 @@ source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
 #
 #   Try to download experiment from realization folder. If it doesn't exist download it from experiment.
 #
-vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/experiment.wrf4g . &>/dev/null
+vcp ${VCPDEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/experiment.wrf4g . &>/dev/null
 if [ $? -ne 0 ];then 
-  vcp ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/experiment.wrf4g . || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
+  vcp ${VCPDEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/experiment.wrf4g . || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
 fi
 sed --in-place 's/\ *=\ */=/' experiment.wrf4g 
 source experiment.wrf4g
