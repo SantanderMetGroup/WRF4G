@@ -30,7 +30,10 @@ def main():
             usage = 'Usage: %prog')
     options, args = parser.parse_args()
     try:
-        log_to_file(os.path.join(GW_LOCATION, 'var', '.drm4g_tm.log'))
+        logging_wrf4g.Logger(os.path.join(WRF4G_LOCATION, 'var','drm4g','tm_drm4g.ini'))
+    except :
+        pass
+    try:
         GwTmMad().processLine()
     except exceptions.KeyboardInterrupt, e:
         sys.exit(-1)
