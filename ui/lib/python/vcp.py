@@ -431,8 +431,7 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
         param['recursive'] = ""
     if not verbose: 
         param['verbose'] = ""
-    if verbose:
-        start = time.time()
+    start = time.time()
     command = eval(param['command'])
     
     out="Command to copy " + command
