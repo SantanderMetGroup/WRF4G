@@ -7,7 +7,7 @@ import time
 import logging_wrf4g
 try:
     logging_wrf4g.Logger(os.path.join(os.environ['WRF4G_LOCATION'], 'var','vcp','vcp.ini'))
-except Exception:
+except Exception, e:
     print 'Caught exception: %s: %s' % (e.__class__, str(e))
 logger = logging_wrf4g.getLogger('vcp')
 
@@ -117,7 +117,7 @@ class VCPURL:
                                        'mkdir' : "'ssh -q %s mkdir -p %s' %(self.usercomputer,self.file)", 
                                        'rm'    : "'ssh -q %s rm -rf %s'   %(self.usercomputer, self.file)" , 
                                        'rename': "'ssh -q %s mv %s %s'    %(self.usercomputer,orig,dest)", 
-                                       'name'  : "self.file"} ,
+                                       'name'  : "self.file"} ,xrandr
                             'gsiftp': {'ls'    : "'uberftp %s \"ls %s\" | awk \"NR>2\"' %(self.computer, self.file)" , 
                                        'mkdir' : "'uberftp %s \"mkdir %s\"'             %(self.computer, self.file)" , 
                                        'rm'    : "'uberftp %s \"rm -r %s\"'             %(self.computer, self.file)"  , 
