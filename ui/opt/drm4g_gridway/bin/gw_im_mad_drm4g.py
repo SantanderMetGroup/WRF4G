@@ -6,7 +6,7 @@ import traceback
 try:
     GW_LOCATION = os.environ['GW_LOCATION']
     WRF4G_LOCATION = os.environ['WRF4G_LOCATION']
-except Exception:
+except Exception, e:
     print 'Caught exception: %s: %s' % (e.__class__, str(e))
     sys.exit(-1)
 if sys.version_info < (2,4) and sys.version_info > (3,0):
