@@ -319,9 +319,10 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
     Copies origin in destination. Both are arrays containing the following field 
     [protocol,user,computer,port,file]
     """
+    
+    out="Starting to copy ..."
+    logger.debug(out)
     if verbose :
-        out="Starting to copy ..."
-        logger.debug(out)
         stderr.write(out + "\n")
     orig = VCPURL(origin)
     dest = VCPURL(destination)
@@ -335,9 +336,9 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
         raise Exception(out)
     if dest.protocol == 'ln' and orig.protocol != 'file':
         dest.protocol = 'file'
+    out = "Copying from " + orig.__str__() + " to " + dest.__str__()
+    logger.debug(out)   
     if verbose :
-        out = "Copying from " + orig.__str__() + " to " + dest.__str__()
-        logger.debug(out)
         stderr.write(out + "\n")
 
     matrix = {'file': {'file':   {'verbose'  : '-v', 
@@ -433,17 +434,19 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
     if verbose:
         start = time.time()
     command = eval(param['command'])
-    if verbose :
-        out="Command to copy " + command
-        logger.debug(out)
+    
+    out="Command to copy " + command
+    logger.debug(out)
+    if verbose :  
         stderr.write(out + "\n")
     (err, out) = getstatusoutput(command)
     if err != 0 :
         raise Exception("Error copying file: " + str(err))
-    if verbose :
-        elapsed = str((time.time()- start)/60)
-        out = "The copy lasted " + elapsed + " minutes"
-        logger.debug(out)
+
+    elapsed = str((time.time()- start)/60)
+    out = "The copy lasted " + elapsed + " minutes"
+    logger.debug(out)
+    if verbose :    
         stderr.write(out + "\n")
     return 0
 
