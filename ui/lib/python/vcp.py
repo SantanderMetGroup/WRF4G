@@ -6,10 +6,6 @@ from os import environ
 import datetime
 import time
 import logging_wrf4g
-try:
-    logging_wrf4g.Logger(join(environ['WRF4G_LOCATION'], 'var','vcp','vcp.ini'))
-except Exception, e:
-    print 'Caught exception: %s: %s' % (e.__class__, str(e))
 logger = logging_wrf4g.getLogger('vcp')
 
 def http_ftp_protocol(protocol):
@@ -109,7 +105,7 @@ class VCPURL:
                                        'rm'    : "" , 
                                        'rename': "" , 
                                        'name'  : "self.file"},
-                            'ftp'   : {'ls'   : "" ,
+                            'ftp'   : {'ls'    : "" ,
                                        'mkdir' : "" ,
                                        'rm'    : "" , 
                                        'rename': "" , 
