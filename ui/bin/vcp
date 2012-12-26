@@ -3,11 +3,16 @@
 from optparse import OptionParser
 import os.path
 import sys
-import traceback 
+import traceback
+import logging 
 
 try:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
     import vcp
+    try:
+        logging.config.fileConfig(os.path.join(os.path.dirname(__file__), '..','var', 'vcp','vcp.ini'))
+    except :
+        pass
 except Exception, e:
     print 'Caught exception: %s: %s' % (e.__class__, str(e))
     traceback.print_exc(file=sys.stdout)

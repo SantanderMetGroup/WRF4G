@@ -2,11 +2,10 @@ from re import match, search
 from sys import stderr
 from commands import getstatusoutput
 from os.path import abspath, isdir, isfile, basename, dirname, join
-from os import environ
+import os 
 import datetime
 import time
-import logging_wrf4g
-logger = logging_wrf4g.getLogger('vcp')
+import logging
 
 def http_ftp_protocol(protocol):
     if protocol == 'http' or protocol == 'https' or protocol == 'ftp':
@@ -59,10 +58,11 @@ class VCPURL:
         self.file         = ""
         self.command      = ""
         self.usercomputer = ""
+        self.logger = logging.getLogger(__name__)
         
         if not url:
             out = "Not an url"
-            logger.warning(out)
+            self.logger.error(out)
             raise Exception(out)
         else:
             # Split the url if the begging is protocol:
@@ -87,7 +87,7 @@ class VCPURL:
                             (self.user, self.computer) = self.computer.split("@")
                     else :
                         out="Url is not well formed"
-                        logger.warning(out)
+                        self.logger.error(out)
                         raise Exception(out)
                     
             self.command = {'file'  : {'ls'    : "'ls -1 %s'    %self.file" ,
@@ -168,7 +168,7 @@ class VCPURL:
         """
         if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
-            logger.warning(out)
+            self.logger.error(out)
             raise Exception(out)
         
         command = eval(self.command[self.protocol]['ls'])
@@ -177,7 +177,7 @@ class VCPURL:
         (err, out) = getstatusoutput(command)
         if err != 0 :
             out = "Error creating dir: " + str(err)
-            logger.warning(out)
+            self.logger.error(out)
             raise Exception(out)
             
         out_list = out.split("\n")
@@ -207,7 +207,7 @@ class VCPURL:
         """
         if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
-            logger.warning(out)
+            self.logger.error(out)
             raise Exception(out)
         
         command = eval(self.command[self.protocol]['mkdir'])
@@ -217,7 +217,7 @@ class VCPURL:
         
         if err != 0 :
             out = "Error creating dir: " + str(err)
-            logger.warning(out)
+            self.logger.error(out)
             raise Exception(out)
         return 0
     
@@ -235,7 +235,7 @@ class VCPURL:
         
         if err != 0 : 
             out="Error deleting file: " + str(err)
-            logger.warning(out)
+            self.logger.error(out)
             raise Exception(out)
         return 0
     
@@ -245,7 +245,7 @@ class VCPURL:
         """
         if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
-            logger.warning(out)
+            self.logger.error(out)
             raise Exception(out)
         
         orig = eval(self.command[self.protocol]['name'])
@@ -257,7 +257,7 @@ class VCPURL:
         (err, out) = getstatusoutput(command)
         if err != 0 :
             out="Error listing file: " + str(err)
-            logger.warning(out)
+            self.logger.error(out)
             raise Exception(out)
         return 0
     
@@ -287,7 +287,7 @@ class wrffile :
             g = search("(.*)(\d{8}T\d{6}Z)", url)
             if not g:
                 out="File name is not well formed"
-                logger.warning(out)
+                logging.getLogger(__name__).error(out)
                 raise Exception(out)
             else :
                 base_file, date_file = g.groups()
@@ -315,7 +315,7 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
     Copies origin in destination. Both are arrays containing the following field 
     [protocol,user,computer,port,file]
     """
-    
+    logger = logging.getLogger(__name__)
     out="Starting to copy ..."
     logger.debug(out)
     if verbose :
@@ -324,11 +324,11 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
     dest = VCPURL(destination)
     if http_ftp_protocol(dest.protocol):
         out="Unable to copy if the destination protocol is " + dest.protocol
-        logger.warning(out)
+        logger.error(out)
         raise Exception(out)
     if http_ftp_protocol(orig.protocol) and dest.protocol != 'file':
         out="Unable to copy if the destination protocol is not file://"
-        logger.warning(out)
+        logger.error(out)
         raise Exception(out)
     if dest.protocol == 'ln' and orig.protocol != 'file':
         dest.protocol = 'file'
