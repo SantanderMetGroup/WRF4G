@@ -1,10 +1,7 @@
 import sys
 import os
 import threading
-
-WRF4G_LOCATION = os.environ['WRF4G_LOCATION']
-sys.path.insert(0, os.path.join(WRF4G_LOCATION, 'lib','python'))
-import logging_wrf4g
+import logging
 from drm4g.core.configure import readHostList, parserHost
 from drm4g.managers import HostInformation
 from drm4g.utils.dynamic import ThreadPool

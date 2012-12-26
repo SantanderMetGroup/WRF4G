@@ -3,10 +3,7 @@ import threading
 import os
 import re
 import time
-
-WRF4G_LOCATION = os.environ['WRF4G_LOCATION']
-sys.path.insert(0, os.path.join(WRF4G_LOCATION, 'lib','python'))
-import logging_wrf4g
+import logging
 from drm4g.utils.url import urlparse
 from drm4g.utils.dynamic import ThreadPool
 from drm4g.core.configure import readHostList, parserHost
@@ -65,7 +62,7 @@ class GwTmMad (object):
     
     """
     
-    logger = logging_wrf4g.getLogger('drm4g.core.tm_mad')
+    logger = logging.getLogger(__name__)
     message = Send()
     
     def __init__(self):

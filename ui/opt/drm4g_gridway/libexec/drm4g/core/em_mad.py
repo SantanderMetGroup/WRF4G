@@ -4,10 +4,7 @@ import re
 import time
 import os
 import threading
-
-WRF4G_LOCATION = os.environ['WRF4G_LOCATION']
-sys.path.insert(0, os.path.join(WRF4G_LOCATION, 'lib','python'))
-import logging_wrf4g
+import logging
 from string import Template
 from drm4g.utils.rsl2 import Rsl2Parser
 from drm4g.utils.list import List 
@@ -62,7 +59,7 @@ class GwEmMad (object):
     -INFO: If RESULT is FAILURE, it contains the cause of failure. Otherwise, 
         if OPERATION is POLL or CALLBACK,it contains the state of the job.
     """
-    logger = logging_wrf4g.getLogger('drm4g.core.em_mad')
+    logger = logging.getLogger(__name__)
     message = Send()
 
     def __init__(self):

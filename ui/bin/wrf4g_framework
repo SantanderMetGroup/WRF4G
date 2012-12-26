@@ -19,7 +19,7 @@ export MYSQL_LOCATION=$WRF4G_LOCATION/opt/mysql-5.5
 export PATH=$GW_LOCATION/bin:$PATH
 
 function check_logger(){ 
-  files_to_test="drm4g/drm4g.ini vcp/vcp.ini" 
+  files_to_test="drm4g/drm4g_im.ini drm4g/drm4g_em.ini drm4g/drm4g_tm.ini vcp/vcp.ini" 
   for file in ${files_to_test}; do
     if test -f ${WRF4G_LOCATION}/var/${file}; then
       sed -i "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" ${WRF4G_LOCATION}/var/${file}

@@ -1,8 +1,6 @@
 import os
 import sys
-WRF4G_LOCATION = os.environ['WRF4G_LOCATION']
-sys.path.insert(0, os.path.join(WRF4G_LOCATION, 'lib','python'))
-import logging_wrf4g
+import logging
 from drm4g.global_settings import PATH_HOST, COMMUNICATOR, RESOURCE_MANAGER
 from drm4g.utils.openfile import cleaner
 from drm4g.utils.url import urlparse
@@ -11,16 +9,15 @@ __version__ = '0.1'
 __author__  = 'Carlos Blanco'
 __revision__ = "$Id: configure.py 1357 2012-01-10 19:59:38Z carlos $"
 
-logger = logging_wrf4g.getLogger('drm4g.configure')
-
 class ConfigureException(Exception):
     pass
   
 def readHostList():
+    logger = logging.getLogger(__name__)
     path = os.path.join(os.environ['GW_LOCATION'], PATH_HOST)    
     if not os.path.exists(path):
         out='Wrong PATH_HOST'
-        logger.warning(out)
+        logger.error(out)
         raise ConfigureException(out)
     lines = cleaner(path)
     hostList = { }
@@ -28,13 +25,14 @@ def readHostList():
         if line :
             if len (line.split()) != 2:
                 out = 'The line %d doesn\'t have two columns' % (i)
-                logger.warning(out)
+                logger.error(out)
                 raise out
             hostname, url = line.split()
             hostList[hostname] = url
     return hostList
 
 def parserHost(hostname, url):
+    logger = logging.getLogger(__name__)
     url_result = urlparse(url)
     scheme     = url_result.scheme.lower()
     name       = url_result.host
@@ -42,23 +40,23 @@ def parserHost(hostname, url):
     params     = url_result.params
     if not name:
         out='%s doesn\'t have hostname' % (hostname)
-        logger.warning(out)
+        logger.error(out)
         raise ConfigureException(out)
     if not username and (scheme != 'local'):
         out='%s doesn\'t have username' % (hostname)
-        logger.warning(out)
+        logger.error(out)
         raise ConfigureException(out)      
     if not COMMUNICATOR.has_key(scheme):
         out='%s has a wrong scheme "%s"' % (hostname, scheme)
-        logger.warning(out)
+        logger.error(out)
         raise ConfigureException(out)        
     if not params.has_key('LRMS_TYPE'):
         out='%s doesn\'t have a LRMS_TYPE' % (hostname)
-        logger.warning(out)
+        logger.error(out)
         raise ConfigureException(out)
     if not RESOURCE_MANAGER.has_key(params['LRMS_TYPE']):
         out='%s has a wrong LRMS_TYPE "%s"' % (hostname, params['LRMS_TYPE'])
-        logger.warning(out)
+        logger.error(out)
         raise ConfigureException(out)
     return HostConfiguration(scheme, name, username, params)
                 
