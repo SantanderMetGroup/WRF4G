@@ -4,7 +4,7 @@ from optparse import OptionParser
 import os.path
 import sys
 import traceback
-import logging 
+import logging.config
 
 try:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))

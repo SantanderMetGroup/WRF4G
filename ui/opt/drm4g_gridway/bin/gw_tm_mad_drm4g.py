@@ -3,7 +3,7 @@
 import sys
 import os
 import traceback
-import logging
+import logging.config
 try:
     GW_LOCATION = os.environ['GW_LOCATION']
     WRF4G_LOCATION = os.environ['WRF4G_LOCATION']
