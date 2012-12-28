@@ -4,6 +4,7 @@ from sys import stdout,stderr,exit,path
 import sys
 import inspect
 import os
+import logging.config
 try: 
     import vdb
     import vcp
@@ -950,7 +951,10 @@ if __name__ == "__main__":
     if len(args) < 2:
         parser.error("Incorrect number of arguments")
         exit(1)
-        
+    try:
+        logging.config.fileConfig(os.path.join(os.path.dirname(__file__), '..','var', 'vcp','vcp.ini'))
+    except:
+        pass
     class_name=args[0]
     function=args[1]    
     data=''
