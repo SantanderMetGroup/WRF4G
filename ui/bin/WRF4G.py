@@ -953,7 +953,7 @@ if __name__ == "__main__":
         exit(1)
     try:
         WRF4G_LOCATION = os.environ['WRF4G_LOCATION']
-        logging.config.fileConfig(os.path.join(WRF4G_LOCATION,'etc','logger.conf'),default={'WRF4G_LOCATION':WRF4G_LOCATION})
+        logging.config.fileConfig(os.path.join(WRF4G_LOCATION,'etc','logger.conf'),{'WRF4G_LOCATION':WRF4G_LOCATION})
     except:
         pass
     class_name=args[0]
