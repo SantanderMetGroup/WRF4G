@@ -952,7 +952,8 @@ if __name__ == "__main__":
         parser.error("Incorrect number of arguments")
         exit(1)
     try:
-        logging.config.fileConfig(os.path.join(os.path.dirname(__file__), '..','var', 'vcp','vcp.ini'))
+        WRF4G_LOCATION = os.environ['WRF4G_LOCATION']
+        logging.config.fileConfig(os.path.join(WRF4G_LOCATION,'etc','logger.ini'),default={'WRF4G_LOCATION':WRF4G_LOCATION})
     except:
         pass
     class_name=args[0]

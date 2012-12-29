@@ -44,7 +44,7 @@ class GwImMad (object):
 		it contains a list of host attributes.
     """
 
-    logger = logging.getLogger('drm4g.core.im_mad')
+    logger = logging.getLogger(__name__)
     message = Send()
     
     def __init__(self):
