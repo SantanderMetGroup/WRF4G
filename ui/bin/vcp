@@ -9,7 +9,7 @@ import logging.config
 try:
     
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
-    import vcp
+    import vcplib
     try:
         WRF4G_LOCATION = os.environ['WRF4G_LOCATION']
         logging.config.fileConfig(os.path.join(WRF4G_LOCATION,'etc','logger.conf'),{'WRF4G_LOCATION':WRF4G_LOCATION})
@@ -21,7 +21,7 @@ except Exception, e:
     sys.exit(-1)
 
 #***************************************************************************#
-#                                        VCP (MAIN)                                                     #
+#                                        vcp (MAIN)                                                     #
 #***************************************************************************#
 
 def main():
@@ -47,7 +47,7 @@ def main():
         parser.error("Incorrect number of arguments")
         sys.exit(-1)
     try:
-        output = vcp.copy_file(args[0], 
+        output = vcplib.copy_file(args[0], 
                            args[1], 
                            verbose=options.verbose, 
                            recursive=options.recursive, 

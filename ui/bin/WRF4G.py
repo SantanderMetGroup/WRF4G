@@ -7,12 +7,12 @@ import os
 import logging.config
 try: 
     import vdb
-    import vcp
+    import vcplib 
 except:
     path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
     try:
         import vdb
-        import vcp
+        import vcplib
     except Exception, e:
         print 'Caught exception: %s: %s' % (e.__class__, str(e))
         sys.exit(-1)
@@ -430,7 +430,7 @@ class Experiment(Component):
         exec open(RESOURCES_WRF4G).read()     
         # Load the URL into the VCPURL class
         exp_dir="%s/%s/" %(WRF4G_BASEPATH, self.data['name'])
-        list=vcp.VCPURL(exp_dir)
+        list=vcplib.VCPURL(exp_dir)
         list.mkdir(verbose=self.verbose)
         if os.path.exists('wrf4g_files'):
             import tarfile
@@ -440,14 +440,14 @@ class Experiment(Component):
                 tFile.add(file)
             tFile.close()
             os.chdir('..')
-            output=vcp.copy_file('wrf4g_files.tar.gz',exp_dir,verbose=self.verbose)    
+            output=vcplib.copy_file('wrf4g_files.tar.gz',exp_dir,verbose=self.verbose)    
             os.remove('wrf4g_files.tar.gz')  
             
-        output=vcp.copy_file(DB4G_CONF,exp_dir,verbose=self.verbose)
-        output=vcp.copy_file(RESOURCES_WRF4G,exp_dir,verbose=self.verbose) 
-        output=vcp.copy_file('experiment.wrf4g',exp_dir,verbose=self.verbose)
+        output=vcplib.copy_file(DB4G_CONF,exp_dir,verbose=self.verbose)
+        output=vcplib.copy_file(RESOURCES_WRF4G,exp_dir,verbose=self.verbose) 
+        output=vcplib.copy_file('experiment.wrf4g',exp_dir,verbose=self.verbose)
         if os.path.exists('prolog.wrf4g'):
-            output=vcp.copy_file('prolog.wrf4g',exp_dir,verbose=self.verbose)  
+            output=vcplib.copy_file('prolog.wrf4g',exp_dir,verbose=self.verbose)  
          
 class Realization(Component):
     """ 
@@ -681,12 +681,12 @@ class Realization(Component):
                 os.makedirs(subdir)
             os.chdir(subdir)
             rea_input='%s/%s/%s'%(WRF4G_BASEPATH,exp_name,rea_name)
-            rea_vcp=vcp.VCPURL(rea_input)
+            rea_vcp=vcplib.VCPURL(rea_input)
             orea=rea_vcp.ls('resources.wrf4g')
             if 'resources.wrf4g' in orea:
-                output=vcp.copy_file('%s/%s'%(rea_input,'resources.wrf4g'),'.',verbose=self.verbose)
+                output=vcplib.copy_file('%s/%s'%(rea_input,'resources.wrf4g'),'.',verbose=self.verbose)
             else:
-                output=vcp.copy_file('%s/%s/%s'%(WRF4G_BASEPATH,exp_name,'resources.wrf4g'),'.',verbose=self.verbose)           
+                output=vcplib.copy_file('%s/%s/%s'%(WRF4G_BASEPATH,exp_name,'resources.wrf4g'),'.',verbose=self.verbose)           
             self.prepared=1   
         
     def ps(self, number_of_characters):
@@ -730,13 +730,13 @@ class Realization(Component):
         exec open(RESOURCES_WRF4G).read()        
         reas=self.data['name'].split('__')
         rea_dir="%s/%s/%s/" % (WRF4G_BASEPATH,reas[0],self.data['name'])
-        list=vcp.VCPURL(rea_dir)
+        list=vcplib.VCPURL(rea_dir)
         list.mkdir(verbose=self.verbose)
         for dir in ["output","restart","realout","log"]:
           repo="%s/%s" % (rea_dir,dir)
-          list=vcp.VCPURL(repo)
+          list=vcplib.VCPURL(repo)
           list.mkdir(verbose=self.verbose)
-        output=vcp.copy_file('namelist.input',rea_dir,verbose=self.verbose) 
+        output=vcplib.copy_file('namelist.input',rea_dir,verbose=self.verbose) 
         #os.remove('namelist.input') 
         #os.remove('namelist.input.base')
                              
