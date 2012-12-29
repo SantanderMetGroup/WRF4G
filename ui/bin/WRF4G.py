@@ -6,12 +6,12 @@ import inspect
 import os
 import logging.config
 try: 
-    import vdb
+    import vdblib
     import vcplib 
 except:
     path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
     try:
-        import vdb
+        import vdblib
         import vcplib
     except Exception, e:
         print 'Caught exception: %s: %s' % (e.__class__, str(e))
@@ -91,7 +91,7 @@ def getuserid(name,dbc):
     if len(idp) == 0:
         id=dbc.insert('User',{'name': name})
     else:
-        id = vdb.list_query().one_field(idp)
+        id = vdblib.list_query().one_field(idp)
     return id      
 
 
@@ -102,7 +102,7 @@ if DB4G_CONF == None:
 exec open(DB4G_CONF).read() 
 
 load_default_values()
-dbc=vdb.vdb(host=WRF4G_DB_HOST, user=WRF4G_DB_USER, db=WRF4G_DB_DATABASE, port=WRF4G_DB_PORT, passwd=WRF4G_DB_PASSWD)
+dbc=vdblib.vdb(host=WRF4G_DB_HOST, user=WRF4G_DB_USER, db=WRF4G_DB_DATABASE, port=WRF4G_DB_PORT, passwd=WRF4G_DB_PASSWD)
 
 
 class Environment:
@@ -111,7 +111,7 @@ class Environment:
     
     def list_experiments(self):
         idp=dbc.select('Experiment','id','1=1')
-        id = vdb.parse_one_list(idp,interpreter='python')
+        id = vdblib.parse_one_list(idp,interpreter='python')
         return id
         
 
@@ -152,7 +152,7 @@ class Component:
         wheresta=wheresta[4:]
         
         idp=dbc.select(self.element,'id',wheresta,verbose=self.verbose)
-        id = vdb.list_query().one_field(idp)
+        id = vdblib.list_query().one_field(idp)
         if id !='': return id
         else: return -1
     
@@ -309,7 +309,7 @@ class Experiment(Component):
         wheresta=''
         
         idp=dbc.select(self.element,'id',"name='%s'"%self.data['name'],verbose=self.verbose)
-        id = vdb.list_query().one_field(idp)
+        id = vdblib.list_query().one_field(idp)
         self.data['id']=id
         if id !='': return id
         else: return -1
@@ -367,7 +367,7 @@ class Experiment(Component):
         ids of an experiment"""        
         
         idp=dbc.select('Realization','id','id_exp=%s'%self.data['id'],verbose=self.verbose)
-        ids_rea = vdb.list_query().one_field(idp,'python')
+        ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea 
     
     def get_unfinishedreas_id(self):
@@ -375,7 +375,7 @@ class Experiment(Component):
         Return a list of ids of the realization of a experiment which haven't finished.
         """
         idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status!=4 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s'%self.data['id'],verbose=self.verbose)
-        ids_rea = vdb.list_query().one_field(idp,'python')
+        ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea
 
     def get_run_reas_id(self):
@@ -383,7 +383,7 @@ class Experiment(Component):
         Return a list of ids of the realization of a experiment which are running.
         """
         idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=2 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s AND Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND c2.status=3)'%self.data['id'],verbose=self.verbose)
-        ids_rea = vdb.list_query().one_field(idp,'python')
+        ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea      
     
     def get_fail_reas_id(self):
@@ -391,7 +391,7 @@ class Experiment(Component):
         Return a list of ids of the realization of a experiment which have finished. Any of the Realization Chunks have the status 3.
         """
         idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=3 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s'%self.data['id'],verbose=self.verbose)
-        ids_rea = vdb.list_query().one_field(idp,'python')
+        ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea  
 
     def get_prepared_reas_id(self):
@@ -401,7 +401,7 @@ class Experiment(Component):
         # SELECT DISTINCT(Realization.id) From Chunk,Realization where Realization.id=Chunk.id_rea AND Realization.id_exp=2 and Chunk.status = 1 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Chunk.id_rea AND c2.status!=1)
         condition='Realization.id=Chunk.id_rea AND Realization.id_exp=%s and Chunk.status = 0 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND (c2.status!=0 and c2.status!=4))'%self.data['id']
         idp=dbc.select('Chunk,Realization','DISTINCT Realization.id',condition,verbose=self.verbose)
-        ids_rea = vdb.list_query().one_field(idp,'python')
+        ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea   
 
     def get_done_reas_id(self):
@@ -411,7 +411,7 @@ class Experiment(Component):
         # SELECT DISTINCT(Realization.id) From Chunk,Realization where Realization.id=Chunk.id_rea AND Realization.id_exp=2 and Chunk.status = 1 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Chunk.id_rea AND c2.status!=1)
         condition='Realization.id=Chunk.id_rea AND Realization.id_exp=%s and Chunk.status = 4 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND c2.status!=4)'%self.data['id']
         idp=dbc.select('Chunk,Realization','DISTINCT Realization.id',condition,verbose=self.verbose)
-        ids_rea = vdb.list_query().one_field(idp,'python')
+        ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea
 
     def get_wait_reas_id(self):
@@ -419,7 +419,7 @@ class Experiment(Component):
         Return a list of ids of the realization of a experiment which have finished.
         """
         idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=1 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s AND Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND (c2.status=2 OR c2.status=3 ) )'%self.data['id'],verbose=self.verbose)
-        ids_rea = vdb.list_query().one_field(idp,'python')
+        ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea  
     
     def prepare_storage(self):          
@@ -474,7 +474,7 @@ class Realization(Component):
 
         wheresta=''
         idp=dbc.select(self.element,'id',"name='%s'"%self.data['name'],verbose=self.verbose)
-        id = vdb.list_query().one_field(idp)
+        id = vdblib.list_query().one_field(idp)
         self.data['id']=id
         if id !='': return id
         else: return -1
@@ -516,20 +516,20 @@ class Realization(Component):
     def get_init_status(self):
         
         dst=dbc.select('Chunk','status','id_rea=%s AND id_chunk=1'%self.data['id'] )
-        st=vdb.parse_one_field(dst)
+        st=vdblib.parse_one_field(dst)
         return st
     
     def current_chunk_status(self):
         status=0
         nchunks=self.number_of_chunks()
         failed=dbc.select('Chunk','MIN(id_chunk)','id_rea=%s AND status=3'%self.data['id'] )
-        id_chunk=vdb.parse_one_field(failed)
+        id_chunk=vdblib.parse_one_field(failed)
         
         if id_chunk:     
             status=3
         else:
             did=dbc.select('Chunk','MAX(id_chunk)','id_rea=%s AND status=4'%self.data['id'])
-            id_chunk=vdb.parse_one_field(did)
+            id_chunk=vdblib.parse_one_field(did)
             if id_chunk == None:
                 id_chunk=0
             if id_chunk == nchunks:
@@ -553,12 +553,12 @@ class Realization(Component):
     def number_of_chunks(self):
         
         nchunkd=dbc.select('Chunk','COUNT(Chunk.id_chunk)','id_rea=%s'%self.data['id'])
-        nchunk=vdb.parse_one_field(nchunkd)
+        nchunk=vdblib.parse_one_field(nchunkd)
         return nchunk
         
     def last_chunk(self):        
         nchunkd=dbc.select('Chunk','MAX(Chunk.id)','id_rea=%s'%self.data['id'])
-        nchunk=vdb.parse_one_field(nchunkd)
+        nchunk=vdblib.parse_one_field(nchunkd)
         return nchunk 
          
     def run(self,nchunk=0,priority=0,rerun=False,force=False,repeatchunk=0,type_dep="afterany"):
@@ -743,7 +743,7 @@ class Realization(Component):
     def is_finished(self,id_rea):
         
         max_id=dbc.select('Chunk','MAX(id)','id_rea=%s'%id_rea,verbose=self.verbose)
-        status=dbc.select('Chunk','status','id=%s'%vdb.parse_one_field(max_id),verbose=self.verbose)
+        status=dbc.select('Chunk','status','id=%s'%vdblib.parse_one_field(max_id),verbose=self.verbose)
         if status == '4':
             return 1
         else:
@@ -833,7 +833,7 @@ class Chunk(Component):
    
     def get_last_job(self):
         last_job=dbc.select('Job','MAX(Job.id)','Job.id_chunk=%s'%self.data['id'])
-        lj=vdb.parse_one_field(last_job)
+        lj=vdblib.parse_one_field(last_job)
         return int(lj)
     
 class Job(Component):
