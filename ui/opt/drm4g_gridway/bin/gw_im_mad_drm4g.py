@@ -16,7 +16,7 @@ if sys.version_info < (2,4) and sys.version_info > (3,0):
 try:
     sys.path.insert(0, os.path.join(GW_LOCATION, 'libexec'))
     try:
-        logging.config.fileConfig(os.path.join(WRF4G_LOCATION,'etc','logger.conf'),{'WRF4G_LOCATION':WRF4G_LOCATION})
+        logging.config.fileConfig(os.path.join(WRF4G_LOCATION,'etc','logger.conf'))
     except :
         pass
 except Exception, e:
