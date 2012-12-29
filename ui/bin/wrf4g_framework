@@ -18,20 +18,8 @@ export GW_LOCATION=$WRF4G_LOCATION/opt/drm4g_gridway
 export MYSQL_LOCATION=$WRF4G_LOCATION/opt/mysql-5.5
 export PATH=$GW_LOCATION/bin:$PATH
 
-function check_logger(){ 
-  files_to_test="drm4g/drm4g_im.ini drm4g/drm4g_em.ini drm4g/drm4g_tm.ini vcp/vcp.ini" 
-  for file in ${files_to_test}; do
-    if test -f ${WRF4G_LOCATION}/var/${file}; then
-      sed -i "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" ${WRF4G_LOCATION}/var/${file}
-    else
-      echo -e "WARNING:  ${WRF4G_LOCATION}/var/${file} does not exist"
-    fi
-  done
-}
-
 case "$1" in
     start)
-        check_logger
         echo -n "Starting GridWay ...."
         grep '://' $FRAMEWORK4G_CONF > $GW_LOCATION/etc/hosts_drm4g.list
         sed -i "s#\$HOSTNAME#$HOSTNAME#" $FRAMEWORK4G_CONF
