@@ -562,7 +562,7 @@ class Realization(Component):
         return nchunk 
          
     def run(self,nchunk=0,priority=0,rerun=False,force=False,repeatchunk=0,type_dep="afterany"):
-        import gridway   
+        import gridwaylib   
 
         WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
         if WRF4G_LOCATION == None:
@@ -641,7 +641,7 @@ class Realization(Component):
             if self.dryrun == False:      
                 self.prepare_gridway()   
                 exec open('resources.wrf4g').read()     
-                job=gridway.job()
+                job=gridwaylib.job()
                 sandbox='file://%s/etc/templates/WRF4G.sh,file://%s/etc/templates/WRF4G-%s.tar.gz,file://%s/etc/db4g.conf,resources.wrf4g'%(WRF4G_LOCATION,WRF4G_LOCATION,WRF4G_VERSION,WRF4G_LOCATION)
                 job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS,environ=ENVIRONMENT,inputsandbox=sandbox,verbose=self.verbose)
                 if chunki == first_id:
@@ -750,7 +750,7 @@ class Realization(Component):
             return 0
 
     def stop_running_chunks(self):
-        import gridway
+        import gridwaylib
         WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
         os.environ['GW_LOCATION']='%s/opt/drm4g_gridway'%WRF4G_LOCATION
         # SELECT Chunk.id,MAX(Job.id)  FROM Chunk,Job WHERE Chunk.id=Job.id_chunk AND Chunk.id>1 AND (Chunk.status=1 OR Chunk.status=2)  GROUP BY Chunk.id
@@ -763,14 +763,14 @@ class Realization(Component):
             j=Job(data={'id':couple['MAX(Job.id)']})
             job_id.append(j.get_gw_job())
             
-        task=gridway.job()
+        task=gridwaylib.job()
         to=task.kill(job_id)
         condition="id_rea=%s AND (status=1 OR status=2)"%self.data['id']
         data={'status':0}
         output=dbc.update('Chunk',data,'%s'%condition,verbose=self.verbose)
 
     def change_priority(self, priority):
-        import gridway
+        import gridwaylib
         WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
         os.environ['GW_LOCATION']='%s/opt/drm4g_gridway'%WRF4G_LOCATION
         # SELECT Chunk.id,MAX(Job.id)  FROM Chunk,Job WHERE Chunk.id=Job.id_chunk AND Chunk.id>1 AND (Chunk.status=1 OR Chunk.status=2)  GROUP BY Chunk.id
@@ -782,7 +782,7 @@ class Realization(Component):
             chunk_id.append(couple['id'])
             j=Job(data={'id':couple['MAX(Job.id)']})
             job_id.append(j.get_gw_job())
-        task=gridway.job()
+        task=gridwaylib.job()
         to=task.change_priority(priority,job_id)
                   
 class Chunk(Component):
