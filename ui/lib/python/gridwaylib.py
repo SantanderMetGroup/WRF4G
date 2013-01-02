@@ -2,10 +2,11 @@ import commands
 import os
 import sys
 
-GW_LOCATION = os.environ.get('GW_LOCATION', None)
-if GW_LOCATION == None:
-    sys.stderr.write('GW_LOCATION is not defined. Please define it and try again\n')
-    sys.exit(1)
+WRF4G_LOCATION = os.environ.get('WRF4G_LOCATION', None)
+if not WRF4G_LOCATION:
+    sys.stderr.write("WRF4G_LOCATION is not defined")
+    sys.exit(-1)
+GW_LOCATION = WRF4G_LOCATION + '/opt/drm4g_gridway'
     
 class job:
     """
