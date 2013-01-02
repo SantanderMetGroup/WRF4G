@@ -88,7 +88,7 @@ function prepare_runtime_environment(){
   # If WRF4G is going to run in a shared folder do not copy the
   # binary and input files. Otherwise copy them.
   if [ $prepare_openmpi -eq 1 ]; then
-    if test -n "${WRF4G_RUN_LOCAL}"; then    
+    if test -n "${GW_LOCALDIR}"; then    
       local_openmpi=1	   
     fi
   fi
