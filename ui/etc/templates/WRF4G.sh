@@ -410,19 +410,9 @@ fi
 #
 #   Should we unpack here or there is a local filesystem for us to run?
 #
-if test -z "${WRF4G_RUN_LOCAL}"; then
-  if test -n "${GW_LOCALDIR}";then
-    WRF4G_RUN_LOCAL=${GW_LOCALDIR}
-  fi
-  test -d  ${WRF4G_RUN_LOCAL} || wrf4g_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
-fi
-
-if test -n "${WRF4G_RUN_LOCAL}"; then
-  if test "${WRF4G_RUN_LOCAL:0:4}" = "var:" ; then
-    eval "WRF4G_RUN_LOCAL=\$$(echo ${WRF4G_RUN_LOCAL} | sed -e 's/var://')"
-  fi
-  LOCALDIR="${WRF4G_RUN_LOCAL}/wrf4g.$(date +%Y%m%d%H%M%S%N)"
-  mkdir ${LOCALDIR} || wrf4g_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
+if test -n "${GW_LOCALDIR}"; then
+  LOCALDIR=${GW_LOCALDIR}
+  test -d ${LOCALDIR} || wrf4g_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
   cd ${LOCALDIR}
 else
   LOCALDIR=${ROOTDIR}
