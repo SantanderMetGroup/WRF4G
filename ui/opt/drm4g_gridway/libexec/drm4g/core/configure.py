@@ -31,9 +31,8 @@ def readHostList():
         logger.error(error)
         raise ConfigureException(error)
     else:
-        hosts = parser.options(HOST_SECTION)
-        for host, value in parser.items(section_name):
-            host_list[host] = value
+        for host in parser.options(HOST_SECTION):
+            host_list[host] = parser.get(HOST_SECTION, host)
         return host_list
 
 def parserHost(hostname, url):
