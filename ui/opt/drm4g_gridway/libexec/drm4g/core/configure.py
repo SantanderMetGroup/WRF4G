@@ -1,8 +1,8 @@
 import os
 import sys
 import logging
-from drm4g.global_settings import PATH_HOST, COMMUNICATOR, RESOURCE_MANAGER
-from drm4g.utils.openfile import cleaner
+from ConfigParser import SafeConfigParser
+from drm4g.global_settings import PATH_HOSTS, COMMUNICATOR, RESOURCE_MANAGER, HOST_SECTION
 from drm4g.utils.url import urlparse
 
 __version__ = '0.1'
@@ -13,23 +13,28 @@ class ConfigureException(Exception):
     pass
   
 def readHostList():
-    logger = logging.getLogger(__name__)
-    path = os.path.join(os.environ['GW_LOCATION'], PATH_HOST)    
-    if not os.path.exists(path):
-        out='Wrong PATH_HOST'
+    logger = logging.getLogger(__name__)    
+    if not os.path.exists(PATH_HOSTS):
+        out='Wrong PATH_HOSTS'
         logger.error(out)
         raise ConfigureException(out)
-    lines = cleaner(path)
-    hostList = { }
-    for i, line in enumerate(lines.split('\n')):
-        if line :
-            if len (line.split()) != 2:
-                out = 'The line %d doesn\'t have two columns' % (i)
-                logger.error(out)
-                raise out
-            hostname, url = line.split()
-            hostList[hostname] = url
-    return hostList
+    parser = SafeConfigParser()
+    try:
+        parser.read(PATH_HOSTS)
+    except Exception, err:
+        error = 'Error reading ' + PATH_HOSTS + ' file: ' + str(err)
+        logger.error(error)
+        raise ConfigureException(error)
+    host_list = { }
+    if not parser.has_section(HOST_SECTION):
+        error = PATH_HOSTS + ' file does not have ' + HOST_SECTION + ' section'
+        logger.error(error)
+        raise ConfigureException(error)
+    else:
+        hosts = parser.options(HOST_SECTION)
+        for host, value in parser.items(section_name):
+            host_list[host] = value
+        return host_list
 
 def parserHost(hostname, url):
     logger = logging.getLogger(__name__)

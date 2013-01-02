@@ -23,5 +23,14 @@ RESOURCE_MANAGER = {
 # HOSTS #
 #########
 
-PATH_HOST = r"etc/hosts_drm4g.list"
+#File to parser
+PATH_HOSTS = __import__('os').environ['GW_LOCATION'] + "../etc/framework4g.conf"
 
+#Section to parser
+HOST_SECTION = "ComputingResources"
+
+##########
+# LOGGER #
+##########
+
+PATH_LOGGER = __import__('os').environ['WRF4G_LOCATION'] + "../etc/logger.conf"

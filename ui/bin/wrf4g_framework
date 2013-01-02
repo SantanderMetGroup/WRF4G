@@ -21,7 +21,7 @@ export PATH=$GW_LOCATION/bin:$PATH
 case "$1" in
     start)
         echo -n "Starting GridWay ...."
-        grep '://' $FRAMEWORK4G_CONF > $GW_LOCATION/etc/hosts_drm4g.list
+        
         sed -i "s#\$HOSTNAME#$HOSTNAME#" $FRAMEWORK4G_CONF
 
         if test -f ${WRF4G_LOCATION}/etc/resources.wrf4g; then
