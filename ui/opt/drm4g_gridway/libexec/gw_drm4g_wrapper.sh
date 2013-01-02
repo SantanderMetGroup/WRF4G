@@ -84,7 +84,7 @@ setup(){
     else
         printf "`date`: Checking remote job home... "
  
-        RMT_JOB_HOME=${GW_RUNDIR}.gw_${GW_USER}_${GW_JOB_ID}
+        RMT_JOB_HOME=${GW_SCRATCH_DIR}.gw_${GW_USER}_${GW_JOB_ID}
     
         echo "done."
 

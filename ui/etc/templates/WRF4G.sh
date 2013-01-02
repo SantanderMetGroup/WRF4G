@@ -88,7 +88,7 @@ function prepare_runtime_environment(){
   # If WRF4G is going to run in a shared folder do not copy the
   # binary and input files. Otherwise copy them.
   if [ $prepare_openmpi -eq 1 ]; then
-    if test -n "${GW_LOCALDIR}"; then    
+    if test -n "${GW_RUN_DIR}"; then    
       local_openmpi=1	   
     fi
   fi
@@ -410,8 +410,8 @@ fi
 #
 #   Should we unpack here or there is a local filesystem for us to run?
 #
-if test -n "${GW_LOCALDIR}"; then
-  LOCALDIR=${GW_LOCALDIR}
+if test -n "${GW_RUN_DIR}"; then
+  LOCALDIR=${GW_RUN_DIR}
   test -d ${LOCALDIR} || wrf4g_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
   cd ${LOCALDIR}
 else

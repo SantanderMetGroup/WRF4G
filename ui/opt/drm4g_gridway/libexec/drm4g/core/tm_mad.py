@@ -208,7 +208,7 @@ class GwTmMad (object):
                     com = getattr(import_module(COMMUNICATOR[hostConf.SCHEME]), 'Communicator')()
                     com.hostName      = hostConf.HOST
                     com.userName      = hostConf.USERNAME
-                    com.workDirectory = hostConf.GW_RUNDIR
+                    com.workDirectory = hostConf.GW_SCRATCH_DIR
                     com.connect()
                 except:
                     out = "It couldn't be connected to %s" %(host)  
