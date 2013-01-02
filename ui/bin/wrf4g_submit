@@ -110,7 +110,7 @@ try:
         finally:     
             f.close()
     
-except exceptions.SystemExit:
+except exceptions.KeyboardInterrupt:
     WRF4G.dbc.rollback()
     WRF4G.dbc.close()
     exit(-1)      

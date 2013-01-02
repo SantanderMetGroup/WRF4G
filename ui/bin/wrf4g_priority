@@ -86,10 +86,8 @@ try:
                 rea.change_priority(options.priority)
         finally: 
             f.close()
-except exceptions.SystemExit:
-    WRF4G.dbc.commit()
+except exceptions.KeyboardInterrupt:
     WRF4G.dbc.close()    
     sys.exit(-1)
 else:
-    WRF4G.dbc.commit()
     WRF4G.dbc.close()

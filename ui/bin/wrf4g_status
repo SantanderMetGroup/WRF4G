@@ -81,12 +81,10 @@ try:
     	    for id_exp in lexp:
                 exp=WRF4G.Experiment(data={'id':'%s'%id_exp})    	
                 out=exp.summarized_status(options.number_of_characters)
-except exceptions.SystemExit:
-    WRF4G.dbc.rollback()
+except exceptions.KeyboardInterrupt:
     WRF4G.dbc.close()
     exit(-1)
-else: 
-    WRF4G.dbc.commit()
+else:
     WRF4G.dbc.close()
 
 
