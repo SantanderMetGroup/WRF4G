@@ -103,7 +103,6 @@ case "$1" in
         $0 start
         ;;
     reload)
-        check_logger
         # Only reloads gridway
    	echo -n "Reloading GridWay ...."
         gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
