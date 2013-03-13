@@ -268,6 +268,58 @@ class wrffile :
     It recieves a file name with one of the following shapes: wrfrst_d01_1991-01-01_12:00:00 or
     wrfrst_d01_19910101T120000Z and it return the date of the file, the name,...
     """
+    vcp_matrix = {'file': {'file':   {'verbose'  : '-v', 
+                                  'recursive': '-R', 
+                                  'command'  : "'cp %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "orig.file", 
+                                  'dest'     : "dest.file"},
+                       'rsync':  {'verbose'  : '-v', 
+                                  'recursive': '', 
+                                  'command'  : "'rsync -au %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "orig.file", 
+                                  'dest'     : "dest"},
+                       'ln':     {'verbose'  : '-v', 
+                                  'recursive': '',
+                                  'command'  : "'ln -s %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "orig.file",
+                                  'dest'     : "dest.file"},
+                       'gsiftp': {'verbose'  : '-v', 
+                                  'recursive': '-r -cd', 
+                                  'command'  : "'globus-url-copy %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "str(orig)", 
+                                  'dest'     : "str(dest)"},
+                       },
+              'gsiftp':{'file':  {'verbose'  : '-v', 
+                                  'recursive': '-r -cd', 
+                                  'command'  : "'globus-url-copy %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "str(orig)", 
+                                  'dest'     : "str(dest)"},
+                        },
+              'rsync': {'file' : {'verbose'  : '-v', 
+                                  'recursive': '', 
+                                  'command'  : "'rsync -au %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "orig", 
+                                  'dest'     : "dest.file"},
+                        },
+              'https': {'file' : {'verbose'  : '-v', 
+                                  'recursive': '-r', 
+                                  'command'  : "'wget %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "orig", 
+                                  'dest'     : "dest.file"},
+                        },
+              'http': {'file' : {'verbose'   : '-v', 
+                                  'recursive': '-r', 
+                                  'command'  : "'wget %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "orig", 
+                                  'dest'     : "dest.file"},
+                       },
+              'ftp' : {'file' : {'verbose'   : '-v', 
+                                  'recursive': '-r', 
+                                  'command'  : "'wget %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "orig", 
+                                  'dest'     : "dest.file"},
+                       },
+              }
     
     def __init__(self, url, edate=None):
         """
@@ -332,73 +384,20 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
         raise Exception(out)
     if dest.protocol == 'ln' and orig.protocol != 'file':
         dest.protocol = 'file'
-    out = "Copying from " + orig.__str__() + " to " + dest.__str__()
-    logger.debug(out)   
-    if verbose :
-        stderr.write(out + "\n")
-
-    matrix = {'file': {'file':   {'verbose'  : '-v', 
-                                  'recursive': '-R', 
-                                  'command'  : "'cp %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                                  'orig'     : "orig.file", 
-                                  'dest'     : "dest.file"},
-                       'rsync':  {'verbose'  : '-v', 
-                                  'recursive': '', 
-                                  'command'  : "'rsync -au %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                                  'orig'     : "orig.file", 
-                                  'dest'     : "dest"},
-                       'ln':     {'verbose'  : '-v', 
-                                  'recursive': '',
-                                  'command'  : "'ln -s %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                                  'orig'     : "orig.file",
-                                  'dest'     : "dest.file"},
-                       'gsiftp': {'verbose'  : '-v', 
-                                  'recursive': '-r -cd', 
-                                  'command'  : "'globus-url-copy %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                                  'orig'     : "str(orig)", 
-                                  'dest'     : "str(dest)"},
-                       },
-              'gsiftp':{'file':  {'verbose'  : '-v', 
-                                  'recursive': '-r -cd', 
-                                  'command'  : "'globus-url-copy %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                                  'orig'     : "str(orig)", 
-                                  'dest'     : "str(dest)"},
-                        },
-              'rsync': {'file' : {'verbose'  : '-v', 
-                                  'recursive': '', 
-                                  'command'  : "'rsync -au %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                                  'orig'     : "orig", 
-                                  'dest'     : "dest.file"},
-                        },
-              'https': {'file' : {'verbose'  : '-v', 
-                                  'recursive': '-r', 
-                                  'command'  : "'wget %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                                  'orig'     : "orig", 
-                                  'dest'     : "dest.file"},
-                        },
-              'http': {'file' : {'verbose'   : '-v', 
-                                  'recursive': '-r', 
-                                  'command'  : "'wget %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                                  'orig'     : "orig", 
-                                  'dest'     : "dest.file"},
-                       },
-              'ftp' : {'file' : {'verbose'   : '-v', 
-                                  'recursive': '-r', 
-                                  'command'  : "'wget %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                                  'orig'     : "orig", 
-                                  'dest'     : "dest.file"},
-                       },
-              }
 
     #If "orig" and "dest" are on the same machine, VCP will copy using cp command
     if (dest.protocol == "rsync" or orig.protocol == "rsync") :
-        if (isfile(orig.file) and (isdir(dest.file) or isdir(dest.rsplit('/',1)[0]))) or \
+        if (isfile(orig.file) and (isdir(dest.file) or isdir(dest.file.rsplit('/',1)[0]))) or \
            (isdir(orig.file)  and isdir(dest.file)) or \
-           (orig.file[-1] == "*"  and isdir(orig.file[:-1]) and isdir(dest.file)):
+           ("*" in orig.file  and isdir(orig.file.rsplit('/',1)[0]) and isdir(dest.file)):
             orig.protocol = "file"
             dest.protocol = "file"
-
-    param = matrix[orig.protocol][dest.protocol]
+            
+    out = "Copying from " + orig.__str__() + " to " + dest.__str__()
+    logger.debug(out)   
+    if verbose :
+        stderr.write(out + "\n")        
+    param = self.vcp_matrix[orig.protocol][dest.protocol]
     orig_file = eval(param['orig'])
     dest_file = eval(param['dest'])
     
