@@ -71,7 +71,7 @@ case "$1" in
 		echo -n "Stopping GridWay ...."
 		rm -f $GW_LOCATION/var/.lock
         if test ! -f $GW_LOCATION/var/gwd.port; then
-        	echo -e " FAILED. \nGridWay already stopped." 
+        	echo -e " FAILED. GridWay already stopped." 
     	else
         	gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
         	gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
@@ -83,15 +83,18 @@ case "$1" in
         source db4g.conf.temp; rm db4g.conf.temp
         if [ $WRF4G_DB_LOCAL -eq 1 ]; then
         	if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
-            	echo -e " FAILED. \nMySQL already stopped." 
+            	echo -e " FAILED. MySQL already stopped." 
+        	else
+        		mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
+        		if test -n "`ps h -p $mysql_pid`" ; then 
+            		mysql_ppid=$(ps h -p $mysql_pid -o ppid)
+	    			if test -n $mysql_ppid; then kill -9 $mysql_ppid ;fi
+	    			if test -n $mysql_pid ; then kill -9 $mysql_pid ;fi
+	    			echo " OK"
+	    		else
+	    			echo -e " FAILED. Problems stopping MySQL."
+	    		fi
         	fi
-        	mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
-        	if test -n "`ps h -p $mysql_pid`" ; then 
-            	mysql_ppid=$(ps h -p $mysql_pid -o ppid)
-	    		if test -n $mysql_ppid; then kill -9 $mysql_ppid ;fi
-	    		if test -n $mysql_pid ; then kill -9 $mysql_pid ;fi
-        	fi
-			echo " OK"
         fi
         ;;
     restart)
