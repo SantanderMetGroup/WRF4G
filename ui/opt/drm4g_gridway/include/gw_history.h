@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/* Copyright 2002-2011, GridWay Project Leads (GridWay.org)                   */
+/* Copyright 2002-2012, GridWay Project Leads (GridWay.org)                   */
 /*                                                                            */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License. You may obtain    */
@@ -83,7 +83,7 @@ typedef struct gw_history_xfr_s
     char *alt_src_url;
 
     char mode;
-	
+
     gw_boolean_t done;
     gw_boolean_t success;
 } gw_history_xfr_t;
@@ -105,11 +105,12 @@ typedef struct gw_history_s
     char *em_rc;
     char *em_fork_rc;
     char *queue;
-    	
+ 
     int tries;
-	int failed_polls;
-	int counter;
-	
+    int failed_polls;
+    int cancel_tries;
+    int counter;
+
     gw_migration_reason_t reason;
 
     struct gw_history_s * next;

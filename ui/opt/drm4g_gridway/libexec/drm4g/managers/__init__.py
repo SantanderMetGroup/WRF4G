@@ -2,11 +2,11 @@ import re
 import xml.dom.minidom
 import os
 import subprocess
-from drm4g.utils.logger import *
+import logging
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: __init__.py 1361 2012-01-17 10:26:27Z carlos $"
+__revision__ = "$Id: __init__.py 1789 2013-03-26 16:55:32Z carlos $"
 
 
 def sec_to_H_M_S(sec):
@@ -19,7 +19,7 @@ class JobException(Exception):      pass
     
 class Resource (object):
 
-    logger = get_logger('drm4g.managers')
+    logger = logging.getLogger(__name__)
    
     def __init__(self):
         self._communicator = None
@@ -45,7 +45,7 @@ class Resource (object):
 
     def setTotalCpu(self, totalCpu):
         self._totalCpu = totalCpu
-    TotalCpu     = property(getTotalCpu, setTotalCpu)    
+    TotalCpu = property(getTotalCpu, setTotalCpu)    
 
     def staticNodes(self, hid, total_cpu):
         command_proc = subprocess.Popen('gwhost -x %s' % (hid),
@@ -65,63 +65,26 @@ class Resource (object):
            return (total_cpu , free_cpu)
         
     def hostProperties(self): 
-        try:
-            out, err = self.Communicator.execCommand('uname -n -r -m -o')
-            if not err:
-                return out.split() #hostname,os_version,arch,os_name 
-        except Exception, e:
-            self.logger.log(DEBUG, str(e))
+        """
+        hostPropertis will return a tuple with hostname, OS version, architecture, OS name
+        """
+        out, err = self.Communicator.execCommand('uname -n -r -m -o')
+        if not err:
+            return out.split()  
+        else:
+            self.logger.log(DEBUG, ' '.join(err.split('\n')))
             return ('NULL', 'NULL', 'NULL', 'NULL')
-
-    def cpuProperties(self): 
-        try:
-            out, err = self.Communicator.execCommand('grep -e \"model name\" -e \"cpu MHz\" /proc/cpuinfo')
-            if not err:
-                re_cpu = re.compile(r'^model name\s*:\s*(.+)\s*cpu MHz\s*:\s*(\d+).*').match(out) 
-                if re_cpu:
-                    return re_cpu.groups()
-                else:
-                    return ('NULL','0') 
-        except Exception, e:
-            self.logger.log(DEBUG, str(e))
-            return ('NULL','0') 
-      
-    def memProperties(self):
-        try:
-            out, err = self.Communicator.execCommand('grep -e MemTotal -e MemFree /proc/meminfo')
-            if not err:
-                re_mem = re.compile(r'MemTotal:\s*(\d+).*\s*MemFree:\s*(\d+)').search(out)
-                if re_mem: 
-                    return re_mem.groups()
-                else:
-                    return ('0','0')
-        except Exception, e:
-            self.logger.log(DEBUG, str(e))
-            return ('0','0')
-     
-    def diskProperties(self):
-        try:
-            out, err = self.Communicator.execCommand('df -B 1K $HOME')
-            if not err:
-                line_elements = out.strip().split()
-                return (line_elements[-5] , line_elements[-3])
-            else:
-                return ('0', '0')
-        except Exception, e:
-            self.logger.log(DEBUG, str(e))
-            return ('0', '0')
-
+          
     # To overload
-    def dynamicNodes(self):
-        pass
-  
-    def queuesProperties(self, searchQueue, project):
+    def queueProperties(self, queueName):
         pass
 
     def lrmsProperties(self):
         pass
 
 class Job (object):
+    
+    logger = logging.getLogger(__name__)
     
     def __init__(self):
         self._communicator = None
@@ -160,6 +123,13 @@ class Job (object):
     
     def refreshJobStatus(self):
         self.Status = self.jobStatus()
+    
+    def getHomeDirectory(self):
+        out, err = self.Communicator.execCommand('echo $HOME')
+        if not err:
+            return out.strip('\n')
+        else:
+            raise JobException("Couldn't obtain home directory : %s" % (' '.join(err.split('\n'))))
         
     def createWrapper(self, localWrapperDirectory, stringTemplate):
         try:
@@ -320,9 +290,8 @@ class HostInformation:
         self._lrmsType   = "NULL"
         self._queues     = [] 
  
-    def addQueue(self, queues):
-        for queue in queues:
-            self._queues.append(queue)
+    def addQueue(self, queue):
+        self._queues.append(queue)
         
     def showQueues(self):
         return self._queues

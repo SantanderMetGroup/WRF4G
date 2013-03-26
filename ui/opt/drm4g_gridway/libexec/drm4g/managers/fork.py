@@ -4,7 +4,7 @@ import os
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: fork.py 1357 2012-01-10 19:59:38Z carlos $"
+__revision__ = "$Id: fork.py 1763 2013-02-11 14:19:22Z carlos $"
 
 SH = '/bin/bash'
 
@@ -14,28 +14,18 @@ class Resource (drm4g.managers.Resource):
     def lrmsProperties(self):
         return ('FORK' ,'FORK')
 
-    def dynamicNodes(self):
-        out, err = self.Communicator.execCommand('grep -c processor /proc/cpuinfo')
-        if err: 
-            raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
-        total_cpu = int(out.rstrip('\n')) 
-        out, err = self.Communicator.execCommand('ps -ef | grep .wrapper | grep -v grep | wc -l') 
-        if err: 
-            raise drm4g.managers.ResourceException(' '.join(err.split('\n')))        
-        return (str(total_cpu) , str(total_cpu - int(out.rstrip('\n'))))
-
-    def queuesProperties(self, searchQueue, project):
-        queue = drm4g.managers.Queue()
-        queue.Name         = 'default'
+    def queueProperties(self, queueName):
+        queue              = drm4g.managers.Queue()
+        queue.Name         = queueName
         queue.Nodes        = self.TotalCpu
         queue.FreeNodes    = self.FreeCpu
         queue.DispatchType = 'Immediate'
-        return [queue]
+        return queue
 
 class Job (drm4g.managers.Job):
     
-    def jobSubmit(self, path_script):
-        out, err = self.Communicator.execCommand('%s %s' % (SH, path_script))
+    def jobSubmit(self, pathScript):
+        out, err = self.Communicator.execCommand('%s %s' % (SH, pathScript))
         if err: 
             raise drm4g.managers.JobException(' '.join(err.split('\n')))
         job_id = out.rstrip('\n')

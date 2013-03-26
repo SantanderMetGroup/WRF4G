@@ -8,7 +8,7 @@ import logging
 from string import Template
 from drm4g.utils.rsl2 import Rsl2Parser
 from drm4g.utils.list import List 
-from drm4g.core.configure import readHostList, parserHost
+from drm4g.core.configure import readHostList, parserHost, CheckConfigFile
 from drm4g.utils.dynamic import ThreadPool
 from drm4g.utils.message import Send
 from drm4g.global_settings import COMMUNICATOR, RESOURCE_MANAGER
@@ -16,7 +16,7 @@ from drm4g.utils.importlib import import_module
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: em_mad.py 1357 2012-01-10 19:59:38Z carlos $"
+__revision__ = "$Id: em_mad.py 1788 2013-03-26 16:55:06Z carlos $"
 
 class GwEmMad (object):
     """
@@ -63,52 +63,50 @@ class GwEmMad (object):
     message = Send()
 
     def __init__(self):
-	self._callback_interval    = 30 #seconds
-	self._max_thread           = 100
-	self._min_thread           = 5
-        self._JID_list             = List()
-        self._host_list_conf       = { } 
-        self._com_list             = { }
-        self._resource_module_list = { }
+        self._callback_interval = 30 #seconds
+        self._max_thread        = 100
+        self._min_thread        = 5
+        self._JID_list          = List()
+        self._host_properties   = { }
+        self._lock              = threading.Lock()
+        self._config_file_time  = None
 	        
     def do_INIT(self, args):
-	"""
-	Initializes the MAD (i.e. INIT - - -)
-	@param args : arguments of operation
+        """
+        Initializes the MAD (i.e. INIT - - -)
+        @param args : arguments of operation
         @type args : string
-	"""
-	out = 'INIT - SUCCESS -'
-	self.message.stdout(out)
-	self.logger.debug(out)
-    
+        """
+        out = 'INIT - SUCCESS -'
+        self.message.stdout(out)
+        self.logger.debug(out)
+  
     def do_SUBMIT(self, args):
         """
         Submits a job(i.e. SUBMIT JID HOST/JM RSL).
-	@param args : arguments of operation
+        @param args : arguments of operation
         @type args : string
         """
         OPERATION, JID, HOST_JM, RSL = args.split()
         try:
             HOST, JM = HOST_JM.rsplit('/',1)
- 
-            # Init ResourceManager class
-            if not self._resource_module_list.has_key(HOST):
-                self._create_com(HOST) 
-            job = getattr(self._resource_module_list[HOST], 'Job')()
-            job.Communicator = self._com_list[HOST]
+            hostConf, com = self._updateHost(HOST)
+            
+            # Init Job class
+            job = getattr(import_module(RESOURCE_MANAGER[hostConf.LRMS_TYPE]), 'Job')()
+            job.Communicator = com
 
             # Parse rsl
             rsl_var = Rsl2Parser(RSL).parser()
-            hostConf = self._host_list_conf[HOST]
-            rsl_var['environment']['GW_SCRATCH_DIR'] = hostConf.GW_SCRATCH_DIR
-            if hostConf.GW_RUN_DIR:
-                rsl_var['environment']['GW_RUN_DIR'] = hostConf.GW_RUN_DIR
-            if hostConf.PROJECT:
-                rsl_var['PROJECT'] = hostConf.PROJECT
-            rsl_var['mpi'] = hostConf.MPI_TAG
-            rsl_wrapper_directory = rsl_var.setdefault('directory',rsl_var['executable'].split('/')[0])
+            rsl_var['PROJECT']      = hostConf.PROJECT
+            rsl_var['parallel_env'] = hostConf.PARALLEL_TAG
+            rsl_wrapper_directory   = rsl_var.setdefault('directory',rsl_var['executable'].split('/')[0])
+            if hostConf.TEMP_DIR == r'~':
+                hostConf.TEMP_DIR = job.getHomeDirectory()
+            if hostConf.RUN_DIR:
+                rsl_var['environment']['RUN_DIR'] = hostConf.RUN_DIR
             for k in "stdout", "stderr", "directory", "executable":
-                rsl_var[k] = "%s/%s" % (hostConf.GW_SCRATCH_DIR, rsl_var[k])
+                rsl_var[k] = "%s/%s" % (hostConf.TEMP_DIR, rsl_var[k])
 
             # Create and copy wrapper_drm4g 
             local_wrapper_directory  = '%s/wrapper_drm4g.%s' % (RSL.rsplit('/',1)[0] , RSL.split('.')[-1])
@@ -150,7 +148,7 @@ class GwEmMad (object):
                 status = self._JID_list.get(JID).Status
                 out = 'POLL %s SUCCESS %s' % (JID, status)
             else:
-                out = 'POLL %s FAILURE Job not submited' % (JID) 
+                out = 'POLL %s FAILURE Job not submitted' % (JID) 
         except Exception, e:
             out = 'POLL %s FAILURE %s' % (JID, str(e))
         self.message.stdout(out)
@@ -165,10 +163,9 @@ class GwEmMad (object):
         OPERATION, JID, HOST_JM, RSL = args.split()
         try:
             host, remoteJobId = HOST_JM.split(':')
-            if not self._resource_module_list.has_key(host):
-                self._create_com(host)
-            job = getattr(self._resource_module_list[host], 'Job')()
-            job.Communicator = self._com_list[host]
+            hostConf, com = self._updateHost(host)
+            job = getattr(import_module(RESOURCE_MANAGER[hostConf.LRMS_TYPE]), 'Job')()
+            job.Communicator = com
             job.JobId = remoteJobId
             job.refreshJobStatus()
             self._JID_list.put(JID, job)
@@ -213,7 +210,7 @@ class GwEmMad (object):
                 self._JID_list.get(JID).jobCancel()
                 out = 'CANCEL %s SUCCESS -' % (JID)
             else:
-                out = 'CANCEL %s FAILURE Job not submited' % (JID)
+                out = 'CANCEL %s FAILURE Job not submitted' % (JID)
         except Exception, e:
             out = 'CANCEL %s FAILURE %s' % (JID, str(e))    
         self.message.stdout(out)
@@ -234,45 +231,58 @@ class GwEmMad (object):
             worker = threading.Thread(target = self.do_CALLBACK, )
             worker.setDaemon(True); worker.start()
             pool = ThreadPool(self._min_thread, self._max_thread)
+            self._config_file_time = CheckConfigFile()
             while True:
                 input = sys.stdin.readline().split()
                 self.logger.debug(' '.join(input))
                 OPERATION = input[0].upper()
                 if len(input) == 4 and self.methods.has_key(OPERATION):
-                    if OPERATION == 'FINALIZE' or OPERATION == 'INIT':
+                    if OPERATION == 'FINALIZE' or OPERATION == 'INIT' \
+                        or OPERATION == 'RECOVER':
                         self.methods[OPERATION](self, ' '.join(input))
                     else:
                         pool.add_task(self.methods[OPERATION], self, ' '.join(input))    
                 else:
-                    self.message.stdout('WRONG COMMAND')
+                    out = 'WRONG COMMAND'
+                    self.message.stdout(out)
                     self.logger.debug(out)
         except Exception, e:
             self.logger.warning(str(e))
-
-    def _create_com(self, host):
-        hostList = readHostList()
-        for hostname, url in hostList.items():
-            if hostname == host:
-                try:
-                    hostConf = parserHost(hostname, url)
-                    self._host_list_conf[hostname] = hostConf
-                    com = getattr(import_module(COMMUNICATOR[hostConf.SCHEME]), 'Communicator')()
-                    com.hostName = hostConf.HOST
-                    com.userName = hostConf.USERNAME
-                    com.workDirectory = hostConf.GW_SCRATCH_DIR
-                    com.connect()
-                except:
-                    out = "It couldn't be connected to %s" %(host)
-                    self.logger.warning(out)
-                    raise out
+              
+    def _updateHost(self, host):
+        self._lock.acquire()
+        try:
+            if self._config_file_time.test() or not self._host_properties or not self._host_properties.has_key(host):
+                hostList = readHostList()
+                hostConf = parserHost(host, hostList.get(host))
+                if not self._host_properties.has_key(host):
+                    communicator = self._createCom(hostConf) 
                 else:
-                    self._com_list[hostname] = com
-                    if hostConf.GW_SCRATCH_DIR == r'~':
-                        out, err = com.execCommand('echo $HOME')
-                        if err:
-                            out = "Couldn't obtain home directory : %s" % (' '.join(err.split('\n')))
-                            self.logger.warning(out)
-                            raise out
-                        self._host_list_conf[hostname].GW_SCRATCH_DIR = out.strip('\n')
-                    self._resource_module_list[hostname] = import_module(RESOURCE_MANAGER[hostConf.LRMS_TYPE])
- 
+                    oldHostConf, oldCommunicator = self._host_properties.get(host)
+                    if hostConf.resource_attrs() != oldHostConf.resource_attrs():
+                        oldCommunicator.close()
+                        communicator = self._createCom(hostConf)
+                    else:
+                        communicator = self._host_properties.get(host)[1]
+                self._host_properties[host] = ( hostConf, communicator)
+                return hostConf, communicator
+            else: 
+                return self._host_properties.get(host)
+        finally:
+            self._lock.release()        
+            
+    def _createCom(self, hostConf):
+        try:
+            com               = getattr(import_module(COMMUNICATOR[hostConf.SCHEME]), 'Communicator')()
+            com.hostName      = hostConf.HOST
+            com.userName      = hostConf.USERNAME
+            com.workDirectory = hostConf.TEMP_DIR
+            com.keyFile       = hostConf.SSH_KEY_FILE
+            com.port          = hostConf.PORT
+            com.connect()
+            return com
+        except Exception, e:
+            out = "It couldn't be connected to %s : %s" %(hostConf.HOST, str(e))
+            self.logger.warning(out)
+            raise Exception(out)
+

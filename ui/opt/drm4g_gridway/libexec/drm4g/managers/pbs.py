@@ -1,11 +1,10 @@
 import drm4g.managers 
 from string import Template
-from drm4g.managers import sec_to_H_M_S
 import re
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: pbs.py 1362 2012-01-17 12:14:28Z carlos $"
+__revision__ = "$Id: pbs.py 1766 2013-02-14 10:20:21Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
@@ -18,54 +17,39 @@ class Resource (drm4g.managers.Resource):
 
     def lrmsProperties(self):
         return ('PBS', 'PBS') 
- 
-    def dynamicNodes(self):
-        out, err = self.Communicator.execCommand("%s | egrep 'np' | awk -F = '{print $2}'" % (PBSNODES))
-        if err: 
-            raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
-        total_cpu  = sum([int(elem) for elem in out.split()])
-        out, err = self.Communicator.execCommand("%s | egrep ' jobs' | awk -F = '{print $2}'" % (PBSNODES))
-        if err:
-            raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
-        busy_cpu = out.count('/')
-        free_cpu = total_cpu - busy_cpu  
-        return (str(total_cpu), str(free_cpu))
 
-    def queuesProperties(self, searchQueue, project):
-        out, err = self.Communicator.execCommand('%s -q' % (QSTAT))
+    def queueProperties(self, queueName):
+        queue              = drm4g.managers.Queue()
+        queue.Name         = queueName
+        queue.DispatchType = 'batch'
+        queue.Nodes        = self.TotalCpu
+        queue.FreeNodes    = self.FreeCpu
+        out, err = self.Communicator.execCommand('%s -q %s' % (QSTAT, queueName))
         #output line --> Queue Memory CPU_Time Walltime Node Run Que Lm State
-        if err:
-            raise drm4g.managers.ResourceException(' '.join(err.split('\n')))
-        queues = []
-        for val in out.split('\n')[5:]:
-            try:
-                queueName, _, cpuTime, wallTime, _, _, _, lm = val.split()[0:8]
-            except:
-                pass
-            else:    
-                if (queueName == searchQueue) or not searchQueue:
-                    queue              = drm4g.managers.Queue()
-                    queue.Name         = queueName
-                    queue.Nodes        = self.TotalCpu
-                    queue.FreeNodes    = self.FreeCpu
-                    queue.DispatchType = 'batch'
-                    time = re.compile(r'(\d+):(\d+):\d+')
-                    if cpuTime != '--':
-                        try:
-                            hours, minutes   = time.search(cpuTime).groups()
-                            queue.MaxCpuTime = str(int(hours) * 60 + int(minutes))
-                        except: pass
-                    if wallTime != '--':
-                        try:
-                            hours, minutes   = time.search(wallTime).groups()
-                            queue.MaxTime    = str(int(hours) * 60 + int(minutes))
-                        except: pass
-                    if lm != '--':
-                        try: 
-                            queue.MaxRunningJobs = lm
-                        except: pass
-                    queues.append(queue)
-        return queues
+        try:
+            queueName, _, cpuTime, wallTime, _, _, _, lm = val.split()[0:8]
+        except:
+            pass
+        else:
+            reTime = re.compile(r'(\d+):(\d+):\d+')
+            if cpuTime != '--':
+                try:
+                    hours, minutes   = reTime.search(cpuTime).groups()
+                    queue.MaxCpuTime = str(int(hours) * 60 + int(minutes))
+                except:
+                    pass
+            if wallTime != '--':
+                try:
+                    hours, minutes   = reTime.search(wallTime).groups()
+                    queue.MaxTime    = str(int(hours) * 60 + int(minutes))
+                except:
+                    pass
+            if lm != '--':
+                try:
+                    queue.MaxRunningJobs = lm
+                except: 
+                    pass
+        return queue
 
 class Job (drm4g.managers.Job):
    
@@ -80,8 +64,8 @@ class Job (drm4g.managers.Job):
                   'C': 'DONE',	    #Job finalize.
                 }
     
-    def jobSubmit(self, path_script):
-        out, err = self.Communicator.execCommand('%s %s' % (QSUB, path_script))
+    def jobSubmit(self, pathScript):
+        out, err = self.Communicator.execCommand('%s %s' % (QSUB, pathScript))
         if err: 
             raise drm4g.managers.JobException(' '.join(err.split('\n')))
         return out.strip() #job_id
@@ -104,29 +88,27 @@ class Job (drm4g.managers.Job):
     def jobTemplate(self, parameters):
         args  = '#!/bin/bash\n'
         args += '#PBS -N JID_%s\n' % (parameters['environment']['GW_JOB_ID'])
-        if parameters.has_key('PROJECT'):
+        if parameters['PROJECT']:
             args += '#PBS -P $PROJECT\n'
         args += '#PBS -q $queue\n'
         args += '#PBS -o $stdout\n'
         args += '#PBS -e $stderr\n'
         if parameters.has_key('maxWallTime'): 
-            args += '#PBS -l walltime=%s\n' % (sec_to_H_M_S(parameters['maxWallTime']))
+            args += '#PBS -l walltime=$maxWallTime\n' 
         if parameters.has_key('maxCpuTime'): 
-            args += '#PBS -l cput=%s\n' % (sec_to_H_M_S(parameters['maxCpuTime']))
+            args += '#PBS -l cput=$maxCpuTime\n' 
         if parameters.has_key('maxMemory'):
-            args += '#PBS -l vmem=%sMB\n' % (parameters['maxMemory'])
-        if parameters.has_key('tasksPerNode'):
-            node_count = int(parameters['count']) / int(parameters['tasksPerNode'])
-            if node_count == 0: node_count = 1
-            args += '#PBS -l nodes=%d:ppn=$tasksPerNode\n' % (node_count)
+            args += '#PBS -l vmem=$maxMemoryMB\n'
+        if parameters.has_key('ppn'):
+            node_count = int(parameters['count']) / int(parameters['ppn'])
+            if node_count == 0:
+                node_count = 1
+            args += '#PBS -l nodes=%d:ppn=$ppn\n' % (node_count)
         else:
             args += '#PBS -l nodes=$count\n'
         args += '#PBS -v %s\n' % (','.join(['%s=%s' %(k, v) for k, v in parameters['environment'].items()]))
         args += 'cd $directory\n'
-        if parameters['jobType'] == "mpi":
-            args += 'mpiexec -np $count $executable\n'
-        else:
-            args += '$executable\n'
+        args += '$executable\n'
         return Template(args).safe_substitute(parameters)
 
 

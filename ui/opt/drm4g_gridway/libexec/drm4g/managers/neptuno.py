@@ -13,16 +13,15 @@ MSUB    = 'msub'   #submit a job
 SQUEUE  = 'squeue'   #show status of jobs
 SCANCEL = 'scancel'  #delete a job
 
-class Resource (drm4g.managers.slrum.Resource):
-    MAX_RESOURCES = 1000
+class Resource (drm4g.managers.slurm.Resource):
     
     def lrmsProperties(self):
         return ('NEPTUNO', 'NEPTUNO')
 
 class Job (drm4g.managers.slurm.Job):
     
-    def jobSubmit(self, path_script):
-        out, err = self.Communicator.execCommand('%s %s' % (MSUB, path_script))
+    def jobSubmit(self, pathScript):
+        out, err = self.Communicator.execCommand('%s %s' % (MSUB, pathScript))
         if out:
             return out.split()[0]
         else:

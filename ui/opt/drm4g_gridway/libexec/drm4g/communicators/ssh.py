@@ -4,6 +4,8 @@ import platform
 import traceback
 try:
     import paramiko
+    from paramiko.dsskey import DSSKey
+    from paramiko.rsakey import RSAKey
 except ImportError:
     try:
         GW_LOCATION = os.environ['GW_LOCATION']
@@ -11,12 +13,20 @@ except ImportError:
         print 'Please, set GW_LOCATION variable'
         sys.exit(-1)
     try:
-        if sys.version_info < (2,5):
-            sys.path.insert(0, os.path.join(GW_LOCATION, 'libexec', 'drm4g', 'utils', 'Cryptos', 'Crypto24_x86_64'))
+        if platform.architecture()[0] == '32bit':
+            if sys.version_info < (2,5):
+                sys.path.append(os.path.join(GW_LOCATION, 'libexec', 'drm4g', 'utils', 'Cryptos', 'Crypto24_i686'))
+            else:
+                sys.path.append(os.path.join(GW_LOCATION, 'libexec', 'drm4g', 'utils', 'Cryptos', 'Crypto_i686'))
         else:
-            sys.path.insert(0, os.path.join(GW_LOCATION, 'libexec', 'drm4g', 'utils', 'Cryptos', 'Crypto_x86_64'))
-        sys.path.insert(0, os.path.join(GW_LOCATION, 'libexec','drm4g','utils'))
+            if sys.version_info < (2,5):
+                sys.path.append(os.path.join(GW_LOCATION, 'libexec', 'drm4g', 'utils', 'Cryptos', 'Crypto24_x86_64'))
+            else:
+                sys.path.append(os.path.join(GW_LOCATION, 'libexec','drm4g','utils', 'Cryptos', 'Crypto_x86_64'))
+        sys.path.append(os.path.join(GW_LOCATION, 'libexec','drm4g','utils'))
         import paramiko
+        from paramiko.dsskey import DSSKey
+        from paramiko.rsakey import RSAKey
     except Exception, e:
         print 'Caught exception: %s: %s' % (e.__class__, str(e))
         traceback.print_exc(file=sys.stdout)
@@ -29,59 +39,54 @@ import drm4g.communicators
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: ssh.py 1357 2012-01-10 19:59:38Z carlos $"
+__revision__ = "$Id: ssh.py 1790 2013-03-26 16:56:41Z carlos $"
 
 class Communicator (drm4g.communicators.Communicator):
     
     """
     Create a SSH session to remote resources.  
     """
-    ##################
-    # AUTHENTICATION #
-    ##################
-
-    PRIVATE_KEYS = (
-        ("rsa", r"~/.ssh/id_rsa"),
-        ("dsa", r"~/.ssh/id_dsa"),
-        )
-    port    = 22
     timeout = 20 # seconds
+    sftp_connections = 3
  
     def __init__(self):
-        self._lock = __import__('threading').Lock()
- 
+        self._lock        = __import__('threading').Lock()
+        self._sem         = __import__('threading').Semaphore(self.sftp_connections)
+        self._close_force = False
+        self._trans       = None
+    
     def connect(self):
         self._lock.acquire()
         try:
-            agent = paramiko.Agent()
-            keys = agent.get_keys()
-            for key, path in self.PRIVATE_KEYS:
-                try:
-                    privatekeyfile = os.path.expanduser(path)
-                    if key == 'rsa':
-                        ki_rsa = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-                        keys = keys + (ki_rsa,)
-                    if key == 'dsa':        
-                        ki_dsa = paramiko.DSSKey.from_private_key_file(privatekeyfile)
-                        keys = keys + (ki_dsa,)
-                except Exception: pass
-            for key in keys:
-                try:
-                    sock = socket.socket()
+            if not self._close_force :
+                agent = paramiko.Agent()
+                keys = agent.get_keys()
+                for pkey_class in (RSAKey, DSSKey):
                     try:
-                        sock.settimeout(self.timeout)
-                    except:
-                        pass 
-                    sock.connect((self.hostName, self.port))  
-                    self._trans = paramiko.Transport(sock)
-                    self._trans.connect(username = self.userName, pkey = key)
-                    if self._trans.is_authenticated(): break
-                except socket.gaierror:
-                    raise drm4g.communicators.ComException('Could not resolve hostname ' + self.hostName)
-                except Exception: pass
-        finally: self._lock.release()            
-        if not self._isAuthenticated():
-            raise drm4g.communicators.ComException('Authentication failed to ' + self.hostName)        
+                        key  = pkey_class.from_private_key_file(os.path.expanduser(self.keyFile))
+                        keys = keys + (key,)
+                    except Exception:
+                        pass
+                for key in keys:
+                    try:
+                        sock = socket.socket()
+                        try:
+                            sock.settimeout(self.timeout)
+                        except:
+                            pass
+                        sock.connect((self.hostName, self.port))
+                        self._trans = paramiko.Transport(sock)
+                        self._trans.connect(username = self.userName, pkey = key)
+                        if self._trans.is_authenticated():
+                            break
+                    except socket.gaierror:
+                        raise drm4g.communicators.ComException('Could not resolve hostname ' + self.hostName)
+                    except Exception:
+                        pass
+        finally:
+            self._lock.release()            
+        if not self._trans :
+            raise drm4g.communicators.ComException('Authentication failed to ' + self.hostName)      
         
     def execCommand(self, command):
         if not self._isAuthenticated(): 
@@ -106,22 +111,26 @@ class Communicator (drm4g.communicators.Communicator):
         except Exception: pass
             
     def copy(self, source_url, destination_url, execution_mode):
-        if not self._isAuthenticated(): 
-            self.connect()
-        self._lock.acquire()
-        try: sftp = paramiko.SFTPClient.from_transport(self._trans)
-        finally: self._lock.release()
-        if 'file://' in source_url:
-            from_dir = urlparse(source_url).path
-            to_dir   = self._setDir(urlparse(destination_url).path)
-            sftp.put(from_dir, to_dir)
-            if execution_mode == 'X': sftp.chmod(to_dir, 0755)#execution permissions
-        else:
-            from_dir = self._setDir(urlparse(source_url).path)
-            to_dir   = urlparse(destination_url).path
-            sftp.get(from_dir, to_dir)
-        try: sftp.close()
-        except Exception: pass
+        self._sem.acquire()
+        try:
+            if not self._isAuthenticated():
+                self.connect()
+            self._lock.acquire()
+            try: sftp = paramiko.SFTPClient.from_transport(self._trans)
+            finally: self._lock.release()
+            if 'file://' in source_url:
+                from_dir = urlparse(source_url).path
+                to_dir   = self._setDir(urlparse(destination_url).path)
+                sftp.put(from_dir, to_dir)
+                if execution_mode == 'X': sftp.chmod(to_dir, 0755)#execution permissions
+            else:
+                from_dir = self._setDir(urlparse(source_url).path)
+                to_dir   = urlparse(destination_url).path
+                sftp.get(from_dir, to_dir)
+            try: sftp.close()
+            except Exception: pass
+        finally:
+            self._sem.release()
             
     def rmDirectory(self, url):
         if not self._isAuthenticated(): 
@@ -154,11 +163,14 @@ class Communicator (drm4g.communicators.Communicator):
         except Exception: pass
         return output
 
-    def close(self):
+    def close(self, force = True):
         self._lock.acquire()
         try:
-            try: self._trans.close()
-            except Exception: pass
+            try: 
+                self._trans.close()
+                self._close_force = force
+            except Exception: 
+                pass
         finally: self._lock.release()
             
     #internal

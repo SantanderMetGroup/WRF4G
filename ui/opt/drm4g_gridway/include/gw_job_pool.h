@@ -63,7 +63,8 @@ gw_job_t* gw_job_pool_get (int job_id, int lock);
 
 int gw_job_pool_get_num_jobs();
 
-int gw_job_pool_em_recover (gw_em_mad_t * em_mad);
+//int gw_job_pool_em_recover (gw_em_mad_t * em_mad);
+int gw_job_pool_em_recover (gw_em_mad_t * em_mad, gw_am_t *em_am);
 
 int gw_job_pool_dm_recover (gw_dm_mad_t * em_mad);
 
