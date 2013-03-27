@@ -129,9 +129,6 @@ class GwTmMad (object):
             out = 'MKDIR %s - SUCCESS -' % (JID)
         except Exception, e:
             out = 'MKDIR %s - FAILURE %s' % (JID, str(e))
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            out1 = ', '.join([str(exc_type), fname, str(exc_tb.tb_lineno)])
         self.message.stdout(out)
         self.logger.debug(out1)
         
@@ -148,9 +145,6 @@ class GwTmMad (object):
             out = 'RMDIR %s - SUCCESS -' % (JID)
         except Exception, e:
             out = 'RMDIR %s - FAILURE %s' % (JID, str(e))
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            out1 = ', '.join([str(exc_type), fname, str(exc_tb.tb_lineno)])
         self.message.stdout(out)        
         self.logger.debug(out1)
     
@@ -223,7 +217,6 @@ class GwTmMad (object):
             if self._config_file_time.test() or not self._com_list or not self._com_list.has_key(host):
                 hostList = readHostList()
                 hostConf = parserHost(host, hostList[host])
-                self.logger.warning(hostConf.HOST)
                 if not self._com_list.has_key(host):
                     communicator = self._createCom(hostConf)
                 else:
@@ -235,8 +228,7 @@ class GwTmMad (object):
                         communicator = self._com_list[host][1]
                 self._com_list[host] = (hostConf, communicator)
                 return communicator
-            else:
-                self.logger.warning(str(self._com_list.get(host)[1])) 
+            else: 
                 return self._com_list[host][1]
         finally:
             self._lock.release() 
