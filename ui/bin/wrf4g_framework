@@ -3,15 +3,15 @@
 # wrf4g_framewok manages GridWay and MySQL components of WRF4G.
 
 if test -z $WRF4G_LOCATION; then
-   echo -e "\$WRF4G_LOCATION variable not established. Please export WRF4G_LOCATION and try again"
-   exit 1
+  echo -e "\$WRF4G_LOCATION variable not established. Please export WRF4G_LOCATION and try again"
+  exit 1
 fi
 
 if test -f $WRF4G_LOCATION/etc/framework4g.conf; then
-   FRAMEWORK4G_CONF="$WRF4G_LOCATION/etc/framework4g.conf"
+  FRAMEWORK4G_CONF="$WRF4G_LOCATION/etc/framework4g.conf"
 else
-   echo -e "$WRF4G_LOCATION/etc/framework4g.conf does not exist"
-   exit 1
+  echo -e "$WRF4G_LOCATION/etc/framework4g.conf does not exist"
+  exit 1
 fi
 
 export GW_LOCATION=$WRF4G_LOCATION/opt/drm4g_gridway
@@ -68,33 +68,33 @@ case "$1" in
         rm db4g.conf.temp   
         ;;
     stop)
-		echo -n "Stopping GridWay ...."
-		rm -f $GW_LOCATION/var/.lock
+	echo -n "Stopping GridWay ...."
+	rm -f $GW_LOCATION/var/.lock
         if test ! -f $GW_LOCATION/var/gwd.port; then
-        	echo -e " FAILED. GridWay already stopped." 
+       	  echo -e " FAILED. GridWay already stopped." 
     	else
-        	gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
-        	gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
-        	if test -n "$gwd_pid"; then  kill -9 $gwd_pid ;fi
-        	echo " OK"
+          gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
+          gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
+          if test -n "$gwd_pid"; then  kill -9 $gwd_pid ;fi
+          echo " OK"
     	fi
     	echo -n "Stopping MySQL ...."
         grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
         source db4g.conf.temp; rm db4g.conf.temp
         if [ $WRF4G_DB_LOCAL -eq 1 ]; then
-        	if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
-            	echo -e " FAILED. MySQL already stopped." 
-        	else
-        		mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
-        		if test -n "`ps h -p $mysql_pid`" ; then 
-            		mysql_ppid=$(ps h -p $mysql_pid -o ppid)
-	    			if test -n $mysql_ppid; then kill -9 $mysql_ppid ;fi
-	    			if test -n $mysql_pid ; then kill -9 $mysql_pid ;fi
-	    			echo " OK"
-	    		else
-	    			echo -e " FAILED. Problems stopping MySQL."
-	    		fi
-        	fi
+          if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
+            echo -e " FAILED. MySQL already stopped." 
+          else
+            mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
+            if test -n "`ps h -p $mysql_pid`" ; then 
+              mysql_ppid=$(ps h -p $mysql_pid -o ppid)
+	      if test -n $mysql_ppid; then kill -9 $mysql_ppid ;fi
+	      if test -n $mysql_pid ; then kill -9 $mysql_pid ;fi
+	      echo " OK"
+	    else
+	      echo -e " FAILED. Problems stopping MySQL."
+	    fi
+          fi
         fi
         ;;
     restart)
