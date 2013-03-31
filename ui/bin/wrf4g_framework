@@ -115,7 +115,7 @@ case "$1" in
           exit 2
         fi
         rm -f $GW_LOCATION/var/.lock
-        gwd -c
+        gwd 
         st=$?
         if test $st -ne 0; then 
           echo -e " FAILED. \nProblems starting GridWay $st"
