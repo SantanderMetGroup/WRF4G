@@ -964,15 +964,17 @@ if __name__ == "__main__":
     # Instantiate the Component Class:
     # comp=Chunk(data={'id': '23'},verbose=options.verbose,reconfigure=options.reconfigure)
     comp=eval(inst)
-    if len(args) > 3:     
-        fvalues=args[3]
-        #fvalues=args[3].split(',')
-        # Call the Class method.
-        output=getattr(comp,function)(*args[3:])
-    else:                  
-        output=getattr(comp,function)()
-    
-    stdout.write(str(output))
+    try:
+        if len(args) > 3:     
+            fvalues=args[3]
+            # Call the Class method.
+            output=getattr(comp,function)(*args[3:])
+        else:                  
+            output=getattr(comp,function)()
+        stdout.write(str(output))
+    except Exception, e:
+        print 'Caught exception: %s: %s' % (e.__class__, str(e))
+        sys.exit(-1)
     
     if options.dryrun:
         dbc.rollback()
