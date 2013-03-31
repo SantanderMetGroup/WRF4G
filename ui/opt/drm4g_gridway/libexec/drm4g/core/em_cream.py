@@ -2,8 +2,8 @@ import threading
 import time
 import sys
 import os
+import logging
 from drm4g.utils.list import List 
-from drm4g.utils.logger import *
 from drm4g.utils.message import Send
 from drm4g.global_settings import COMMUNICATOR, RESOURCE_MANAGER
 from drm4g.utils.importlib import import_module
@@ -17,7 +17,7 @@ GW_LOCATION = os.environ['GW_LOCATION']
 
 class GwEmMad (object):
     
-    logger = get_logger('drm4g.core.em_cream')
+    logger = logging.getLogger(__name__)
     message = Send()
 
     def __init__(self):
@@ -42,7 +42,7 @@ class GwEmMad (object):
         except Exception, e:
             out = 'INIT - FAILURE %s' % (str(e))
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
     
     def do_SUBMIT(self, args):
         """
@@ -64,7 +64,7 @@ class GwEmMad (object):
         finally:
             self._pool_sema.release()
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
         
     def do_RECOVER(self, args):
         """
@@ -87,7 +87,7 @@ class GwEmMad (object):
         finally:
             self._pool_sema.release()   
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
        
     def do_CANCEL(self, args):
         """
@@ -109,7 +109,7 @@ class GwEmMad (object):
         finally:
             self._pool_sema.release()
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
 
     def do_CALLBACK(self):
         """
@@ -127,11 +127,11 @@ class GwEmMad (object):
                             self._JID_list.delete(JID)
                         out = 'CALLBACK %s SUCCESS %s' % (JID, newStatus)
                         self.message.stdout(out)
-                        self.logger.log(DEBUG, '--> ' + out)
+                        self.logger.debug(out)
                 except Exception, e:
                     out = 'CALLBACK %s FAILURE %s' % (JID, str(e))
                     self.message.stdout(out)
-                    self.logger.log(DEBUG, '--> ' + out)
+                    self.logger.debug(out)
                 time.sleep(0.1)
 
     def do_FINALIZE(self, args):
@@ -142,7 +142,7 @@ class GwEmMad (object):
         """
         out = 'FINALIZE - SUCCESS -'
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
         sys.exit(0)
 
     def do_POLL(self, args):
@@ -161,7 +161,7 @@ class GwEmMad (object):
         except Exception, e:
             out = 'POLL %s FAILURE %s' % (JID, str(e))
         self.message.stdout(out)
-        self.logger.log(DEBUG, '--> ' + out)
+        self.logger.debug(out)
 
     methods = {'INIT'    : do_INIT,
                'SUBMIT'  : do_SUBMIT,
@@ -180,7 +180,7 @@ class GwEmMad (object):
             pool = ThreadPool(self._min_thread, self._max_thread)
             while True:
                 input = sys.stdin.readline().split()
-                self.logger.log(DEBUG, '<-- ' + ' '.join(input))
+                self.logger.log(' '.join(input))
                 OPERATION = input[0].upper()
                 if len(input) == 4 and self.methods.has_key(OPERATION):
                     if OPERATION == 'FINALIZE' or OPERATION == 'INIT':
@@ -189,6 +189,6 @@ class GwEmMad (object):
                         pool.add_task(self.methods[OPERATION], self, ' '.join(input))
                 else:
                     self.message.stdout('WRONG COMMAND')
-                    self.logger.log(DEBUG, '--> WRONG COMMAND')
+                    self.logger.debug('WRONG COMMAND')
         except Exception, e:
-            self.logger.log(DEBUG, '--> ' + str(e)) 
+            self.logger.debug(str(e)) 
