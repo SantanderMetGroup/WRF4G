@@ -180,7 +180,7 @@ class GwEmMad (object):
             pool = ThreadPool(self._min_thread, self._max_thread)
             while True:
                 input = sys.stdin.readline().split()
-                self.logger.log(' '.join(input))
+                self.logger.debug(' '.join(input))
                 OPERATION = input[0].upper()
                 if len(input) == 4 and self.methods.has_key(OPERATION):
                     if OPERATION == 'FINALIZE' or OPERATION == 'INIT':
