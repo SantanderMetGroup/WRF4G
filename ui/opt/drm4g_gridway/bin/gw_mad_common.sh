@@ -1,5 +1,5 @@
 # --------------------------------------------------------------------------
-# Copyright 2002-2012, GridWay Project Leads (GridWay.org)          
+# Copyright 2002-2011, GridWay Project Leads (GridWay.org)          
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -70,23 +70,6 @@ function check_proxy {
 }
 
 export CLASSPATH=$CLASSPATH:$GW_LOCATION/bin
-
-# Help
-if [[ "$0" == *gw_mad_common.sh* ]]; then
-  while getopts h option
-    do
-        case $option in
-        h)   echo -e "USAGE\n gw_mad_common.sh [-h]" \
-                     "\n\nSYNOPSIS"\
-                     "\n  GridWay MAD common functions. It is not intended to be used from CLI."\
-                     "\n\nOPTIONS"\
-                     "\n  -h    print this help";
-             exit 0;;
-        [?]) echo -e "usage: gw_mad_common.sh [-h]";
-             exit 1;;
-        esac
-    done
-fi
 
 # Set global environment
 
