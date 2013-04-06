@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-
-from sys import stderr,stdout,exit,path
-import exceptions
-import os
-import re
+import sys,os
+sys.path.insert(0,os.path.dirname(__file__))
+from wrf4g_env import *
 
 def sum_header(number_of_characters_Experiment):
     bold  = "\033[1m"
@@ -17,21 +15,6 @@ def long_header(number_of_characters_Realization):
     reset = "\033[0;0m"
     string_to_print = bold + '%-' + str(number_of_characters_Realization) + 's %-3s %-4s %-6s %-10s %-10s %-13s %2s %3s' + reset
     print string_to_print % ('Realization','GW','Stat','Chunks','Comp.Res','WN','Run.Sta','ext','%')
-	
-WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
-if WRF4G_LOCATION == None:
-    stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
-    exit(1)  
-
-os.environ['DB4G_CONF']='%s/etc/db4g.conf'%WRF4G_LOCATION
-DB4G_CONF=os.environ['DB4G_CONF']
-if not os.path.isfile(DB4G_CONF):
-    print 'DB4G_CONF do not exist'
-    exit(2)
-
-path.insert(0,'%s/lib/python'%WRF4G_LOCATION)
-from optparse import OptionParser
-import WRF4G
    
 usage="""
 

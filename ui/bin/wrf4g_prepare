@@ -10,6 +10,8 @@
 # function cycle_time(realization_name, start_date, end_date)
 #
 
+source `dirname $0`/wrf4g_env
+
 nchunks=""
 isdry="no"
 justone="no"
@@ -62,18 +64,8 @@ EOF
   done
 fi
 
-if test -z $WRF4G_LOCATION; then
-  echo '$WRF4G_LOCATION variable not established. Please export WRF4G_LOCATION and try again'
-  exit 1
-fi
 
 userdir=`pwd`
-
-#
-#  Prepare environment
-#
-export PATH=${WRF4G_LOCATION}/bin:${PATH}
-export PYTHONPATH=${WRF4G_LOCATION}/lib/python:${PYTHONPATH}
 
 function get_ni_vars(){
   set | grep '^NI_' | sed -e 's/^NI_\(.*\)=.*$/\1/'

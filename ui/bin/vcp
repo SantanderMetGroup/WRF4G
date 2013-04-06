@@ -1,24 +1,7 @@
 #!/usr/bin/env python
-
-from optparse import OptionParser
-import os.path
-import sys
-import traceback
-import logging.config
-
-try:
-    
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
-    import vcplib
-    try:
-        WRF4G_LOCATION = os.environ['WRF4G_LOCATION']
-        logging.config.fileConfig(os.path.join(WRF4G_LOCATION,'etc','logger.conf'))
-    except :
-        pass
-except Exception, e:
-    print 'Caught exception: %s: %s' % (e.__class__, str(e))
-    traceback.print_exc(file=sys.stdout)
-    sys.exit(-1)
+import sys,os
+sys.path.insert(0,os.path.dirname(__file__))
+from wrf4g_env import *
 
 #***************************************************************************#
 #                                        vcp (MAIN)                                                     #

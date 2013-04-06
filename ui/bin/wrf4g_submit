@@ -1,25 +1,8 @@
 #!/usr/bin/env python
 
-from sys import stderr,exit, path
-import exceptions
-import sys
-import os
-import re
-
-WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
-if WRF4G_LOCATION == None:
-    sys.stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
-    sys.exit(1)  
-
-os.environ['DB4G_CONF']='%s/etc/db4g.conf'%WRF4G_LOCATION
-DB4G_CONF=os.environ['DB4G_CONF']
-if not os.path.isfile(DB4G_CONF):
-   print 'DB4G_CONF does not exist'
-   sys.exit(2)
-
-sys.path.insert(0,'%s/lib/python'%WRF4G_LOCATION)
-from optparse import OptionParser
-import WRF4G
+import sys,os
+sys.path.insert(0,os.path.dirname(__file__))
+from wrf4g_env import *
    
 usage="""
 
