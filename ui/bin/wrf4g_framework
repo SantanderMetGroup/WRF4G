@@ -19,133 +19,132 @@ export MYSQL_LOCATION=$WRF4G_LOCATION/opt/mysql-5.5
 export PATH=$GW_LOCATION/bin:$PATH
 
 case "$1" in
-    start)
-        echo -n "Starting GridWay ...."
-        
-        sed -i "s#\$HOSTNAME#$HOSTNAME#" $FRAMEWORK4G_CONF
-
-        if test -f ${WRF4G_LOCATION}/etc/resources.wrf4g; then
-          sed -i 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g
-          sed -i "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" ${WRF4G_LOCATION}/etc/resources.wrf4g
+  start)
+    sed -i "s#\$HOSTNAME#$HOSTNAME#" $FRAMEWORK4G_CONF
+    if test -f ${WRF4G_LOCATION}/etc/resources.wrf4g; then
+      sed -i 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g
+      sed -i "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" ${WRF4G_LOCATION}/etc/resources.wrf4g
+    fi
+    
+    echo -n "Starting GridWay ...."
+    if test -f $GW_LOCATION/var/.lock; then
+      echo -e " FAILED. GridWay is already running." 
+    else
+      gwd
+      st=$?
+      if test $st -ne 0; then 
+        echo -e " FAILED. Problems starting GridWay $st"
+        exit 2 
+      fi
+      echo " OK"
+    fi
+    
+    grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
+    source db4g.conf.temp
+    if [ $WRF4G_DB_LOCAL -eq 1 ]; then
+      cd $MYSQL_LOCATION
+      echo -n "Starting MySQL ...."
+      if test -f $MYSQL_LOCATION/data/`hostname`.pid; then
+        mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
+        if test $(ps -p $mysql_pid | grep -m1 -c $mysql_pid) -eq 1; then
+          echo -e " FAILED. MySQL is already running."
+          exit 3
         fi
-        if test -f $GW_LOCATION/var/.lock; then
-          echo -e " FAILED. GridWay is already running." 
-        else
-          gwd
-          st=$?
-          if test $st -ne 0; then 
-            echo -e " FAILED. Problems starting GridWay $st"
-            exit 2 
-          fi
+      fi
+      if [ $(netstat -atn |grep LISTEN | grep -m1 -c ":$WRF4G_DB_PORT ") -eq 1 ]; then
+        echo -e " FAILED. Another process is listening on port $WRF4G_DB_PORT."
+        echo -e "Change WRF4G_DB_PORT in $WRF4G_LOCATION/etc/framework4g.conf to start MySQL on a different port."
+        exit 4         
+      fi
+      
+      nohup ./bin/mysqld_safe --no-defaults --port=$WRF4G_DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock &>/dev/null &
+      cd - &>/dev/null
+      echo " OK"
+    fi
+      sed 's/WRF4G_DB_LOCAL.*/# DataBase Configuration/' db4g.conf.temp >${WRF4G_LOCATION}/etc/db4g.conf
+      rm db4g.conf.temp   
+  ;;
+  stop)
+    echo -n "Stopping GridWay ...."
+    rm -f $GW_LOCATION/var/.lock
+    if test ! -f $GW_LOCATION/var/gwd.port; then
+      echo -e " FAILED. GridWay is already stopped." 
+    else
+      gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
+      gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
+      if test -n "$gwd_pid"; then  kill -9 $gwd_pid ;fi
+      echo " OK"
+    fi
+    echo -n "Stopping MySQL ...."
+    grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
+    source db4g.conf.temp; rm db4g.conf.temp
+    if [ $WRF4G_DB_LOCAL -eq 1 ]; then
+      if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
+        echo -e " FAILED. MySQL is already stopped." 
+      else
+        mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
+        if test -n "`ps h -p $mysql_pid`" ; then 
+          mysql_ppid=$(ps h -p $mysql_pid -o ppid)
+          if test -n $mysql_ppid; then kill -9 $mysql_ppid ;fi
+          if test -n $mysql_pid ; then kill -9 $mysql_pid ;fi
           echo " OK"
-        fi
-        grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
-        source db4g.conf.temp
-        if [ $WRF4G_DB_LOCAL -eq 1 ]; then
-	  cd $MYSQL_LOCATION
-	  echo -n "Starting MySQL ...."
-
-          if test -f $MYSQL_LOCATION/data/`hostname`.pid; then
-            mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
-            if test $(ps -p $mysql_pid | grep -m1 -c $mysql_pid) -eq 1; then
-              echo -e " FAILED. MySQL is already running."
-              exit 3
-            fi
-          fi
-          if [ $(netstat -atn |grep LISTEN | grep -m1 -c ":$WRF4G_DB_PORT ") -eq 1 ]; then
-            echo -e " FAILED. Another process is listening on port $WRF4G_DB_PORT."
-            echo -e "Change WRF4G_DB_PORT in $WRF4G_LOCATION/etc/framework4g.conf to start MySQL on a different port."
-            exit 4         
-          fi
-	   
-          nohup ./bin/mysqld_safe --no-defaults --port=$WRF4G_DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock &>/dev/null &
-          cd - &>/dev/null
-       	  echo " OK"
-        fi
-        sed 's/WRF4G_DB_LOCAL.*/# DataBase Configuration/' db4g.conf.temp >${WRF4G_LOCATION}/etc/db4g.conf
-        rm db4g.conf.temp   
-        ;;
-    stop)
-	echo -n "Stopping GridWay ...."
-	rm -f $GW_LOCATION/var/.lock
-        if test ! -f $GW_LOCATION/var/gwd.port; then
-       	  echo -e " FAILED. GridWay is already stopped." 
-    	else
-          gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
-          gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
-          if test -n "$gwd_pid"; then  kill -9 $gwd_pid ;fi
-          echo " OK"
-    	fi
-    	echo -n "Stopping MySQL ...."
-        grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
-        source db4g.conf.temp; rm db4g.conf.temp
-        if [ $WRF4G_DB_LOCAL -eq 1 ]; then
-          if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
-            echo -e " FAILED. MySQL is already stopped." 
-          else
-            mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
-            if test -n "`ps h -p $mysql_pid`" ; then 
-              mysql_ppid=$(ps h -p $mysql_pid -o ppid)
-	      if test -n $mysql_ppid; then kill -9 $mysql_ppid ;fi
-	      if test -n $mysql_pid ; then kill -9 $mysql_pid ;fi
-	      echo " OK"
-	    else
-	      echo -e " FAILED. Problems stopping MySQL."
-	    fi
-          fi
-        fi
-        ;;
-    restart)
-        ## Stop the service and regardless of whether it was
-        ## running or not, start it again.
-        $0 stop
-        $0 start
-        ;;
-    reload)
-        # Only reloads gridway
-   	echo -n "Reloading GridWay ...."
-        gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
-        gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
-        if test -n "$gwd_pid"; then  
-          kill -9 $gwd_pid
         else
-          echo -e " FAILED. \nProblems killing GridWay $st"
-          exit 2
+          echo -e " FAILED. Problems stopping MySQL."
         fi
-        rm -f $GW_LOCATION/var/.lock
-        gwd 
-        st=$?
-        if test $st -ne 0; then 
-          echo -e " FAILED. \nProblems starting GridWay $st"
-          exit 2 
-        fi
-        echo " OK"
-        ;;
-    status)
-        if test ! -f $GW_LOCATION/var/gwd.port; then
-          echo "GridWay Stopped" 
-        else  
-          gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
-          gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
-          if test -n "$gwd_pid"; then  
-            echo "GridWay Running"
-          else
-            echo "GridWay Stopped"
-          fi
-        fi
-        if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
-          echo "MySQL Stopped"
-        else
-          mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
-          if test $(ps -p $mysql_pid | grep -m1 -c $mysql_pid) -eq 1; then
-            echo "MySQL Running"
-          else
-            echo "MySQL Stopped"
-          fi
-        fi
-        ;;
-         *)
-        cat << EOF
+      fi
+    fi
+  ;;
+  restart)
+    ## Stop the service and regardless of whether it was
+    ## running or not, start it again.
+    $0 stop
+    $0 start
+    ;;
+  reload)
+    # Only reloads gridway
+    echo -n "Reloading GridWay ...."
+    gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
+    gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
+    if test -n "$gwd_pid"; then  
+      kill -9 $gwd_pid
+    else
+      echo -e " FAILED. \nProblems killing GridWay $st"
+      exit 2
+    fi
+    rm -f $GW_LOCATION/var/.lock
+    gwd 
+    st=$?
+    if test $st -ne 0; then 
+      echo -e " FAILED. \nProblems starting GridWay $st"
+      exit 2 
+    fi
+    echo " OK"
+  ;;
+  status)
+    if test ! -f $GW_LOCATION/var/gwd.port; then
+      echo "GridWay NOT running" 
+    else  
+      gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
+      gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
+      if test -n "$gwd_pid"; then  
+        echo "GridWay running"
+      else
+        echo "GridWay NOT running"
+      fi
+    fi
+    if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
+      echo "MySQL NOT running"
+    else
+      mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
+      if test $(ps -p $mysql_pid | grep -m1 -c $mysql_pid) -eq 1; then
+        echo "MySQL running"
+      else
+        echo "MySQL NOT runing"
+      fi
+    fi
+  ;;
+  *)
+    cat <<EOF
 USAGE 
   $(basename $0) {start|stop|restart|status|reload}
 
@@ -155,7 +154,6 @@ SYNOPSYS
 
 
 EOF
-        exit 1
-        ;;
+    exit 1
+  ;;
 esac
-
