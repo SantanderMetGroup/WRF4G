@@ -4,15 +4,11 @@ sys.path.insert(0,os.path.dirname(__file__))
 from wrf4g_env import *
 
 def sum_header(number_of_characters_Experiment):
-    bold  = "\033[1m"
-    reset = "\033[0;0m"
     string_to_print = bold + '%-'+ str(number_of_characters_Experiment) + 's %-3s %-3s %-3s %-3s %-3s' + reset
     print string_to_print % ("Experiment","P","W","R","D","F")
 	
 
 def long_header(number_of_characters_Realization):
-    bold  = "\033[1m"
-    reset = "\033[0;0m"
     string_to_print = bold + '%-' + str(number_of_characters_Realization) + 's %-3s %-4s %-6s %-10s %-10s %-13s %2s %3s' + reset
     print string_to_print % ('Realization','GW','Stat','Chunks','Comp.Res','WN','Run.Sta','ext','%')
    

@@ -19,3 +19,12 @@ import WRF4G,exceptions,re,traceback,logging.config
 import vcplib,vdblib
 
 logging.config.fileConfig(os.path.join(WRF4G_LOCATION,'etc','logger.conf'))
+
+#If we are running in a real terminal then print colors
+if sys.stdout.isatty():
+    bold  = "\033[1m"
+    reset = "\033[0;0m"
+else:
+    bold  = ""
+    reset = ""
+
