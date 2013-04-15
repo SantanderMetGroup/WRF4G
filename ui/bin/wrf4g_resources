@@ -1,5 +1,6 @@
-#! /bin/bash
+#!/bin/bash
 
-source `dirname $0`/wrf4g_env
+# Common initialization
+. `dirname $0`/wrf4g_env
 gwhost $*
 

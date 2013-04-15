@@ -10,7 +10,8 @@
 # function cycle_time(realization_name, start_date, end_date)
 #
 
-source `dirname $0`/wrf4g_env
+# Common initialization
+. `dirname $0`/wrf4g_env
 
 nchunks=""
 isdry="no"

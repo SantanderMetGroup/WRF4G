@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-import sys,os
-sys.path.insert(0,os.path.dirname(__file__))
+
 from wrf4g_env import *
+import WRF4G
 
 def sum_header(number_of_characters_Experiment):
     string_to_print = bold + '%-'+ str(number_of_characters_Experiment) + 's %-3s %-3s %-3s %-3s %-3s' + reset
-    print string_to_print % ("Experiment","P","W","R","D","F")
-	
+    print string_to_print % ("Experiment","P","W","R","D","F")	
 
 def long_header(number_of_characters_Realization):
     string_to_print = bold + '%-' + str(number_of_characters_Realization) + 's %-3s %-4s %-6s %-10s %-10s %-13s %2s %3s' + reset
@@ -34,8 +33,8 @@ try:
         exp=WRF4G.Experiment(data={'name':'%s'%experiment_name})
         exp.data['id']=exp.get_id_from_name()
         if exp.data['id']<0:
-            stderr.write("Experiment %s do not exists\n"%experiment_name)
-            exit(1)
+            print "Experiment %s do not exists\n" % experiment_name
+            sys.exit(1)
         elif options.long:
     	    long_header(options.number_of_characters)
             exp.ps(options.number_of_characters)
@@ -60,7 +59,8 @@ try:
     	    for id_exp in lexp:
                 exp=WRF4G.Experiment(data={'id':'%s'%id_exp})    	
                 out=exp.summarized_status(options.number_of_characters)
-except exceptions.KeyboardInterrupt:
+except Exception, e:
+    print 'Caught exception: %s: %s' % (e.__class__, str(e))
     WRF4G.dbc.close()
     exit(-1)
 else:

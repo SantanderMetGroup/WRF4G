@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 
 # wrf4g_env load WRF4G shell environment variables
 

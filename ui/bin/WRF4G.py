@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-from sys import stdout,stderr,exit,path
-import sys
+from wrf4g_env import *
 import inspect
-import os
-import logging.config
+from datetime import datetime
+
 try: 
     import vdblib
     import vcplib 
@@ -16,9 +15,6 @@ except:
     except Exception, e:
         print 'Caught exception: %s: %s' % (e.__class__, str(e))
         sys.exit(-1)
-
-from datetime import datetime
-from optparse import OptionParser
 
 def datetime2datewrf (date_object):
     return date_object.strftime("%Y-%m-%d_%H:%M:%S")
@@ -39,16 +35,7 @@ def list2fields(arr):
        fields="%s,%s" %(fields,i)
     fields=fields[1:]
     return fields
-#===============================================================================
-# def create_hash():
-#    import md5
-#    import random
-#    rand=random.randint(1,60000)
-#    text=str(datetime.utcnow()) + str(rand)
-#    ha=md5.new()
-#    ha.update(text)
-#    return ha.hexdigest()
-#===============================================================================
+
 def create_hash():
     import random
     rand=random.randint(1,60000000)
@@ -82,7 +69,15 @@ def format_output(dout,number_of_characters, ext=False):
     if dout['status'] < 10 and dout['status'] > 0 and dout['rea_status'] != 4: 
         dout['rea_status']=1  
     string_to_print = '%-'+ str(number_of_characters) + 's %-5s %-2s %-6s %-10s %-10s %-13s %2s %2.2f'
-    return  string_to_print  % (dout['name'][0:number_of_characters],dout['gw_job'],dreastatus[dout['rea_status']],dout['nchunks'],dout['resource'][0:10],dout['wn'][0:10],djobstatus[dout['status']],exitcode,per)
+    return  string_to_print  % (dout['name'][0:number_of_characters],
+                                dout['gw_job'],
+                                dreastatus[dout['rea_status']],
+                                dout['nchunks'],
+                                dout['resource'][0:10],
+                                dout['wn'][0:10],
+                                djobstatus[dout['status']],
+                                exitcode,
+                                per)
     #if ext==True:
         #print "%10s %10s %10s"%(dout['sdate'],dout['restart'],dout['edate'])    
         
@@ -94,16 +89,14 @@ def getuserid(name,dbc):
         id = vdblib.list_query().one_field(idp)
     return id      
 
-
-DB4G_CONF=os.environ.get('DB4G_CONF')
-if DB4G_CONF == None:
-    sys.stderr.write('DB4G_CONF is not defined. Please define it and try again\n')
-    sys.exit(1)
+#Configure WRF4GF_DB    
 exec open(DB4G_CONF).read() 
-
 load_default_values()
-dbc=vdblib.vdb(host=WRF4G_DB_HOST, user=WRF4G_DB_USER, db=WRF4G_DB_DATABASE, port=WRF4G_DB_PORT, passwd=WRF4G_DB_PASSWD)
-
+dbc=vdblib.vdb(host=WRF4G_DB_HOST,
+               user=WRF4G_DB_USER,
+               db=WRF4G_DB_DATABASE,
+               port=WRF4G_DB_PORT,
+               passwd=WRF4G_DB_PASSWD)
 
 class Environment:
     def __init__(self):
@@ -114,9 +107,9 @@ class Environment:
         id = vdblib.parse_one_list(idp,interpreter='python')
         return id
         
-
 class Component:
-    """  Component CLASS
+    """
+    Component CLASS
     """
 
     def __init__(self,data='',verbose=False,dryrun=False,reconfigure=False):
@@ -204,7 +197,8 @@ class Component:
         """
         Delete a row of Component. It clears the DB and all the data related to it. 
         """
-        if self.verbose: stderr.write("Deleting %s with id %s\n"%(self.element,self.data['id']))
+        if self.verbose: 
+            sys.stderr.write("Deleting %s with id %s\n"%(self.element,self.data['id']))
         condition='id=%s'%self.data['id']
         o=dbc.delete_row(self.element,condition)
         return 0
@@ -244,13 +238,14 @@ class Component:
         2--> Error. Experiment configuration not suitable with database
         """      
         if (self.element == "Experiment") and (len(self.data['name'])>512): 
-            stderr.write("Experiment name must be maximun 512 characters")
-            exit(9)
+            sys.stderr.write("Experiment name must be maximun 512 characters")
+            sys.exit(9)
         if (self.element == "Experiment") and (len(self.data['name'])==0): 
-            stderr.write("Experiment name can not be null")    
-            exit(9)
+            sys.stderr.write("Experiment name can not be null")    
+            sys.exit(9)
         id=self.get_id(self.get_distinct_fields())
-        if self.verbose == 1: stderr.write("FLAG Reconfigure=%d\nexp_id= %s\n"%(self.reconfigure,id))
+        if self.verbose == 1: 
+            sys.stderr.write("FLAG Reconfigure=%d\nexp_id= %s\n"%(self.reconfigure,id))
         # Experiment exists in database
         if id > 0:
             self.data['id']=id
@@ -258,24 +253,25 @@ class Component:
             # Experiment is different that the one found in the database
             if id == -1:
                 if self.reconfigure == False:
-                    stderr.write("Error: %s with the same name and different parameters already exists.\nIf you want to overwrite some parameters, try the reconfigure option.\n" %self.element) 
-                    exit(9)
+                    sys.stderr.write("Error: %s with the same name and different parameters already exists.\nIf you want to overwrite some parameters, try the reconfigure option.\n" %self.element) 
+                    sys.exit(9)
                 else: 
                     id=self.get_id(self.get_no_reconfigurable_fields())
                     if id == -1:
-                        stderr.write("Error: %s with the same name and different configuration already exists\n"%self.element) 
-                        exit(9)
+                        sys.stderr.write("Error: %s with the same name and different configuration already exists\n"%self.element) 
+                        sys.exit(9)
                     else: 
                         self.update()
                         self.prepare_storage()
             else:
                 if self.reconfigure == False:
-                    stderr.write('%s already exists. \n'%self.element)
+                    sys.stderr.write('%s already exists. \n'%self.element)
                     self.data['id']=-1
                 else:                
                     self.prepare_storage()
         else:
-            if self.verbose: stderr.write('Creating %s\n'%self.element)
+            if self.verbose: 
+                sys.stderr.write('Creating %s\n'%self.element)
             if self.element == "Experiment":
                 import getpass
                 username=getpass.getuser()
@@ -326,7 +322,7 @@ class Experiment(Component):
             rea_ids=self.get_unfinishedreas_id()
             
         if len(rea_ids) == 0:
-            stderr.write('There are not realizations to run.\n')
+            sys.stderr.write('There are not realizations to run.\n')
         
         if nrea >  0:
             rea_ids=rea_ids[0:nrea]
@@ -345,7 +341,8 @@ class Experiment(Component):
     
     def ps(self, number_of_characters):
         output=''
-        if self.data['id'] < 0:sys.exit(19)
+        if self.data['id'] < 0:
+            sys.exit(19)
         rea_ids=self.get_realizations_id()
         dout=[]
         for id_rea in rea_ids:
@@ -418,7 +415,10 @@ class Experiment(Component):
         """
         Return a list of ids of the realization of a experiment which have finished.
         """
-        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=1 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s AND Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND (c2.status=2 OR c2.status=3 ) )'%self.data['id'],verbose=self.verbose)
+        idp=dbc.select('Chunk,Realization',
+                       'DISTINCT Realization.id',
+                       'Chunk.status=1 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s AND Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND (c2.status=2 OR c2.status=3 ) )'%self.data['id'],
+                       verbose=self.verbose)
         ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea  
     
@@ -589,11 +589,11 @@ class Realization(Component):
         first_id=chunk_status[0]
         first_id_chunk=chunk_status[1]
 
-             
         if rerun:
             if repeatchunk != 0:
                first_id_chunk=repeatchunk
-               chunkd=dbc.select('Chunk','id,sdate','id_rea=%s AND id_chunk=%d'%(self.data['id'],repeatchunk),verbose=self.verbose)
+               chunkd=dbc.select('Chunk','id,sdate','id_rea=%s AND id_chunk=%d'%(self.data['id'],repeatchunk),
+                                 verbose=self.verbose)
                first_id=chunkd[0]['id']
                sdate=chunkd[0]['sdate']              
                self.set_restart(sdate)
@@ -606,10 +606,10 @@ class Realization(Component):
                self.set_cdate(cdate)
         else:
             if chunk_status[2] == 4:
-                stderr.write('Realization %s already finished.\n'%rea_name)
+                sys.stderr.write('Realization %s already finished.\n'%rea_name)
                 return 1
             if not force and ( chunk_status[2] == 2 or chunk_status[2] == 1) :
-                stderr.write('Realization %s is still submitting. Use --force if you really want to submit the realization.\n'%rea_name)
+                sys.stderr.write('Realization %s is still submitting. Use --force if you really want to submit the realization.\n'%rea_name)
                 return 1
         """
         if restart == None:
@@ -617,7 +617,7 @@ class Realization(Component):
         else:
             chunkd=dbc.select('Chunk,Realization','Chunk.id_chunk,Chunk.id','Chunk.id_rea=%s AND Chunk.id_rea=Realization.id AND Realization.restart >=Chunk.sdate AND Realization.restart<Chunk.edate'%self.data['id'],verbose=self.verbose)
             if chunkd== ():
-                stderr.write('DB inconsistency.')
+                sys.stderr.write('DB inconsistency.')
                 return 2
         [first_id_chunk,first_id]=chunkd[0].values()
         """
@@ -632,11 +632,18 @@ class Realization(Component):
         for chunki in range(first_id,lchunk+1):
             chi=Chunk(data={'id':'%s'%chunki})
             chi.loadfromDB(['id'],chi.get_configuration_fields())
-            arguments='%s %s %s %d %d %s %s'%(self.get_exp_name(),rea_name,self.data['id'] ,chi.data['id_chunk'],chi.data['id'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate']))
+            arguments='%s %s %s %d %d %s %s'%(self.get_exp_name(),
+                                              rea_name,self.data['id'],
+                                              chi.data['id_chunk'],
+                                              chi.data['id'],
+                                              datetime2datewrf(chi.data['sdate']),
+                                              datetime2datewrf(chi.data['edate']))
             
             if chunki == first_id: 
-                stderr.write('Submitting realization: "%s"\n'%(rea_name))
-            stderr.write('\tSubmitting Chunk %d:\t%s\t%s\n'%(chi.data['id_chunk'],datetime2datewrf(chi.data['sdate']),datetime2datewrf(chi.data['edate'])))
+                sys.stderr.write('Submitting realization: "%s"\n'%(rea_name))
+            sys.stderr.write('\tSubmitting Chunk %d:\t%s\t%s\n' % (chi.data['id_chunk'],
+                                                                   datetime2datewrf(chi.data['sdate']),
+                                                                   datetime2datewrf(chi.data['edate'])))
     
             if self.dryrun == False:      
                 self.prepare_gridway()   
@@ -673,8 +680,8 @@ class Realization(Component):
             WRF4G_BASEPATH=cexp.get_basepath()
             WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
             if WRF4G_LOCATION == None:
-              sys.stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
-              sys.exit(1) 
+                sys.stderr.write('WRF4G_LOCATION is not defined. Please define it and try again\n')
+                sys.exit(1) 
             os.environ['GW_LOCATION']='%s/opt/drm4g_gridway'%WRF4G_LOCATION
             subdir= '%s/%s/%s/%s'%(WRF4G_LOCATION,'.submission',exp_name,rea_name)       
             if not os.path.isdir(subdir):
@@ -896,15 +903,14 @@ class Job(Component):
             lch=Chunk(data={'id': str(int(self.data['id_chunk'])-1)})
             lstatus=int(lch.get_status())
             if lstatus!=4:
-                stderr.write('Error: The previous Chunk did not finished correctly\n')
-                exit(93)
-            
+                sys.stderr.write('Error: The previous Chunk did not finished correctly\n')
+                sys.exit(93)
         last_job=int(ch.get_last_job())
         chunk_status=int(ch.get_status())
         if chunk_status==4:
             print "%d"%last_job
-            stderr.write('Error: Chunk %s already finished.\n'%data['id_chunk'])
-            exit(91) 
+            sys.stderr.write('Error: Chunk %s already finished.\n'%data['id_chunk'])
+            sys.exit(91) 
 
         # In this select statement we have the restriction of gw_job.
         jobd=dbc.select('Job','MAX(id),gw_restarted',cond,verbose=self.verbose)
@@ -912,8 +918,8 @@ class Job(Component):
 
         # If last_job is bigger than this job's id, then this job should not run.
         if last_job > int(max_id):
-            stderr.write('Error: This job should not be running this Chunk\n')
-            exit(92)
+            sys.stderr.write('Error: This job should not be running this Chunk\n')
+            sys.exit(92)
 
         if db_gwres < wn_gwres:
             self.data['gw_restarted']=wn_gwres
@@ -923,8 +929,8 @@ class Job(Component):
             self.data['id']=str(max_id)
             id=self.update()
         else:
-            stderr.write('Error: This job should not be running this Chunk (restarted id)\n')
-            exit(92)
+            sys.stderr.write('Error: This job should not be running this Chunk (restarted id)\n')
+            sys.exit(92)
         self.set_status('10')
         return self.data['id']
         
@@ -933,15 +939,13 @@ class Job(Component):
 
 class Events(Component):
     pass
-
-     
+ 
    
 if __name__ == "__main__":
     usage="""%prog [OPTIONS] exp_values function fvalues 
              Example: %prog 
     """
-    
-    
+        
     parser = OptionParser(usage,version="%prog 1.0")
     parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
     parser.add_option("-r", "--reconfigure",action="store_true", dest="reconfigure", default=False,help="Reconfigure element in WRF4G")
@@ -950,16 +954,13 @@ if __name__ == "__main__":
     
     if len(args) < 2:
         parser.error("Incorrect number of arguments")
-        exit(1)
-    try:
-        WRF4G_LOCATION = os.environ['WRF4G_LOCATION']
-        logging.config.fileConfig(os.path.join(WRF4G_LOCATION,'etc','logger.conf'))
-    except:
-        pass
+        sys.exit(1)
+
     class_name=args[0]
     function=args[1]    
     data=''
-    if len(args) > 2:   data=pairs2dict(args[2])         
+    if len(args) > 2:
+        data=pairs2dict(args[2])         
     inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure,dryrun=options.dryrun)"%(class_name,data)
     # Instantiate the Component Class:
     # comp=Chunk(data={'id': '23'},verbose=options.verbose,reconfigure=options.reconfigure)
@@ -971,7 +972,7 @@ if __name__ == "__main__":
             output=getattr(comp,function)(*args[3:])
         else:                  
             output=getattr(comp,function)()
-        stdout.write(str(output))
+        sys.stdout.write(str(output))
     except Exception, e:
         print 'Caught exception: %s: %s' % (e.__class__, str(e))
         sys.exit(-1)
