@@ -59,8 +59,12 @@ case "$1" in
     else
       gwd_port=$(cat $GW_LOCATION/var/gwd.port  | awk '{print $2}')
       gwd_pid=$(netstat -atnp 2>/dev/null | grep gwd | grep $gwd_port | awk '{print $7}'| sed s#/gwd##)
-      if test -n "$gwd_pid"; then  kill -9 $gwd_pid ;fi
-      echo " OK"
+      if test -n "$gwd_pid"; then  
+        kill -9 $gwd_pid
+        echo " OK"
+      else
+        echo -e " FAILED. GridWay is already stopped."
+      fi
     fi
     echo -n "Stopping WRF4G_DB (MySQL) ..."
     grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
