@@ -80,7 +80,7 @@ case "$1" in
           if test -n $mysql_pid ; then kill -9 $mysql_pid ;fi
           echo " OK"
         else
-          echo -e " FAILED. Problems stopping MySQL."
+          echo -e " FAILED. MySQL is already stopped."
         fi
       fi
     fi
