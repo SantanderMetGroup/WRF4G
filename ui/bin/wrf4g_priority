@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from wrf4g_env import *
-import WRF4G
+import WRF4Glib
 
 usage="""
 
@@ -35,7 +35,7 @@ try:
             parsed=re.sub(r'\n\s+', '\n', exp_file)
             exec parsed
     if options.exp_name:
-        exp=WRF4G.Experiment(data={'name':'%s'%options.exp_name},verbose=options.verbose)
+        exp=WRF4Glib.Experiment(data={'name':'%s'%options.exp_name},verbose=options.verbose)
         id=exp.get_id_from_name()
         if int(id) < 0:
             print "Experiment %s do not exists"%options.exp_name
@@ -44,10 +44,10 @@ try:
             reas=exp.get_run_reas_id()
             reas.extend(exp.get_wait_reas_id())
             for id_rea in reas:
-                rea=WRF4G.Realization(data={'id':'%s'%id_rea},verbose=options.verbose)
+                rea=WRF4Glib.Realization(data={'id':'%s'%id_rea},verbose=options.verbose)
                 rea.change_priority(options.priority)
     elif options.rea_name:
-        rea=WRF4G.Realization(data={'name':'%s'%options.rea_name},verbose=options.verbose)
+        rea=WRF4Glib.Realization(data={'name':'%s'%options.rea_name},verbose=options.verbose)
         id=rea.get_id_from_name()   
         if int(id) < 0:
             print "Realization %s do not exists"%options.rea_name
@@ -59,7 +59,7 @@ try:
             f=open(options.rea_file)
             for realization in f.readlines():
                 realization=realization.rstrip()
-            rea=WRF4G.Realization(data={'name':'%s'%realization},verbose=options.verbose)
+            rea=WRF4Glib.Realization(data={'name':'%s'%realization},verbose=options.verbose)
             id=rea.get_id_from_name()
             if int(id) < 0:
                 print "Realization with name %s do not exist"%realization
@@ -68,8 +68,7 @@ try:
         finally: 
             f.close()
 except Exception, e:
-    print 'Caught exception: %s: %s' % (e.__class__, str(e))
-    WRF4G.dbc.close()    
+    print 'Caught exception: %s: %s' % (e.__class__, str(e))    
     sys.exit(-1)
-else:
-    WRF4G.dbc.close()
+finally:
+    WRF4Glib.dbc.close()
