@@ -1,9 +1,10 @@
 import os
 import sys
+from os.path import dirname
 
 WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
 if WRF4G_LOCATION == None:
-    WRF4G_LOCATION = os.path.dirname(os.path.abspath(__file__))
+    WRF4G_LOCATION = dirname(dirname(os.path.abspath(__file__)))
     os.environ['WRF4G_LOCATION'] = WRF4G_LOCATION
 
 DB4G_CONF=os.environ.get('DB4G_CONF')

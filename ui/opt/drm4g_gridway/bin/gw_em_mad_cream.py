@@ -4,12 +4,13 @@ import sys
 import os
 import traceback
 import logging.config
+from os.path import dirname, join
 
 if sys.version_info < (2,4) and sys.version_info > (3,0):
     print 'The version number of the Python has to be > = 2.4 and < 3.0'
     sys.exit(-1)
 try:
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__), 'libexec'))
+    sys.path.insert(0, join(dirname(dirname(os.path.abspath(__file__))), 'libexec'))
     from drm4g.global_settings import PATH_LOGGER
     try:
         logging.config.fileConfig(PATH_LOGGER)

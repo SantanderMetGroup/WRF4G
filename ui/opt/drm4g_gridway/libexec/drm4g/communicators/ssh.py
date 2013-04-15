@@ -2,14 +2,15 @@ import os
 import sys
 import platform
 import traceback
+from os.path import dirname
 try:
     import paramiko
     from paramiko.dsskey import DSSKey
     from paramiko.rsakey import RSAKey
 except ImportError:
     try:
-        GW_LOCATION = os.path.dirname(os.path.abspath(__file__))
-        cryptos_path = os.path.join('libexec', 'drm4g', 'utils', 'Cryptos')
+        GW_LOCATION = dirname(dirname(os.path.abspath(__file__)))
+        cryptos_path = os.path.join('utils', 'Cryptos')
         if platform.architecture()[0] == '32bit':
             if sys.version_info < (2,5):
                 crypto_package = 'Crypto24_i686'
