@@ -10,7 +10,6 @@ from drm4g.core.configure import readHostList, parserHost, CheckConfigFile
 from drm4g.utils.message import Send
 from drm4g.global_settings import COMMUNICATOR
 from drm4g.utils.importlib import import_module
-import traceback
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'

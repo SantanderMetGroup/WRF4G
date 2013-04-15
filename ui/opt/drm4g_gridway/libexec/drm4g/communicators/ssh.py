@@ -8,22 +8,19 @@ try:
     from paramiko.rsakey import RSAKey
 except ImportError:
     try:
-        GW_LOCATION = os.environ['GW_LOCATION']
-    except Exception:
-        print 'Please, set GW_LOCATION variable'
-        sys.exit(-1)
-    try:
+        GW_LOCATION = os.path.dirname(os.path.abspath(__file__))
+        cryptos_path = os.path.join('libexec', 'drm4g', 'utils', 'Cryptos')
         if platform.architecture()[0] == '32bit':
             if sys.version_info < (2,5):
-                sys.path.append(os.path.join(GW_LOCATION, 'libexec', 'drm4g', 'utils', 'Cryptos', 'Crypto24_i686'))
+                crypto_package = 'Crypto24_i686'
             else:
-                sys.path.append(os.path.join(GW_LOCATION, 'libexec', 'drm4g', 'utils', 'Cryptos', 'Crypto_i686'))
+                crypto_package = 'Crypto_i686'
         else:
             if sys.version_info < (2,5):
-                sys.path.append(os.path.join(GW_LOCATION, 'libexec', 'drm4g', 'utils', 'Cryptos', 'Crypto24_x86_64'))
+                crypto_package = 'Crypto24_x86_64'
             else:
-                sys.path.append(os.path.join(GW_LOCATION, 'libexec','drm4g','utils', 'Cryptos', 'Crypto_x86_64'))
-        sys.path.append(os.path.join(GW_LOCATION, 'libexec','drm4g','utils'))
+                crypto_package = 'Crypto_x86_64'
+        sys.path.append(os.path.join(cryptos_path, crypto_package))
         import paramiko
         from paramiko.dsskey import DSSKey
         from paramiko.rsakey import RSAKey
