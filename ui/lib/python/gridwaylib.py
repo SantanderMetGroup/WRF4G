@@ -5,6 +5,7 @@ from os.path import dirname, abspath
 
 WRF4G_LOCATION = dirname(dirname(dirname(abspath(__file__))))
 GW_LOCATION = WRF4G_LOCATION + '/opt/drm4g_gridway'
+os.environ['GW_LOCATION'] = GW_LOCATION
     
 class job:
     """
