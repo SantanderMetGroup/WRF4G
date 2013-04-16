@@ -14,9 +14,9 @@ and default value is 0. When a chunk gets a priority of 20, it becomes an urgent
 This chunk is dispatched as soon as possible, bypassing all the scheduling policies. 
 """  
 parser = OptionParser(usage,version="%prog 1.0")
-parser.add_option("-e", "--exp",metavar="name",dest="exp_name", help="Name of the experiment to sumbit")
-parser.add_option("-r", "--rea",metavar="name",dest="rea_name", help="Name of the realization to sumbit")
-parser.add_option("-F", "--frea",metavar="FILE",dest="rea_file", help="File containing the name of the realization to change of the priority")
+parser.add_option("-e", "--exp",metavar="name",dest="exp_name", help="Name of the experiment")
+parser.add_option("-r", "--rea",metavar="name",dest="rea_name", help="Name of the realization")
+parser.add_option("-F", "--frea",metavar="FILE",dest="rea_file", help="File containing the name of the realizations to change of the priority")
 parser.add_option("-v", "--verbose",action="store_true",default=False, dest="verbose",help="Verbose mode. Explain what is being done")
 parser.add_option("-p", "--priority",type="int",dest="priority", help="The priority must be in range [0,20].")
 

@@ -9,7 +9,7 @@ usage="""
 
 Synopsys:
 
-Submits an experiment or realization.
+wrf4g_submit command submits an experiment or realization.
 """  
 parser = OptionParser(usage,version="%prog 1.0")
 parser.add_option("-n", "--dry-run",action="store_true", default=False, dest="dryrun",help="Perform a trial run with no changes made")

@@ -17,13 +17,13 @@ usage="""
 
 Synopsys:
 
-Prints the experiment or realization status. 
+wrf4g_status command prints the experiment or realization status. 
 """  
 parser = OptionParser(usage,version="%prog 1.0")
-parser.add_option("-e", "--exp",metavar="name",dest="exp_name", help="Name of the experiment.")
+parser.add_option("-e", "--exp",metavar="name",dest="exp_name", help="Name of the experiment")
 parser.add_option("-r", "--rea",metavar="name",dest="rea_name", help="Name of the realization")
-parser.add_option("-l", "--long",action="store_true",default=False,dest="long", help="Show a detailed status.")
-parser.add_option("-n", "--ncharacters",default=20,type="int",dest="number_of_characters", help="Print n characters of the name of the Experiment or Realization (default value is 20 characters)")
+parser.add_option("-l", "--long",action="store_true",default=False,dest="long", help="Show a detailed status")
+parser.add_option("-n", "--ncharacters",default=20,type="int",dest="number_of_characters", help="Print n characters of the name of the experiment or realization (default value is 20 characters)")
 
 (options, args) = parser.parse_args()
 
