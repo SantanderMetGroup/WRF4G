@@ -50,21 +50,5 @@ wrf4g_resources
 HID PRIO OS              ARCH        NODES(U/F/T) LRMS               HOSTNAME                      
 0   1    GNU/Linux2.6.32 x86_64         0/1/1     FORK               mycomputer 
               
-* Launch the test experiment in the machine where WRF4G is installed:
-  * Go to the folder where the experiment configuration files are located:
-
-cd $WRF4G_LOCATION/experiments/single/testc
-
-  * Prepare and submit the experiment:
-
-wrf4g_prepare
-wrf4g_submit
-
-  * Run wrf4g_status to see the jobs' status
-
-wrf4g_status -e testc 
-Realization Status   Chunks     Comp.Res   WN         Run.Sta       ext   %
-testc       Done     3/3        mycomputer sipc18     Finished       0 100.00
-
 == Information ==
 If you want to find more information about WRF4G, please check out https://www.meteo.unican.es/trac/meteo/wiki/WRF4G
