@@ -9,7 +9,8 @@ usage="""
 
 Synopsys:
 
-Kill an experiment or realization. Only the ckunks, which have not done, will go back to "Prepared" status.
+wrf4g_kill command kill the jobs that belong to an experiment or realization. Addtionally, 
+the experiment and realization ckunks, which have not done, will go back to "Prepared" status.
 """  
 parser = OptionParser(usage,version="%prog 1.0")
 parser.add_option("-n", "--dry-run",action="store_true", default=False, dest="dryrun",help="Perform a trial run with no changes made")
