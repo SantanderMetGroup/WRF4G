@@ -370,7 +370,7 @@ export RESOURCES_WRF4G="${ROOTDIR}/resources.wrf4g"
 export DB4G_CONF="${ROOTDIR}/db4g.conf"
 export PATH="${ROOTDIR}/bin:$PATH"
 export LD_LIBRARY_PATH=${ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
-export PYTHONPATH=${ROOTDIR}/lib/python:$PYTHONPATH
+export PYTHONPATH=${ROOTDIR}/lib/python:${ROOTDIR}/bin:$PYTHONPATH
 export PATH="${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
 
 source ${ROOTDIR}/lib/bash/wrf_util.sh
