@@ -66,10 +66,10 @@ case "$1" in
         echo -e " FAILED. GridWay is already stopped."
       fi
     fi
-    echo -n "Stopping WRF4G_DB (MySQL) ..."
     grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
     source db4g.conf.temp; rm db4g.conf.temp
     if [ $WRF4G_DB_LOCAL -eq 1 ]; then
+      echo -n "Stopping WRF4G_DB (MySQL) ..."
       if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
         echo -e " FAILED. MySQL is already stopped." 
       else
