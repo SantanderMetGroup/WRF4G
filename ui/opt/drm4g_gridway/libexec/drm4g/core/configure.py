@@ -130,6 +130,8 @@ class HostConfiguration(object):
         return self._params.setdefault('TEMP_DIR', r'~')
  
     def set_run_dir(self, run_dir):
+        if run_dir[-1] == '/': 
+            run_dir =  run_dir[:-1]
         self._params['TEMP_DIR'] = run_dir
         
     def get_local_dir(self):
