@@ -73,7 +73,7 @@ def format_output(dout,number_of_characters, ext=False):
     per=runt/totalt
     if dout['status'] < 10 and dout['status'] > 0 and dout['rea_status'] != 4: 
         dout['rea_status']=1  
-    string_to_print = '%-'+ str(number_of_characters) + 's %-5s %-2s %-6s %-10s %-10s %-13s %2s %2.2f'
+    string_to_print = '%-'+ str(number_of_characters) + 's %-5s %-2s %-15s %-10s %-10s %-13s %2s %2.2f'
     return  string_to_print  % (dout['name'][0:number_of_characters],
                                 dout['gw_job'],
                                 dreastatus[dout['rea_status']],

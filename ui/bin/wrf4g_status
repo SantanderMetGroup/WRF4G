@@ -8,7 +8,7 @@ def sum_header(number_of_characters_Experiment):
     print string_to_print % ("Experiment","P","W","R","D","F")	
 
 def long_header(number_of_characters_Realization):
-    string_to_print = bold + '%-' + str(number_of_characters_Realization) + 's %-3s %-4s %-6s %-10s %-10s %-13s %2s %3s' + reset
+    string_to_print = bold + '%-' + str(number_of_characters_Realization) + 's %-3s %-4s %-15s %-10s %-10s %-13s %2s %3s' + reset
     print string_to_print % ('Realization','GW','Stat','Chunks','Comp.Res','WN','Run.Sta','ext','%')
    
 usage="""
