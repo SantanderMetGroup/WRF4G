@@ -259,7 +259,7 @@ class GwEmMad (object):
                     communicator = self._createCom(hostConf) 
                 else:
                     oldHostConf, oldCommunicator = self._host_properties.get(host)
-                    if hostConf.resource_attrs() != oldHostConf.resource_attrs():
+                    if hostConf.com_attrs() != oldHostConf.com_attrs():
                         oldCommunicator.close()
                         communicator = self._createCom(hostConf)
                     else:
