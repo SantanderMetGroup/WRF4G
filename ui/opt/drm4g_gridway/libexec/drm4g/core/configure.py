@@ -135,7 +135,7 @@ class HostConfiguration(object):
         self._params['TEMP_DIR'] = run_dir
         
     def get_local_dir(self):
-        return self._params.setdefault('RUN_DIR', r'~')
+        return self._params.setdefault('RUN_DIR', '$HOME')
         
     def get_project(self):
         return self._params.setdefault('PROJECT')
