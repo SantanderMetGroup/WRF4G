@@ -44,7 +44,7 @@ case "$1" in
         exit 4         
       fi
       
-      nohup ./bin/mysqld_safe --no-defaults --port=$WRF4G_DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock &>/dev/null &
+      nohup ./bin/mysqld_safe --no-defaults --port=$WRF4G_DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock --log-error=$WRF4G_LOCATION/var/mysql.log &>/dev/null &
       cd - &>/dev/null
       echo " OK"
     fi
