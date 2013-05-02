@@ -9,8 +9,8 @@ try:
     from paramiko.rsakey import RSAKey
 except ImportError:
     try:
-        GW_LOCATION = dirname(dirname(os.path.abspath(__file__)))
-        cryptos_path = os.path.join('utils', 'Cryptos')
+        utils_path=os.path.join(dirname(dirname(os.path.abspath(__file__))),'utils')
+        sys.path.append(utils_path)
         if platform.architecture()[0] == '32bit':
             if sys.version_info < (2,5):
                 crypto_package = 'Crypto24_i686'
@@ -21,7 +21,7 @@ except ImportError:
                 crypto_package = 'Crypto24_x86_64'
             else:
                 crypto_package = 'Crypto_x86_64'
-        sys.path.append(os.path.join(cryptos_path, crypto_package))
+        sys.path.append(os.path.join(utils_path,'Cryptos', crypto_package))
         import paramiko
         from paramiko.dsskey import DSSKey
         from paramiko.rsakey import RSAKey
@@ -44,7 +44,7 @@ class Communicator (drm4g.communicators.Communicator):
     """
     Create a SSH session to remote resources.  
     """
-    timeout = 20 # seconds
+    timeout = 1000 # seconds
     sftp_connections = 3
  
     def __init__(self):
