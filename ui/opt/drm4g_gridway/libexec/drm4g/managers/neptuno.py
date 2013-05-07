@@ -32,7 +32,6 @@ class Job (drm4g.managers.slurm.Job):
         args += '#MOAB -N JID_%s\n' % (parameters['environment']['GW_JOB_ID'])
         args += '#MOAB -o $stdout\n'
         args += '#MOAB -e $stderr\n'
-        args += '#MOAB -l nodes=$count\n'
         if parameters.has_key('ppn'):
             args += '#MOAB -l nodes=$count:ppn=$ppn\n'
         else:
