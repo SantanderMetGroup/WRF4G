@@ -111,6 +111,8 @@ try:
                             type_dep=options.type_dep)      
         finally:     
             f.close()
+    else:
+        parser.print_help()
 except Exception, e:
     print 'Caught exception: %s: %s' % (e.__class__, str(e))
     sys.exit(-1)      

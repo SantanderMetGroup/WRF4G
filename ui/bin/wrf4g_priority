@@ -22,7 +22,7 @@ parser.add_option("-p", "--priority",type="int",dest="priority", help="The prior
 
 (options, args) = parser.parse_args()
 
-if not options.priority:
+if not ( options.priority or options.exp_name or options.rea_name or options.rea_file ):
     parser.print_help()
 try:
     if not (options.exp_name or options.rea_name or options.rea_file):

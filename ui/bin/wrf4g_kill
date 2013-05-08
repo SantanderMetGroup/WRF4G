@@ -20,7 +20,8 @@ parser.add_option("-F", "--frea",metavar="FILE",dest="rea_file", help="File cont
 parser.add_option("-v", "--verbose",action="store_true",default=False, dest="verbose",help="Verbose mode. Explain what is being done")
 
 (options, args) = parser.parse_args()
-if not options: parser.print_help()
+if not ( options.exp_name or options.rea_name or options.rea_file ): 
+    parser.print_help()
 try:
     if not (options.exp_name or options.rea_name or options.rea_file):
         # No experiment or realization given

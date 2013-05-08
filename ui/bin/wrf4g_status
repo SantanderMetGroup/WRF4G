@@ -61,7 +61,7 @@ try:
                 out=exp.summarized_status(options.number_of_characters)
 except Exception, e:
     print 'Caught exception: %s: %s' % (e.__class__, str(e))
-    exit(-1)
+    sys.exit(-1)
 finally:
     WRF4Glib.dbc.close()
 
