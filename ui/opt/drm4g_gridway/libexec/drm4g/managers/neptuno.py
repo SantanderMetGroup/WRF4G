@@ -33,10 +33,13 @@ class Job (drm4g.managers.slurm.Job):
         args += '#MOAB -o $stdout\n'
         args += '#MOAB -e $stderr\n'
         if parameters.has_key('ppn'):
-            args += '#MOAB -l nodes=$count:ppn=$ppn\n'
+            node_count = int(parameters['count']) / int(parameters['ppn'])
+            if node_count == 0:
+                node_count = 1
+            args += '#MOAB -l nodes=%d:ppn=$ppn\n'%(node_count)
         else:
             args += '#MOAB -l nodes=$count\n'
-        args += '#MOAB -V'
+        args += '#MOAB -V\n'
         args += ''.join(['export %s=%s\n' % (k, v) for k, v in parameters['environment'].items()])
         args += 'cd $directory\n'
         args += '$executable\n'
