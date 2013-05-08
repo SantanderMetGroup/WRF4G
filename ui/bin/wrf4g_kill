@@ -22,17 +22,8 @@ parser.add_option("-v", "--verbose",action="store_true",default=False, dest="ver
 (options, args) = parser.parse_args()
 if not ( options.exp_name or options.rea_name or options.rea_file ): 
     parser.print_help()
+    sys.exit(-1)
 try:
-    if not (options.exp_name or options.rea_name or options.rea_file):
-        # No experiment or realization given
-        if not os.path.isfile('experiment.wrf4g'):
-            print "Error. Please provide the name of the experiment to submit."
-            sys.exit(1)
-        else:
-            exp_file=open('experiment.wrf4g').read()
-            parsed=re.sub(r'\n\s+', '\n', exp_file)
-            exec parsed
-      
     if options.exp_name:
         exp=WRF4Glib.Experiment(data={'name':'%s'%options.exp_name},verbose=options.verbose,dryrun=options.dryrun)
         id=exp.get_id_from_name()
@@ -55,8 +46,8 @@ try:
         else:
             rea.stop_running_chunks()
     elif options.rea_file:
+        f=open(options.rea_file)
         try:
-            f=open(options.rea_file)
             for realization in f.readlines():
                 realization=realization.rstrip()
                 rea=WRF4Glib.Realization(data={'name':'%s'%realization},verbose=options.verbose,dryrun=options.dryrun)
