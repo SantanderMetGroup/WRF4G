@@ -12,12 +12,16 @@ GW_LOCATION ='%s/opt/drm4g_gridway'% WRF4G_LOCATION
 
 #Configure WRF4GF_DB
 DB4G_CONF=os.environ.get('DB4G_CONF')
-exec open(DB4G_CONF).read() 
-dbc=vdblib.vdb(host=WRF4G_DB_HOST,
+try:
+    exec open(DB4G_CONF).read() 
+    dbc=vdblib.vdb(host=WRF4G_DB_HOST,
                user=WRF4G_DB_USER,
                db=WRF4G_DB_DATABASE,
                port=WRF4G_DB_PORT,
                passwd=WRF4G_DB_PASSWD)
+except Exception, e:
+    print 'Caught exception: %s: %s' % (e.__class__, str(e))
+
 
 def datetime2datewrf (date_object):
     return date_object.strftime("%Y-%m-%d_%H:%M:%S")
@@ -249,7 +253,8 @@ class Component:
             # Experiment is different that the one found in the database
             if id == -1:
                 if self.reconfigure == False:
-                    sys.stderr.write("Error: %s with the same name and different parameters already exists.\nIf you want to overwrite some parameters, try the reconfigure option.\n" %self.element) 
+                    sys.stderr.write("Error: %s with the same name and different parameters already exists.\n" %self.element)
+                    sys.stderr.write("If you want to overwrite some parameters, try the reconfigure option.\n")
                     sys.exit(9)
                 else: 
                     id=self.get_id(self.get_no_reconfigurable_fields())
