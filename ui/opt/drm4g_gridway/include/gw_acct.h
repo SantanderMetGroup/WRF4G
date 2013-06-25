@@ -51,15 +51,15 @@ typedef struct gw_acct_data_s
 
 typedef struct gw_acct_s
 {
-	char    name[GW_MSG_STRING_HOST];
-	
-	time_t	transfer;
-	time_t  execution;
-	time_t  suspension;
-	
-	int     tot;
-	int     succ;
-	int     user;
+    char    name[GW_MSG_STRING_USER_AT_HOST];
+
+    time_t  transfer;
+    time_t  execution;
+    time_t  suspension;
+
+    int     tot;
+    int     succ;
+    int     user;
     int     susp;
     int     disc;
     int     self;
