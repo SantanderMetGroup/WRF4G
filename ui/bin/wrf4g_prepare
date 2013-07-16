@@ -170,6 +170,8 @@ function cycle_hindcasts(){
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
     rea_name="${realization_name}__${cyy}${cmm}${cdd}${chh}_${fyy}${fmm}${fdd}${fhh}"
+    #echo " ${realization_name}  $(printf "%4d" ${chunkno})  ${current_date}  ${final_date}"
+    #echo "WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},multiparams_label=${multiparams_label}"
     id_rea=$(WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},multiparams_label=${multiparams_label})
     if test $?  -ne 0; then
       exit
@@ -182,7 +184,15 @@ function cycle_hindcasts(){
     #
     #  Cycle dates
     #
-    let hoursnext=chh+simulation_interval_h
+    if echo "$simulation_interval_h" | egrep -q '^[-+]?([0-9]+\.?|[0-9]*\.[0-9]+)$'
+    then
+      let hoursnext=chh+simulation_interval_h
+    else
+      current_date_sec=$(date +%s -d"${cyy}${cmm}${cdd}")
+      next_date_sec=$(date +%s -d"${cyy}${cmm}${cdd} ${simulation_interval_h}")
+      let this_simulation_interval_h=(next_date_sec-current_date_sec)/3600
+      let hoursnext=chh+this_simulation_interval_h
+    fi
     current_date=$(date +%Y-%m-%d_%H:%M:%S -u -d"${cyy}${cmm}${cdd} $hoursnext hours")
     read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
   done
