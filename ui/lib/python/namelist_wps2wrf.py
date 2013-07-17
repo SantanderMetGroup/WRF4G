@@ -8,7 +8,7 @@ def get_num_metgrid_levels():
   return int(os.popen(shcmd).read().strip())
 
 def get_num_metgrid_soil_levels():
-  shcmd = "ncdump -h $(\ls -1 met_em*.nc | head -1) | grep 'num_st_layers =' | sed -e 's/^\t//' | tr '=;' '  ' | awk '{print $2}'"
+  shcmd = "ncdump -h $(\ls -1 met_em*.nc | head -1) | grep 'NUM_METGRID_SOIL_LEVELS' | sed -e 's/^\t//' | tr '=:;' '   ' | awk '{print $2}'"
   return int(os.popen(shcmd).read().strip())
 
 def get_time_step(coarse_dx, factor):
