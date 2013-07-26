@@ -31,7 +31,7 @@ def get_latlon_dx(start_date):
   elif os.path.exists("wrfinput_d01"):
     dxfile = "wrfinput_d01"
   if dxfile:
-    shcmd = "ncdump -h %s | grep 'DX =' | sed -e 's/^\t//' | tr '=;' ' ' | awk '{printf \"%f\", $2}'" % dxfile
+    shcmd = "ncdump -h %s | grep 'DX =' | sed -e 's/^\t//' | tr '=;' ' ' | awk '{printf \"%%f\", $2}'" % dxfile
     rval = round(float(os.popen(shcmd).read().strip()), 2)
   else:
     raise Exception('get_latlon_dx: no met_em or wrfinput file found')
