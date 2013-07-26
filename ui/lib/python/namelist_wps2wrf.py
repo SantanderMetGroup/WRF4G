@@ -21,9 +21,21 @@ def get_time_step(coarse_dx, factor):
   ival = map(lambda x: x<=tstep, HOUR_DIVISORS).index(0) - 1
   return HOUR_DIVISORS[ival]
 
-def get_met_em_dx():
-  shcmd = "ncdump -h $(\ls -1 met_em*.nc | head -1) | grep 'DX =' | sed -e 's/^\t//' | tr '=;' ' ' | awk '{printf \"%f\", $2}'"
-  return round(float(os.popen(shcmd).read().strip()), 2)
+def get_latlon_dx(start_date):
+  #  Try to get dx from the met_em or wrfinput files. Only
+  #  required for lat-lon grids, otherwise it is available
+  #  in the namelist.wps file
+  dxfile = ""
+  if os.path.exists("met_em.d01.%s.nc" % start_date):
+    dxfile = "met_em.d01.%s.nc" % start_date
+  else if os.path.exists("wrfinput_d01"):
+    dxfile = "wrfinput_d01"
+  if dxfile:
+    shcmd = "ncdump -h %s | grep 'DX =' | sed -e 's/^\t//' | tr '=;' ' ' | awk '{printf \"%f\", $2}'" % dxfile
+    rval = round(float(os.popen(shcmd).read().strip()), 2)
+  else
+    raise Exception('get_latlon_dx: no met_em or wrfinput file found')
+  return rval
 
 class fake_strptime:
   "This works with any python, unlike the datetime.datetime.strptime method"
@@ -86,7 +98,7 @@ pid = nmlw.getValue("parent_id")
 pgr = nmlw.getValue("parent_grid_ratio")
 proj = nmlw.getValue("map_proj")[0]
 if proj == "lat-lon":
-  thisdx = get_met_em_dx()
+  thisdx = get_latlon_dx(start_date)
 else:
   thisdx = nmlw.getValue("dx")[0]
 alldx = [thisdx,]
