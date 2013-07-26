@@ -28,7 +28,7 @@ def get_latlon_dx(start_date):
   dxfile = ""
   if os.path.exists("met_em.d01.%s.nc" % start_date):
     dxfile = "met_em.d01.%s.nc" % start_date
-  else if os.path.exists("wrfinput_d01"):
+  elif os.path.exists("wrfinput_d01"):
     dxfile = "wrfinput_d01"
   if dxfile:
     shcmd = "ncdump -h %s | grep 'DX =' | sed -e 's/^\t//' | tr '=;' ' ' | awk '{printf \"%f\", $2}'" % dxfile
