@@ -1,1 +1,0 @@
-../../ui/bin/wrf4g_env.py
