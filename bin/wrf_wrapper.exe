@@ -1,5 +1,0 @@
-#! /bin/bash
-ulimit -s unlimited
-${0/_wrapper/} $* &
-test -f wrf.pid || echo "$!" > wrf.pid
-wait
