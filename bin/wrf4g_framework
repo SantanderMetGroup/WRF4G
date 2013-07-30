@@ -8,9 +8,9 @@
 case "$1" in
   start)
     sed -i "s#\$HOSTNAME#$HOSTNAME#" $FRAMEWORK4G_CONF
-    if test -f ${WRF4G_LOCATION}/etc/resources.wrf4g; then
-      sed -i 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g
-      sed -i "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" ${WRF4G_LOCATION}/etc/resources.wrf4g
+    if test -f ${WRF4G_LOCATION}/etc/templates/resources.wrf4g; then
+      sed -i 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/templates/resources.wrf4g
+      sed -i "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" ${WRF4G_LOCATION}/etc/templates/resources.wrf4g
     fi
     
     echo -n "Starting DRM4G (GridWay) .... "

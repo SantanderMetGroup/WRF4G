@@ -237,8 +237,8 @@ if test -f resources.wrf4g; then
   echo "${PWD} directory."
   export RESOURCES_WRF4G=${PWD}/resources.wrf4g
 else
-  echo "${WRF4G_LOCATION}/etc/ directory."
-  export RESOURCES_WRF4G=${WRF4G_LOCATION}/etc/resources.wrf4g
+  echo "${WRF4G_LOCATION}/etc/templates directory."
+  export RESOURCES_WRF4G=${WRF4G_LOCATION}/etc/templates/resources.wrf4g
 fi
 
 sed --in-place 's/\ *=\ */=/' $RESOURCES_WRF4G

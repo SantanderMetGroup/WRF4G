@@ -2,9 +2,8 @@
 
 version="1.0"
 
-thisdir=$(pwd)
 scriptdir=$( (cd `dirname $0` && echo $PWD) )
-basedir=$(dirname $(dirname ${scriptdir}))
+basedir=$(dirname ${scriptdir})
 
 while test -n "$1"; do
   case $1 in
@@ -25,10 +24,8 @@ while test -n "$1"; do
 done
 
 if test -z "${destdir}"; then
-  destdir="${thisdir}"
+  destdir="${basedir}/var"
 fi
 
-cd ${basedir}/wn
- tar czv -h --exclude=".svn" \
-    --exclude="WPS" --exclude="WRFV3" --exclude="openmpi" \
-    -f ${destdir}/WRF4G-${version}${tag}.tar.gz *
+cd ${basedir}
+ tar czv -h --exclude=".svn" -f ${destdir}/WRF4G-${version}${tag}.tar.gz bin lib
