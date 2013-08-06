@@ -1,6 +1,10 @@
 #!/bin/bash
 export LANG=C
-FOLDER="/tmp"
+if [ -z "$1" ]; then
+  FOLDER="/tmp"
+else
+  FOLDER=$1
+fi
 echo "Creating WRF4G.tar.gz in ${FOLDER}"
 mkdir -p ${FOLDER}/WRF4G
 cp -R $PWD/* ${FOLDER}/WRF4G
