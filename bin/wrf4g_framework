@@ -17,7 +17,7 @@ case "$1" in
     if test -f $GW_LOCATION/var/.lock; then
       echo -e "ERROR: GridWay is already running." 
     else
-      gwd && echo "OK"
+      $GW_LOCATION/bin/gwd && echo "OK"
     fi
     
     grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
@@ -49,7 +49,8 @@ case "$1" in
   stop)
     #Stopping gwd 
     echo -n "Stopping DRM4G (GridWay) .... "
-    gwd -k && echo "OK"
+    $GW_LOCATION/bin/gwd -k && echo "OK"
+    rm -f $GW_LOCATION/var/.lock
     #Stopping mysqld
     grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
     source db4g.conf.temp; rm db4g.conf.temp
@@ -84,21 +85,25 @@ case "$1" in
   reload)
     # Only reloads gridway
     echo -n "Reloading DRM4G (GridWay) .... "
-    gwd -k && gwd && echo "OK"
+    $GW_LOCATION/bin/gwd -k && $GW_LOCATION/bin/gwd && echo "OK"
   ;;
   status)
     # Checking if gwd is running
     echo -n "DRM4G (GridWay) is "
-    gwd -s
+    $GW_LOCATION/bin/gwd -s
     # Checking if mysqld is running
-    if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
-      echo "WRF4G_DB (MySQL) is stopped"
-    else
-      mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
-      if test $(ps -p $mysql_pid | grep -m1 -c $mysql_pid) -eq 1; then
-        echo "WRF4G_DB (MySQL) is running"
-      else
+    grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
+    source db4g.conf.temp; rm db4g.conf.temp
+    if [ $WRF4G_DB_LOCAL -eq 1 ]; then
+      if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
         echo "WRF4G_DB (MySQL) is stopped"
+      else
+        mysql_pid=$(cat $MYSQL_LOCATION/data/`hostname`.pid)
+        if test $(ps -p $mysql_pid | grep -m1 -c $mysql_pid) -eq 1; then
+          echo "WRF4G_DB (MySQL) is running"
+        else
+          echo "WRF4G_DB (MySQL) is stopped"
+        fi
       fi
     fi
   ;;
