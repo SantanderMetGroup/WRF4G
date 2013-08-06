@@ -28,4 +28,4 @@ if test -z "${destdir}"; then
 fi
 
 cd ${basedir}
- tar czv -h --exclude=".svn" -f ${destdir}/WRF4G-${version}${tag}.tar.gz bin lib
+ tar czv -h --exclude=".svn" -f ${destdir}/WRF4G-${version}${tag}.tar.gz bin lib var/wrf4g_files

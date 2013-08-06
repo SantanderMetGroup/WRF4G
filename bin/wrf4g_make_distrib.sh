@@ -7,7 +7,7 @@ else
 fi
 echo "Creating WRF4G.tar.gz in ${FOLDER}"
 mkdir -p ${FOLDER}/WRF4G
-cp -R $PWD/* ${FOLDER}/WRF4G
+cp -R $PWD/../* ${FOLDER}/WRF4G
 svn info>${FOLDER}/WRF4G/svn_info.txt
 svn_tag=$(svn info | grep '^Revision:' | sed -e 's/^Revision: //')
 cd ${FOLDER}/WRF4G

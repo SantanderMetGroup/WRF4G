@@ -38,6 +38,7 @@ function WRF4G_structure (){
   vcp ${VCPDEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/wrf4g_files.tar.gz ${ROOTDIR} &>/dev/null
   if test -f ${ROOTDIR}/wrf4g_files.tar.gz; then
     tar xzf ${ROOTDIR}/wrf4g_files.tar.gz && rm ${ROOTDIR}/wrf4g_files.tar.gz
+    chmod +x ${ROOTDIR}/wrf4g_files/*
   fi
 }
 
@@ -359,7 +360,9 @@ export chunk_end_date=$7
 #
 ROOTDIR=$(pwd)
 tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz || exit ${ERROR_MISSING_WRF4GSRC}
+mv ${ROOTDIR}/var/wrf4g_files ${ROOTDIR}/wrf4g_files
 chmod +x ${ROOTDIR}/bin/*
+chmod +x ${ROOTDIR}/wrf4g_files/*
 
 #
 #   Load functions and set the PATH
@@ -367,7 +370,7 @@ chmod +x ${ROOTDIR}/bin/*
 
 export RESOURCES_WRF4G=${ROOTDIR}/resources.wrf4g
 export DB4G_CONF=${ROOTDIR}/db4g.conf
-export PATH=${ROOTDIR}/bin:${ROOTDIR}/lib/bash:$PATH
+export PATH=${ROOTDIR}/bin:${ROOTDIR}/lib/bash:${ROOTDIR}/wrf4g_files:$PATH
 export LD_LIBRARY_PATH=${ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
 export PYTHONPATH=${ROOTDIR}/lib/python:${ROOTDIR}/bin:$PYTHONPATH
 
