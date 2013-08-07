@@ -106,7 +106,7 @@ function prepare_local_environment (){
     mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
   fi
   cp -R ${LOCALDIR}/WRFV3/run ${ROOTDIR}/runshared
-  $MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/bin/load_wrfbin.sh	
+  $MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/bin/load_wrfbin	
   prepare_openmpi=0
 }
 

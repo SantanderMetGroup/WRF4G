@@ -1,0 +1,31 @@
+#! /bin/bash
+
+# Common initialization
+. `dirname $0`/wrf4g_env
+
+version="1.0"
+
+while test -n "$1"; do
+  case $1 in
+    "-tag")
+      tag=$2
+      shift
+      ;;
+    "-destdir")
+      destdir=$2
+      shift
+      ;;
+    *)
+      echo "Usage: $(basename $0) [-tag tag] [-destdir /destination/for/file.tar.gz]" 
+      exit
+      ;;
+  esac
+  shift
+done
+
+if test -z "${destdir}"; then
+  destdir="${WRF4G_LOCATION}/var"
+fi
+
+cd ${WRF4G_LOCATION}
+ tar czv -h --exclude=".svn" -f ${destdir}/WRF4G-${version}${tag}.tar.gz bin lib var/wrf4g_files
