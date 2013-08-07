@@ -433,16 +433,16 @@ class Experiment(Component):
         exp_dir="%s/%s/" %(WRF4G_BASEPATH, self.data['name'])
         list=vcplib.VCPURL(exp_dir)
         list.mkdir(verbose=self.verbose)
-        if os.path.exists('wrf4g_files'):
+        if os.path.exists('scripts'):
             import tarfile
-            os.chdir('wrf4g_files')
-            tFile = tarfile.open('../wrf4g_files.tar.gz', 'w:gz')
+            os.chdir('scripts')
+            tFile = tarfile.open('../scripts.tar.gz', 'w:gz')
             for file in os.listdir('.'):
                 tFile.add(file)
             tFile.close()
             os.chdir('..')
-            output=vcplib.copy_file('wrf4g_files.tar.gz',exp_dir,verbose=self.verbose)    
-            os.remove('wrf4g_files.tar.gz')  
+            output=vcplib.copy_file('scripts.tar.gz',exp_dir,verbose=self.verbose)    
+            os.remove('scripts.tar.gz')  
             
         output=vcplib.copy_file(DB4G_CONF,exp_dir,verbose=self.verbose)
         output=vcplib.copy_file(RESOURCES_WRF4G,exp_dir,verbose=self.verbose) 
@@ -644,7 +644,7 @@ class Realization(Component):
                 self.prepare_gridway()   
                 exec open('resources.wrf4g').read()     
                 job=gridwaylib.job()
-                sandbox='file://%s/var/WRF4G.sh,file://%s/var/WRF4G-%s.tar.gz,file://%s/etc/db4g.conf,resources.wrf4g'%(WRF4G_LOCATION,WRF4G_LOCATION,WRF4G_VERSION,WRF4G_LOCATION)
+                sandbox='file://%s/scripts/WRF4G.sh,file://%s/var/WRF4G-%s.tar.gz,file://%s/etc/db4g.conf,resources.wrf4g'%(WRF4G_LOCATION,WRF4G_LOCATION,WRF4G_VERSION,WRF4G_LOCATION)
                 job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS,environ=ENVIRONMENT,inputsandbox=sandbox,verbose=self.verbose)
                 if chunki == first_id:
                     gw_id=job.submit(priority=priority)
