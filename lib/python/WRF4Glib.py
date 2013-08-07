@@ -3,7 +3,9 @@
 import inspect
 import os
 import sys
+from os.path import dirname
 from datetime import datetime
+
 import vdblib
 import vcplib 
 
@@ -644,7 +646,11 @@ class Realization(Component):
                 self.prepare_gridway()   
                 exec open('resources.wrf4g').read()     
                 job=gridwaylib.job()
-                sandbox='file://%s/scripts/WRF4G.sh,file://%s/var/WRF4G-%s.tar.gz,file://%s/etc/db4g.conf,resources.wrf4g'%(WRF4G_LOCATION,WRF4G_LOCATION,WRF4G_VERSION,WRF4G_LOCATION)
+                sh_location        = 'file://%s/scripts/WRF4G.sh' % (dirname(dirname(dirname(os.path.abspath(__file__)))))
+                gel_location       = 'file://%s/var/WRF4G-%s.tar.gz' % (WRF4G_LOCATION, WRF4G_VERSION)
+                db_location        = 'file://%s/etc/db4g.conf' % (WRF4G_LOCATION)
+                resources_location = 'resources.wrf4g'
+                sandbox='%s,%s,%s,%s'%(sh_location, gel_location, db_location, resources_location)
                 job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS,environ=ENVIRONMENT,inputsandbox=sandbox,verbose=self.verbose)
                 if chunki == first_id:
                     gw_id=job.submit(priority=priority)
