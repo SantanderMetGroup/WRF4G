@@ -9,34 +9,39 @@ import vcplib
 
 def main():
     usage = """%prog [OPTIONS] SOURCE DEST
-    Example: %prog -r -p 10 /tmp/prueba gsiftp://se01.macc.unican.es/tmp/valva
+    Example: %prog -r /tmp/prueba gsiftp://se01.macc.unican.es/tmp/valva
     URL examples:
     
-    GRIDFTP          gridftp://computer:2812/grid/valva
-    RSYNC            rsync://valva@computer:34/grid/valva
-    SIMBOLIC LINK    ln:///valva or ln:valva
-    FILE             file:/valva
+    LFN              lfn:///grid/VO/file file://home/user/file 
+    GRIDFTP          gridftp://computer:2812/grid/VO/user/file
+    RSYNC            rsync://user@computer:34/grid/VO/user/file
+    SIMBOLIC LINK    ln:/home/user/file or ln:file
+    FILE             file:/home/user/file file:/home/user/file2
     HTTPS            https://www.meteo.unican.es/work/WRF4G.tar.gz
     HTTP             http://www.meteo.unican.es/work/WRF4G.tar.gz
     FTP              ftp://www.meteo.unican.es/work/WRF4G.tar.gz
     """
     parser = OptionParser(usage, version="%prog 1.0")
-    parser.add_option("-p", dest="streams", help="Specify the number of parallel data connections should be used.", metavar="STREAMS")
-    parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Verbose mode. Explain what is being done")
-    parser.add_option("-r", "--recursive", action="store_true", dest="recursive", default=False, help="Copy directories recursively")
+    parser.add_option("-v", "--verbose", 
+                      action="store_true", 
+                      dest="verbose", 
+                      default=False, 
+                      help="Verbose mode. Explain what is being done")
     
     (options, args) = parser.parse_args()
     if len(args) != 2:
         parser.error("Incorrect number of arguments")
         sys.exit(-1)
     try:
-        output = vcplib.copy_file(args[0], 
-                           args[1], 
-                           verbose=options.verbose, 
-                           recursive=options.recursive, 
-                           streams=options.streams)
+        orig = vcplib.VCPURL(args[0])
+        dest = vcplib.VCPURL(args[1])
+        # Copy origin to destination, descending it recursively if it is necessary.
+        if orig.isfile():
+            vcplib.copy_file(orig, dest, verbose=options.verbose)
+        else:
+            vcplib.copy_tree(orig, dest, verbose=options.verbose)
     except Exception, e:
-        print 'Caught exception: %s: %s' % (e.__class__, str(e))
+        print 'Caught exception: %s' % (str(e))
         sys.exit(-1)
 
 if __name__ == "__main__":

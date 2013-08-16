@@ -7,6 +7,8 @@ import datetime
 import time
 import logging
 
+logger = logging.getLogger(__name__)
+
 def http_ftp_protocol(protocol):
     if protocol == 'http' or protocol == 'https' or protocol == 'ftp':
         return True
@@ -18,37 +20,35 @@ class VCPURL:
     Examples of usage of the VCPURL class:
     
     GSIFTP:
-    
-    >>> c=VCPURL("gsiftp://ce01.macc.unican.es:2812/tmp/prueba")
+    >>> c=VCPURL("gsiftp://ce01.macc.unican.es:2812/tmp/example")
     >>> print c
-    gsiftp://ce01.macc.unican.es:2812/tmp/prueba
-    >>> c.rename("prueba1")
+    gsiftp://ce01.macc.unican.es:2812/tmp/example
+    >>> c.rename("example1")
     >>> a=VCPURL("gsiftp://ce01.macc.unican.es:2812/tmp")
-    >>> a.ls("prue*")
-    ['prueba1']
+    >>> a.ls("exam*")
+    ['example1']
     
     FILES:
-    >>> d=VCPURL("./nuevo_directorio")
+    >>> d=VCPURL("./new_directory")
     >>> d.mkdir()
     >>> d.ls("*")
     ['']
     >>> f=VCPURL(".")
-    >>> f.ls("nuevo*")
-    ['nuevo_directorio']
+    >>> f.ls("new*")
+    ['new_directory']
     
-    GSIFTP:
-    >>> a=VCPURL("rsync://valva@ce01.macc.unican.es/tmp/")
-    >>> a.ls("pepe*")
-    ['pepe1p']
-    >>> b=VCPURL("rsync://valva@ce01.macc.unican.es/tmp/pepe1p")
-    >>> b.rename("juan1p")
-    >>> a.ls("juan*")
-    ['juan1p']
+    RSYNC:
+    >>> a=VCPURL("rsync://user@ce01.macc.unican.es/tmp/")
+    >>> a.ls("expam*")
+    ['example2']
+    >>> a.rename("example2p")
+    >>> a.ls("example*")
+    ['example2p']
     """
     
     def __init__(self, url=None):
         """
-        From a url (rsync://valva@sipc18:80/etc) it returns an array with 
+        From a url (protocol://user@machine:port/file) it returns an array with 
         the following field [protocol,user,computer,port,file]
         """
         self.protocol     = ""
@@ -58,11 +58,10 @@ class VCPURL:
         self.file         = ""
         self.command      = ""
         self.usercomputer = ""
-        self.logger = logging.getLogger(__name__)
         
         if not url:
             out = "Not an url"
-            self.logger.error(out)
+            logger.error(out)
             raise Exception(out)
         else:
             # Split the url if the begging is protocol:
@@ -70,7 +69,11 @@ class VCPURL:
             # There's no protocol in the url
             if not g0 :
                 self.protocol = "file"
-                self.file = abspath(url)
+                abs_url = abspath(url)
+                if url == ".":
+                    self.file = abs_url + "/"
+                else:
+                    self.file = abs_url
             else :
                 # The url contains a protocol
                 (self.protocol, self.file) = g0.groups()
@@ -87,7 +90,7 @@ class VCPURL:
                             (self.user, self.computer) = self.computer.split("@")
                     else :
                         out="Url is not well formed"
-                        self.logger.error(out)
+                        logger.error(out)
                         raise Exception(out)
                     
             self.command = {'file'  : {'ls'    : "'ls -1 %s'    %self.file" ,
@@ -110,15 +113,20 @@ class VCPURL:
                                        'rm'    : "" , 
                                        'rename': "" , 
                                        'name'  : "self.file"},    
-                            'rsync' : {'ls'    : "'ssh -q %s ls -1 %s'    %(self.usercomputer, self.file)", 
+                            'rsync' : {'ls'    : "'ssh -q %s ls -1 %s'    %(self.usercomputer,self.file)",
                                        'mkdir' : "'ssh -q %s mkdir -p %s' %(self.usercomputer,self.file)", 
-                                       'rm'    : "'ssh -q %s rm -rf %s'   %(self.usercomputer, self.file)" , 
+                                       'rm'    : "'ssh -q %s rm -rf %s'   %(self.usercomputer,self.file)", 
                                        'rename': "'ssh -q %s mv %s %s'    %(self.usercomputer,orig,dest)", 
                                        'name'  : "self.file"},
-                            'gsiftp': {'ls'    : "'uberftp %s \"ls %s\" | awk \"NR>2\"' %(self.computer, self.file)" , 
-                                       'mkdir' : "'uberftp %s \"mkdir %s\"'             %(self.computer, self.file)" , 
-                                       'rm'    : "'uberftp %s \"rm -r %s\"'             %(self.computer, self.file)"  , 
-                                       'rename': "'uberftp %s \"rename %s %s\"'         %(self.computer,orig,dest)" ,
+                            'gsiftp': {'ls'    : "'uberftp %s \"ls %s\" | awk \"NR>2\"'  %(self.computer,self.file)", 
+                                       'mkdir' : "'uberftp %s \"mkdir %s\"'              %(self.computer,self.file)", 
+                                       'rm'    : "'uberftp %s \"rm -r %s\"'              %(self.computer,self.file)", 
+                                       'rename': "'uberftp %s \"rename %s %s\"'          %(self.computer,orig,dest)",
+                                       'name'  : "self.file"},
+                            'lfn'   : {'ls'    : "'lfc-ls %s'        %(self.file)",
+                                       'mkdir' : "'lfc-mkdir -p %s'  %(self.file)",
+                                       'rm'    : "'lfc-rm -R %s'     %(self.file)",
+                                       'rename': "'lfc-rename %s %s' %(orig,dest)",
                                        'name'  : "self.file"}
                             }
             
@@ -168,7 +176,7 @@ class VCPURL:
         """
         if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
-            self.logger.error(out)
+            logger.error(out)
             raise Exception(out)
         
         command = eval(self.command[self.protocol]['ls'])
@@ -177,7 +185,7 @@ class VCPURL:
         (err, out) = getstatusoutput(command)
         if err != 0 :
             out = "Error creating dir: " + str(err)
-            self.logger.error(out)
+            logger.error(out)
             raise Exception(out)
             
         out_list = out.split("\n")
@@ -207,7 +215,7 @@ class VCPURL:
         """
         if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
-            self.logger.error(out)
+            logger.error(out)
             raise Exception(out)
         
         command = eval(self.command[self.protocol]['mkdir'])
@@ -217,9 +225,8 @@ class VCPURL:
         
         if err != 0 :
             out = "Error creating dir: " + str(err)
-            self.logger.error(out)
+            logger.error(out)
             raise Exception(out)
-        return 0
     
     def rm(self, verbose=False):
         """
@@ -235,9 +242,8 @@ class VCPURL:
         
         if err != 0 : 
             out="Error deleting file: " + str(err)
-            self.logger.error(out)
+            logger.error(out)
             raise Exception(out)
-        return 0
     
     def rename(self, newname, verbose=False):
         """
@@ -245,7 +251,7 @@ class VCPURL:
         """
         if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
-            self.logger.error(out)
+            logger.error(out)
             raise Exception(out)
         
         orig = eval(self.command[self.protocol]['name'])
@@ -257,124 +263,103 @@ class VCPURL:
         (err, out) = getstatusoutput(command)
         if err != 0 :
             out="Error listing file: " + str(err)
-            self.logger.error(out)
+            logger.error(out)
             raise Exception(out)
-        return 0
-    
 
-class wrffile :
-    """
-    This class manage the restart and output files and the dates they represent.
-    It recieves a file name with one of the following shapes: wrfrst_d01_1991-01-01_12:00:00 or
-    wrfrst_d01_19910101T120000Z and it return the date of the file, the name,...
-    """
-    
-    def __init__(self, url, edate=None):
+    def isfile(self, verbose=False):
         """
-        Change the name of the file in the repository (Change date to the iso format
-        and add .nc at the end of the name
-        """ 
-        # wrfrst_d01_1991-01-01_12:00:00
-        if edate:
-            self.edate = datewrf2datetime(edate)
-        
-        g = search("(.*)(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})", url)
-        if g:
-            base_file, date_file = g.groups() 
-            self.date = datewrf2datetime(date_file)
-        else :
-            # wrfrst_d01_19910101T120000Z.nc
-            g = search("(.*)(\d{8}T\d{6}Z)", url)
-            if not g:
-                out="File name is not well formed"
-                logging.getLogger(__name__).error(out)
-                raise Exception(out)
-            else :
-                base_file, date_file = g.groups()
-                self.date = dateiso2datetime(date_file)
-        self.file_name = basename(base_file)
-        self.dir_name = dirname(base_file)
-        
-    def date_wrf(self):
-        return datetime2datewrf(self.date)
-    
-    def date_iso(self):
-        return datetime2dateiso(self.date)
-    
-    def file_name_wrf(self):
-        return self.file_name + datetime2datewrf(self.date)
-    
-    def file_name_iso(self):
-        return "%s%s.nc" % (self.file_name,datetime2dateiso(self.date))
-    
-    def file_name_out_iso(self):
-        return "%s%s_%s.nc" % (self.file_name, datetime2dateiso(self.date), datetime2dateiso(self.edate))
+        Return True if self.file is a file
+        """
+        if http_ftp_protocol(self.protocol) or self.protocol == "ln" :
+           return True
+        else:
+           ls_out = self.ls(self.file)
+           if len(ls_out) != 0 and self.file == ls_out[0]:
+              return True
+           else:
+              return False
 
-def copy_file(origin, destination, verbose=False, recursive=False, streams=False):
+def copy_tree(orig, dest, verbose=False):
     """
-    Copies origin in destination. Both are arrays containing the following field 
-    [protocol,user,computer,port,file]
+    Recursively copy orig to dest.
+    """
+    try:
+        dest.mkdir()
+    except Exception, err:
+        stderr.write(str(err) + "\n")
+        logger.warning(str(err)) 
+    for name in orig.ls():
+        orig_name = VCPURL(join(orig.__str__(), name))
+        dest_name = VCPURL(join(dest.__str__(), name))
+        try:
+            if orig_name.isfile():
+                copy_file(orig_name, dest_name, verbose)
+            else:
+                copy_tree(orig_name, dest_name, verbose)
+        except Exception, err:
+            stderr.write(str(err) + "\n")
+            logger.warning(str(err))
+
+def copy_file(orig, dest, verbose=False):
+    """
+    Copy orig to dest file.
     """
     vcp_matrix = {'file': {'file':   {'verbose'  : '-v', 
-                                  'recursive': '-R', 
-                                  'command'  : "'cp %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'command'  : "'cp %(verbose)s %(orig)s %(dest)s' %param", 
                                   'orig'     : "orig.file", 
                                   'dest'     : "dest.file"},
                        'rsync':  {'verbose'  : '-v', 
-                                  'recursive': '', 
-                                  'command'  : "'rsync -au %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'command'  : "'rsync -au %(verbose)s %(orig)s %(dest)s' %param", 
                                   'orig'     : "orig.file", 
-                                  'dest'     : "dest"},
+                                  'dest'     : "str(dest)"},
                        'ln':     {'verbose'  : '-v', 
-                                  'recursive': '',
-                                  'command'  : "'ln -s %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'command'  : "'ln -s %(verbose)s %(orig)s %(dest)s' %param", 
                                   'orig'     : "orig.file",
                                   'dest'     : "dest.file"},
                        'gsiftp': {'verbose'  : '-v', 
-                                  'recursive': '-r -cd', 
-                                  'command'  : "'globus-url-copy %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'command'  : "'globus-url-copy %(verbose)s %(orig)s %(dest)s' %param", 
                                   'orig'     : "str(orig)", 
                                   'dest'     : "str(dest)"},
+                       'lfn':    {'verbose'  : '-v',
+                                  'command'  : "'lcg-cr %(verbose)s -l %(dest)s %(orig)s' %param",
+                                  'orig'     : "str(orig)",
+                                  'dest'     : "dest.file"},
                        },
               'gsiftp':{'file':  {'verbose'  : '-v', 
-                                  'recursive': '-r -cd', 
-                                  'command'  : "'globus-url-copy %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
+                                  'command'  : "'globus-url-copy %(verbose)s %(orig)s %(dest)s' %param", 
                                   'orig'     : "str(orig)", 
                                   'dest'     : "str(dest)"},
                         },
               'rsync': {'file' : {'verbose'  : '-v', 
-                                  'recursive': '', 
-                                  'command'  : "'rsync -au %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                                  'orig'     : "orig", 
+                                  'command'  : "'rsync -au %(verbose)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "str(orig)", 
                                   'dest'     : "dest.file"},
                         },
               'https': {'file' : {'verbose'  : '-v', 
-                                  'recursive': '-r', 
-                                  'command'  : "'wget %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                                  'orig'     : "orig", 
+                                  'command'  : "'wget %(verbose)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "str(orig)", 
                                   'dest'     : "dest.file"},
                         },
               'http': {'file' : {'verbose'   : '-v', 
-                                  'recursive': '-r', 
-                                  'command'  : "'wget %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                                  'orig'     : "orig", 
+                                  'command'  : "'wget %(verbose)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "str(orig)", 
                                   'dest'     : "dest.file"},
                        },
               'ftp' : {'file' : {'verbose'   : '-v', 
-                                  'recursive': '-r', 
-                                  'command'  : "'wget %(verbose)s %(recursive)s %(orig)s %(dest)s' %param", 
-                                  'orig'     : "orig", 
+                                  'command'  : "'wget %(verbose)s %(orig)s %(dest)s' %param", 
+                                  'orig'     : "str(orig)", 
                                   'dest'     : "dest.file"},
                        },
+              'lfn' : {'file' : {'verbose'   : '-v',
+                                  'command'  : "'lcg-cp %(verbose)s %(orig)s %(dest)s' %param",
+                                  'orig'     : "str(orig)",
+                                  'dest'     : "str(dest)"},
+                       },
               }
-    
-    logger = logging.getLogger(__name__)
     out="Starting to copy ..."
     logger.debug(out)
     if verbose :
         stderr.write(out + "\n")
-    orig = VCPURL(origin)
-    dest = VCPURL(destination)
     if http_ftp_protocol(dest.protocol):
         out="Unable to copy if the destination protocol is " + dest.protocol
         logger.error(out)
@@ -393,7 +378,10 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
            ("*" in orig.file  and isdir(orig.file.rsplit('/',1)[0]) and isdir(dest.file)):
             orig.protocol = "file"
             dest.protocol = "file"
-            
+    #If 
+    if dest.file[-1] == "/" :
+        print dest.file
+        dest.file = join(dest.file, basename(orig.file))
     out = "Copying from " + orig.__str__() + " to " + dest.__str__()
     logger.debug(out)   
     if verbose :
@@ -401,35 +389,17 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
     param = vcp_matrix[orig.protocol][dest.protocol]
     orig_file = eval(param['orig'])
     dest_file = eval(param['dest'])
-    
     #In order to copy using cp command "orig" and "dest" have to be "orig.file" and "dest.file"
-    if (dest.protocol == "file" or orig.protocol == "file") :
-        param['orig'] = orig.file
-        param['dest'] = dest.file
-
-    # FILE --> GRIDFTP & GRIDFTP -->FILE
-    # the globus-url-copy has a strange behavior when copy directories. To indicate that
-    # a file is a directory it's necesary that the end of the name is a /.
-    if (dest.protocol == "gsiftp" or orig.protocol == "gsiftp") :
-        if recursive:
-            orig_file = orig_file + "/"
-            dest_file = dest_file + "/"
-        else:
-            if origin.find("*") != -1 :
-                dest_file = dest_file + "/"
-            elif dest.protocol == "file" and isdir(dest.file) :
-                dest_file = dest_file + "/" + basename(orig_file)
-    
+    #if (dest.protocol == "file" or orig.protocol == "file") :
+    #    param['orig'] = orig.file
+    #    param['dest'] = dest.file
     # Convert origin, destination and command to the appropiate one.
     param['orig'] = orig_file
     param['dest'] = dest_file
-    if not recursive : 
-        param['recursive'] = ""
-    if not verbose: 
-        param['verbose'] = ""
+    if not verbose: param['verbose'] = ""
+
     start = time.time()
     command = eval(param['command'])
-    
     out="Command to copy " + command
     logger.debug(out)
     if verbose :  
@@ -437,34 +407,9 @@ def copy_file(origin, destination, verbose=False, recursive=False, streams=False
     (err, out) = getstatusoutput(command)
     if err != 0 :
         raise Exception("Error copying file: " + str(err))
-
     elapsed = str((time.time()- start)/60)
     out = "The copy lasted " + elapsed + " minutes"
     logger.debug(out)
     if verbose :    
         stderr.write(out + "\n")
-    return 0
-
-#    FUNCTIONS FOR MANAGE DATES      #
-def datewrf2datetime (datewrf):
-    g = match("(\d{4})-(\d{2})-(\d{2})_(\d{2}):(\d{2}):(\d{2})", datewrf)
-    if not g :
-        raise Exception("Date is not well formed")
-    date_tuple = g.groups()
-    date_object = datetime.datetime(*tuple(map(int, date_tuple)))
-    return date_object
-
-def dateiso2datetime (dateiso):
-    g = match("(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z", dateiso)
-    if not g :
-        raise Exception("Date is not well formed")
-    date_tuple = g.groups() 
-    date_object = datetime.datetime(*tuple(map(int, date_tuple)))
-    return date_object
-
-def datetime2datewrf (date_object):
-    return date_object.strftime("%Y-%m-%d_%H:%M:%S")
-
-def datetime2dateiso (date_object):
-    return date_object.strftime("%Y%m%dT%H%M%SZ")
 
