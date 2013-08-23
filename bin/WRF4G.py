@@ -23,20 +23,19 @@ if __name__ == "__main__":
     if len(args) > 2:
         data=pairs2dict(args[2])         
     inst="%s(data=%s,verbose=options.verbose,reconfigure=options.reconfigure,dryrun=options.dryrun)"%(class_name,data)
-    # Instantiate the Component Class:
-    # comp=Chunk(data={'id': '23'},verbose=options.verbose,reconfigure=options.reconfigure)
     comp=eval(inst)
     try:
-        if len(args) > 3:     
-            fvalues=args[3]
-            # Call the Class method.
-            output=getattr(comp,function)(*args[3:])
-        else:                  
-            output=getattr(comp,function)()
-        sys.stdout.write(str(output))
-    except Exception, e:
-        print 'Caught exception: %s: %s' % (e.__class__, str(e))
-        sys.exit(-1)
+        try:
+            if len(args) > 3:     
+                fvalues=args[3]
+                # Call the Class method.
+                output=getattr(comp,function)(*args[3:])
+            else:                  
+                output=getattr(comp,function)()
+            sys.stdout.write(str(output))
+        except Exception, e:
+            sys.stderr.write('Caught exception: %s\n' % (str(e)))
+            sys.exit(-1)
     finally:
         if options.dryrun:
             dbc.rollback()

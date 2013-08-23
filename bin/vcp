@@ -2,6 +2,7 @@
 
 from wrf4g_env import *
 import vcplib
+from os.path import basename, dirname, join
 
 #***************************************************************************#
 #                                        vcp (MAIN)                                                     #
@@ -27,21 +28,28 @@ def main():
                       dest="verbose", 
                       default=False, 
                       help="Verbose mode. Explain what is being done")
+    parser.add_option("-o", "--overwrite",
+                      action="store_true",
+                      dest="overwrite",
+                      default=True,
+                      help="If the destination already exists but is not a directory, it will be overwritten")
     
     (options, args) = parser.parse_args()
     if len(args) != 2:
         parser.error("Incorrect number of arguments")
         sys.exit(-1)
     try:
-        orig = vcplib.VCPURL(args[0])
-        dest = vcplib.VCPURL(args[1])
-        # Copy origin to destination, descending it recursively if it is necessary.
-        if orig.isfile():
-            vcplib.copy_file(orig, dest, verbose=options.verbose)
+        orig = args[0]
+        dest = args[1]
+        orig_file = basename(orig)
+        if '*' in orig_file :
+            orig_dir = dirname(orig)
+            for file in vcplib.VCPURL(orig_dir).ls(orig_file):
+                vcplib.copy(join(orig_dir, file), dest, overwrite = options.overwrite, verbose=options.verbose)
         else:
-            vcplib.copy_tree(orig, dest, verbose=options.verbose)
+            vcplib.copy(orig, dest, overwrite = options.overwrite, verbose=options.verbose)
     except Exception, e:
-        print 'Caught exception: %s' % (str(e))
+        sys.stderr.write('Caught exception: %s\n' % (str(e)))
         sys.exit(-1)
 
 if __name__ == "__main__":

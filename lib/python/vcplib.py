@@ -15,7 +15,7 @@ def http_ftp_protocol(protocol):
     else :
         return False
 
-class VCPURL:
+class VCPURL(object):
     """
     Examples of usage of the VCPURL class:
     
@@ -123,10 +123,10 @@ class VCPURL:
                                        'rm'    : "'uberftp %s \"rm -r %s\"'              %(self.computer,self.file)", 
                                        'rename': "'uberftp %s \"rename %s %s\"'          %(self.computer,orig,dest)",
                                        'name'  : "self.file"},
-                            'lfn'   : {'ls'    : "'lfc-ls %s'        %(self.file)",
-                                       'mkdir' : "'lfc-mkdir -p %s'  %(self.file)",
-                                       'rm'    : "'lfc-rm -R %s'     %(self.file)",
-                                       'rename': "'lfc-rename %s %s' %(orig,dest)",
+                            'lfn'   : {'ls'    : "'lfc-ls %s'         %(self.file)",
+                                       'mkdir' : "'lfc-mkdir -p %s'   %(self.file)",
+                                       'rm'    : "'lcg-del -a lfn:%s' %(self.file)",
+                                       'rename': "'lfc-rename %s %s'  %(orig,dest)",
                                        'name'  : "self.file"}
                             }
             
@@ -184,7 +184,7 @@ class VCPURL:
             stderr.write(command + "\n")
         (err, out) = getstatusoutput(command)
         if err != 0 :
-            out = "Error creating dir: " + str(err)
+            out = "Error reading dir: " + str(out)
             logger.error(out)
             raise Exception(out)
             
@@ -224,7 +224,7 @@ class VCPURL:
         (err, out) = getstatusoutput(command)
         
         if err != 0 :
-            out = "Error creating dir: " + str(err)
+            out = "Error creating dir: " + str(out)
             logger.error(out)
             raise Exception(out)
     
@@ -241,13 +241,13 @@ class VCPURL:
         (err, out) = getstatusoutput(command)
         
         if err != 0 : 
-            out="Error deleting file: " + str(err)
+            out="Error deleting file: " + str(out)
             logger.error(out)
             raise Exception(out)
     
     def rename(self, newname, verbose=False):
         """
-        Rename self into newname
+        Rename self.file into newname
         """
         if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
@@ -256,13 +256,13 @@ class VCPURL:
         
         orig = eval(self.command[self.protocol]['name'])
         dest_folder = dirname(orig)
-        dest = dest_folder + "/" + newname
+        dest = join(dest_folder,newname)
         command = eval(self.command[self.protocol]['rename'])
         if verbose: 
             stderr.write(command + "\n")
         (err, out) = getstatusoutput(command)
         if err != 0 :
-            out="Error listing file: " + str(err)
+            out="Error listing file: " + str(out)
             logger.error(out)
             raise Exception(out)
 
@@ -270,37 +270,58 @@ class VCPURL:
         """
         Return True if self.file is a file
         """
-        if http_ftp_protocol(self.protocol) or self.protocol == "ln" :
+        if self.protocol == "ln" :
            return True
         else:
-           ls_out = self.ls(self.file)
-           if len(ls_out) != 0 and self.file == ls_out[0]:
+           out = self.ls(self.file)
+           if len(out) != 0 and self.file == out[0]:
               return True
            else:
               return False
+    
+    def exists(self, verbose=False):
+        """
+        Return True if self.file exists
+        """
+        try:
+            out = self.ls(self.file)
+        except Exception :
+            return False
+        else:
+            return True
 
-def copy_tree(orig, dest, verbose=False):
+def copy(origin, destination, overwrite=True, verbose=False):
+    """
+    Copy orig to dest.
+    """
+    if VCPURL(origin).isfile():
+        copy_file(origin, destination, overwrite, verbose)
+    else:
+        copy_tree(origin, destination, overwrite, verbose)
+
+
+def copy_tree(origin, destination, overwrite=True, verbose=False):
     """
     Recursively copy orig to dest.
     """
-    try:
+    orig=VCPURL(origin)
+    dest=VCPURL(destination)
+    if dest.exists():
         dest.mkdir()
-    except Exception, err:
-        stderr.write(str(err) + "\n")
-        logger.warning(str(err)) 
     for name in orig.ls():
-        orig_name = VCPURL(join(orig.__str__(), name))
-        dest_name = VCPURL(join(dest.__str__(), name))
+        if not name: break
+        orig_name = join(orig.__str__(), name)
+        dest_name = join(dest.__str__(), name)
         try:
-            if orig_name.isfile():
-                copy_file(orig_name, dest_name, verbose)
+            if VCPURL(orig_name).isfile():
+                copy_file(orig_name, dest_name, overwrite, verbose)
             else:
-                copy_tree(orig_name, dest_name, verbose)
+                copy_tree(orig_name, dest_name, overwrite, verbose)
         except Exception, err:
             stderr.write(str(err) + "\n")
             logger.warning(str(err))
 
-def copy_file(orig, dest, verbose=False):
+def copy_file(origin, destination, overwrite=True, verbose=False):
     """
     Copy orig to dest file.
     """
@@ -321,9 +342,9 @@ def copy_file(orig, dest, verbose=False):
                                   'orig'     : "str(orig)", 
                                   'dest'     : "str(dest)"},
                        'lfn':    {'verbose'  : '-v',
-                                  'command'  : "'lcg-cr %(verbose)s -l %(dest)s %(orig)s' %param",
+                                  'command'  : "'lcg-cr %(verbose)s %(dest)s %(orig)s' %param",
                                   'orig'     : "str(orig)",
-                                  'dest'     : "dest.file"},
+                                  'dest'     : "str(dest)"},
                        },
               'gsiftp':{'file':  {'verbose'  : '-v', 
                                   'command'  : "'globus-url-copy %(verbose)s %(orig)s %(dest)s' %param", 
@@ -351,11 +372,20 @@ def copy_file(orig, dest, verbose=False):
                                   'dest'     : "dest.file"},
                        },
               'lfn' : {'file' : {'verbose'   : '-v',
-                                  'command'  : "'lcg-cp %(verbose)s %(orig)s %(dest)s' %param",
-                                  'orig'     : "str(orig)",
+                                  'command'  : "'lcg-cp %(verbose)s lfn:%(orig)s %(dest)s' %param",
+                                  'orig'     : "orig.file",
                                   'dest'     : "str(dest)"},
                        },
               }
+
+    orig = VCPURL(origin)
+    #For protocols like lfn the destination must be a file
+    if destination[-1] == "/" :
+        dest = VCPURL(join(destination, basename(orig.file)))
+    elif  destination == ".":
+        dest = VCPURL(basename(orig.file))
+    else:
+        dest = VCPURL(destination)
     out="Starting to copy ..."
     logger.debug(out)
     if verbose :
@@ -378,26 +408,30 @@ def copy_file(orig, dest, verbose=False):
            ("*" in orig.file  and isdir(orig.file.rsplit('/',1)[0]) and isdir(dest.file)):
             orig.protocol = "file"
             dest.protocol = "file"
-    #If 
-    if dest.file[-1] == "/" :
-        print dest.file
-        dest.file = join(dest.file, basename(orig.file))
     out = "Copying from " + orig.__str__() + " to " + dest.__str__()
     logger.debug(out)   
     if verbose :
         stderr.write(out + "\n")        
     param = vcp_matrix[orig.protocol][dest.protocol]
+    #orig customization 
     orig_file = eval(param['orig'])
-    dest_file = eval(param['dest'])
-    #In order to copy using cp command "orig" and "dest" have to be "orig.file" and "dest.file"
-    #if (dest.protocol == "file" or orig.protocol == "file") :
-    #    param['orig'] = orig.file
-    #    param['dest'] = dest.file
-    # Convert origin, destination and command to the appropiate one.
     param['orig'] = orig_file
+    #dest customization 
+    if dest.protocol == "lfn" and dest.computer:
+        dest_file = '-d ' + dest.computer + ' -l ' + dest.file
+    else:
+        dest_file = eval(param['dest'])
     param['dest'] = dest_file
-    if not verbose: param['verbose'] = ""
-
+    if not verbose: 
+        param['verbose'] = ""
+    #Overwrite the destination if necessary
+    if overwrite:
+        if dest.exists() and dest.isfile():
+            out = "Overwriting " + dest.__str__()
+            logger.debug(out)
+            if verbose :
+                stderr.write(out + "\n")
+            dest.rm(verbose)
     start = time.time()
     command = eval(param['command'])
     out="Command to copy " + command
@@ -406,9 +440,9 @@ def copy_file(orig, dest, verbose=False):
         stderr.write(out + "\n")
     (err, out) = getstatusoutput(command)
     if err != 0 :
-        raise Exception("Error copying file: " + str(err))
-    elapsed = str((time.time()- start)/60)
-    out = "The copy lasted " + elapsed + " minutes"
+        raise Exception("Error copying file: " + out)
+    elapsed = time.time()- start
+    out = "The copy lasted %.2f seconds" %(elapsed)
     logger.debug(out)
     if verbose :    
         stderr.write(out + "\n")

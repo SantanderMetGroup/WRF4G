@@ -3,9 +3,9 @@
 import inspect
 import os
 import sys
-from os.path import dirname
 from datetime import datetime
-
+from os.path import join, basename, dirname
+from re import search, match
 import vdblib
 import vcplib 
 
@@ -22,14 +22,80 @@ try:
                port=WRF4G_DB_PORT,
                passwd=WRF4G_DB_PASSWD)
 except Exception, e:
-    print 'Caught exception: %s: %s' % (e.__class__, str(e))
+    sys.stderr.write('Caught exception: %s\n' % (str(e)))
 
+class wrffile :
+    """
+    This class manage the restart and output files and the dates they represent.
+    It recieves a file name with one of the following shapes: wrfrst_d01_1991-01-01_12:00:00 or
+    wrfrst_d01_19910101T120000Z and it return the date of the file, the name,...
+    """
+
+    def __init__(self, url, edate=None):
+        """
+        Change the name of the file in the repository (Change date to the iso format
+        and add .nc at the end of the name
+        """
+        # wrfrst_d01_1991-01-01_12:00:00
+        if edate:
+            self.edate = datewrf2datetime(edate)
+
+        g = search("(.*)(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})", url)
+        if g:
+            base_file, date_file = g.groups()
+            self.date = datewrf2datetime(date_file)
+        else :
+            # wrfrst_d01_19910101T120000Z.nc
+            g = search("(.*)(\d{8}T\d{6}Z)", url)
+            if not g:
+                out="File name is not well formed"
+                raise Exception(out)
+            else :
+                base_file, date_file = g.groups()
+                self.date = dateiso2datetime(date_file)
+        self.file_name = basename(base_file)
+        self.dir_name = dirname(base_file)
+
+    def date_wrf(self):
+        return datetime2datewrf(self.date)
+
+    def date_iso(self):
+        return datetime2dateiso(self.date)
+
+    def file_name_wrf(self):
+        return self.file_name + datetime2datewrf(self.date)
+
+    def file_name_iso(self):
+        return "%s%s.nc" % (self.file_name,datetime2dateiso(self.date))
+
+    def file_name_out_iso(self):
+        return "%s%s_%s.nc" % (self.file_name, datetime2dateiso(self.date), datetime2dateiso(self.edate))
+
+
+############################## FUNCTIONS FOR MANAGE DATES ################################
+def datewrf2datetime (datewrf):
+    g = match("(\d{4})-(\d{2})-(\d{2})_(\d{2}):(\d{2}):(\d{2})", datewrf)
+    if not g :
+        raise Exception("Date is not well formed")
+    date_tuple = g.groups()
+    date_object = datetime(*tuple(map(int, date_tuple)))
+    return date_object
+
+def dateiso2datetime (dateiso):
+    g = match("(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z", dateiso)
+    if not g :
+        raise Exception("Date is not well formed")
+    date_tuple = g.groups()
+    date_object = datetime(*tuple(map(int, date_tuple)))
+    return date_object
 
 def datetime2datewrf (date_object):
     return date_object.strftime("%Y-%m-%d_%H:%M:%S")
 
 def datetime2dateiso (date_object):
-    return date_object.strftime("%Y%m%dT%H%M%SZ") 
+    return date_object.strftime("%Y%m%dT%H%M%SZ")
+
+############################################################################################
 
 def pairs2dict(pairs):
     d={}
@@ -89,8 +155,6 @@ def format_output(dout,number_of_characters, ext=False):
                                 djobstatus[dout['status']],
                                 exitcode,
                                 per)
-    #if ext==True:
-        #print "%10s %10s %10s"%(dout['sdate'],dout['restart'],dout['edate'])    
         
 def getuserid(name,dbc):
     idp=dbc.select('User','id',"name='%s'"%name)
@@ -115,14 +179,11 @@ class Component:
     """
 
     def __init__(self,data='',verbose=False,dryrun=False,reconfigure=False):
-        #val={'no': False, 'yes': True}
         self.verbose=verbose
         self.dryrun=dryrun
         self.reconfigure=reconfigure
         self.element=self.__class__.__name__
         self.data=data   
-        #for field in data.keys():            
-        #    setattr(self,field,data[field])
             
     def describeDB(self):
         """    
@@ -433,24 +494,19 @@ class Experiment(Component):
         exec open(RESOURCES_WRF4G).read()     
         # Load the URL into the VCPURL class
         exp_dir="%s/%s/" %(WRF4G_BASEPATH, self.data['name'])
-        list=vcplib.VCPURL(exp_dir)
-        list.mkdir(verbose=self.verbose)
-        if os.path.exists('scripts'):
+        vcplib.VCPURL(exp_dir).mkdir(verbose=self.verbose)
+        if os.path.exists('wrf4g_files'):
             import tarfile
-            os.chdir('scripts')
-            tFile = tarfile.open('../scripts.tar.gz', 'w:gz')
-            for file in os.listdir('.'):
-                tFile.add(file)
+            tFile = tarfile.open('wrf4g_files.tar.gz', 'w:gz')
+            tFile.add(file)
             tFile.close()
-            os.chdir('..')
-            output=vcplib.copy_file('scripts.tar.gz',exp_dir,verbose=self.verbose)    
-            os.remove('scripts.tar.gz')  
-            
-        output=vcplib.copy_file(DB4G_CONF,exp_dir,verbose=self.verbose)
-        output=vcplib.copy_file(RESOURCES_WRF4G,exp_dir,verbose=self.verbose) 
-        output=vcplib.copy_file('experiment.wrf4g',exp_dir,verbose=self.verbose)
+            vcplib.copy_file('wrf4g_files.tar.gz',exp_dir,verbose=self.verbose)    
+            os.remove('wrf4g_files.tar.gz')  
+        vcplib.copy_file(DB4G_CONF,exp_dir,verbose=self.verbose)
+        vcplib.copy_file(RESOURCES_WRF4G,exp_dir,verbose=self.verbose) 
+        vcplib.copy_file('experiment.wrf4g',exp_dir,verbose=self.verbose)
         if os.path.exists('prolog.wrf4g'):
-            output=vcplib.copy_file('prolog.wrf4g',exp_dir,verbose=self.verbose)  
+            vcplib.copy_file('prolog.wrf4g',exp_dir,verbose=self.verbose)  
          
 class Realization(Component):
     """ 
@@ -568,18 +624,6 @@ class Realization(Component):
         import gridwaylib   
         
         self.prepared=0
-
-#        if 'id' in self.data.keys():
-#           self.data['name']=self.get_name()
-#           rea_name=self.data['name']
-#        else:
-#            rea_name=self.data['name']
-#            self.data['id']=self.get_id(['name'])
-#            if self.data['id']== -1:
-#                sys.stderr.write('Realization with name %s does not exists \n'%rea_name)
-#                sys.exit(1)    
-        
-        #restart=self.get_restart()
         rea_name=self.get_name()       
       
         chunk_status=self.current_chunk_status()
@@ -608,17 +652,6 @@ class Realization(Component):
             if not force and ( chunk_status[2] == 2 or chunk_status[2] == 1) :
                 sys.stderr.write('Realization %s is still submitting. Use --force if you really want to submit the realization.\n'%rea_name)
                 return 1
-        """
-        if restart == None:
-            chunkd=dbc.select('Chunk','MIN(Chunk.id_chunk),MIN(Chunk.id)','id_rea=%s'%self.data['id'],verbose=self.verbose)
-        else:
-            chunkd=dbc.select('Chunk,Realization','Chunk.id_chunk,Chunk.id','Chunk.id_rea=%s AND Chunk.id_rea=Realization.id AND Realization.restart >=Chunk.sdate AND Realization.restart<Chunk.edate'%self.data['id'],verbose=self.verbose)
-            if chunkd== ():
-                sys.stderr.write('DB inconsistency.')
-                return 2
-        [first_id_chunk,first_id]=chunkd[0].values()
-        """
-        
         if repeatchunk == 0:
             lchunk=self.last_chunk()
             if nchunk != 0 and lchunk-first_id >= nchunk: 
@@ -646,11 +679,7 @@ class Realization(Component):
                 self.prepare_gridway()   
                 exec open('resources.wrf4g').read()     
                 job=gridwaylib.job()
-                sh_location        = 'file://%s/scripts/WRF4G.sh' % (dirname(dirname(dirname(os.path.abspath(__file__)))))
-                gel_location       = 'file://%s/var/WRF4G-%s.tar.gz' % (WRF4G_LOCATION, WRF4G_VERSION)
-                db_location        = 'file://%s/etc/db4g.conf' % (WRF4G_LOCATION)
-                resources_location = 'resources.wrf4g'
-                sandbox='%s,%s,%s,%s'%(sh_location, gel_location, db_location, resources_location)
+                sandbox='file://%s/etc/templates/WRF4G.sh,file://%s/etc/templates/WRF4G-%s.tar.gz,file://%s/etc/db4g.conf,resources.wrf4g'%(WRF4G_LOCATION,WRF4G_LOCATION,WRF4G_VERSION,WRF4G_LOCATION)
                 job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS,environ=ENVIRONMENT,inputsandbox=sandbox,verbose=self.verbose)
                 if chunki == first_id:
                     gw_id=job.submit(priority=priority)
@@ -679,17 +708,15 @@ class Realization(Component):
             exp_name=self.get_exp_name()
             cexp=Experiment(data={'id': exp_id})
             WRF4G_BASEPATH=cexp.get_basepath()
-            subdir= '%s/%s/%s/%s'%(WRF4G_LOCATION,'.submission',exp_name,rea_name)       
+            subdir='%s/%s/%s/%s/'%(WRF4G_LOCATION,'.submission',exp_name,rea_name)       
             if not os.path.isdir(subdir):
                 os.makedirs(subdir)
             os.chdir(subdir)
-            rea_input='%s/%s/%s'%(WRF4G_BASEPATH,exp_name,rea_name)
-            rea_vcp=vcplib.VCPURL(rea_input)
-            orea=rea_vcp.ls('resources.wrf4g')
-            if 'resources.wrf4g' in orea:
-                output=vcplib.copy_file('%s/%s'%(rea_input,'resources.wrf4g'),'.',verbose=self.verbose)
+            rea_input='%s/%s/%s/'%(WRF4G_BASEPATH,exp_name,rea_name)
+            if 'resources.wrf4g' in vcplib.VCPURL(rea_input).ls('resources.wrf4g'):
+                vcplib.copy_file(join(rea_input,'resources.wrf4g'),'.',verbose=self.verbose)
             else:
-                output=vcplib.copy_file('%s/%s/%s'%(WRF4G_BASEPATH,exp_name,'resources.wrf4g'),'.',verbose=self.verbose)           
+                vcplib.copy_file(join(WRF4G_BASEPATH,exp_name,'resources.wrf4g'),'.',verbose=self.verbose)           
             self.prepared=1   
         
     def ps(self, number_of_characters):
@@ -698,7 +725,7 @@ class Realization(Component):
         else:
             self.data['id']=self.get_id(['name'])
             if self.data['id']== -1:
-                sys.stderr.write('Realization with name %s does not exists \n'%self.data['name'])
+                sys.stderr.write('Realization with name %s does not exist\n'%self.data['name'])
                 sys.exit(1)            
         drea=dbc.select('Realization','name,restart,sdate,cdate,edate','id=%s'%self.data['id'])
         dout=drea[0]
@@ -712,7 +739,6 @@ class Realization(Component):
             if status == 0:       
                 djob={'gw_job': '-', 'status': 0, 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'%s/%d'%(current_chunk,nchunks)}
             else:
-                #(id_chunk,status)=self.current_chunk_status()                
                 ch=Chunk(data={'id': id_chunk}) 
                 lastjob=ch.get_last_job()
                 j=Job(data={'id':lastjob})            
@@ -722,7 +748,6 @@ class Realization(Component):
                 djob['nchunks']='%d/%d'%(current_chunk,nchunks)
         dout.update(djob)
         dout['rea_status']=status        
-        #dout={'gw_job': 4L, 'status': 40L, 'sdate': datetime.datetime(1983, 8, 25, 12, 0), 'resource': 'mycomputer', 'name': 'testc1', 'wn': 'sipc18', 'nchunks': '3/3', 'cdate': datetime.datetime(1983, 8, 25, 12, 0), 'exitcode': 0L, 'edate': datetime.datetime(1983, 8, 27, 0, 0), 'restart': datetime.datetime(1983, 8, 27, 0, 0), 'rea_status': 4}]
         print format_output(dout, number_of_characters)
                            
     def prepare_storage(self):          
@@ -733,15 +758,10 @@ class Realization(Component):
         exec open(RESOURCES_WRF4G).read()        
         reas=self.data['name'].split('__')
         rea_dir="%s/%s/%s/" % (WRF4G_BASEPATH,reas[0],self.data['name'])
-        list=vcplib.VCPURL(rea_dir)
-        list.mkdir(verbose=self.verbose)
+        vcplib.VCPURL(rea_dir).mkdir(verbose=self.verbose)
+        vcplib.copy_file('namelist.input',rea_dir,verbose=self.verbose)
         for dir in ["output","restart","realout","log"]:
-          repo="%s/%s" % (rea_dir,dir)
-          list=vcplib.VCPURL(repo)
-          list.mkdir(verbose=self.verbose)
-        output=vcplib.copy_file('namelist.input',rea_dir,verbose=self.verbose) 
-        #os.remove('namelist.input') 
-        #os.remove('namelist.input.base')
+          vcplib.VCPURL(join(rea_dir,dir)).mkdir(verbose=self.verbose)
                              
     def is_finished(self,id_rea):
         
@@ -754,7 +774,6 @@ class Realization(Component):
 
     def stop_running_chunks(self):
         import gridwaylib
-        # SELECT Chunk.id,MAX(Job.id)  FROM Chunk,Job WHERE Chunk.id=Job.id_chunk AND Chunk.id>1 AND (Chunk.status=1 OR Chunk.status=2)  GROUP BY Chunk.id
         condition="Chunk.id_rea=%s and Job.id_chunk=Chunk.id AND (Chunk.status=1 OR Chunk.status=2) GROUP BY Chunk.id"%self.data['id']
         output=dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
         chunk_id=[]
@@ -772,7 +791,6 @@ class Realization(Component):
 
     def change_priority(self, priority):
         import gridwaylib
-        # SELECT Chunk.id,MAX(Job.id)  FROM Chunk,Job WHERE Chunk.id=Job.id_chunk AND Chunk.id>1 AND (Chunk.status=1 OR Chunk.status=2)  GROUP BY Chunk.id
         condition="Chunk.id_rea=%s and Job.id_chunk=Chunk.id AND (Chunk.status=1 OR Chunk.status=2) GROUP BY Chunk.id"%self.data['id']
         output=dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
         chunk_id=[]

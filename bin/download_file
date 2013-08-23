@@ -2,14 +2,15 @@
 
 from commands import getstatusoutput
 from optparse import OptionParser
+from os.path import join, dirname, abspath
 import os
 import sys  
 try:
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
+    sys.path.insert(0, join(dirname(dirname(abspath(__file__))),'lib','python'))
     import vcplib
+    import WRF4Glib
 except Exception, e:
-    print 'Caught exception: %s: %s' % (e.__class__, str(e))
-    traceback.print_exc(file=sys.stdout)
+    print 'Caught exception: %s' % (str(e))
     sys.exit(-1)
 
 
@@ -25,8 +26,6 @@ This command needs that the following environment variables have been establishe
 parser = OptionParser(usage,version="%prog 1.0")
 parser.add_option("-v", "--verbose",action="store_true", dest="verbose", default=False,help="Verbose mode. Explain what is being done")
 (options, args) = parser.parse_args()
-
-verbose=options.verbose
 
 if len(args) == 2 :
     type, date  = args
@@ -61,22 +60,20 @@ pattern = {
            "real" : "wrf[lbif]*_d\d\d_" + date + "*"
            } 
 
-orig_folder="%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
-orig_c=vcplib.VCPURL(orig_folder)
+orig_folder=join(WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type]+"/")
 
-for file in orig_c.ls(pattern[type]):
+for file in vcplib.VCPURL(orig_folder).ls(pattern[type]):
     # file will follow the pattern: wrfrst_d01_19900101T000000Z.nc or wrflowinp_d08_19900101T000000Z.nc
-    file_c=vcplib.wrffile(file)
+    file_c=WRF4Glib.wrffile(file)
     if type == "rst" :
         dest=file_c.file_name + file_c.date_wrf()
     else: 
         # From wrflowinp_d08_ we remove the _ at the end
         dest=file_c.file_name[:-1]
-    if verbose: 
-        sys.stderr.write("origin: %s destiny: %s \n" % (orig_folder + "/" + file ,dest))
+    orig_file = join(orig_folder,file)
     try:
-        vcplib.copy_file( orig_folder + "/" + file ,dest, verbose=verbose)
+        vcplib.copy_file(orig_file,dest,verbose=options.verbose)
     except Exception, e:
-        sys.stderr(file + " has not copied to " + dest + "\n")
+        sys.stderr.write(file + " has not copied to " + dest + "\n")
         sys.exit(-1)
-    sys.stderr.write("WRFGEL(download_file)> END: %s\n" % args)
+sys.stderr.write("WRFGEL(download_file)> END: %s\n" % args)

@@ -2,15 +2,16 @@
       
 from commands import getstatusoutput
 from optparse import OptionParser
+from os.path import join, dirname, abspath
 import sys   
 import os  
 
 try:
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..','lib','python'))
+    sys.path.insert(0, join(dirname(dirname(abspath(__file__))),'lib','python'))
     import vcplib
+    import WRF4Glib
 except Exception, e:
-    print 'Caught exception: %s: %s' % (e.__class__, str(e))
-    traceback.print_exc(file=sys.stdout)
+    print 'Caught exception: %s' % (str(e))
     sys.exit(-1)
 
 usage="""%prog file_type date [file_name] [file_end_date]
@@ -61,65 +62,41 @@ if not 'WRF4G_BASEPATH' in dir():
 
 # Change the name of the file in the repository (Change date to the iso format
 # and add .nc at the end of the name
-if type in type_list.keys() :
-    if type == "out" and file_end_date:
-        file_o=vcplib.wrffile(file,file_end_date)
-        dest_file=file_o.file_name_out_iso()
-    else:
-        file_o=vcplib.wrffile(file)
-        dest_file=file_o.file_name_iso()
+if type in type_list.keys() or type == "ts":
+    if type in type_list.keys() :
+        if type == "out" and file_end_date:
+            file_o=WRF4Glib.wrffile(file,file_end_date)
+            dest_file=file_o.file_name_out_iso()
+        else:
+            file_o=WRF4Glib.wrffile(file)
+            dest_file=file_o.file_name_iso()
         
-    dest_folder="%s/%s/%s/%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
-    dest= dest_folder + "/" + dest_file
-    
-    if verbose:
-        sys.stderr.write( "Copying %s -> %s\n" %(file, dest))
+        dest_folder=join(WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
+        dest=join(dest_folder,dest_file)
+    if type == "ts":
+        dest_folder=join(WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],'output')
+        dest=join(dest_folder,file)
     try:
-        vcplib.copy_file(file,dest +".part", verbose=verbose)
+        vcplib.copy_file(file,dest,verbose=verbose)
+        # Delete the file from local disk
+        if verbose:
+            sys.stderr.write("Deleting file %s\n" %file)
+        vcplib.VCPURL(file).rm()
     except Exception, e:
-        sys.stderr(file + " has not copied to " + dest + "\n")
+        sys.stderr.write(file + " has not copied to " + dest + ": "  + str(e) + "\n")
         sys.exit(-1)
-    vcplib.VCPURL(dest + ".part").rename(os.path.basename(dest))
-    input=vcplib.VCPURL(file)
-    # Delete the file from local disk
-    if verbose:
-        sys.stderr.write("Deleting file %s\n" %file)
-    input.rm()
-
-elif type == "ts":
-    dest_folder="%s/%s/%s/output" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"])
-    dest= dest_folder + "/" + file
-    if verbose:
-        sys.stderr.write( "Copying %s -> %s\n" %(file, dest))
-    try:
-        vcplib.copy_file(file,dest +".part", verbose=verbose)
-    except Exception, e:
-        sys.stderr(file + " has not copied to " + dest + "\n")
-        sys.exit(-1)
-    vcplib.VCPURL(dest + ".part").rename(os.path.basename(dest))
-    input=vcplib.VCPURL(file)
-    # Delete the file from local disk
-    if verbose:
-        sys.stderr.write("Deleting file %s\n" %file)
-    input.rm()
-
 else :
     # If the files are WPS, add the date to the name. Three files have to be uploaded: wrfinput_d0?,wrfbdy_d0? and wrflowinp_d0?
     #The command: $ upload_file wps     1990-01-01_00:00:00
     # will create in the repositore three files with the following format: wrfinput_d01_19900101T000000Z
-    wps_dir=vcplib.VCPURL(".")
-    wps_files=wps_dir.ls("wrf[lbif]*_d\d\d")
-    suffix="_" + vcplib.datetime2dateiso(vcplib.datewrf2datetime(date))+ ".nc"
-    
+    wps_files=vcplib.VCPURL(".").ls("wrf[lbif]*_d\d\d")
+    suffix="_" + WRF4Glib.datetime2dateiso(WRF4Glib.datewrf2datetime(date))+ ".nc"
     for wps_file in wps_files :
-        dest_file=os.path.basename(wps_file)
-        dest="%s/%s/%s/%s/%s%s" % (WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],"realout",dest_file,suffix)
-        if verbose:
-            sys.stderr.write("origin: %s destiny: %s\n" % (wps_file,dest))
+        dest=join(WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],"realout",basename(wps_file),suffix)
         try:
-            vcplib.copy_file(wps_file,dest, verbose=verbose)
+            vcplib.copy_file(wps_file,dest,verbose=verbose)
         except Exception, e:
-            sys.stderr(wps_file + " has not copied to " + dest + "\n")
+            sys.stderr.write(wps_file + " has not copied to " + dest + ": "  + str(e) + "\n")
             sys.exit(-1)
     
 sys.stderr.write("WRFGEL(register_file)> END: %s\n" % args)

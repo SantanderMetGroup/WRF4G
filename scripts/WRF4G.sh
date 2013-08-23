@@ -13,8 +13,7 @@ function load_default_config (){
   timestep_dxfactor=6
   real_parallel=0
   wrf_parallel=1
-  VCPDEBUG="-v"
-  VCPRECURSIVE="-r"
+  DEBUG="-v"
   global_preprocessor="default"
   ERROR_MISSING_RESOURCESWRF4G=21
 }
@@ -27,18 +26,17 @@ function date2int(){
 function WRF4G_structure (){
   out=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_DOWN_BIN})
 
-  vcp ${VCPDEBUG} ${WRF4G_APPS}/WRFbin-${WRF_VERSION}.tar.gz . 
+  vcp ${DEBUG} ${WRF4G_APPS}/WRFbin-${WRF_VERSION}.tar.gz . 
   tar xzf WRFbin-${WRF_VERSION}.tar.gz || wrf4g_exit ${ERROR_MISSING_WRFbin}
   rm WRFbin-${WRF_VERSION}.tar.gz
 
-  vcp ${VCPDEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/namelist.input  WRFV3/run/namelist.input \
+  vcp ${DEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/namelist.input  WRFV3/run/namelist.input \
     || wrf4g_exit ${ERROR_MISSING_NAMELIST}
 
   #   If there are additional files, expand them
-  vcp ${VCPDEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/scripts.tar.gz ${ROOTDIR} &>/dev/null
-  if test -f ${ROOTDIR}/scripts.tar.gz; then
-    tar xzf ${ROOTDIR}/scripts.tar.gz && rm ${ROOTDIR}/scripts.tar.gz
-    chmod +x ${ROOTDIR}/scripts/*
+  vcp ${DEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/wrf4g_files.tar.gz ${ROOTDIR} &>/dev/null
+  if test -f ${ROOTDIR}/wrf4g_files.tar.gz; then
+    tar xzf ${ROOTDIR}/wrf4g_files.tar.gz && rm ${ROOTDIR}/wrf4g_files.tar.gz
   fi
 }
 
@@ -68,7 +66,7 @@ function prepare_runtime_environment(){
     export LD_LIBRARY_PATH=$OPAL_PREFIX/lib:$LD_LIBRARY_PATH
   fi
   
-  vcp ${VCPDEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/prolog.wrf4g . &>/dev/null
+  vcp ${DEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/prolog.wrf4g . &>/dev/null
   if [ $? -ne 0 ]; then 
     echo "* `date`: Using default configuration ... "
   else
@@ -106,7 +104,7 @@ function prepare_local_environment (){
     mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
   fi
   cp -R ${LOCALDIR}/WRFV3/run ${ROOTDIR}/runshared
-  $MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/bin/load_wrfbin	
+  $MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/WRFGEL/load_wrfbin.sh	
   prepare_openmpi=0
 }
 
@@ -134,7 +132,7 @@ function transfer_output_log (){
 
 function download_wps (){
   output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_DOWN_WPS})
-  vcp ${VCPDEBUG} ${VCPRECURSIVE} ${WRF4G_DOMAINPATH}/${domain_name}/'*' . || wrf4g_exit ${ERROR_VCP_FAILED}
+  vcp ${DEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/ . || wrf4g_exit ${ERROR_VCP_FAILED}
 }
 
 function run_modify_namelist (){ 
@@ -361,17 +359,18 @@ export chunk_end_date=$7
 ROOTDIR=$(pwd)
 tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz || exit ${ERROR_MISSING_WRF4GSRC}
 chmod +x ${ROOTDIR}/bin/*
-chmod +x ${ROOTDIR}/scripts/*
+chmod +x ${ROOTDIR}/WRFGEL/*
 
 #
 #   Load functions and set the PATH
 #
 
-export RESOURCES_WRF4G=${ROOTDIR}/resources.wrf4g
-export DB4G_CONF=${ROOTDIR}/db4g.conf
-export PATH=${ROOTDIR}/bin:${ROOTDIR}/lib/bash:${ROOTDIR}/scripts:$PATH
+export RESOURCES_WRF4G="${ROOTDIR}/resources.wrf4g"
+export DB4G_CONF="${ROOTDIR}/db4g.conf"
+export PATH="${ROOTDIR}/bin:$PATH"
 export LD_LIBRARY_PATH=${ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
 export PYTHONPATH=${ROOTDIR}/lib/python:${ROOTDIR}/bin:$PYTHONPATH
+export PATH="${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
 
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
@@ -380,9 +379,9 @@ source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
 #
 #   Try to download experiment from realization folder. If it doesn't exist download it from experiment.
 #
-vcp ${VCPDEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/experiment.wrf4g . &>/dev/null
+vcp ${DEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/experiment.wrf4g . &>/dev/null
 if [ $? -ne 0 ];then 
-  vcp ${VCPDEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/experiment.wrf4g . || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
+  vcp ${DEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/experiment.wrf4g . || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
 fi
 sed --in-place 's/\ *=\ */=/' experiment.wrf4g 
 source experiment.wrf4g
@@ -391,7 +390,7 @@ source experiment.wrf4g
 #   Update Job Status in DB
 #
 job_conf="gw_job=${GW_JOB_ID},id_chunk=${WRF4G_CHUNK_ID},resource=${GW_HOSTNAME},wn=$(hostname)"
-WRF4G_JOB_ID=$(WRF4G.py Job load_wn_conf $job_conf $GW_RESTARTED) 
+WRF4G_JOB_ID=$(WRF4G.py --verbose Job load_wn_conf $job_conf $GW_RESTARTED) 
 exitcode=$?
 if test $exitcode -ne 0; then      
   if test $exitcode -eq ${EXIT_CANNOT_CONTACT_DB}; then
@@ -474,11 +473,11 @@ wps_stored=$(WRF4G.py Chunk get_wps id=${WRF4G_CHUNK_ID}) \
 cd ${LOCALDIR}/WPS || wrf4g_exit ${ERROR_GETTING_WPS}
 if test ${wps_stored} -eq "1"; then
   echo "* `date`: The boundaries and initial conditions are available ... "
-  vcp ${VCPDEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || wrf4g_exit ${ERROR_VCP_FAILED} 
+  vcp ${DEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || wrf4g_exit ${ERROR_VCP_FAILED} 
   cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
   namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_rerun} ${timestep_dxfactor}
   output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${ERROR_MISSING_EXPERIMENTSWRF4G})
-  download_file real $(date_wrf2iso ${chunk_start_date})
+  download_file ${DEBUG} real $(date_wrf2iso ${chunk_start_date})
 else
   echo "* `date`: The boundaries and initial conditions are not available ... "
   clean_wps
