@@ -25,17 +25,17 @@ WRF_VERSION="3.1.1_r832INTEL_OMPI"
 #                   |    `-- wrfrst_d01_1990-01-01_12:00:00
 #                   `-- wpsout
 #
-WRF4G_BASEPATH="/home/valva/WRF4G//repository/output"
+WRF4G_BASEPATH="$WRF4G_LOCATION/repository/output"
 
 # Path to the domain of simulation (it must be done previously)
-WRF4G_DOMAINPATH="/home/valva/WRF4G//repository/domains"
+WRF4G_DOMAINPATH="$WRF4G_LOCATION/repository/domains"
 
 # Path to the global data for the boundary and initial data
-WRF4G_INPUT="/home/valva/WRF4G//repository/input"
+WRF4G_INPUT="$WRF4G_LOCATION/repository/input"
 
 # Path to the necessary applications (pre-processor, post-processor, 
 #   etc...)
-WRF4G_APPS="/home/valva/WRF4G//repository/apps"
+WRF4G_APPS="$WRF4G_LOCATION/repository/apps"
 
 ################################################
 #           RUNNING OPTIONS
