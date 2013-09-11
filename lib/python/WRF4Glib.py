@@ -413,6 +413,17 @@ class Experiment(Component):
             rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
             rea.ps(number_of_characters)
     
+    def statistics(self):
+        output=''
+        if self.data['id'] < 0:
+            sys.exit(19)
+        rea_ids=self.get_realizations_id()
+        dout=[]
+        for id_rea in rea_ids:
+            rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
+            rea.statistics()
+            
+    
     def summarized_status(self, number_of_characters=20):
         prepared=len(self.get_prepared_reas_id())
         wait=len(self.get_wait_reas_id())
@@ -619,7 +630,12 @@ class Realization(Component):
         nchunkd=dbc.select('Chunk','MAX(Chunk.id)','id_rea=%s'%self.data['id'])
         nchunk=vdblib.parse_one_field(nchunkd)
         return nchunk 
-         
+    
+    def first_chunk(self):        
+        nchunkd=dbc.select('Chunk','MIN(Chunk.id)','id_rea=%s'%self.data['id'])
+        nchunk=vdblib.parse_one_field(nchunkd)
+        return nchunk 
+       
     def run(self,nchunk=0,priority=0,rerun=False,force=False,repeatchunk=0,type_dep="afterany"):
         import gridwaylib   
         
@@ -750,6 +766,41 @@ class Realization(Component):
         dout['rea_status']=status        
         print format_output(dout, number_of_characters)
                            
+    def statistics(self):
+        if 'id' in self.data.keys():
+            self.data['name']=self.get_name()
+        else:
+            self.data['id']=self.get_id(['name'])
+            if self.data['id']== -1:
+                sys.stderr.write('Realization with name %s does not exists \n'%self.data['name'])
+                sys.exit(1)
+
+        last_chunk=self.current_chunk_status()
+
+        if last_chunk[2] == 0 or last_chunk[2] == 1 :
+            lastc=last_chunk[0]
+        else :
+            lastc=last_chunk[0]+1
+        ci=1
+        for id_chunk in range(self.first_chunk(),lastc):
+            ch=Chunk(data={'id': id_chunk})
+            j=Job(data={'id':ch.get_last_job()})
+            jobi=j.list_events()
+            line="%s;%d,%d;%s;%s;"%(self.get_name(),ci,jobi['gw_job'],jobi['resource'],jobi['wn'])
+            lestados=JobStatus()
+            es=lestados.keys()
+            es.sort()
+
+            for st in es:
+                if jobi['tiempos'].has_key(st):
+                    line+=(str(jobi['tiempos'][st])) + ";"
+                else:
+                    line+=";"
+            
+            print line
+            ci=ci+1
+
+    
     def prepare_storage(self):          
         RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
         if RESOURCES_WRF4G == None:
@@ -946,6 +997,19 @@ class Job(Component):
         
     def get_hash(self):
         pass
+    
+    def list_events(self,evid=0):
+        lev=dbc.select("Events","status,timestamp","id_job=%s"%self.data['id'])
+        linfo=self.get_info()
+        lstatus=JobStatus()
+        i=0
+        ltiempos={}
+        for event in lev[:-1]:
+            t=lev[i+1]['timestamp']-event['timestamp']
+            ltiempos[event['status']]=t.seconds
+            i=i+1
+        linfo['tiempos']=ltiempos       
+        return linfo
 
 class Events(Component):
     pass
