@@ -6,7 +6,7 @@ import WRF4Glib
 
 
 def long_header():
-    linea="realization;gwid;resource;wn;"
+    linea="realization;chunk_id;gwid;exit_code;resource;wn;"
     lestados=WRF4Glib.JobStatus()
     es=lestados.keys()
     es.sort()

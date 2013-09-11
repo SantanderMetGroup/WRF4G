@@ -786,7 +786,7 @@ class Realization(Component):
             ch=Chunk(data={'id': id_chunk})
             j=Job(data={'id':ch.get_last_job()})
             jobi=j.list_events()
-            line="%s;%d,%d;%s;%s;"%(self.get_name(),ci,jobi['gw_job'],jobi['resource'],jobi['wn'])
+            line="%s;%d;%d;%d;%s;%s;"%(self.get_name(),ci,jobi['gw_job'],jobi['exitcode'],jobi['resource'],jobi['wn'])
             lestados=JobStatus()
             es=lestados.keys()
             es.sort()
