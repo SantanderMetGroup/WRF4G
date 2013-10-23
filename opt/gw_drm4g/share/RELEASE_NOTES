@@ -1,0 +1,51 @@
+====== Release Notes 5.8 ======
+
+GridWay 5.8 is the new stable version of the fifth series of the metascheduler.
+
+Release date: September 30th, 2011.
+
+===== Modified Installation Procedure =====
+
+GridWay core and commands are now configured, built and installed separately from the MADs, which have their own Makefile.
+
+This way, GridWay installation does not depend on the installation of a given middleware.
+
+===== Randomized Job State Polling =====
+
+Job state is polled at randomized intervals, to avoid saturation due to multiple simultaneous requests. Moreover, the interval is duplicated when a failure occurs.
+
+===== CREAM Middleware Access Driver (MAD) =====
+
+An execution driver for CREAM (http://grid.pd.infn.it/cream), the job submission and management interface of gLite, is included in this release.
+
+===== OGSA-BES Middleware Access Driver (MAD) =====
+
+A technology preview of an execution driver for OGSA-BES (www.ogf.org/documents/GFD.108.pdf), the OGF specification for job submission and management, is included in this release.
+
+===== Syslog Compliant Logs =====
+
+GridWay offers the opportunity to write logs in the Syslog format. You can configure GridWay using --with-syslog option. Optionally, you can use a particular facility (LOG_DAEMON, LOG_USER, or LOG_LOCAL[0-7]).
+
+===== Translation of Resource Requirements in Job Template =====
+
+A translation mechanism of resource requirements in job templates to RSL, JDL and JSDL is available. You can explicitly set the maximum cputime, walltime, and/or maximum and minimum amount of memory for a single execution of the executable, by means of the ENVIRONMENT variables MAXCPUTIME, MAXTIME, MAXWALLTIME, MAXMEMORY and MINMEMORY in job templates.
+
+===== Disposing Jobs when DONE =====
+
+A new option to gwd (-d) is added to dispose jobs when they are done.
+
+===== Bug fixing =====
+
+The following bugs have been fixed:
+  * Bug #86 (http://dev.gridway.org/issues/86): Problems with java.util.Calendar
+  * Bug #87 (http://dev.gridway.org/issues/87): Architecture platform always shows i686 from the bdii IM MAD
+  * Bug #89 (http://dev.gridway.org/issues/89): Abort migration due to suspension if job becomes active
+  * Bug #90 (http://dev.gridway.org/issues/90): Problem loading MADs in multiple-user mode
+  * Bug #92 (http://dev.gridway.org/issues/92): Error removing remote dir
+  * Bug #93 (http://dev.gridway.org/issues/93): GW sometimes loses LRMS type information and it sends jobs to FORK jobmanager
+  * Bug #97 (http://dev.gridway.org/issues/97): Deadline time isn't recovered correctly
+  * Bug #100 (http://dev.gridway.org/issues/100): jobtype and count parameters not generated in RSL NSH
+  * Bug #101 (http://dev.gridway.org/issues/101): SEGFAULT in drmaa_run_bulk_jobs when GW_PRIORITY is not specified
+  * Bug #102 (http://dev.gridway.org/issues/102): BDII IM MAD stops monitoring after a discovery failure
+  * Bug #104 (http://dev.gridway.org/issues/104): Memory leak in scheduler
+  * Bug #105 (http://dev.gridway.org/issues/105): Build error if accounting enabled
