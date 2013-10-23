@@ -1,2 +1,0 @@
-EXECUTABLE = /bin/uname
-ARGUMENTS  = -a
