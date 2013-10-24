@@ -1,0 +1,42 @@
+#
+#   Experiment configuration
+#
+experiment_name      = "name"
+
+#   Simulation domain
+max_dom              = 1
+domain_name          = "domain"
+
+#   Input data
+extdata_vtable       = "GFS"    # Vtables must exist as Vtable.[input_extdata]
+extdata_path         = "PATH"
+extdata_interval     = SS       # Seconds between global analysis input times
+extdata_preprocessor = "default"
+
+#   Output data
+postprocessor        = "postprocessor_name"
+wrfout_name_end_date = 0
+
+#   Experimten time-specification
+rerun                = 0
+start_date           = "Year-Month-Day_HH:MM:SS"
+end_date             = "Year-Month-Day_HH:MM:SS"
+chunk_size_h         = HH
+
+multiple_dates       = 0
+	simulation_interval_h    = 0
+	simulation_length_h      = 0
+
+multiple_parameters  = 0
+	multiparams_variables    = ""
+	multiparams_nitems       = ""
+	multiparams_combinations = ""
+	multiparams_labels       = ""
+
+#   Debugging
+clean_after_run      = 1
+save_wps             = 0
+
+#   Parallel configuration  
+real_parallel        = 0
+wrf_parallel         = 1
