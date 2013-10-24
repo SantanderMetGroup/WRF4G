@@ -15,7 +15,7 @@ from drm4g.utils.message     import Send
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: em_mad.py 1924 2013-09-15 20:26:53Z carlos $"
+__revision__ = "$Id: em_mad.py 1939 2013-10-23 11:38:46Z carlos $"
 
 class GwEmMad (object):
     """
@@ -90,12 +90,14 @@ class GwEmMad (object):
         try:
             HOST, JM = HOST_JM.rsplit('/',1)
             # Init Job class
-            job , communicator  = self._update_resource( HOST )
-            job.Communicator    = communicator
+            job , communicator   = self._update_resource( HOST )
+            job.Communicator     = communicator
             # Parse rsl
-            rsl                 = Rsl2Parser(RSL).parser()
-            rsl['project']      = job.resfeatures.get('project')
-            rsl['parallel_env'] = job.resfeatures.get('parallel_env')
+            rsl                                  = Rsl2Parser(RSL).parser()
+            rsl['project']                       = job.resfeatures.get( 'project' )
+            rsl['parallel_env']                  = job.resfeatures.get( 'parallel_env' )
+            rsl['environment']['WRF4G_SCRATCH']  = job.resfeatures.get( 'scratch' )
+            rsl['environment']['WRF4G_LOCALSCP'] = job.resfeatures.get( 'local_scratch' ) 
             if '_' in HOST :
                 _ , host                    = HOST.split('_')
                 job.resfeatures['host']     = host

@@ -32,7 +32,33 @@ setup(){
          echo "failed."
          exit 1
     fi
-
+    
+    FIRST_RMT_JOB_HOME=`dirname $0`
+    
+    if [ "${WRF4G_SCRATCH}" ]; then
+    	printf "`date`: Making ${DRM4G_SCRATCH}/${GW_USER}_${GW_JOB_ID} directory... "
+    	
+    	rm -rf ${WRF4G_SCRATCH}/${GW_USER}_${GW_JOB_ID}
+    	
+    	mkdir -p ${WRF4G_SCRATCH}/${GW_USER}_${GW_JOB_ID}
+    	
+    	if [ $? -ne 0 ]; then
+    		echo "failed."
+        else
+            echo "done."
+        fi
+    	
+    	printf "`date`: Moving to ${WRF4G_SCRATCH}/${GW_USER}_${GW_JOB_ID} directory... "
+    	
+    	mv ${FIRST_RMT_JOB_HOME}/* ${WRF4G_SCRATCH}/${GW_USER}_${GW_JOB_ID}/
+    	
+    	if [ $? -ne 0 ]; then
+    		echo "failed."
+        else
+            echo "done."
+        fi
+    fi
+    
     printf "`date`: Checking remote job home... "
  
     RMT_JOB_HOME=`dirname $0`
@@ -40,7 +66,7 @@ setup(){
     cd ${RMT_JOB_HOME}
     
     echo "done."
-
+    
     printf "`date`: Checking job environment... "
     
     source ./job.env
@@ -66,7 +92,7 @@ execution(){
             ;;
             
         file:/*)
-                GW_EXECUTABLE=`basename ${GW_EXECUTABLE}`        
+            GW_EXECUTABLE=`basename ${GW_EXECUTABLE}`        
             ;;
                 
         *)
@@ -273,6 +299,7 @@ transfer_output_files(){
     IFS=","
 
     for FILES in ${STG_FILES}; do
+    	
         if [ -z "$FILES" -o "$FILES" = " " ]; then
           continue
         fi
@@ -309,10 +336,16 @@ transfer_output_files(){
             fi
             ;;
 
-        file:/*)
-            ;;
-
         *)
+        	if [ "${WRF4G_SCRATCH}" ]; then
+        		printf "`date`: Staging-out file \"${SRC_FILE}\" as \"${DST_FILE}\"... "
+				cp ${RMT_JOB_HOME}/FILES ${FIRST_RMT_JOB_HOME}
+				if [ $? -ne 0 ]; then
+                	echo "failed."
+            	else
+                	echo "done."
+            	fi	
+			fi
             ;;
         esac
 
@@ -321,6 +354,20 @@ transfer_output_files(){
     IFS=$SAVED_IFS
 }
 
+clean(){
+	if [ "${WRF4G_SCRATCH}" ]; then
+		if test -f ${RMT_JOB_HOME}/.lock; then
+			printf "`date`: Deleting remote SCRATCH directory... "
+			rm -rf  ${RMT_JOB_HOME}
+			if [ $? -ne 0 ]; then
+            	echo "failed."
+    		else
+            	echo "done."
+        	fi
+		fi
+	fi
+}
+		
 #-------------------------------------------------------------------------------
 #                       WRAPPER SCRIPT
 #-------------------------------------------------------------------------------
@@ -336,5 +383,7 @@ transfer_input_files
 execution
 
 transfer_output_files
+
+clean
 
 echo "REAL_TIME=$SECONDS"
