@@ -10,7 +10,7 @@ import vdblib
 import vcplib 
 
 WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
-GW_LOCATION ='%s/opt/drm4g_gridway'% WRF4G_LOCATION
+GW_LOCATION ='%s/opt/gw_drm4g'% WRF4G_LOCATION
 
 #Configure WRF4GF_DB
 DB4G_CONF=os.environ.get('DB4G_CONF')
