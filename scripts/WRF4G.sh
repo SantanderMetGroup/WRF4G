@@ -373,8 +373,7 @@ export PYTHONPATH=${ROOTDIR}/lib/python:${ROOTDIR}/bin:$PYTHONPATH
 export PATH="${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
 
 source ${ROOTDIR}/lib/bash/wrf_util.sh
-source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
-source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
+source ${ROOTDIR}/lib/bash/wrf4g_codes.sh
 
 #
 #   Try to download experiment from realization folder. If it doesn't exist download it from experiment.

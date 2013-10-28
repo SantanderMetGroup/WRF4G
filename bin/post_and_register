@@ -7,7 +7,7 @@ ROOTDIR=$(cat ../../rootdir)
 export PATH=$ROOTDIR/bin:$PATH
 export LD_LIBRARY_PATH=$ROOTDIR/lib:$LD_LIBRARY_PATH
 source ${ROOTDIR}/lib/bash/wrf_util.sh
-source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
+source ${ROOTDIR}/lib/bash/wrf4g_codes.sh
 source ${ROOTDIR}/resources.wrf4g                             || exit ${ERROR_MISSING_WRF4GCNF}
 export WRF4G_APPS
 sed -e 's/\ *=\ */=/' ${ROOTDIR}/experiment.wrf4g > source.it || exit ${ERROR_MISSING_WRFINPUT}
