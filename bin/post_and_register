@@ -3,17 +3,8 @@
 #
 #  Load experiment.wrf4g and conf files
 #
-ROOTDIR=$(cat ../../rootdir)
-export PATH=$ROOTDIR/bin:$PATH
-export LD_LIBRARY_PATH=$ROOTDIR/lib:$LD_LIBRARY_PATH
-source ${ROOTDIR}/lib/bash/wrf_util.sh
-source ${ROOTDIR}/lib/bash/wrf4g_codes.sh
-source ${ROOTDIR}/resources.wrf4g                             || exit ${ERROR_MISSING_WRF4GCNF}
-export WRF4G_APPS
-sed -e 's/\ *=\ */=/' ${ROOTDIR}/experiment.wrf4g > source.it || exit ${ERROR_MISSING_WRFINPUT}
-source source.it && rm source.it
 
-logfile="../../log/wrfgel.out"
+log="$logfile/wrfgel.out"
 
 function kill_wrf(){
   kill -9 $(cat wrf.pid)
@@ -32,7 +23,7 @@ function do_all(){
         tar czf ../${ofile} *.TS
       cd ..
       chmod g+rw ${ofile}
-      register_file -v ts $2 ${ofile} >> ${logfile} 2>&1
+      register_file -v ts $2 ${ofile} >> ${log} 2>&1
     fi
   fi
   #
@@ -49,10 +40,10 @@ function do_all(){
         #
         echo "$3 was already postprocessed"
       else
-        postprocessor.${postprocessor} $3 >> ${logfile} 2>&1
+        postprocessor.${postprocessor} $3 >> ${log} 2>&1
 	if test ! $(which ncatted); then
 	  thisdir=$(pwd)
-	  cd $(cat ../../rootdir)
+	  cd ${WRF4G_ROOTDIR}
 	  vcp ${WRF4G_APPS}/nco.tar.gz .
 	  tar xzf nco.tar.gz && rm nco.tar.gz
 	  cd ${thisdir}
@@ -67,7 +58,7 @@ function do_all(){
   if test -n "$3"; then 
     chmod g+rw $3
   fi
-  register_file $* >> ${logfile} 2>&1
+  register_file $* >> ${log} 2>&1
 }
 
 if test "$1" = "--no-bg"; then
@@ -79,4 +70,4 @@ else
 fi
 pid=$(echo $!)
 echo $pid >> register.pids
-# wait $pid || kill_wrf 
+

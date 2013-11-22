@@ -16,24 +16,28 @@ class job:
         Create template
         """
         if verbose:
-            debug='-x'
+            debug = '-x'
         else:
-            debug=''
-        ftemplate=name + ".gw"
-        try:
-            f = open (ftemplate,'w')
-            template="""NAME = %s
+            debug = ''
+        ftemplate = name + ".gw"
+        template  = """NAME = %s
             EXECUTABLE   = /bin/bash 
             ARGUMENTS    = "%s ./WRF4G.sh %s"
             INPUT_FILES  = %s
             RANK         = QUEUE_FREENODECOUNT
             REQUIREMENTS = %s
             ENVIRONMENT  = %s
-            NP           = %d"""%(name,debug,arguments,inputsandbox,req,environ,np)
-            f.write(template)
-        finally:
-            f.close()
-        self.template=ftemplate
+            NP           = %s""" % ( name , 
+                                     debug ,
+                                     arguments , 
+                                     inputsandbox ,
+                                     req ,
+                                     environ ,
+                                     np
+                                     )
+        with open( ftemplate , 'w' ) as f :
+            f.write( template )
+        self.template = ftemplate
     
     def submit(self,dep=None,priority=0,type_dep="afterany"):
         if dep != None:

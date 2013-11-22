@@ -4,18 +4,8 @@
 #
 wrf_pid=$1
 log_file_wrf=$2
-#
-#  Load configuration files
-#
-source ${ROOTDIR}/lib/bash/wrf_util.sh
-source ${ROOTDIR}/lib/bash/wrf4g_codes.sh
-source ${ROOTDIR}/resources.wrf4g                          || exit ${ERROR_MISSING_WRF4GCNF}
-sed --in-place 's/\ *=\ */=/' ${ROOTDIR}/experiment.wrf4g  || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
-source ${ROOTDIR}/experiment.wrf4g
-
 file_patterns="wrfout wrfrst wrfrain wrfxtrm wrf24hc"
 wait_s=60
-
 avoid_file="wrfrst_d01_${chunk_restart_date}"
 
 function time_debug(){
