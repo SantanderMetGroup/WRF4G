@@ -7,8 +7,7 @@ function date2int(){
 
 function prepare_local_environment (){
   cp -R ${LOCALDIR}/WRFV3/run ${ROOTDIR}/runshared
-  $MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/WRFGEL/load_wrfbin.sh	
-  prepare_openmpi=0
+  $MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/WRFGEL/load_wrfbin.sh
 }
 
 function run_preprocessor_ungrib (){
@@ -23,13 +22,18 @@ function run_preprocessor_ungrib (){
     vpreprocessor=$(tuple_item ${extdata_preprocessor} ${i})
 
     echo "* `date`: Running preprocessor.${vpreprocessor} ... "
+    
     preprocessor.${vpreprocessor} ${chunk_start_date} ${chunk_end_date} ${vpath} ${vt} || wrf4g_exit ${ERROR_PREPROCESSOR_FAILED}
     ./link_grib.sh ${WRF4G_LOCALSCP}/WPS/grbData/*
     
     echo "* `date`: Running ungrib ... "
-    ungrib.exe >& ${logdir}/ungrib_${vt}_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_UNGRIB_FAILED}
-    cat ${logdir}/ungrib_${vt}_${iyy}${imm}${idd}${ihh}.out |  grep -q -i 'Successful completion of ungrib' \
-      || wrf4g_exit ${ERROR_UNGRIB_FAILED}
+    
+    log_ungrib=${logdir}/ungrib_${vt}_${iyy}${imm}${idd}${ihh}.out
+    ungrib.exe >& ${logdir_ungrib} || wrf4g_exit ${ERROR_UNGRIB_FAILED}
+    if test $(grep -c "Successful completion of ungrib" ${log_ungrib}) -ne 1 ;then
+      wrf4g_exit ${ERROR_UNGRIB_FAILED}
+    fi
+       
     rm -rf ${WRF4G_LOCALSCP}/WPS/grbData ${WRF4G_LOCALSCP}/WPS/GRIBFILE.*
     vts=${vts}\'${vt}\',
     let i++
@@ -47,9 +51,11 @@ function run_metgrid (){
   fortnml_setn   namelist.wps start_date ${max_dom} "'${chunk_start_date}'"
   fortnml_setn   namelist.wps end_date   ${max_dom} "'${chunk_end_date}'"
   
-  metgrid.exe >& ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out || wrf4g_exit ${ERROR_METGRID_FAILED}
-  cat ${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out | grep -q -i 'Successful completion of metgrid' \
-    || wrf4g_exit ${ERROR_METGRID_FAILED}
+  log_metgrid=${logdir}/metgrid_${iyy}${imm}${idd}${ihh}.out
+  metgrid.exe >& ${log_metgrid} || wrf4g_exit ${ERROR_METGRID_FAILED}
+  if test $(grep -c "Successful completion of metgrid" ${log_metgrid}) -ne 1 ;then
+    wrf4g_exit ${ERROR_METGRID_FAILED}
+  fi
   
   # Clean after run
   if test "${clean_after_run}" -eq 1; then
@@ -67,16 +73,17 @@ function run_real (){
   namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_rerun} ${timestep_dxfactor}
   
   # If real is run in parallel, prepare the environment.  	 
-  if [ ${local_openmpi} -eq 1 -a ${real_parallel} -eq 1 ]; then
+  if [ ${real_parallel} -eq 1 ]; then
     prepare_local_environment
   fi
+  
   WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_REAL}
-  ${LAUNCHER_REAL} ${WRF4G_ROOTDIR}/bin/wrapper.exe real.exe >& ${logdir}/real_${ryy}${rmm}${rdd}${rhh}.out \
-    || wrf4g_exit ${ERROR_REAL_FAILED}
 
-  if [ ${real_parallel} -ne 1 ]; then
-    log_file_real=${logdir}/real_${ryy}${rmm}${rdd}${rhh}.out			
-  else
+  
+  log_file_real=${logdir}/real_${ryy}${rmm}${rdd}${rhh}.out
+  ${LAUNCHER_REAL} ${WRF4G_ROOTDIR}/bin/wrapper.exe real.exe >& ${log_file_real} || wrf4g_exit ${ERROR_REAL_FAILED}
+  
+  if [ ${real_parallel} -eq 1 ]; then
     log_file_real=rsl.out.0000
   fi
   
@@ -100,7 +107,7 @@ function run_real (){
 function run_wrf (){
   WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_WRF}
   # If wrf is run in parallel and the environment is not prepared, prepare it.  	 
-  if [ ${local_openmpi} -eq 1 -a ${wrf_parallel} -eq 1  ]; then
+  if [ ${wrf_parallel} -eq 1  ]; then
     prepare_local_environment
   fi
   
@@ -110,17 +117,16 @@ function run_wrf (){
   # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
   # This time is also useful to copy the wpsout data
   sleep 30
-  
-  if [ ${wrf_parallel} -ne 1 ]; then
-    log_file_wrf=${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out
-  else
-    log_file_wrf=rsl.out.0000
-  fi
    
-  bash wrf4g_monitor $(cat wrf.pid) $log_file_wrf >& ${logdir}/monitor.log &
+  log_file_wrf=${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out
+  bash wrf4g_monitor $(cat wrf.pid) ${log_file_wrf} >& ${logdir}/monitor.log &
   echo $! > monitor.pid
   wait $(cat monitor.pid)
    
+  if [ ${wrf_parallel} -eq 1 ]; then
+    log_file_wrf=rsl.out.0000
+  fi
+ 
   if test $(grep -c "SUCCESS COMPLETE WRF" ${log_file_wrf}) -eq 1 ;then
     excode=0
   else
@@ -210,7 +216,10 @@ function wrf4g_exit(){
 ################################
 
 
-WRF4G_ROOTDIR=`dirname $0`
+cd `dirname $0`
+export WRF4G_ROOTDIR=`pwd`
+export WRF4G_ROOTDIR=`pwd`
+
 
 #
 #  Default values
@@ -224,7 +233,6 @@ wrf_parallel=1
 DEBUG="-v"
 ERROR_MISSING_RESOURCESWRF4G=21
 
-load_default_config
 
 #
 #  Get variables
@@ -238,9 +246,12 @@ export WRF4G_CHUNK_ID=$5
 export chunk_start_date=$6
 export chunk_end_date=$7
 
-sed --in-place 's/\ *=\ */=/' experiment.wrf4g && . experiment.wrf4g &>/dev/null
-sed --in-place 's/\ *=\ */=/' resources.wrf4g  && . resources.wrf4g  &>/dev/null
-sed --in-place 's/\ *=\ */=/' db4g.conf        && . db4g.conf        &>/dev/null
+sed --in-place 's/\ *=\ */=/' experiment.wrf4g
+. experiment.wrf4g &>/dev/null
+sed --in-place 's/\ *=\ */=/' resources.wrf4g
+. resources.wrf4g &>/dev/null
+sed --in-place 's/\ *=\ */=/' db4g.conf
+. db4g.conf &>/dev/null
 
 . ${WRF4G_ROOTDIR}/lib/bash/wrf_util.sh
 . ${WRF4G_ROOTDIR}/lib/bash/wrf4g_codes.sh
@@ -250,29 +261,29 @@ sed --in-place 's/\ *=\ */=/' db4g.conf        && . db4g.conf        &>/dev/null
 #
 
 if test -f WRF4G-${WRF4G_VERSION}.tar.gz; then
-	tar xzf WRF4G-${WRF4G_VERSION}.tar.gz 
-	rm WRF4G-${WRF4G_VERSION}.tar.gz
-	chmod +x ${WRF4G_ROOTDIR}/WRFGEL/*
+  tar xzf WRF4G-${WRF4G_VERSION}.tar.gz 
+  rm WRF4G-${WRF4G_VERSION}.tar.gz
+  chmod +x ${WRF4G_ROOTDIR}/WRFGEL/*
 else
-	exit ${ERROR_MISSING_WRF4GSRC}
+  exit ${ERROR_MISSING_WRF4GSRC}
 fi
 #   If there are additional files, expand them
 if test -f wrf4g_files.tar.gz; then
-	echo "* `date`: There is a wrf4g_files.tar.gz package available ... "
-	tar xzf wrf4g_files.tar.gz
-	rm wrf4g_files.tar.gz
-	chmod +x ${WRF4G_ROOTDIR}/wrf4g_files/*
+  echo "* `date`: There is a wrf4g_files.tar.gz package available ... "
+  tar xzf wrf4g_files.tar.gz
+  rm wrf4g_files.tar.gz
+  chmod +x ${WRF4G_ROOTDIR}/wrf4g_files/*
 fi
 
 #
 #   Set the PATH
 #
 
-export RESOURCES_WRF4G="${WRF4G_ROOTDIR}/resources.wrf4g"
-export DB4G_CONF="${WRF4G_ROOTDIR}/db4g.conf"
-export PATH="${WRF4G_ROOTDIR}/bin:${WRF4G_ROOTDIR}/WRFGEL:${WRF4G_ROOTDIR}/lib/bash:$PATH"
-export LD_LIBRARY_PATH="${WRF4G_ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH"
-export PYTHONPATH="${WRF4G_ROOTDIR}/lib/python:$PYTHONPATH"
+export RESOURCES_WRF4G=${WRF4G_ROOTDIR}/resources.wrf4g
+export DB4G_CONF=${WRF4G_ROOTDIR}/db4g.conf
+export PATH=${WRF4G_ROOTDIR}/bin:${WRF4G_ROOTDIR}/WRFGEL:${WRF4G_ROOTDIR}/lib/bash:$PATH
+export LD_LIBRARY_PATH=${WRF4G_ROOTDIR}/lib/shared_libs:$LD_LIBRARY_PATH
+export PYTHONPATH=${WRF4G_ROOTDIR}/lib/python:$PYTHONPATH
 
 #
 #   Update Job Status in DB
@@ -282,23 +293,30 @@ job_conf="gw_job=${GW_JOB_ID},id_chunk=${WRF4G_CHUNK_ID},resource=${GW_HOSTNAME}
 WRF4G_JOB_ID=$(WRF4G.py --verbose Job load_wn_conf $job_conf $GW_RESTARTED) 
 exit_code=$?
 if test $exit_code -ne 0; then
-	wrf4g_exit ${exit_code} 
+  wrf4g_exit ${exit_code} 
+fi
+
+#
+#   Making remote directories for this job
+#
+echo "* `date`: Creating remote WRF4G structure ... "
+
+out=$(WRF4G.py Realization prepare_remote_storage)
+if test $out -ne 0; then
+  wrf4g_exit ${ERROR_CANNOT_CREATE_REMOTE_DIR} 
 fi
 
 #
 #   Should we unpack here or there is a local filesystem for us to run?
 #
 
-if test -n "$WRF4G_LOCALSCP}"; then
-  WRF4G_LOCALSCP="${WRF4G_LOCALSCP}/wrf4g.$(date +%Y%m%d%H%M%S%N)"
+if test -n "${WRF4G_LOCALSCP}"; then
+  export WRF4G_LOCALSCP="${WRF4G_LOCALSCP}/wrf4g.$(date +%Y%m%d%H%M%S%N)"
   mkdir -p ${WRF4G_LOCALSCP} || wrf4g_exit ${ERROR_CANNOT_ACCESS_WRF4G_LOCALSCP}
   cd ${WRF4G_LOCALSCP}
 else
-  WRF4G_LOCALSCP=${WRF4G_ROOTDIR}
+  export WRF4G_LOCALSCP=${WRF4G_ROOTDIR}
 fi
-
-export WRF4G_ROOTDIR
-export WRF4G_LOCALSCP
 
 #
 # DRM4G won't remove WRF4G_ROOTDIR directory if clean_after_run is 0
@@ -312,26 +330,25 @@ fi
 #   Make log directory
 #
 
-logdir=${WRF4G_LOCALSCP}/log
-export logdir
+export logdir=${WRF4G_LOCALSCP}/log
 mkdir -p ${logdir}
 #   Redirect output and error file descriptors
 exec &>log/WRF4G.log
 
 echo "* `date`: Creating WRF4G structure ... "
-cd ${WRF4G_LOCALSCP}
+
 WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_DOWN_BIN}
 vcp ${DEBUG} ${WRF4G_APPS}/WRFbin-${WRF_VERSION}.tar.gz ${WRF4G_LOCALSCP}/
 exitcode=$?
 if test $exitcode -eq 0; then
-  tar xzf WRFbin-${WRF_VERSION}.tar.gz
+  tar xzf WRFbin-${WRF_VERSION}.tar.gz && rm WRFbin-${WRF_VERSION}.tar.gz
   mv ${WRF4G_ROOTDIR}/namelist.input  ${WRF4G_LOCALSCP}/WRFV3/run/namelist.input
-  rm WRFbin-${WRF_VERSION}.tar.gz
 else
   wrf4g_exit ${ERROR_MISSING_WRFbin}
 fi
 
 echo "* `date`: Moving WRF binaries to \${WRF4G_ROOTDIR}/bin directory ... "
+
 mv ${WRF4G_LOCALSCP}/WPS/ungrib/ungrib.exe   ${WRF4G_ROOTDIR}/bin/
 mv ${WRF4G_LOCALSCP}/WPS/metgrid/metgrid.exe ${WRF4G_ROOTDIR}/bin/
 mv ${WRF4G_LOCALSCP}/WRFV3/run/real.exe      ${WRF4G_ROOTDIR}/bin/
@@ -343,25 +360,22 @@ umask 002
 
 echo "* `date`: Creating parallel environment ... "
 # Does any component run in parallel?
-prepare_openmpi=0
 LAUNCHER_REAL=""
 LAUNCHER_WRF=""
 MPI_LAUNCHER="mpirun -np $GW_NP $MPI_ENV"
 
 if [ $real_parallel -eq 1 ]; then
-  prepare_openmpi=1
   LAUNCHER_REAL=${MPI_LAUNCHER}
 fi
 
 if [ $wrf_parallel -eq 1 ]; then
-  prepare_openmpi=1
   LAUNCHER_WRF=${MPI_LAUNCHER}
 fi
 
 # If WRF4G is going to run in a shared folder do not copy the
 # binary and input files. Otherwise copy them.
 if [ $prepare_openmpi -eq 1 ]; then
-  if test -n "${WRF4G_LCSR}"; then
+  if test "${WRF4G_LOCALSCP}" -eq "${WRF4G_ROOTDIR}"; then
     export OPAL_PREFIX=${WRF4G_LOCALSCP}/openmpi
   else
     mv ${WRF4G_LOCALSCP}/openmpi  ${WRF4G_ROOTDIR}/
@@ -375,6 +389,7 @@ fi
 #  Get the restart files if they are necessary.
 #
 echo "* `date`: Checking restart information ... "
+
 restart_date=$(WRF4G.py Realization get_restart id=${WRF4G_REALIZATION_ID}) || wrf4g_exit ${ERROR_ACCESS_DB}
 if test ${restart_date} == "None"; then
   export chunk_restart_date=${chunk_start_date}
@@ -385,7 +400,7 @@ elif test $(date2int ${restart_date}) -ge $(date2int ${chunk_start_date}) -a $(d
   WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_DOWN_RESTART}
   cd ${WRF4G_LOCALSCP}/WRFV3/run
     download_file rst $(date_wrf2iso ${restart_date}) || wrf4g_exit ${ERROR_RST_DOWNLOAD_FAILED}
-  cd ${WRF4G_LOCALSCP}
+  cd -
 else
   wrf4g_exit ${EXIT_RESTART_MISMATCH}
 fi
@@ -413,6 +428,7 @@ else
   echo "* `date`: The boundaries and initial conditions are not available ... "
   cd ${WRF4G_LOCALSCP}/WPS || wrf4g_exit ${ERROR_GETTING_WPS}
     clean_wps
+
     #
     #   Get geo_em files and namelist.wps
     #
@@ -423,7 +439,6 @@ else
     #
     #   Modify the namelist
     #
-
     echo "* `date`: Modifying namelist ... "
     fortnml_setn namelist.wps start_date       ${max_dom} "'${chunk_start_date}'"
     fortnml_setn namelist.wps end_date         ${max_dom} "'${chunk_end_date}'"
@@ -434,7 +449,6 @@ else
     #
     #  Preprocessor and Ungrib
     #
-
     echo "* `date`: About to run preprocessor and Ungrib ... "
     run_preprocessor_ungrib
   
@@ -461,27 +475,23 @@ else
     #
     if test "${save_wps}" -eq 1; then
       echo "* `date`: Saving wps ... "
-      output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_UPLIAD_WPS})
+      WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_UPLIAD_WPS}
       post_and_register --no-bg wps "${chunk_start_date}" 
-      output=$(WRF4G.py Chunk set_wps id=${WRF4G_CHUNK_ID} 1)
+      WRF4G.py Chunk set_wps id=${WRF4G_CHUNK_ID} 1
     fi
 fi
 
 #
 # Icbcprocessor
 #
-
 if test -n "${icbcprocessor}"; then
   echo "* `date`: Running icbcprocessor.${icbcprocessor} ... "
   WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_ICBCPROCESOR}
-  icbcprocessor.${icbcprocessor} >&  ${logdir}/icbcproc_${ryy}${rmm}${rdd}${rhh}.out \ 
-   || wrf4g_exit ${ERROR_ICBCPROCESSOR_FAILED}
+  icbcprocessor.${icbcprocessor} >&  ${logdir}/icbcproc_${ryy}${rmm}${rdd}${rhh}.out || wrf4g_exit ${ERROR_ICBCPROCESSOR_FAILED}
 fi
 
 #
 #  WRF
 #
-    
 echo "* `date`: Running WRF ... "
 run_wrf
-
