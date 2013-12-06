@@ -8,7 +8,7 @@ from drm4g.utils.message   import Send
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: im_mad.py 1932 2013-09-26 09:41:59Z carlos $"
+__revision__ = "$Id: im_mad.py 1953 2013-11-26 12:32:33Z carlos $"
 
 class GwImMad (object):
     """
@@ -71,10 +71,10 @@ class GwImMad (object):
             assert not errors, ' '.join( errors )
             
             self._resources  = self._config.make_resources()
-            communicators    = self,_config.make_communicators()
+            communicators    = self._config.make_communicators()
             hosts = ""
             for resname in sorted( self._resources.keys() ) :
-                if not self._config.resources[ resname ][ 'enable' ] : 
+                if self._config.resources[ resname ][ 'enable' ]  == 'False' : 
                     continue
                 try :
                     self._resources[ resname ][ 'Resource' ].Communicator = communicators[ resname ]
@@ -98,8 +98,8 @@ class GwImMad (object):
         try:
             info = ""
             for resname, resdict in self._resources.iteritems() :
-                if not self._config.resources[ resname ][ 'enable' ] : 
-                    raise "Resource '%s' is not enable" % resname 
+                if self._config.resources[ resname ][ 'enable' ] == 'False': 
+                    raise Exception( "Resource '%s' is not enable" % resname )
                 if HOST in resdict['Resource'].host_list :
                     info = resdict['Resource'].host_properties( HOST )
                     resdict['Resource'].Communicator.close()

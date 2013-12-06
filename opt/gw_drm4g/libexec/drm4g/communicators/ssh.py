@@ -32,7 +32,7 @@ from drm4g.utils.url        import urlparse
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: ssh.py 1925 2013-09-19 14:56:10Z carlos $"
+__revision__ = "$Id: ssh.py 1951 2013-11-25 13:13:29Z carlos $"
 
 class Communicator (drm4g.communicators.Communicator):
     """
@@ -74,15 +74,19 @@ class Communicator (drm4g.communicators.Communicator):
                 else:
                     logger.debug("Trying '%s' key ... " % self.private_key )
                     private_key_path = expanduser( self.private_key )
-                    if not exists(private_key_path):
-                        output = "'ssh-agent' is running but without any keys"
+                    if ( not exists( private_key_path ) ) and ( not 'PRIVATE KEY' in  self.private_key ):
+                        output = "'%s'key does not exist" % private_key_path
                         logger.error( output )
-                        raise ComExc
+                        raise ComException( output )
                     for pkey_class in (RSAKey, DSSKey):
                         try :
-                            key  = pkey_class.from_private_key_file( private_key_path )
+                            if 'PRIVATE KEY' in self.private_key :
+                                import StringIO
+                                key  = pkey_class.from_private_key( StringIO.StringIO ( self.private_key.strip( "'" ) ) )
+                            else : 
+                                key  = pkey_class.from_private_key_file( private_key_path )
                             keys = (key,)
-                        except Exception : 
+                        except Exception :
                             pass
                     if not keys :
                         output = "Impossible to load '%s' key "  % self.private_key

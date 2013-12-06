@@ -33,39 +33,50 @@ setup(){
          exit 1
     fi
     
-    FIRST_RMT_JOB_HOME=`dirname $0`
+    cd `dirname $0`
+
+    FIRST_RMT_JOB_HOME=`pwd`
     
     if [ "${WRF4G_SCRATCH}" ]; then
-    	printf "`date`: Making ${DRM4G_SCRATCH}/${GW_USER}_${GW_JOB_ID} directory... "
+        RMT_JOB_HOME="${WRF4G_SCRATCH}/${GW_USER}_${GW_JOB_ID}" 
+
+    	printf "`date`: Making ${RMT_JOB_HOME}  directory... "
     	
-    	rm -rf ${WRF4G_SCRATCH}/${GW_USER}_${GW_JOB_ID}
+    	rm -rf ${RMT_JOB_HOME}
     	
-    	mkdir -p ${WRF4G_SCRATCH}/${GW_USER}_${GW_JOB_ID}
+    	mkdir -p ${RMT_JOB_HOME}
     	
     	if [ $? -ne 0 ]; then
-    		echo "failed."
+            echo "failed."
+            exit 1
         else
             echo "done."
         fi
     	
-    	printf "`date`: Moving to ${WRF4G_SCRATCH}/${GW_USER}_${GW_JOB_ID} directory... "
+    	printf "`date`: Moving to ${RMT_JOB_HOME} directory... "
     	
-    	mv ${FIRST_RMT_JOB_HOME}/* ${WRF4G_SCRATCH}/${GW_USER}_${GW_JOB_ID}/
+    	mv ${FIRST_RMT_JOB_HOME}/* ${RMT_JOB_HOME}/
     	
     	if [ $? -ne 0 ]; then
-    		echo "failed."
+    	    echo "failed."
+            exit 1
         else
             echo "done."
         fi
+    else
+        RMT_JOB_HOME=${FIRST_RMT_JOB_HOME}
     fi
     
     printf "`date`: Checking remote job home... "
- 
-    RMT_JOB_HOME=`dirname $0`
 
     cd ${RMT_JOB_HOME}
-    
-    echo "done."
+
+    if [ $? -ne 0 ]; then
+        echo "failed."
+        exit 1
+    else
+        echo "done."
+    fi
     
     printf "`date`: Checking job environment... "
     
@@ -88,7 +99,7 @@ execution(){
     
     case ${GW_EXECUTABLE} in
         gsiftp://*)
-	        GW_EXECUTABLE=`basename ${GW_EXECUTABLE}`
+	    GW_EXECUTABLE=`basename ${GW_EXECUTABLE}`
             ;;
             
         file:/*)
@@ -102,9 +113,6 @@ execution(){
     printf "`date`: Executing actual job \"$GW_EXECUTABLE $GW_ARGUMENTS\"... "
 
     export PATH=.:$PATH
-
-    # Warning! Increment nice only if jobmanager is fork
-    #/usr/bin/nice -20
 
     if [ -f stdin.execution ]; then
        STDIN_FILE=stdin.execution
@@ -337,15 +345,16 @@ transfer_output_files(){
             ;;
 
         *)
-        	if [ "${WRF4G_SCRATCH}" ]; then
-        		printf "`date`: Staging-out file \"${SRC_FILE}\" as \"${DST_FILE}\"... "
-				cp ${RMT_JOB_HOME}/FILES ${FIRST_RMT_JOB_HOME}
-				if [ $? -ne 0 ]; then
-                	echo "failed."
-            	else
-                	echo "done."
-            	fi	
-			fi
+            if [ "${WRF4G_SCRATCH}" ]; then
+                printf "`date`: Copy ${RMT_JOB_HOME}/${FILES} file to ${FIRST_RMT_JOB_HOME} ... "
+	        cp ${RMT_JOB_HOME}/${FILES} ${FIRST_RMT_JOB_HOME}/
+	        if [ $? -ne 0 ]; then
+                    echo "failed."
+                    exit 1
+                else
+                    echo "done."
+                fi	
+            fi
             ;;
         esac
 
@@ -355,17 +364,17 @@ transfer_output_files(){
 }
 
 clean(){
-	if [ "${WRF4G_SCRATCH}" ]; then
-		if test -f ${RMT_JOB_HOME}/.lock; then
-			printf "`date`: Deleting remote SCRATCH directory... "
-			rm -rf  ${RMT_JOB_HOME}
-			if [ $? -ne 0 ]; then
-            	echo "failed."
-    		else
-            	echo "done."
-        	fi
-		fi
-	fi
+    if [ "${WRF4G_SCRATCH}" ]; then
+        if test -f ${RMT_JOB_HOME}/.lock; then
+	    printf "`date`: Deleting remote SCRATCH directory... "
+	    rm -rf  ${RMT_JOB_HOME}
+            if [ $? -ne 0 ]; then
+                echo "failed."
+    	    else
+                echo "done."
+            fi
+        fi
+    fi
 }
 		
 #-------------------------------------------------------------------------------

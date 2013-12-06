@@ -6,14 +6,17 @@ import logging
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: __init__.py 1924 2013-09-15 20:26:53Z carlos $"
+__revision__ = "$Id: __init__.py 1951 2013-11-25 13:13:29Z carlos $"
 
 logger = logging.getLogger(__name__)
 
 def sec_to_H_M_S( sec ):
+    """
+    Convert seconds into HH:MM:SS 
+    """
     m, s = divmod( int( sec ) , 60)
     h, m = divmod( m , 60 ) 
-    return "%d:%02d:%02d" % ( h , m , s ) 
+    return "%d:%02d:%02d" % ( h , m , s )
 
 class ResourceException(Exception): 
     pass 
@@ -23,6 +26,7 @@ class JobException(Exception):
 
 class Resource (object):
     """
+    Class to obtain information about compute resources
     """
    
     def __init__(self):
@@ -94,6 +98,7 @@ class Resource (object):
         
     def host_properties(self , host ):
         """
+        Obtain the features of each host
         """
         if self.features.has_key( 'vo' ) :
             return self._host_vo_properties( host )
@@ -106,7 +111,7 @@ class Resource (object):
         """
         filt   = '(&(objectclass=GlueCE)(GlueCEAccessControlBaseRule=VO:%s)(GlueCEImplementationName=CREAM))' % ( self.features[ 'vo' ] )
         attr   = 'GlueCEHostingCluster'
-        bdii   = self.features['bdii']
+        bdii   = self.features.get( 'bdii', '$LCG_GFAL_INFOSYS' )
         result = self.ldapsearch( filt , attr , bdii )
         hosts  = []
         for value in result :
@@ -116,7 +121,7 @@ class Resource (object):
         
     def _host_vo_properties(self , host ): 
         """
-        It will return a string with the features.
+        It will return a string with the features of hosts on Grid environment
         """
         _ , host       = host.split( '_' )
         host_info      = HostInformation()
@@ -125,7 +130,7 @@ class Resource (object):
         # First search
         filt   = "(&(objectclass=GlueCE)(GlueCEInfoHostName=%s))" % ( host )
         attr   = '*'
-        bdii   = self.features[ 'bdii' ]
+        bdii   = self.features.get( 'bdii', '$LCG_GFAL_INFOSYS' )  
         result = self.ldapsearch( filt , attr , bdii )
     
         for value in result :
@@ -147,7 +152,7 @@ class Resource (object):
         # Second search    
         filt   = "(&(objectclass=GlueHostOperatingSystem)(GlueSubClusterName=%s))"  % ( host )
         attr   = '*'
-        bdii   = self.features[ 'bdii' ]
+        bdii   = self.features.get( 'bdii', '$LCG_GFAL_INFOSYS' )  
         result = self.ldapsearch( filt , attr , bdii )
         
         try :        
@@ -161,6 +166,7 @@ class Resource (object):
     
     def _host_properties(self , host ):
         """
+        It will return a string with the features of hosts on HPC environment
         """
         host_info       = HostInformation()
         host_info.Name  = host
@@ -179,6 +185,7 @@ class Resource (object):
     
     def _free_cores(self , host ) :
         """
+        It returns the free cores of each host
         """
         cmd = "gwhost $( gwhost -f | grep -B 1 %s | grep HOST_ID | awk -F = {'print $2'}) -x" % host 
         command_proc = subprocess.Popen( cmd ,
@@ -215,6 +222,9 @@ class Resource (object):
         return Queue
 
 class Job (object):
+    """
+    Class to manage jobs
+    """
     
     def __init__(self):
         self.resfeatures  = dict()
