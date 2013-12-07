@@ -1,8 +1,12 @@
 #
-# Additionally, %(WRF4G_LOCATION)s variable indicates where WRF4G has been deployed
+# Additionally, %(wrf4g_location)s variable indicates where WRF4G has been deployed
 #
 
-[repositories] 
+# This section is optional
+[DEFAULT]
+DEFAULT_WRF4G_REPOSITORY = %(WRF4G_LOCATION)s/repository
+
+[repositories]
 # WRF4G_BASEPATH: Common path from which WRF4G is going to save all output
 # Under WRF4G_BASEPATH you will find the above tree directory
 #
@@ -14,8 +18,6 @@
 #                   +-- restart
 #                   `-- realout
 #
-DEFAULT_WRF4G_REPOSITORY = %(WRF4G_LOCATION)s/repository
-
 WRF4G_BASEPATH = %(DEFAULT_WRF4G_REPOSITORY)s/output
 
 # Path to the domain of simulation (it must be done previously)
@@ -28,10 +30,10 @@ WRF4G_INPUT = %(DEFAULT_WRF4G_REPOSITORY)s/input
 WRF4G_APPS = %(DEFAULT_WRF4G_REPOSITORY)s/apps
 
 [version_packages]
-# WRF4G package. THIS FILE HAS TO ON A LOCAL PATH
-WRF4G_PACKAGE = %(WRF4G_LOCATION)s/var/WRF4G-2.0.tar.gz
+# WRF4G package. THIS FILE MUST BE LOCATED ON A LOCAL PATH
+WRF4G_PACKAGE = %(wrf4g_location)s/var/WRF4G-2.0.tar.gz
 # WRF package 
-WRF_PACKAGE   = %(WRF4G_APPS)s/WRFbin-3.1.1_r832INTEL_OMPI.tar.gz
+WRF_PACKAGE   = %(DEFAULT_WRF4G_REPOSITORY)s/apps/WRFbin-3.1.1_r832INTEL_OMPI.tar.gz
 
 [running_options]
 # Number of desired cores
