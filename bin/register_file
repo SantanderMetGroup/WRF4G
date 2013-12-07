@@ -9,7 +9,7 @@ import os
 try:
     sys.path.insert(0, join(dirname(dirname(abspath(__file__))),'lib','python'))
     import vcplib
-    import WRF4Glib
+    import wrf4g.dateutils
 except Exception, e:
     print 'Caught exception: %s' % (str(e))
     sys.exit(-1)
@@ -65,10 +65,10 @@ if not 'WRF4G_BASEPATH' in dir():
 if type in type_list.keys() or type == "ts":
     if type in type_list.keys() :
         if type == "out" and file_end_date:
-            file_o=WRF4Glib.wrffile(file,file_end_date)
+            file_o=wrf4g.dateutils.wrffile(file,file_end_date)
             dest_file=file_o.file_name_out_iso()
         else:
-            file_o=WRF4Glib.wrffile(file)
+            file_o=wrf4g.dateutils.wrffile(file)
             dest_file=file_o.file_name_iso()
         
         dest_folder=join(WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
@@ -90,7 +90,7 @@ else :
     #The command: $ upload_file wps     1990-01-01_00:00:00
     # will create in the repositore three files with the following format: wrfinput_d01_19900101T000000Z
     wps_files=vcplib.VCPURL(".").ls("wrf[lbif]*_d\d\d")
-    suffix="_" + WRF4Glib.datetime2dateiso(WRF4Glib.datewrf2datetime(date))+ ".nc"
+    suffix="_" + wrf4g.dateutils.datetime2dateiso(wrf4g.dateutils.datewrf2datetime(date))+ ".nc"
     for wps_file in wps_files :
         dest=join(WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],"realout",basename(wps_file),suffix)
         try:

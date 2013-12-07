@@ -7,12 +7,6 @@
 
 case "$1" in
   start)
-    sed -i "s#\$HOSTNAME#$HOSTNAME#" $FRAMEWORK4G_CONF
-    if test -f ${WRF4G_LOCATION}/etc/templates/resources.wrf4g; then
-      sed -i 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/templates/resources.wrf4g
-      sed -i "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" ${WRF4G_LOCATION}/etc/templates/resources.wrf4g
-    fi
-    
     echo -n "Starting DRM4G (GridWay) .... "
     if test -f $GW_LOCATION/var/.lock; then
       echo -e "ERROR: GridWay is already running." 
@@ -20,8 +14,8 @@ case "$1" in
       $GW_LOCATION/bin/gwd && echo "OK"
     fi
     
-    grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
-    source db4g.conf.temp
+    grep "DB_.*=" ${WRF4G_LOCATION}/etc/db4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
+    source db4g.conf.temp &>/dev/null; rm db4g.conf.temp   
     if [ $WRF4G_DB_LOCAL -eq 1 ]; then
       cd $MYSQL_LOCATION
       echo -n "Starting WRF4G_DB (MySQL) ... "
@@ -34,7 +28,7 @@ case "$1" in
       fi
       if [ $(netstat -atn | grep LISTEN | grep -m1 -c ":$WRF4G_DB_PORT ") -eq 1 ]; then
         echo -e "ERROR: Another process is listening on port $WRF4G_DB_PORT."
-        echo -e "Change WRF4G_DB_PORT in $WRF4G_LOCATION/etc/framework4g.conf to start MySQL on a different port."
+        echo -e "Change WRF4G_DB_PORT in $WRF4G_LOCATION/etc/db4g.conf to start MySQL on a different port."
         exit 0
       fi
       
@@ -42,9 +36,6 @@ case "$1" in
       cd - &>/dev/null
       echo "OK"
     fi
-
-    sed 's/WRF4G_DB_LOCAL.*/# DataBase Configuration/' db4g.conf.temp >${WRF4G_LOCATION}/etc/db4g.conf
-    rm db4g.conf.temp   
   ;;
   stop)
     #Stopping gwd 
@@ -52,8 +43,8 @@ case "$1" in
     $GW_LOCATION/bin/gwd -k && echo "OK"
     rm -f $GW_LOCATION/var/.lock
     #Stopping mysqld
-    grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
-    source db4g.conf.temp; rm db4g.conf.temp
+    grep "DB_.*=" ${WRF4G_LOCATION}/etc/db4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
+    source db4g.conf.temp &>/dev/null; rm db4g.conf.temp
     if [ $WRF4G_DB_LOCAL -eq 1 ]; then
       echo -n "Stopping WRF4G_DB (MySQL) ... "
       if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
@@ -92,8 +83,8 @@ case "$1" in
     echo -n "DRM4G (GridWay) is "
     $GW_LOCATION/bin/gwd -s
     # Checking if mysqld is running
-    grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
-    source db4g.conf.temp; rm db4g.conf.temp
+    grep "DB_.*=" ${WRF4G_LOCATION}/etc/db4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
+    source db4g.conf.temp &>/dev/null; rm db4g.conf.temp
     if [ $WRF4G_DB_LOCAL -eq 1 ]; then
       if test ! -f $MYSQL_LOCATION/data/`hostname`.pid; then
         echo "WRF4G_DB (MySQL) is stopped"

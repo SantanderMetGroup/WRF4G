@@ -217,19 +217,6 @@ function cycle_time(){
 #
 #  Load configuration files
 #
-export DB4G_CONF=${WRF4G_LOCATION}/etc/db4g.conf ; source $DB4G_CONF
-
-printf "Warning: You are using resources.wrf4g located in the "
-if test -f resources.wrf4g; then
-  echo "${PWD} directory."
-  export RESOURCES_WRF4G=${PWD}/resources.wrf4g
-else
-  echo "${WRF4G_LOCATION}/etc/ directory."
-  export RESOURCES_WRF4G=${WRF4G_LOCATION}/etc/resources.wrf4g
-fi
-
-sed --in-place 's/\ *=\ */=/' $RESOURCES_WRF4G
-source $RESOURCES_WRF4G
 sed --in-place 's/\ *=\ */=/' experiment.wrf4g  || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
 source experiment.wrf4g
 source ${WRF4G_LOCATION}/lib/bash/wrf_util.sh   || exit ${ERROR_MISSING_WRFUTIL}
@@ -259,8 +246,8 @@ if test -z "${NI_restart_interval}"; then
   let NI_restart_interval=${chunk_size_h}*60
 fi
 
-data="name=${experiment_name},sdate=${start_date},edate=${end_date},multiple_parameters=${multiple_parameters},multiple_dates=${multiple_dates},basepath=${WRF4G_BASEPATH},multiparams_labels=${multiparams_labels}"  #,experiment_description=\'${experiment_description}\'"
-id=$(WRF4G.py $WRF4G_FLAGS Experiment  prepare $data )
+data="name=${experiment_name},sdate=${start_date},edate=${end_date},multiple_parameters=${multiple_parameters},multiple_dates=${multiple_dates},multiparams_labels=${multiparams_labels}"  #,experiment_description=\'${experiment_description}\'"
+id=$(WRF4G.py $WRF4G_FLAGS Experiment prepare $data )
 if test $?  -ne 0; then
   echo $id >&2
   exit $?
@@ -269,9 +256,6 @@ fi
 if test ${id} -ge 0; then
   echo "Preparing namelist...">&2
   if ! is_dry_run; then 
-    vcp ${verbose} ${WRF4G_APPS}/WRFbin-${WRF_VERSION}.tar.gz . >/dev/null
-    tar -xzvf WRFbin-${WRF_VERSION}.tar.gz WRFV3/run/namelist.input >&2;  rm -f WRFbin-${WRF_VERSION}.tar.gz
-    mv WRFV3/run/namelist.input namelist.input; rm -rf WRFV3
     namelist=`pwd`/namelist.input
     if test -f ${namelist}; then
       cp ${namelist} ${userdir}/namelist.input.base

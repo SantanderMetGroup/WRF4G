@@ -7,12 +7,6 @@ if test -z $WRF4G_LOCATION; then
   export WRF4G_LOCATION=`dirname $WRF4G_BIN_LOCATION`
 fi
 
-if test -f $WRF4G_LOCATION/etc/framework4g.conf; then
-  FRAMEWORK4G_CONF="$WRF4G_LOCATION/etc/framework4g.conf"
-else
-  echo -e "$WRF4G_LOCATION/etc/framework4g.conf does not exist"
-  exit 1
-fi
 
 export GW_LOCATION=$WRF4G_LOCATION/opt/gw_drm4g
 export MYSQL_LOCATION=$WRF4G_LOCATION/opt/mysql-5.5

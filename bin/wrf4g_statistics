@@ -2,12 +2,12 @@
 
 
 from wrf4g_env import *
-import WRF4Glib
+import wrf4g.wrf4lib
 
 
 def long_header():
     linea="realization;chunk_id;gwid;exit_code;resource;wn;"
-    lestados=WRF4Glib.JobStatus()
+    lestados=wrf4g.wrf4lib.JobStatus()
     es=lestados.keys()
     es.sort()
     for st in es:
@@ -32,7 +32,7 @@ parser.add_option("-r", "--rea",metavar="name",dest="rea_name", help="Name of th
 try:
     if options.exp_name:
         experiment_name=options.exp_name
-        exp=WRF4Glib.Experiment(data={'name':'%s'%experiment_name})
+        exp=wrf4g.wrf4lib.Experiment(data={'name':'%s'%experiment_name})
         exp.data['id']=exp.get_id_from_name()
         if exp.data['id']<0:
             print "Experiment %s do not exists\n" % experiment_name
@@ -41,7 +41,7 @@ try:
         exp.statistics()
     elif options.rea_name:
         realization_name=options.rea_name
-        rea=WRF4Glib.Realization(data={'name':'%s'%realization_name})
+        rea=wrf4g.wrf4lib.Realization(data={'name':'%s'%realization_name})
         long_header()
         rea.statistics()        
     else:
@@ -52,13 +52,13 @@ except Exception, e:
     exit(-1)
     
 finally:
-    WRF4Glib.dbc.close()
+    wrf4g.wrf4lib.dbc.close()
 
 #ecdx044_rf1v__1986061612_1986061800,cdxeur01
 
 
 
-#job=WRF4Glib.Job(data={'id':108725})
+#job=wrf4g.wrf4lib.Job(data={'id':108725})
 #a=job.list_events()
 #for i in a:
 #    print "%s \t\t %s"%(i['status'],i['tiempo'])
