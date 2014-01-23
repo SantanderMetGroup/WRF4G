@@ -3,14 +3,11 @@
 import inspect
 import os
 import sys
-from datetime import datetime
-from os.path import join, basename, dirname
-from re import search, match
 import vdblib
 import vcplib 
-
-WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
-GW_LOCATION ='%s/opt/drm4g_gridway'% WRF4G_LOCATION
+from datetime  import datetime
+from os.path   import join, basename, dirname
+from re        import search, match
 
 #Configure WRF4GF_DB
 DB4G_CONF=os.environ.get('DB4G_CONF')

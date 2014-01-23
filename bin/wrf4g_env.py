@@ -1,11 +1,15 @@
 import os
 import sys
-from os.path import dirname
+from os.path import dirname, expandvars, exists, abspath, join
 
 WRF4G_LOCATION=os.environ.get('WRF4G_LOCATION')
 if WRF4G_LOCATION == None:
-    WRF4G_LOCATION = dirname(dirname(os.path.abspath(__file__)))
+    if expandvars("$HOME/.wrf4g/etc/framework.conf"):
+        WRF4G_LOCATION = expandvars("$HOME/.wrf4g")
+    else:
+        WRF4G_LOCATION = dirname(dirname(abspath(__file__)))
     os.environ['WRF4G_LOCATION'] = WRF4G_LOCATION
+    os.environ['GW_LOCATION']    = join( WRF4G_LOCATION , '/opt/gw_drm4g' )
 
 DB4G_CONF=os.environ.get('DB4G_CONF')
 if DB4G_CONF == None:
@@ -15,7 +19,7 @@ if not os.path.isfile(DB4G_CONF):
     print 'DB4G_CONF does not exist'
     sys.exit(2)
 
-sys.path.insert(0, os.path.join(WRF4G_LOCATION, 'lib', 'python'))
+sys.path.insert(0, join(dirname(dirname(abspath(__file__))), 'lib', 'python'))
 
 from optparse import OptionParser
 import exceptions
@@ -24,8 +28,7 @@ import traceback
 import logging.config
 
 try:
-    logging.config.fileConfig(os.path.join(WRF4G_LOCATION,'etc','logger.conf'),
-                          {'WRF4G_LOCATION': WRF4G_LOCATION })
+    logging.config.fileConfig(join(WRF4G_LOCATION,'etc','logger.conf'),{'WRF4G_LOCATION': WRF4G_LOCATION })
 except:
     pass
 

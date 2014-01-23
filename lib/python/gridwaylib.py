@@ -1,11 +1,9 @@
 import commands
 import os
 import sys
-from os.path import dirname, abspath 
+from os.path import dirname, abspath, join 
 
-WRF4G_LOCATION = dirname(dirname(dirname(abspath(__file__))))
-GW_LOCATION = WRF4G_LOCATION + '/opt/drm4g_gridway'
-os.environ['GW_LOCATION'] = GW_LOCATION
+GW_LOCATION = join( dirname(dirname(dirname(abspath(__file__)))) , '/opt/gw_drm4g' )
     
 class job:
     """

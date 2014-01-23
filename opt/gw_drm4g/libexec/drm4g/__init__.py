@@ -15,20 +15,18 @@ if sys.version_info < (2,5) and sys.version_info > (3,0):
 # Default values used in DRM4G package.#
 ########################################
 CONFIG_FILE_LOCATIONS = [
-                         expandvars("$HOME/.drm4g/etc/drm4g.conf"),
-                         expandvars("$GW_LOCATION/etc/drm4g.conf"),
-                         expandvars("$HOME/.wrf4g/etc/drm4g.conf"),
-                         expandvars("$WRF4G_LOCATION/etc/drm4g.conf"),
+                         expandvars("$HOME/.wrf4g/etc/framework.conf"),
+                         expandvars("$WRF4G_LOCATION/etc/framework.conf"),
                          ]
 for file in CONFIG_FILE_LOCATIONS :
     if exists(file) :
         DRM4G_DIR         = dirname ( dirname(file) )
         FILE_LOGGER       = join(DRM4G_DIR, "etc" , "logger.conf")
         DRM4G_CONFIG_FILE = file
-assert DRM4G_CONFIG_FILE, "dm4g.conf does not exist, please provide one"
+assert DRM4G_CONFIG_FILE, "framework.conf does not exist, please provide one"
 
-REMOTE_JOBS_DIR = "~/.drm4g/jobs"
-REMOTE_VOS_DIR  = "~/.drm4g/security"
+REMOTE_JOBS_DIR = "~/.wrf4g/jobs"
+REMOTE_VOS_DIR  = "~/.wrf4g/security"
     
 # ssh communicator
 SSH_PORT            = 22
