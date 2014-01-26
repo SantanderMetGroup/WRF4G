@@ -4,7 +4,12 @@
 # gwsubmit command with the verbose option. DO NOT ADD -x 
 # to the first of this script
 
-function load_default_config (){
+
+function verbose_print() { ((VERBOSE)) && echo $@; return 0; }
+
+function date2int() { date=$[1]; echo $date | sed 's/[-_:]//g' }
+
+function default_config() {
   #
   #  Some default values
   #
@@ -14,13 +19,11 @@ function load_default_config (){
   real_parallel=0
   wrf_parallel=1
   DEBUG="-v"
-  global_preprocessor="default"
+  VERBOSE=1
+  default_preprocessor="default"
   ERROR_MISSING_RESOURCESWRF4G=21
-}
-
-function date2int(){
-  date=$[1]
-  echo $date| sed 's/[-_:]//g'
+  LAUNCHER_REAL=""
+  LAUNCHER_WRF=""
 }
 
 function WRF4G_structure (){
@@ -41,15 +44,13 @@ function WRF4G_structure (){
 }
 
 function WRF4G_prepare (){
-  if [ ${WRF_VERSION} != "local_wrf" ]; then
-    #
-    #  Move all executables out of LOCALDIR
-    #
-    mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
-    mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
-    mv ${LOCALDIR}/WRFV3/run/real.exe      ${ROOTDIR}/bin/
-    mv ${LOCALDIR}/WRFV3/run/wrf.exe       ${ROOTDIR}/bin/
-  fi
+  #
+  #  Move all executables out of LOCALDIR
+  #
+  mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
+  mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
+  mv ${LOCALDIR}/WRFV3/run/real.exe      ${ROOTDIR}/bin/
+  mv ${LOCALDIR}/WRFV3/run/wrf.exe       ${ROOTDIR}/bin/
   umask 002
 }
 
@@ -57,23 +58,13 @@ function prepare_runtime_environment(){
   # Does any component run in parallel?
   prepare_openmpi=0
   local_openmpi=0
-  LAUNCHER_REAL="";LAUNCHER_WRF=""
-  MPI_LAUNCHER="mpirun -np $GW_NP $MPI_ENV"
-
-  if [ ${WRF_VERSION} != "local_wrf" ]; then
-    export OPAL_PREFIX=${ROOTDIR}/openmpi
-    export PATH=$OPAL_PREFIX/bin:$PATH
-    export LD_LIBRARY_PATH=$OPAL_PREFIX/lib:$LD_LIBRARY_PATH
+  
+  if (($PPN));then 
+    MPI_LAUNCHER="mpirun -np $GW_NP -npernode $PPN $MPI_ENV"
+  else
+    MPI_LAUNCHER="mpirun -np $GW_NP $MPI_ENV"
   fi
   
-  vcp ${DEBUG} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/prolog.wrf4g . &>/dev/null
-  if [ $? -ne 0 ]; then 
-    echo "* `date`: Using default configuration ... "
-  else
-    echo "* `date`: Using ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/prolog.wrf4g configuration ... "
-    source prolog.wrf4g
-  fi
-
   if [ $real_parallel -eq 1 ]; then
     prepare_openmpi=1
     LAUNCHER_REAL=${MPI_LAUNCHER}
@@ -92,17 +83,14 @@ function prepare_runtime_environment(){
     fi
   fi
   
-  if [ ${WRF_VERSION} != "local_wrf" ]; then
-    export OPAL_PREFIX=${ROOTDIR}/openmpi
-    export PATH=$OPAL_PREFIX/bin:$PATH
-    export LD_LIBRARY_PATH=$OPAL_PREFIX/lib:$LD_LIBRARY_PATH
-  fi
+  export OPAL_PREFIX=${ROOTDIR}/openmpi
+  export PATH=$OPAL_PREFIX/bin:$PATH
+  export LD_LIBRARY_PATH=$OPAL_PREFIX/lib:$LD_LIBRARY_PATH
+  
 }
 
 function prepare_local_environment (){
-  if [ ${WRF_VERSION} != "local_wrf" ]; then
-    mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
-  fi
+  mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
   cp -R ${LOCALDIR}/WRFV3/run ${ROOTDIR}/runshared
   $MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/WRFGEL/load_wrfbin.sh	
   prepare_openmpi=0
@@ -110,12 +98,11 @@ function prepare_local_environment (){
 
 function transfer_output_log (){
   ls -l >& ${logdir}/ls.wrf
-  test -f namelist.output && cp namelist.output ${logdir}/
-  if [ ${WRF_VERSION} != "local_wrf" ]; then
-    test -f ../configure.wrf_wrf && cp ../configure.wrf_wrf ${logdir}/
-    test -f ../configure.wrf_real && cp ../configure.wrf_real ${logdir}/
-    test -f ../../WPS/configure.wps && cp ../../WPS/configure.wps ${logdir}/
-  fi
+  test -f namelist.output         && cp namelist.output ${logdir}/
+  test -f ../configure.wrf_wrf    && cp ../configure.wrf_wrf ${logdir}/
+  test -f ../configure.wrf_real   && cp ../configure.wrf_real ${logdir}/
+  test -f ../../WPS/configure.wps && cp ../../WPS/configure.wps ${logdir}/
+  
   test -f namelist.input && cp namelist.input ${logdir}/
   
   echo "**********************************************************************************"
@@ -337,7 +324,7 @@ function wrf4g_exit(){
 #
 #  Change working directory to WRF4G_RUN_SHARED if needed 
 #
-load_default_config
+default_config
 
 #
 #  Get variables.
