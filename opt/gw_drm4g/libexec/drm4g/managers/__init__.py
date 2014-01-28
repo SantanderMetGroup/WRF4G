@@ -1,4 +1,6 @@
+from __future__          import with_statement
 import re
+import sys
 import xml.dom.minidom
 import os
 import subprocess
@@ -6,14 +8,20 @@ import logging
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: __init__.py 1924 2013-09-15 20:26:53Z carlos $"
+__revision__ = "$Id: __init__.py 1984 2014-01-26 17:35:33Z carlos $"
 
 logger = logging.getLogger(__name__)
 
+def totalCores( cores ):
+    return sum( [ int( core ) for core in cores.split( ',' ) ] )
+
 def sec_to_H_M_S( sec ):
+    """
+    Convert seconds into HH:MM:SS 
+    """
     m, s = divmod( int( sec ) , 60)
     h, m = divmod( m , 60 ) 
-    return "%d:%02d:%02d" % ( h , m , s ) 
+    return "%d:%02d:%02d" % ( h , m , s )
 
 class ResourceException(Exception): 
     pass 
@@ -23,6 +31,7 @@ class JobException(Exception):
 
 class Resource (object):
     """
+    Class to obtain information about compute resources
     """
    
     def __init__(self):
@@ -94,6 +103,7 @@ class Resource (object):
         
     def host_properties(self , host ):
         """
+        Obtain the features of each host
         """
         if self.features.has_key( 'vo' ) :
             return self._host_vo_properties( host )
@@ -106,7 +116,7 @@ class Resource (object):
         """
         filt   = '(&(objectclass=GlueCE)(GlueCEAccessControlBaseRule=VO:%s)(GlueCEImplementationName=CREAM))' % ( self.features[ 'vo' ] )
         attr   = 'GlueCEHostingCluster'
-        bdii   = self.features['bdii']
+        bdii   = self.features.get( 'bdii', '$LCG_GFAL_INFOSYS' )
         result = self.ldapsearch( filt , attr , bdii )
         hosts  = []
         for value in result :
@@ -116,7 +126,7 @@ class Resource (object):
         
     def _host_vo_properties(self , host ): 
         """
-        It will return a string with the features.
+        It will return a string with the features of hosts on Grid environment
         """
         _ , host       = host.split( '_' )
         host_info      = HostInformation()
@@ -125,7 +135,7 @@ class Resource (object):
         # First search
         filt   = "(&(objectclass=GlueCE)(GlueCEInfoHostName=%s))" % ( host )
         attr   = '*'
-        bdii   = self.features[ 'bdii' ]
+        bdii   = self.features.get( 'bdii', '$LCG_GFAL_INFOSYS' )  
         result = self.ldapsearch( filt , attr , bdii )
     
         for value in result :
@@ -147,7 +157,7 @@ class Resource (object):
         # Second search    
         filt   = "(&(objectclass=GlueHostOperatingSystem)(GlueSubClusterName=%s))"  % ( host )
         attr   = '*'
-        bdii   = self.features[ 'bdii' ]
+        bdii   = self.features.get( 'bdii', '$LCG_GFAL_INFOSYS' )  
         result = self.ldapsearch( filt , attr , bdii )
         
         try :        
@@ -161,16 +171,18 @@ class Resource (object):
     
     def _host_properties(self , host ):
         """
+        It will return a string with the features of hosts on HPC environment
         """
         host_info       = HostInformation()
         host_info.Name  = host
-        host_info.Nodes = self.features[ 'ncores' ]
+        host_info.Nodes = str( totalCores( self.features[ 'ncores' ] ) )
         host_info.Name, host_info.OsVersion, host_info.Arch, host_info.Os  = self.system_information()
-           
-        for queue_name in [ elem.strip()  for elem in self.features[ 'queue' ].split( ',' ) ] :
+        
+        q_features = [ ( q_elem.strip() , nc_elem.strip() ) for q_elem , nc_elem in zip( self.features[ 'queue' ].split( ',' ) , self.features[ 'ncores' ].split( ',' ) ) ]
+        for queue_name , ncores in q_features  :
             queue              = Queue()
             queue.Name         = queue_name
-            queue.Nodes        = self.features[ 'ncores' ]
+            queue.Nodes        = ncores
             queue.FreeNodes    = self._free_cores( host )
             host_info.addQueue( self.additional_queue_properties( queue ) )
         host_info.LrmsName = self.features[ 'lrms' ]
@@ -179,6 +191,7 @@ class Resource (object):
     
     def _free_cores(self , host ) :
         """
+        It returns the free cores of each host
         """
         cmd = "gwhost $( gwhost -f | grep -B 1 %s | grep HOST_ID | awk -F = {'print $2'}) -x" % host 
         command_proc = subprocess.Popen( cmd ,
@@ -193,10 +206,10 @@ class Resource (object):
             return "0"
         out_parser = xml.dom.minidom.parseString(stdout)
         busy_cores = int(out_parser.getElementsByTagName('USED_SLOTS')[0].firstChild.data)
-        if busy_cores > int ( self.features[ 'ncores' ] ) :
+        if busy_cores > totalCores( self.features[ 'ncores' ] ) :
            return "0"
         else:
-           free_cores = str( int( self.features[ 'ncores' ] ) - busy_cores )
+           free_cores = str( totalCores( self.features[ 'ncores' ] ) - busy_cores )
            return free_cores
        
     def system_information(self):
@@ -215,6 +228,9 @@ class Resource (object):
         return Queue
 
 class Job (object):
+    """
+    Class to manage jobs
+    """
     
     def __init__(self):
         self.resfeatures  = dict()
@@ -316,7 +332,7 @@ class HostInformation( object ) :
         self.CpuMhz     = "0"
         self.FreeCpu    = "0"
         self.CpuSmp     = "0"
-        self.Nodes       = "0"
+        self.Nodes      = "0"
         self.SizeMemMB  = "0"
         self.FreeMemMB  = "0"
         self.SizeDiskMB = "0"
@@ -324,7 +340,7 @@ class HostInformation( object ) :
         self.ForkName   = "NULL"
         self.LrmsName   = "NULL"
         self.LrmsType   = "NULL"
-        self._queues     = [] 
+        self._queues    = [] 
  
     def addQueue(self, queue):
         self._queues.append(queue)

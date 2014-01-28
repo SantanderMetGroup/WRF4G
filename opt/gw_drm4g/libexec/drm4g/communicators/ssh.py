@@ -1,6 +1,6 @@
 import sys
 import platform
-from os.path import dirname, abspath, join, expanduser, exists
+from os.path     import dirname, abspath, join, expanduser, exists
 
 try:
     GW_LOCATION  = dirname( dirname ( abspath( __file__ ) ) )
@@ -22,6 +22,7 @@ except Exception, e:
     print 'Caught exception: %s' % str(e)
     sys.exit(-1)
 
+from __future__             import with_statement
 import socket
 import re
 import logging
@@ -32,7 +33,7 @@ from drm4g.utils.url        import urlparse
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: ssh.py 1925 2013-09-19 14:56:10Z carlos $"
+__revision__ = "$Id: ssh.py 1983 2014-01-26 15:04:29Z carlos $"
 
 class Communicator (drm4g.communicators.Communicator):
     """
@@ -74,15 +75,19 @@ class Communicator (drm4g.communicators.Communicator):
                 else:
                     logger.debug("Trying '%s' key ... " % self.private_key )
                     private_key_path = expanduser( self.private_key )
-                    if not exists(private_key_path):
-                        output = "'ssh-agent' is running but without any keys"
+                    if ( not exists( private_key_path ) ) and ( not 'PRIVATE KEY' in  self.private_key ):
+                        output = "'%s'key does not exist" % private_key_path
                         logger.error( output )
-                        raise ComExc
+                        raise ComException( output )
                     for pkey_class in (RSAKey, DSSKey):
                         try :
-                            key  = pkey_class.from_private_key_file( private_key_path )
+                            if 'PRIVATE KEY' in self.private_key :
+                                import StringIO
+                                key  = pkey_class.from_private_key( StringIO.StringIO ( self.private_key.strip( "'" ) ) )
+                            else : 
+                                key  = pkey_class.from_private_key_file( private_key_path )
                             keys = (key,)
-                        except Exception : 
+                        except Exception :
                             pass
                     if not keys :
                         output = "Impossible to load '%s' key "  % self.private_key

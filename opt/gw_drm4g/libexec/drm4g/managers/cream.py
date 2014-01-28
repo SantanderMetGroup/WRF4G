@@ -1,14 +1,16 @@
+from __future__      import with_statement
 import re
+import sys
 import logging
 import drm4g.managers
-from os.path        import basename , dirname , exists
-from string         import Template
-from drm4g          import REMOTE_VOS_DIR
-from drm4g.managers import JobException
+from os.path         import basename , dirname , exists
+from string          import Template
+from drm4g           import REMOTE_VOS_DIR
+from drm4g.managers  import JobException
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: cream.py 1924 2013-09-15 20:26:53Z carlos $"
+__revision__ = "$Id: cream.py 1983 2014-01-26 15:04:29Z carlos $"
 
 logger = logging.getLogger(__name__)
 

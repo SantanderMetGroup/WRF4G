@@ -1,3 +1,4 @@
+from __future__              import with_statement
 import sys
 import re
 import time
@@ -15,7 +16,7 @@ from drm4g.utils.message     import Send
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: em_mad.py 1924 2013-09-15 20:26:53Z carlos $"
+__revision__ = "$Id: em_mad.py 1983 2014-01-26 15:04:29Z carlos $"
 
 class GwEmMad (object):
     """
@@ -90,12 +91,23 @@ class GwEmMad (object):
         try:
             HOST, JM = HOST_JM.rsplit('/',1)
             # Init Job class
-            job , communicator  = self._update_resource( HOST )
-            job.Communicator    = communicator
+            job , communicator = self._update_resource( HOST )
+            job.Communicator   = communicator
             # Parse rsl
-            rsl                 = Rsl2Parser(RSL).parser()
-            rsl['project']      = job.resfeatures.get('project')
-            rsl['parallel_env'] = job.resfeatures.get('parallel_env')
+            rsl                = Rsl2Parser(RSL).parser()
+            
+            if job.resfeatures.has_key( 'project' ) :
+                rsl['project']      = job.resfeatures[ 'project' ]
+            
+            if job.resfeatures.has_key( 'parallel_env' ) :
+                rsl['parallel_env'] = job.resfeatures[ 'parallel_env' ]
+                
+            if job.resfeatures.has_key( 'scratch' ) :
+                rsl['environment']['WRF4G_SCRATCH']  = job.resfeatures[ 'scratch' ]
+            
+            if job.resfeatures.has_key( 'local_scratch' ) :
+                rsl['environment']['WRF4G_LOCALSCP'] = job.resfeatures[ 'local_scratch' ]
+             
             if '_' in HOST :
                 _ , host                    = HOST.split('_')
                 job.resfeatures['host']     = host

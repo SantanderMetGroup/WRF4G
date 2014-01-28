@@ -1,3 +1,4 @@
+from __future__            import with_statement
 import sys
 import threading
 import os
@@ -11,7 +12,7 @@ from drm4g.utils.message   import Send
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: tm_mad.py 1935 2013-10-16 07:39:08Z carlos $"
+__revision__ = "$Id: tm_mad.py 1983 2014-01-26 15:04:29Z carlos $"
 
 
 class GwTmMad (object):

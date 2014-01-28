@@ -2,7 +2,7 @@ __all__ = ["communicators", "core", "managers", "utils", "commands"]
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: __init__.py 1935 2013-10-16 07:39:08Z carlos $"
+__revision__ = "$Id: __init__.py 1955 2013-12-04 12:43:18Z carlos $"
 
 import sys
 from os.path import dirname , join , expandvars , exists
@@ -23,10 +23,10 @@ for file in CONFIG_FILE_LOCATIONS :
         DRM4G_DIR         = dirname ( dirname(file) )
         FILE_LOGGER       = join(DRM4G_DIR, "etc" , "logger.conf")
         DRM4G_CONFIG_FILE = file
-assert DRM4G_CONFIG_FILE, "framework.conf does not exist, please provide one"
+assert DRM4G_CONFIG_FILE, "dm4g.conf does not exist, please provide one"
 
-REMOTE_JOBS_DIR = "~/.wrf4g/jobs"
-REMOTE_VOS_DIR  = "~/.wrf4g/security"
+REMOTE_JOBS_DIR = "~/.wrf4g/drm4g/jobs"
+REMOTE_VOS_DIR  = "~/.wrf4g/drm4g/security"
     
 # ssh communicator
 SSH_PORT            = 22
@@ -52,4 +52,3 @@ RESOURCE_MANAGERS = {
                      "neptuno" : "drm4g.managers.neptuno",
                      }
 
-    
