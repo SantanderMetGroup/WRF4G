@@ -721,7 +721,7 @@ class Realization(Component):
             exp_name=self.get_exp_name()
             cexp=Experiment(data={'id': exp_id})
             WRF4G_BASEPATH=cexp.get_basepath()
-            subdir='%s/%s/%s/%s/'%(WRF4G_LOCATION,'.submission',exp_name,rea_name)       
+            subdir='%s/var/submission/%s/%s/'%(WRF4G_LOCATION,exp_name,rea_name)       
             if not os.path.isdir(subdir):
                 os.makedirs(subdir)
             os.chdir(subdir)
