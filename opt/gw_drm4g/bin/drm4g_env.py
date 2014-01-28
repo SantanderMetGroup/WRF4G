@@ -13,7 +13,7 @@ try:
     sys.path.insert(0, join(dirname(dirname(os.path.abspath(__file__))), 'libexec'))
     from drm4g import FILE_LOGGER, DRM4G_DIR  
     try:
-        logging.config.fileConfig(FILE_LOGGER, {"DRM4G_DIR": DRM4G_DIR})
+        logging.config.fileConfig(FILE_LOGGER, {"WRF4G_LOCATION": DRM4G_DIR})
     except :
         pass
 except Exception, e:
