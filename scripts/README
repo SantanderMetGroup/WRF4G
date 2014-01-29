@@ -1,6 +1,0 @@
-#
-# Brief descriptions of the postprocessors
-#
-postprocessor.EUROCORDEX
-  Postprocessor used in the existing eurocordex simulations (ecdx044, etc)
-
