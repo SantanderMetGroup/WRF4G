@@ -92,7 +92,7 @@ function prepare_runtime_environment(){
 function prepare_local_environment (){
   mv ${LOCALDIR}/openmpi  ${ROOTDIR}/
   cp -R ${LOCALDIR}/WRFV3/run ${ROOTDIR}/runshared
-  $MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/WRFGEL/load_wrfbin.sh	
+$MPI_LAUNCHER -pernode --wdir ${ROOTDIR} ${ROOTDIR}/bin/load_wrfbin.sh	
   prepare_openmpi=0
 }
 
@@ -346,18 +346,17 @@ export chunk_end_date=$7
 ROOTDIR=$(pwd)
 tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz || exit ${ERROR_MISSING_WRF4GSRC}
 chmod +x ${ROOTDIR}/bin/*
-chmod +x ${ROOTDIR}/WRFGEL/*
 
 #
 #   Load functions and set the PATH
 #
 
-export RESOURCES_WRF4G="${ROOTDIR}/resources.wrf4g"
-export DB4G_CONF="${ROOTDIR}/db4g.conf"
-export PATH="${ROOTDIR}/bin:$PATH"
+export RESOURCES_WRF4G=${ROOTDIR}/resources.wrf4g
+export DB4G_CONF=${ROOTDIR}/db4g.conf
+export PATH=${ROOTDIR}/bin:$PATH
 export LD_LIBRARY_PATH=${ROOTDIR}/lib:$LD_LIBRARY_PATH
 export PYTHONPATH=${ROOTDIR}/lib/python:${ROOTDIR}/bin:$PYTHONPATH
-export PATH="${ROOTDIR}/WRFGEL:${ROOTDIR}/lib/bash:$PATH"
+export PATH=${ROOTDIR}/lib/bash:$PATH
 
 source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh

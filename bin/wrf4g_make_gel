@@ -24,8 +24,8 @@ while test -n "$1"; do
 done
 
 if test -z "${destdir}"; then
-  destdir="${WRF4G_LOCATION}/var"
+  destdir="${WRF4G_LOCATION}/repository/local"
 fi
 
 cd ${WRF4G_LOCATION}
-tar czv -h --exclude=".svn" --exclude="WRF4G.sh" -f ${destdir}/WRF4G-${version}${tag}.tar.gz bin lib scripts
+tar czv -h --exclude=".svn" -f ${destdir}/WRF4G-${version}${tag}.tar.gz bin lib
