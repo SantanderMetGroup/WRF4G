@@ -8,16 +8,16 @@ max_dom              = 1
 domain_name          = "Santander_50km"
 
 #   Input data
-extdata_vtable       = "GFS"    # Vtables must exist as Vtable.[input_extdata]
+extdata_vtable       = "GFS"      # Vtables must exist as Vtable.[input_extdata]
 extdata_path         = "${WRF4G_INPUT}/NCEP/GFS"
-extdata_interval     = 21600   # Seconds between global analysis input times
-extdata_preprocessor = "default"
+extdata_interval     = 21600      # Seconds between global analysis input times
+extdata_preprocessor = "default"  # It has to be under $WRF4G_APPS/pre-processors directory
 
 #   Output data
-postprocessor        = "SFC"
+postprocessor        = "SFC"      # It has to be under $WRF4G_APPS/post-processors directory
 wrfout_name_end_date = 0
 
-#   Experimten time-specification
+#   Experiment time-specification
 rerun                = 0
 start_date           = "2011-08-28_12:00:00"
 end_date             = "2011-08-30_00:00:00"

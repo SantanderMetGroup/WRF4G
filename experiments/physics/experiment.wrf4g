@@ -8,14 +8,14 @@ max_dom              = 1
 domain_name          = "wrfuc"
 
 #   Input data
-extdata_vtable       = "GFS"    # Vtables must exist as Vtable.[input_extdata]
+extdata_vtable       = "GFS"      # Vtables must exist as Vtable.[input_extdata]
 extdata_path         = "${WRF4G_INPUT}/NCEP/GFS"
-extdata_interval     = 21600   # Seconds between global analysis input times
-extdata_preprocessor = "default"
+extdata_interval     = 21600      # Seconds between global analysis input times
+extdata_preprocessor = "default"  # It has to be under $WRF4G_APPS/pre-processors directory
 
 #   Output data
-postprocessor        = "SFC"
-wrfout_name_end_date = 0
+postprocessor        = "SFC"      # It has to be under $WRF4G_APPS/post-processors directory 
+wrfout_name_end_date = 0           
 
 #   Experimten time-specification
 rerun                = 0
