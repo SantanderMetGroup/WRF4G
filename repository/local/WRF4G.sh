@@ -105,12 +105,12 @@ function transfer_output_log (){
   
   test -f namelist.input && cp namelist.input ${logdir}/
   
-  echo "**********************************************************************************"
-  echo "WRF4G was deployed in ... "
-  echo "    $ROOTDIR"
-  echo "and it ran in ..."
-  echo "    $LOCALDIR"
-  echo "**********************************************************************************"
+  verbose_print "**********************************************************************************"
+  verbose_print "WRF4G was deployed in ... "
+  verbose_print "    $ROOTDIR"
+  verbose_print "and it ran in ..."
+  verbose_print "    $LOCALDIR"
+  verbose_print "**********************************************************************************"
   logfile="log_${WRF4G_NCHUNK}_${WRF4G_JOB_ID}.tar.gz"
   cd ${logdir}
   tar czf ${logfile} * && vcp ${logfile} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/log/
@@ -141,13 +141,13 @@ function run_preprocessor_ungrib (){
     vpreprocessor=$(tuple_item ${extdata_preprocessor} ${i})
 
     output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_DOWN_BOUND})
-    echo "* `date`: Running preprocessor.${vpreprocessor} ... "
+    verbose_print "* `date`: Running preprocessor.${vpreprocessor} ... "
     preprocessor.${vpreprocessor} ${chunk_start_date} ${chunk_end_date} ${vpath} ${vt} \
       || wrf4g_exit ${ERROR_PREPROCESSOR_FAILED}
     ./link_grib.sh grbData/*
     
     output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_UNGRIB})
-    echo "* `date`: Running ungrib ... "
+    verbose_print "* `date`: Running ungrib ... "
     ungrib.exe >& ${logdir}/ungrib_${vt}_${iyy}${imm}${idd}${ihh}.out \
       || wrf4g_exit ${ERROR_UNGRIB_FAILED}
     cat ${logdir}/ungrib_${vt}_${iyy}${imm}${idd}${ihh}.out \
@@ -421,17 +421,17 @@ mkdir -p ${logdir}
 #   Redirect output and error file descriptors
 exec &>log/WRF4G.log
 
-echo "* `date`: Creating WRF4G structure ... "
+verbose_print "* `date`: Creating WRF4G structure ... "
 WRF4G_structure
-echo "* `date`: Preparing WRF4G binaries ... "
+verbose_print "* `date`: Preparing WRF4G binaries ... "
 WRF4G_prepare
-echo "* `date`: Creating parallel environment ... "
+verbose_print "* `date`: Creating parallel environment ... "
 prepare_runtime_environment
 
 #
 #  Get the restart files if they are necessary.
 #
-echo "* `date`: Checking restart information ... "
+verbose_print "* `date`: Checking restart information ... "
 restart_date=$(WRF4G.py Realization get_restart id=${WRF4G_REALIZATION_ID}) || wrf4g_exit ${ERROR_ACCESS_DB}
 if test ${restart_date} == "None"; then
   export chunk_restart_date=${chunk_start_date}
@@ -458,44 +458,44 @@ wps_stored=$(WRF4G.py Chunk get_wps id=${WRF4G_CHUNK_ID}) \
 
 cd ${LOCALDIR}/WPS || wrf4g_exit ${ERROR_GETTING_WPS}
 if test ${wps_stored} -eq "1"; then
-  echo "* `date`: The boundaries and initial conditions are available ... "
+  verbose_print "* `date`: The boundaries and initial conditions are available ... "
   vcp ${DEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . || wrf4g_exit ${ERROR_VCP_FAILED} 
   cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
   namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_rerun} ${timestep_dxfactor}
   output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${ERROR_MISSING_EXPERIMENTSWRF4G})
   download_file ${DEBUG} real $(date_wrf2iso ${chunk_start_date})
 else
-  echo "* `date`: The boundaries and initial conditions are not available ... "
+  verbose_print "* `date`: The boundaries and initial conditions are not available ... "
   clean_wps
   #
   #   Get geo_em files and namelist.wps
   #
-  echo "* `date`: Downloading geo_em files and namelist.wps ... "
+  verbose_print "* `date`: Downloading geo_em files and namelist.wps ... "
   download_wps 
   
   #
   #   Modify the namelist
   #
-  echo "* `date`: Modifying namelist ... "
+  verbose_print "* `date`: Modifying namelist ... "
   run_modify_namelist
   
   #
   #  Preprocessor and Ungrib
   #
-  echo "* `date`: About to run preprocessor and Ungrib ... "
+  verbose_print "* `date`: About to run preprocessor and Ungrib ... "
   run_preprocessor_ungrib
   
   #
   #  Metgrid
   #
-  echo "* `date`: Running Metgrid ... "
+  verbose_print "* `date`: Running Metgrid ... "
   run_metgrid  
   
   cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
   #
   #  REAL
   #
-  echo "* `date`: Running Real ... "
+  verbose_print "* `date`: Running Real ... "
   run_real  
   
   #
@@ -507,7 +507,7 @@ else
   #    wrffdda_d0?
   #
   if test "${save_wps}" -eq 1; then
-    echo "* `date`: Saving wps ... "
+    verbose_print "* `date`: Saving wps ... "
     run_save_wps
   fi
 fi
@@ -516,13 +516,13 @@ fi
 # Icbcprocessor
 #
 if test -n "${icbcprocessor}"; then
-  echo "* `date`: Running icbcprocessor.${icbcprocessor} ... "
+  verbose_print "* `date`: Running icbcprocessor.${icbcprocessor} ... "
   run_icbprocesor
 fi
 
 #
 #  WRF
 #    
-echo "* `date`: Running WRF ... "
+verbose_print "* `date`: Running WRF ... "
 run_wrf
 
