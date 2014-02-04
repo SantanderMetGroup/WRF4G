@@ -269,9 +269,7 @@ fi
 if test ${id} -ge 0; then
   echo "Preparing namelist...">&2
   if ! is_dry_run; then 
-    vcp ${verbose} ${WRF4G_APPS}/WRFbin-${WRF_VERSION}.tar.gz . >/dev/null
-    tar -xzvf WRFbin-${WRF_VERSION}.tar.gz WRFV3/run/namelist.input >&2;  rm -f WRFbin-${WRF_VERSION}.tar.gz
-    mv WRFV3/run/namelist.input namelist.input; rm -rf WRFV3
+    cp -v ${WRF4G_LOCATION}/etc/namelist/namelist.input-${namelist_version} namelist.input
     namelist=`pwd`/namelist.input
     if test -f ${namelist}; then
       cp ${namelist} ${userdir}/namelist.input.base
