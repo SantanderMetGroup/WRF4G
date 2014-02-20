@@ -6,13 +6,7 @@
 . `dirname $0`/wrf4g_env
 
 case "$1" in
-  start)
-    sed -i "s#\$HOSTNAME#$HOSTNAME#" $FRAMEWORK4G_CONF
-    if test -f ${WRF4G_LOCATION}/etc/resources.wrf4g; then
-      sed -i 's/\ *=\ */=/' ${WRF4G_LOCATION}/etc/resources.wrf4g
-      sed -i "s#\$WRF4G_LOCATION#$WRF4G_LOCATION#" ${WRF4G_LOCATION}/etc/resources.wrf4g
-    fi
-    
+  start)    
     echo -n "Starting DRM4G (GridWay) .... "
     if test -f $GW_LOCATION/var/.lock; then
       echo -e "ERROR: GridWay is already running." 
