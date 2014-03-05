@@ -868,10 +868,10 @@ class Realization(Component):
         Create a remote tree directory of a Realization
         
         Realization
-            ├── output                    
-            ├── restart
-            ├── realout
-            └── log          
+           *  output                    
+           *  restart
+           *  realout
+           *  log          
         """
         try :
             vcp_remote_path = vcplib.VCPURL( dirname( remote_realization_path ) )
