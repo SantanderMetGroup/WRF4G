@@ -16,22 +16,6 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id:$"
 
 
-
-#Configure WRF4G_DB
-try:
-    db4g_file = expandvars( "$DB4G_CONF" )
-    db4g_vars = VarEnv( db4g_file )
-    dbc = vdblib.vdb( 
-                     host   = db4g_vars.get_variable( 'WRF4G_DB_HOST' ) ,
-                     user   = db4g_vars.get_variable( 'WRF4G_DB_USER' ) ,
-                     db     = db4g_vars.get_variable( 'WRF4G_DB_DATABASE' ) ,
-                     port   = int ( db4g_vars.get_variable( 'WRF4G_DB_PORT' ) ) ,
-                     passwd = db4g_vars.get_variable( 'WRF4G_DB_PASSWD' )
-                     )
-except Exception, err:
-    sys.stderr.write( 'Error accessing MySQL database: %s\n' % str( err ) )
-
-
 class VarEnv( object ):
     """
     Allow to load the available variables in a file 
@@ -74,6 +58,20 @@ class VarEnv( object ):
             return value
         except ( KeyError , IOError ):
             return default
+
+#Configure WRF4G_DB
+try:
+    db4g_file = expandvars( "$DB4G_CONF" )
+    db4g_vars = VarEnv( db4g_file )
+    dbc = vdblib.vdb( 
+                     host   = db4g_vars.get_variable( 'WRF4G_DB_HOST' ) ,
+                     user   = db4g_vars.get_variable( 'WRF4G_DB_USER' ) ,
+                     db     = db4g_vars.get_variable( 'WRF4G_DB_DATABASE' ) ,
+                     port   = int ( db4g_vars.get_variable( 'WRF4G_DB_PORT' ) ) ,
+                     passwd = db4g_vars.get_variable( 'WRF4G_DB_PASSWD' )
+                     )
+except Exception, err:
+    sys.stderr.write( 'Error accessing MySQL database: %s\n' % str( err ) )
 
 class wrffile( object ) :
     """
