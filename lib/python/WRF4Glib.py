@@ -839,11 +839,11 @@ class Realization(Component):
         rea_name           = self.data['name']        
         exp_name           = self.data['name'].split('__')[0]
         rea_submission_dir = expandvars( "$WRF4G_LOCATION/var/submission/%s/%s/" % ( exp_name , rea_name ) )
-        if not isdir( submission_dir ) :
+        if not isdir( rea_submission_dir ) :
             try :
-                os.makedirs( submission_dir )
+                os.makedirs( rea_submission_dir )
             except Exception :
-                raise Exception( "Couldn't be created '%s' directory" % submission_dir ) 
+                raise Exception( "Couldn't be created '%s' directory" % rea_submission_dir ) 
         [ shutil.copy( file , rea_submission_dir ) for file in [ 'experiment.wrf4g' ,  
                                                                 'namelist.input'    ,   
                                                                 db4g_file ] ]
