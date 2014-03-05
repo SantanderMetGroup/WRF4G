@@ -1,6 +1,6 @@
 from __future__     import with_statement
 from datetime       import datetime
-from os.path        import join , basename , dirname , exists , expandvars
+from os.path        import join , basename , dirname , exists , expandvars , isdir
 from re             import search , match
 
 import os
