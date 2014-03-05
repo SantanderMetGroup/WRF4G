@@ -3,17 +3,7 @@
 #
 #  Load experiment.wrf4g and conf files
 #
-ROOTDIR=$(cat ../../rootdir)
-export PATH=$ROOTDIR/bin:$PATH
-export LD_LIBRARY_PATH=$ROOTDIR/lib:$LD_LIBRARY_PATH
-source ${ROOTDIR}/lib/bash/wrf_util.sh
-source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
-source ${ROOTDIR}/resources.wrf4g                             || exit ${ERROR_MISSING_WRF4GCNF}
-export WRF4G_APPS
-sed -e 's/\ *=\ */=/' ${ROOTDIR}/experiment.wrf4g > source.it || exit ${ERROR_MISSING_WRFINPUT}
-source source.it && rm source.it
-
-logfile="../../log/wrfgel.out"
+logfile=${logdir}/wrfgel.out
 
 function kill_wrf(){
   kill -9 $(cat wrf.pid)
@@ -50,13 +40,6 @@ function do_all(){
         echo "$3 was already postprocessed"
       else
         postprocessor.${postprocessor} $3 >> ${logfile} 2>&1
-	if test ! $(which ncatted); then
-	  thisdir=$(pwd)
-	  cd $(cat ../../rootdir)
-	  vcp ${WRF4G_APPS}/nco.tar.gz .
-	  tar xzf nco.tar.gz && rm nco.tar.gz
-	  cd ${thisdir}
-	fi
         ncatted -O -a WRF4G_postprocessor,global,o,c,"${postprocessor}" $3
       fi
     fi

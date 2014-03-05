@@ -3,7 +3,7 @@ import os
 import sys
 from os.path import dirname, abspath, join 
 
-GW_LOCATION = join( dirname(dirname(dirname(abspath(__file__)))) , '/opt/gw_drm4g' )
+GW_LOCATION = join( dirname( dirname( dirname( abspath( __file__ ) ) ) ) , '/opt/gw_drm4g' )
     
 class job:
     """

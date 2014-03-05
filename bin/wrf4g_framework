@@ -15,7 +15,7 @@ case "$1" in
     fi
     
     grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
-    source db4g.conf.temp
+    source db4g.conf.temp 
     if [ $WRF4G_DB_LOCAL -eq 1 ]; then
       cd $MYSQL_LOCATION
       echo -n "Starting WRF4G_DB (MySQL) ... "

@@ -1,27 +1,81 @@
-#!/usr/bin/env python
+from __future__     import with_statement
+from datetime       import datetime
+from os.path        import join , basename , dirname , exists , expandvars
+from re             import search , match
 
-import inspect
 import os
 import sys
+import shutil
+import StringIO
+import ConfigParser
 import vdblib
-import vcplib 
-from datetime  import datetime
-from os.path   import join, basename, dirname
-from re        import search, match
+import vcplib
 
-#Configure WRF4GF_DB
-DB4G_CONF=os.environ.get('DB4G_CONF')
+__version__  = '1.5'
+__author__   = 'Carlos Blanco'
+__revision__ = "$Id:$"
+
+
+
+#Configure WRF4G_DB
 try:
-    exec open(DB4G_CONF).read() 
-    dbc=vdblib.vdb(host=WRF4G_DB_HOST,
-               user=WRF4G_DB_USER,
-               db=WRF4G_DB_DATABASE,
-               port=WRF4G_DB_PORT,
-               passwd=WRF4G_DB_PASSWD)
-except Exception, e:
-    sys.stderr.write('Caught exception: %s\n' % (str(e)))
+    db4g_file = expandvars( "$DB4G_CONF" )
+    db4g_vars = VarEnv( db4g_file )
+    dbc = vdblib.vdb( 
+                     host   = db4g_vars.get_variable( 'WRF4G_DB_HOST' ) ,
+                     user   = db4g_vars.get_variable( 'WRF4G_DB_USER' ) ,
+                     db     = db4g_vars.get_variable( 'WRF4G_DB_DATABASE' ) ,
+                     port   = int ( db4g_vars.get_variable( 'WRF4G_DB_PORT' ) ) ,
+                     passwd = db4g_vars.get_variable( 'WRF4G_DB_PASSWD' )
+                     )
+except Exception, err:
+    sys.stderr.write( 'Error accessing MySQL database: %s\n' % str( err ) )
 
-class wrffile :
+
+class VarEnv( object ):
+    """
+    Allow to load the available variables in a file 
+    """
+    
+    def __init__(self, file):
+        """
+        'file' to read
+        """
+        config = StringIO.StringIO()
+        config.write( "[DATA]\n" )
+        config.write( open( file ).read() )
+        config.seek( 0 , os.SEEK_SET )
+        self._cp = ConfigParser.ConfigParser()
+        self._cp.readfp( config )
+        
+    def has_section( self , section ):
+        """
+        Indicate whether the named section is present in the configuration.
+        """
+        return self._cp.has_section( section  ) 
+
+    def sections( self ):
+        """
+        Return a list of section names, excluding [DEFAULT] section.
+        """
+        return self._cp.sections()
+    
+    def get_variable( self , var_name , section = 'DATA' , default = '') :
+        """
+        Get a value for given section. The default section will be 'DATA'. 
+        """
+        
+        try :
+            value = dict( self._cp.items( section ) )[ var_name.lower() ]
+            if value.startswith( '"' ) and value.endswith( '"' ) :
+                value = value[ 1 : -1 ]
+            elif value.startswith( "'" ) and value.endswith( "'" ) :
+                value = value[ 1 : -1 ]
+            return value
+        except ( KeyError , IOError ):
+            return default
+
+class wrffile( object ) :
     """
     This class manage the restart and output files and the dates they represent.
     It recieves a file name with one of the following shapes: wrfrst_d01_1991-01-01_12:00:00 or
@@ -120,14 +174,6 @@ def JobStatus():
     for entry in dstatus:
         sta[entry['id']]=entry['description']
     return sta
-
-def load_default_values():
-    global NP,ENVIRONMENT,REQUIREMENTS,WRF4G_DB_HOST,WRF4G_DB_PORT,WRF4G_DB_USER,WRF4G_DB_PASSWD
-    NP=1
-    REQUIREMENTS=''
-    ENVIRONMENT=''
-    
-load_default_values()
 
 def format_output(dout,number_of_characters, ext=False):
     dreastatus={0:'P',1:'W',2:'R',3: 'F',4:'D'}
@@ -492,29 +538,20 @@ class Experiment(Component):
                        'Chunk.status=1 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s AND Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND (c2.status=2 OR c2.status=3 ) )'%self.data['id'],
                        verbose=self.verbose)
         ids_rea = vdblib.list_query().one_field(idp,'python')
-        return ids_rea  
+        return ids_rea
     
-    def prepare_storage(self):          
-        RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
-        if RESOURCES_WRF4G == None:
-            sys.stderr.write('RESOURCES_WRF4G is not defined. Please define it and try again\n')
-            sys.exit(1)
-        exec open(RESOURCES_WRF4G).read()     
-        # Load the URL into the VCPURL class
-        exp_dir="%s/%s/" %(WRF4G_BASEPATH, self.data['name'])
-        vcplib.VCPURL(exp_dir).mkdir(verbose=self.verbose)
-        if os.path.exists('wrf4g_files'):
+    def prepare_storage(self):
+        exp_sub_dir = expandvars( "$WRF4G_LOCATION/var/submission/%s/" % self.data['name'] )
+        if not isdir( exp_sub_dir ) :
+            try: 
+                os.makedirs( exp_sub_dir )
+            except Exception :
+                raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )  
+        if exists( 'wrf4g_files' ):
             import tarfile
-            tFile = tarfile.open('wrf4g_files.tar.gz', 'w:gz')
-            tFile.add(file)
-            tFile.close()
-            vcplib.copy_file('wrf4g_files.tar.gz',exp_dir,verbose=self.verbose)    
-            os.remove('wrf4g_files.tar.gz')  
-        vcplib.copy_file(DB4G_CONF,exp_dir,verbose=self.verbose)
-        vcplib.copy_file(RESOURCES_WRF4G,exp_dir,verbose=self.verbose) 
-        vcplib.copy_file('experiment.wrf4g',exp_dir,verbose=self.verbose)
-        if os.path.exists('prolog.wrf4g'):
-            vcplib.copy_file('prolog.wrf4g',exp_dir,verbose=self.verbose)  
+            with tarfile.open( 'wrf4g_files.tar.gz' , "w:gz" ) as tar:
+                tar.add( 'wrf4g_files' )
+            shutil.move( 'wrf4g_files.tar.gz' , exp_sub_dir )
          
 class Realization(Component):
     """ 
@@ -634,10 +671,8 @@ class Realization(Component):
         return nchunk 
        
     def run(self,nchunk=0,priority=0,rerun=False,force=False,repeatchunk=0,type_dep="afterany"):
-        import gridwaylib   
-        
-        self.prepared=0
-        rea_name=self.get_name()       
+        exp_name = self.get_exp_name()
+        rea_name = self.get_name()       
       
         chunk_status=self.current_chunk_status()
         first_id=chunk_status[0]
@@ -688,19 +723,38 @@ class Realization(Component):
                                                                    datetime2datewrf(chi.data['sdate']),
                                                                    datetime2datewrf(chi.data['edate'])))
     
-            if self.dryrun == False:      
-                self.prepare_gridway()   
-                exec open('resources.wrf4g').read()     
-                job=gridwaylib.job()
-                sandbox='file://%s/repository/local/WRF4G.sh,file://%s/repository/local/WRF4G-%s.tar.gz,file://%s/etc/db4g.conf,resources.wrf4g'%(WRF4G_LOCATION,WRF4G_LOCATION,WRF4G_VERSION,WRF4G_LOCATION)
-                job.create_template(rea_name + '__' + str(chi.data['id_chunk']),arguments,np=NP,req=REQUIREMENTS,environ=ENVIRONMENT,inputsandbox=sandbox,verbose=self.verbose)
+            if not self.dryrun :
+                import gridwaylib
+           
+                rea_submission_dir = expandvars( "$WRF4G_LOCATION/var/submission/%s/%s/" % ( exp_name , rea_name ) )
+                running_var        = VarEnv( 'resources.wrf4g' )
+                sandbox  = "file://%s/WRF4G.sh,"         % ( running_var.get_var( 'WRF4G_LOCAL' ) )
+                sandbox += "file://%s/WRF4G-%s.tar.gz,"  % ( running_var.get_var( 'WRF4G_LOCAL') , running_var.get_var( 'WRF4G_VERSION' ) )
+                sandbox += "file://%s/db4g.conf,"        % ( rea_submission_dir )
+                sandbox += "file://%s/resources.wrf4g,"  % ( rea_submission_dir )
+                sandbox += "file://%s/experiment.wrf4g," % ( rea_submission_dir )
+                sandbox += "file://%s/namelist.input"    % ( rea_submission_dir )
+                if exits( join( rea_submission_dir , 'wrf4g_files.tar.gz' ) ) :
+                    sandbox += "file://%s/wrf4g_files.tar.gz" % ( rea_submission_dir )
+                job.create_template( rea_name + '__' + str( chi.data['id_chunk'] ) ,
+                                    arguments ,         
+                                    np           = running_var.get_variable( 'NP', default = '1') , 
+                                    req          = running_var.get_variable( 'REQUIREMENTS' ) ,
+                                    environ      = running_var.get_variable( 'ENVIRONMENT' ) ,
+                                    inputsandbox = sandbox ,
+                                    verbose      = self.verbose
+                                    )
+                gw_job = gridwaylib.job()
                 if chunki == first_id:
-                    gw_id=job.submit(priority=priority)
+                    gw_id = gw_job.submit(priority=priority)
                 else:
-                    gw_id=job.submit(priority=priority,dep=gw_id,type_dep=type_dep)
-                job_data={'gw_job': gw_id,'id_chunk': str(chi.data['id']), 'hash': create_hash()}
-                job=Job(job_data,verbose=self.verbose)
-                jid=job.create()
+                    gw_id = gw_job.submit(priority=priority,dep=gw_id,type_dep=type_dep)
+                job_data = { 'gw_job' : gw_id , 
+                            'id_chunk': str(chi.data['id']), 
+                            'hash'    : create_hash(),
+                            }
+                job = Job(job_data,verbose=self.verbose)
+                jid = job.create()
                 job.set_status('1')
                 dbc.commit()
         return 0
@@ -712,25 +766,7 @@ class Realization(Component):
             self.data['id']=self.get_id(['name'])
          cexp=Experiment(data={'id': self.get_exp_id()})
          exp_name=cexp.get_name()
-         return exp_name
-        
-    def prepare_gridway(self):
-        if self.prepared == 0: 
-            rea_name=self.data['name']
-            exp_id=self.get_exp_id()
-            exp_name=self.get_exp_name()
-            cexp=Experiment(data={'id': exp_id})
-            WRF4G_BASEPATH=cexp.get_basepath()
-            subdir='%s/var/submission/%s/%s/'%(WRF4G_LOCATION,exp_name,rea_name)       
-            if not os.path.isdir(subdir):
-                os.makedirs(subdir)
-            os.chdir(subdir)
-            rea_input='%s/%s/%s/'%(WRF4G_BASEPATH,exp_name,rea_name)
-            if 'resources.wrf4g' in vcplib.VCPURL(rea_input).ls('resources.wrf4g'):
-                vcplib.copy_file(join(rea_input,'resources.wrf4g'),'.',verbose=self.verbose)
-            else:
-                vcplib.copy_file(join(WRF4G_BASEPATH,exp_name,'resources.wrf4g'),'.',verbose=self.verbose)           
-            self.prepared=1   
+         return exp_name  
         
     def ps(self, number_of_characters):
         if 'id' in self.data.keys():
@@ -797,24 +833,81 @@ class Realization(Component):
             print line
             ci=ci+1
 
-    
-    def prepare_storage(self):          
-        RESOURCES_WRF4G=os.environ.get('RESOURCES_WRF4G')
-        if RESOURCES_WRF4G == None:
-            sys.stderr.write('RESOURCES_WRF4G is not defined. Please define it and try again\n')
-            sys.exit(1)
-        exec open(RESOURCES_WRF4G).read()        
-        reas=self.data['name'].split('__')
-        rea_dir="%s/%s/%s/" % (WRF4G_BASEPATH,reas[0],self.data['name'])
-        vcplib.VCPURL(rea_dir).mkdir(verbose=self.verbose)
-        vcplib.copy_file('namelist.input',rea_dir,verbose=self.verbose)
-        for dir in ["output","restart","realout","log"]:
-          vcplib.VCPURL(join(rea_dir,dir)).mkdir(verbose=self.verbose)
-                             
+    def prepare_storage(self):            
+        db4g_file = expandvars( "$WRF4G_LOCATION/etc/db4g.conf" )   
+        if not exists ( db4g_file ) :
+            raise Exception( "db4g.conf file is not available" ) 
+        
+        rea_name           = self.data['name']        
+        exp_name           = self.data['name'].split('__')[0]
+        rea_submission_dir = expandvars( "$WRF4G_LOCATION/var/submission/%s/%s/" % ( exp_name , rea_name ) )
+        if not isdir( submission_dir ) :
+            try :
+                os.makedirs( submission_dir )
+            except Exception :
+                raise Exception( "Couldn't be created '%s' directory" % submission_dir ) 
+        [ shutil.copy( file , rea_submission_dir ) for file in [ 'experiment.wrf4g' ,  
+                                                                'namelist.input'    ,   
+                                                                db4g_file ] ]
+        WRF4G_LOCATION = os.environ.get('WRF4G_LOCATION')
+        HOME           = os.environ.get('HOME')
+        map_dict = {'$WRF4G_LOCATON'   : WRF4G_LOCATION ,
+                    '${WRF4G_LOCATON}' : WRF4G_LOCATION , 
+                    '$HOME'            : HOME ,     
+                    '${HOME}'          : HOME , 
+                    }
+        with open( join ( rea_submission_dir , 'resources.wrf4g' ), 'w') as newfile :
+            with open('resources.wrf4g', 'r') as old_file :
+                for line in olf_file :
+                    for k , v in map_dict.iteritems():
+                        line = line.replace( k , str( v ) )
+                newfile.write( line )
+                
+    def prepare_remote_storage(self , remote_realization_path ):
+        """
+        Create a remote tree directory of a Realization
+        
+        Realization
+            ├── output                    
+            ├── restart
+            ├── realout
+            └── log          
+        """
+        try :
+            vcp_remote_path = vcplib.VCPURL( dirname( remote_realization_path ) )
+            if not vcp_remote_path.exists( verbose = self.verbose ) :
+                vcp_remote_path.mkdir( verbose = self.verbose )
+            for dir in [ "output" , "restart" , "realout" , "log" ]:
+                vcp_repo = vcplib.VCPURL( "%s/%s/" % ( remote_realization_path , dir ) )
+                if not vcp_repo.exists( verbose = self.verbose ) :
+                    vcp_repo.mkdir( verbose = self.verbose )
+            return 0
+        except Exception, err :
+            sys.stderr.write( 'Error creating the remote repository: %s\n' % str( err ) )
+            return 1
+        
+    def copy_configuration_files(self , remote_realization_path ):
+        """
+        Copy configuration files from the WN to the out path such as :
+            * experiment.wrf4g
+            * resources.wrf4g
+            * db4g.conf
+            * namelist.input
+        """
+        # We have to add an overwriting option 
+        try :
+            for configuration_file in [ "db4g.conf" , "experiment.wrf4g" ,  "resources.wrf4g" ]:
+                vcplib.copy_file( configuration_file, join( remote_realization_path , configuration_file  ) , verbose = self.verbose )
+            vcplib.copy_file( "namelist.input" , join ( remote_realization_path , "namelist.input" ) , verbose = self.verbose )
+            return 0
+        except Exception, err :
+            sys.stderr.write( 'Error coping configurations files: %s\n' % str( err ) )
+            return 1  
+                              
     def is_finished(self,id_rea):
         
-        max_id=dbc.select('Chunk','MAX(id)','id_rea=%s'%id_rea,verbose=self.verbose)
-        status=dbc.select('Chunk','status','id=%s'%vdblib.parse_one_field(max_id),verbose=self.verbose)
+        max_id = dbc.select('Chunk','MAX(id)','id_rea=%s'%id_rea,verbose=self.verbose)
+        status = dbc.select('Chunk','status','id=%s'%vdblib.parse_one_field(max_id),verbose=self.verbose)
         if status == '4':
             return 1
         else:
@@ -824,8 +917,7 @@ class Realization(Component):
         import gridwaylib
         condition="Chunk.id_rea=%s and Job.id_chunk=Chunk.id AND (Chunk.status=1 OR Chunk.status=2) GROUP BY Chunk.id"%self.data['id']
         output=dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
-        chunk_id=[]
-        job_id=[]
+        chunk_id = job_id = []
         for couple in output:
             chunk_id.append(couple['id'])
             j=Job(data={'id':couple['MAX(Job.id)']})
@@ -841,8 +933,7 @@ class Realization(Component):
         import gridwaylib
         condition="Chunk.id_rea=%s and Job.id_chunk=Chunk.id AND (Chunk.status=1 OR Chunk.status=2) GROUP BY Chunk.id"%self.data['id']
         output=dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
-        chunk_id=[]
-        job_id=[]
+        chunk_id = job_id = []
         for couple in output:
             chunk_id.append(couple['id'])
             j=Job(data={'id':couple['MAX(Job.id)']})
