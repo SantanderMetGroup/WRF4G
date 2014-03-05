@@ -3,13 +3,14 @@
 # wrf4g_env load WRF4G shell environment variables
 
 if test -z $WRF4G_LOCATION; then
-  if test -f $HOME/.wrf4g/etc/framework4g.conf
+  if test -f $HOME/.wrf4g/etc/framework4g.conf; then
     WRF4G_LOCATION=$HOME/.wrf4g
   else
     WRF4G_BIN_LOCATION=`dirname $0`
+    [ ${WRF4G_BIN_LOCATION} == "." ] && WRF4G_BIN_LOCATION=$PWD
     WRF4G_LOCATION=`dirname $WRF4G_BIN_LOCATION`
   fi
-  export $WRF4G_LOCATION
+  export WRF4G_LOCATION=${WRF4G_LOCATION}
 fi
 
 if test -f $WRF4G_LOCATION/etc/framework4g.conf; then
