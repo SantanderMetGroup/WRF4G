@@ -3,7 +3,7 @@
 # Common initialization
 . `dirname $0`/wrf4g_env
 
-version="1.0"
+version="2.0"
 
 while test -n "$1"; do
   case $1 in
