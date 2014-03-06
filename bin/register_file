@@ -1,13 +1,13 @@
 #!/usr/bin/env python
       
-from commands import getstatusoutput
-from optparse import OptionParser
-from os.path import join, dirname, abspath
 import sys   
 import os  
 
+from commands  import getstatusoutput
+from optparse  import OptionParser
+from os.path   import join, dirname, abspath
+
 try:
-    sys.path.insert(0, join(dirname(dirname(abspath(__file__))),'lib','python'))
     import vcplib
     import WRF4Glib
 except Exception, e:
@@ -48,18 +48,12 @@ else:
 
 # Check that the environment variables has been established and import their values
 env_var = {}
-for var in [ "WRF4G_EXPERIMENT" , "WRF4G_REALIZATION", "RESOURCES_WRF4G"] :
+for var in [ "WRF4G_BASEPATH", "WRF4G_EXPERIMENT" , "WRF4G_REALIZATION" ] :
     var_value = os.getenv(var)
     if not var_value :
         sys.stderr.write( var + " is not defined\n")
         sys.exit(-1)
     env_var[var] = var_value
-exec(open(env_var["RESOURCES_WRF4G"]).read())
-# List all the variables in the script and search WRF4G_BASEPATH
-if not 'WRF4G_BASEPATH' in dir():
-    sys.stderr.write("Error: WRF4G_BASEPATH is not defined\n")
-    sys.exit(-1)
-
 # Change the name of the file in the repository (Change date to the iso format
 # and add .nc at the end of the name
 if type in type_list.keys() or type == "ts":
@@ -71,13 +65,13 @@ if type in type_list.keys() or type == "ts":
             file_o=WRF4Glib.wrffile(file)
             dest_file=file_o.file_name_iso()
         
-        dest_folder=join(WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type])
-        dest=join(dest_folder,dest_file)
+        dest_folder = join( env_var["WRF4G_BASEPATH"] , env_var["WRF4G_EXPERIMENT"] , env_var["WRF4G_REALIZATION"] , type_list[type] )
+        dest        = join( dest_folder , dest_file )
     if type == "ts":
-        dest_folder=join(WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],'output')
-        dest=join(dest_folder,file)
+        dest_folder = join( env_var["WRF4G_BASEPATH"] , env_var["WRF4G_EXPERIMENT"] , env_var["WRF4G_REALIZATION"] , 'output' )
+        dest        = join( dest_folder , file )
     try:
-        vcplib.copy_file(file,dest,verbose=verbose)
+        vcplib.copy_file( file , dest , verbose=verbose )
         # Delete the file from local disk
         if verbose:
             sys.stderr.write("Deleting file %s\n" %file)
@@ -89,10 +83,10 @@ else :
     # If the files are WPS, add the date to the name. Three files have to be uploaded: wrfinput_d0?,wrfbdy_d0? and wrflowinp_d0?
     #The command: $ upload_file wps     1990-01-01_00:00:00
     # will create in the repositore three files with the following format: wrfinput_d01_19900101T000000Z
-    wps_files=vcplib.VCPURL(".").ls("wrf[lbif]*_d\d\d")
-    suffix="_" + WRF4Glib.datetime2dateiso(WRF4Glib.datewrf2datetime(date))+ ".nc"
+    wps_files = vcplib.VCPURL(".").ls("wrf[lbif]*_d\d\d")
+    suffix    = "_" + WRF4Glib.datetime2dateiso(WRF4Glib.datewrf2datetime(date))+ ".nc"
     for wps_file in wps_files :
-        dest=join(WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],"realout",basename(wps_file),suffix)
+        dest = join( env_var["WRF4G_BASEPATH"] , env_var["WRF4G_EXPERIMENT"] , env_var["WRF4G_REALIZATION"] , "realout" , basename(wps_file) , suffix )
         try:
             vcplib.copy_file(wps_file,dest,verbose=verbose)
         except Exception, e:
