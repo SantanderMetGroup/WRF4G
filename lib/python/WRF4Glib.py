@@ -711,8 +711,8 @@ class Realization(Component):
     
             if not self.dryrun :
                 import gridwaylib
-                rea_sub_dir  = expandvars( "$WRF4G_LOCATION/var/submission/%s/%s/" % ( exp_name , rea_name ) )
-                run_vars     = VarEnv( rea_sub_dir + 'resources.wrf4g' )
+                rea_sub_dir  = expandvars( "$WRF4G_LOCATION/var/submission/%s/%s" % ( exp_name , rea_name ) )
+                run_vars     = VarEnv( join( rea_sub_dir , 'resources.wrf4g' )  )
                 WRF4G_script = "%s/WRF4G.sh" % ( run_vars.get_variable( 'WRF4G_LOCAL' ) )
                 if not exists(  WRF4G_script ) :
                     raise Exception( "'%s' file does not exist" % WRF4G_script )
