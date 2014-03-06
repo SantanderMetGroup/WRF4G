@@ -723,7 +723,7 @@ class Realization(Component):
                 gw_job = gridwaylib.job()
                 gw_job.create_template( rea_name + '__' + str( chi.data['id_chunk'] ) ,
                                     arguments ,         
-                                    np           = running_var.get_variable( 'NP', default = '1') , 
+                                    np           = int ( running_var.get_variable( 'NP', default = '1') ) , 
                                     req          = running_var.get_variable( 'REQUIREMENTS' ) ,
                                     environ      = running_var.get_variable( 'ENVIRONMENT' ) ,
                                     inputsandbox = sandbox ,
