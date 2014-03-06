@@ -4,7 +4,7 @@ from os.path import dirname, expandvars, exists, abspath, join
 
 WRF4G_LOCATION=os.getenv('WRF4G_LOCATION')
 if not WRF4G_LOCATION :
-    if expandvars("$HOME/.wrf4g/etc/framework.conf"):
+    if exists( expandvars("$HOME/.wrf4g/etc/framework.conf") ) :
         WRF4G_LOCATION = expandvars("$HOME/.wrf4g")
     else:
         WRF4G_LOCATION = dirname( dirname( abspath( __file__ ) ) )
@@ -12,11 +12,11 @@ if not WRF4G_LOCATION :
 os.environ['GW_LOCATION'] = join( WRF4G_LOCATION , 'opt' , 'gw_drm4g' )
 
 
-DB4G_CONF=os.environ.get('DB4G_CONF')
+DB4G_CONF = os.environ.get('DB4G_CONF')
 if not DB4G_CONF :
     DB4G_CONF = '%s/etc/db4g.conf' % WRF4G_LOCATION
     os.environ['DB4G_CONF']  = DB4G_CONF
-if not os.path.isfile(DB4G_CONF):
+if not exists( DB4G_CONF ):
     print 'DB4G_CONF does not exist'
     sys.exit(2)
 
