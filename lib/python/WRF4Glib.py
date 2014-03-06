@@ -718,7 +718,7 @@ class Realization(Component):
                 sandbox += "file://%s/resources.wrf4g,"  % ( rea_submission_dir )
                 sandbox += "file://%s/experiment.wrf4g," % ( rea_submission_dir )
                 sandbox += "file://%s/namelist.input"    % ( rea_submission_dir )
-                if exits( join( rea_submission_dir , 'wrf4g_files.tar.gz' ) ) :
+                if exists( join( rea_submission_dir , 'wrf4g_files.tar.gz' ) ) :
                     sandbox += "file://%s/wrf4g_files.tar.gz" % ( rea_submission_dir )
                 job.create_template( rea_name + '__' + str( chi.data['id_chunk'] ) ,
                                     arguments ,         
