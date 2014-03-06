@@ -711,9 +711,9 @@ class Realization(Component):
                 import gridwaylib
            
                 rea_submission_dir = expandvars( "$WRF4G_LOCATION/var/submission/%s/%s/" % ( exp_name , rea_name ) )
-                running_var        = VarEnv( 'resources.wrf4g' )
-                sandbox  = "file://%s/WRF4G.sh,"         % ( running_var.get_var( 'WRF4G_LOCAL' ) )
-                sandbox += "file://%s/WRF4G-%s.tar.gz,"  % ( running_var.get_var( 'WRF4G_LOCAL') , running_var.get_var( 'WRF4G_VERSION' ) )
+                running_var        = VarEnv( rea_submission_dir + 'resources.wrf4g' )
+                sandbox  = "file://%s/WRF4G.sh,"         % ( running_var.get_variable( 'WRF4G_LOCAL' ) )
+                sandbox += "file://%s/WRF4G-%s.tar.gz,"  % ( running_var.get_variable( 'WRF4G_LOCAL') , running_var.get_variable( 'WRF4G_VERSION' ) )
                 sandbox += "file://%s/db4g.conf,"        % ( rea_submission_dir )
                 sandbox += "file://%s/resources.wrf4g,"  % ( rea_submission_dir )
                 sandbox += "file://%s/experiment.wrf4g," % ( rea_submission_dir )
