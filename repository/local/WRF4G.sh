@@ -334,8 +334,6 @@ chmod +x ${ROOTDIR}/bin/*
 #
 #   Load functions and set the PATH
 #
-
-export RESOURCES_WRF4G=${ROOTDIR}/resources.wrf4g
 export DB4G_CONF=${ROOTDIR}/db4g.conf
 export PATH=${ROOTDIR}/bin:${ROOTDIR}/lib/bash:$PATH
 export LD_LIBRARY_PATH=${ROOTDIR}/lib:$LD_LIBRARY_PATH

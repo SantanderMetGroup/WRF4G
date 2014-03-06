@@ -17,7 +17,7 @@ usage="""%prog type date
 Example:    %prog rst 1990-01-01_00:00:00 
             %prog real 1990-01-01_00:00:00
 
-This command needs that the following environment variables have been established: WRF4G_EXPERIMENT, WRF4G_REALIZATION and RESOURCES_WRF4G.
+This command needs that the following environment variables have been established: WRF4G_EXPERIMENT, WRF4G_REALIZATION and WRF4G_BASEPATH.
 """
 
 # Check the Arguments

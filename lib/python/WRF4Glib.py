@@ -59,20 +59,6 @@ class VarEnv( object ):
         except ( KeyError , IOError ):
             return default
 
-#Configure WRF4G_DB
-try:
-    db4g_file = expandvars( "$DB4G_CONF" )
-    db4g_vars = VarEnv( db4g_file )
-    dbc = vdblib.vdb( 
-                     host   = db4g_vars.get_variable( 'WRF4G_DB_HOST' ) ,
-                     user   = db4g_vars.get_variable( 'WRF4G_DB_USER' ) ,
-                     db     = db4g_vars.get_variable( 'WRF4G_DB_DATABASE' ) ,
-                     port   = int ( db4g_vars.get_variable( 'WRF4G_DB_PORT' ) ) ,
-                     passwd = db4g_vars.get_variable( 'WRF4G_DB_PASSWD' )
-                     )
-except Exception, err:
-    sys.stderr.write( 'Error accessing MySQL database: %s\n' % str( err ) )
-
 class wrffile( object ) :
     """
     This class manage the restart and output files and the dates they represent.
@@ -831,10 +817,19 @@ class Realization(Component):
             print line
             ci=ci+1
 
-    def prepare_storage(self):            
-        db4g_file = expandvars( "$WRF4G_LOCATION/etc/db4g.conf" )   
-        if not exists ( db4g_file ) :
-            raise Exception( "db4g.conf file is not available" ) 
+    def prepare_storage(self): 
+        files = [
+                 "$WRF4G_LOCATION/etc/db4g.conf" , 
+                 "$RESOURCES_WRF4G/resources.wrf4g" ,
+                 "experiment.wrf4g" ,
+                 "namelist.input" ,
+                 ]           
+        def _file_exist( file ) : 
+            file_path = expandvars( file )   
+            if not exists ( file_path ) :
+                raise Exception( "'%s' is not available" % file_path )
+        
+        [  _file_exist( file ) for file in files ] 
         
         rea_name           = self.data['name']        
         exp_name           = self.data['name'].split('__')[0]
@@ -844,9 +839,7 @@ class Realization(Component):
                 os.makedirs( rea_submission_dir )
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % rea_submission_dir ) 
-        [ shutil.copy( file , rea_submission_dir ) for file in [ 'experiment.wrf4g' ,  
-                                                                'namelist.input'    ,   
-                                                                db4g_file ] ]
+        [ shutil.copy( file , rea_submission_dir ) for file in files ]
         WRF4G_LOCATION = os.environ.get('WRF4G_LOCATION')
         HOME           = os.environ.get('HOME')
         map_dict = {'$WRF4G_LOCATON'   : WRF4G_LOCATION ,
@@ -1101,7 +1094,19 @@ class Events(Component):
     pass
 
 
-
+#Configure WRF4G_DB
+try:
+    db4g_file = expandvars( "$DB4G_CONF" )
+    db4g_vars = VarEnv( db4g_file )
+    dbc = vdblib.vdb( 
+                     host   = db4g_vars.get_variable( 'WRF4G_DB_HOST' ) ,
+                     user   = db4g_vars.get_variable( 'WRF4G_DB_USER' ) ,
+                     db     = db4g_vars.get_variable( 'WRF4G_DB_DATABASE' ) ,
+                     port   = int ( db4g_vars.get_variable( 'WRF4G_DB_PORT' ) ) ,
+                     passwd = db4g_vars.get_variable( 'WRF4G_DB_PASSWD' )
+                     )
+except Exception, err:
+    sys.stderr.write( 'Error accessing MySQL database: %s\n' % str( err ) )
 
    
 
