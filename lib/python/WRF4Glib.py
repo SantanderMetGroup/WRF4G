@@ -720,7 +720,8 @@ class Realization(Component):
                 sandbox += "file://%s/namelist.input"    % ( rea_submission_dir )
                 if exists( join( rea_submission_dir , 'wrf4g_files.tar.gz' ) ) :
                     sandbox += "file://%s/wrf4g_files.tar.gz" % ( rea_submission_dir )
-                job.create_template( rea_name + '__' + str( chi.data['id_chunk'] ) ,
+                gw_job = gridwaylib.job()
+                gw_job.create_template( rea_name + '__' + str( chi.data['id_chunk'] ) ,
                                     arguments ,         
                                     np           = running_var.get_variable( 'NP', default = '1') , 
                                     req          = running_var.get_variable( 'REQUIREMENTS' ) ,
@@ -728,7 +729,6 @@ class Realization(Component):
                                     inputsandbox = sandbox ,
                                     verbose      = self.verbose
                                     )
-                gw_job = gridwaylib.job()
                 if chunki == first_id:
                     gw_id = gw_job.submit(priority=priority)
                 else:
