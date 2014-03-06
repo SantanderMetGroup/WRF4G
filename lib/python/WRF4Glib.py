@@ -789,7 +789,7 @@ class Realization(Component):
         else:
             self.data['id']=self.get_id(['name'])
             if self.data['id']== -1:
-                sys.stderr.write('Realization with name %s does not exists \n'%self.data['name'])
+                sys.stderr.write('Realization with name %s does not exist\n'%self.data['name'])
                 sys.exit(1)
 
         last_chunk=self.current_chunk_status()
@@ -819,16 +819,16 @@ class Realization(Component):
 
     def prepare_storage(self): 
         files = [
-                 "$WRF4G_LOCATION/etc/db4g.conf" , 
+                 "$DB4G_CONF" , 
                  "$RESOURCES_WRF4G" ,
                  "experiment.wrf4g" ,
                  "namelist.input" ,
-                 ]           
+                 ]        
+
         def _file_exist( file ) : 
             file_path = expandvars( file )   
             if not exists ( file_path ) :
                 raise Exception( "'%s' is not available" % file_path )
-        
         [  _file_exist( file ) for file in files ] 
         
         rea_name           = self.data['name']        
@@ -839,20 +839,27 @@ class Realization(Component):
                 os.makedirs( rea_submission_dir )
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % rea_submission_dir ) 
-        [ shutil.copy( file , rea_submission_dir ) for file in files ]
+        def _copy( file ):
+            shutil.copy( expandvars( file ) , rea_submission_dir )
+        [ _copy( file ) for file in files ]
+
         WRF4G_LOCATION = os.environ.get('WRF4G_LOCATION')
         HOME           = os.environ.get('HOME')
-        map_dict = {'$WRF4G_LOCATON'   : WRF4G_LOCATION ,
-                    '${WRF4G_LOCATON}' : WRF4G_LOCATION , 
-                    '$HOME'            : HOME ,     
-                    '${HOME}'          : HOME , 
+        map_dict = {'$WRF4G_LOCATION'   : WRF4G_LOCATION ,
+                    '${WRF4G_LOCATION}' : WRF4G_LOCATION , 
+                    '$HOME'             : HOME ,     
+                    '${HOME}'           : HOME , 
                     }
-        with open( join ( rea_submission_dir , 'resources.wrf4g' ), 'w') as newfile :
-            with open('resources.wrf4g', 'r') as old_file :
-                for line in olf_file :
-                    for k , v in map_dict.iteritems():
-                        line = line.replace( k , str( v ) )
-                newfile.write( line )
+        submission_resources = join( rea_submission_dir , 'resources.wrf4g' )
+        lines = ''
+        with open( submission_resources , 'r' ) as file :
+            for line in file :
+                for k , v in map_dict.iteritems():
+                   line = line.replace( k , v)
+                lines += line
+        with open( submission_resources , 'w' ) as file :
+            file.writelines( lines  )
+         
                 
     def prepare_remote_storage(self , remote_realization_path ):
         """
