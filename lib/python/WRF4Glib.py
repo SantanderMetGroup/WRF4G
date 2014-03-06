@@ -820,7 +820,7 @@ class Realization(Component):
     def prepare_storage(self): 
         files = [
                  "$WRF4G_LOCATION/etc/db4g.conf" , 
-                 "$RESOURCES_WRF4G/resources.wrf4g" ,
+                 "$RESOURCES_WRF4G" ,
                  "experiment.wrf4g" ,
                  "namelist.input" ,
                  ]           
