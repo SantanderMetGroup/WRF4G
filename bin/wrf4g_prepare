@@ -266,7 +266,7 @@ fi
 if test ${id} -ge 0; then
   echo "Preparing namelist...">&2
   if ! is_dry_run; then 
-    cp -v ${WRF4G_LOCATION}/etc/namelist/namelist.input-${namelist_version} namelist.input
+    cp ${WRF4G_LOCATION}/etc/namelist/namelist.input-${namelist_version} namelist.input
     namelist=`pwd`/namelist.input
     if test -f ${namelist}; then
       cp ${namelist} ${userdir}/namelist.input.base
