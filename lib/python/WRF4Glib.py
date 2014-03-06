@@ -44,9 +44,9 @@ class VarEnv( object ):
         """
         return self._cp.sections()
     
-    def get_variable( self , var_name , section = 'DATA' , default = '') :
+    def get_variable( self , var_name , section = 'DEAFAUTL' , default = '') :
         """
-        Get a value for given section. The default section will be 'DATA'. 
+        Get a value for given section. The default section will be 'DEAFAUTL'. 
         """
         
         try :
@@ -713,7 +713,7 @@ class Realization(Component):
                 rea_submission_dir = expandvars( "$WRF4G_LOCATION/var/submission/%s/%s/" % ( exp_name , rea_name ) )
                 running_var        = VarEnv( rea_submission_dir + 'resources.wrf4g' )
                 sandbox  = "file://%s/WRF4G.sh,"         % ( running_var.get_variable( 'WRF4G_LOCAL' ) )
-                sandbox += "file://%s/WRF4G-%s.tar.gz,"  % ( running_var.get_variable( 'WRF4G_LOCAL') , running_var.get_variable( 'WRF4G_VERSION' ) )
+                sandbox += "file://%s/WRF4G-%s.tar.gz,"  % ( running_var.get_variable( 'WRF4G_LOCAL' ) , running_var.get_variable( 'WRF4G_VERSION' ) )
                 sandbox += "file://%s/db4g.conf,"        % ( rea_submission_dir )
                 sandbox += "file://%s/resources.wrf4g,"  % ( rea_submission_dir )
                 sandbox += "file://%s/experiment.wrf4g," % ( rea_submission_dir )
