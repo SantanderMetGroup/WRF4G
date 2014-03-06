@@ -61,8 +61,8 @@ WRF4G_LOCAL      = ${WRF4G_LOCATION}/repository/local
 #
 #-------------------------------------------------------------------------------
 
-WRF4G_VERSION  = 1.0
-WRF_VERSION    = 3.1.1_r832INTEL_OMPI
+WRF4G_VERSION  = 2.0
+WRF_VERSION    = 3.3.1_r1184INTEL_OMPI
 NETCDF_VERSION = 4.1.1
 NCO_VERSION    = 4.0.9
 
