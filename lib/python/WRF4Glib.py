@@ -703,32 +703,41 @@ class Realization(Component):
             
             if chunki == first_id: 
                 sys.stderr.write('Submitting realization: "%s"\n'%(rea_name))
-            sys.stderr.write('\tSubmitting Chunk %d:\t%s\t%s\n' % (chi.data['id_chunk'],
+            sys.stderr.write('\tSubmitting Chunk %d:\t%s\t%s\n'  % (chi.data['id_chunk'],
                                                                    datetime2datewrf(chi.data['sdate']),
-                                                                   datetime2datewrf(chi.data['edate'])))
+                                                                   datetime2datewrf(chi.data['edate'])
+                                                                   )
+                             )
     
             if not self.dryrun :
                 import gridwaylib
-           
-                rea_submission_dir = expandvars( "$WRF4G_LOCATION/var/submission/%s/%s/" % ( exp_name , rea_name ) )
-                running_var        = VarEnv( rea_submission_dir + 'resources.wrf4g' )
-                sandbox  = "file://%s/WRF4G.sh,"         % ( running_var.get_variable( 'WRF4G_LOCAL' ) )
-                sandbox += "file://%s/WRF4G-%s.tar.gz,"  % ( running_var.get_variable( 'WRF4G_LOCAL' ) , running_var.get_variable( 'WRF4G_VERSION' ) )
-                sandbox += "file://%s/db4g.conf,"        % ( rea_submission_dir )
-                sandbox += "file://%s/resources.wrf4g,"  % ( rea_submission_dir )
-                sandbox += "file://%s/experiment.wrf4g," % ( rea_submission_dir )
-                sandbox += "file://%s/namelist.input"    % ( rea_submission_dir )
-                if exists( join( rea_submission_dir , 'wrf4g_files.tar.gz' ) ) :
-                    sandbox += "file://%s/wrf4g_files.tar.gz" % ( rea_submission_dir )
+                rea_sub_dir  = expandvars( "$WRF4G_LOCATION/var/submission/%s/%s/" % ( exp_name , rea_name ) )
+                run_vars     = VarEnv( rea_sub_dir + 'resources.wrf4g' )
+                WRF4G_script = "%s/WRF4G.sh" % ( run_vars.get_variable( 'WRF4G_LOCAL' ) )
+                if not exists(  WRF4G_script ) :
+                    raise Exception( "'%s' file does not exist" % WRF4G_script )
+                WRF4G_package = "%s/WRF4G-%s.tar.gz" % ( run_vars.get_variable( 'WRF4G_LOCAL' ) , run_vars.get_variable( 'WRF4G_VERSION' ) )
+                if not exists(  WRF4G_package ) :
+                    raise Exception( "'%s' file does not exist" % WRF4G_package )
+                sandbox  = "file://%s,"                  % ( WRF4G_script )
+                sandbox += "file://%s,"                  % ( WRF4G_package )
+                sandbox += "file://%s/db4g.conf,"        % ( rea_sub_dir )
+                sandbox += "file://%s/resources.wrf4g,"  % ( rea_sub_dir )
+                sandbox += "file://%s/experiment.wrf4g," % ( rea_sub_dir )
+                sandbox += "file://%s/namelist.input"    % ( rea_sub_dir )
+                wrf4g_files = join( rea_sub_dir , 'wrf4g_files.tar.gz' )
+                if exists( wrf4g_files ) :
+                    sandbox += ",file://%s" % ( wrf4g_files )
                 gw_job = gridwaylib.job()
-                gw_job.create_template( rea_name + '__' + str( chi.data['id_chunk'] ) ,
-                                    arguments ,         
-                                    np           = int ( running_var.get_variable( 'NP', default = '1') ) , 
-                                    req          = running_var.get_variable( 'REQUIREMENTS' ) ,
-                                    environ      = running_var.get_variable( 'ENVIRONMENT' ) ,
-                                    inputsandbox = sandbox ,
-                                    verbose      = self.verbose
-                                    )
+                gw_job.create_template( 
+                                       rea_name + '__' + str( chi.data['id_chunk'] ) ,
+                                       arguments ,
+                                       np           = int ( run_vars.get_variable( 'NP', default = '1') ) ,
+                                       req          = run_vars.get_variable( 'REQUIREMENTS' ) ,
+                                       environ      = run_vars.get_variable( 'ENVIRONMENT' ) ,
+                                       inputsandbox = sandbox ,
+                                       verbose      = self.verbose
+                                       )
                 if chunki == first_id:
                     gw_id = gw_job.submit(priority=priority)
                 else:
