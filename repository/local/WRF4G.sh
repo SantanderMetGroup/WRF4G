@@ -292,7 +292,7 @@ wrf_parallel=1
 DEBUG="-v"
 VERBOSE=1
 default_preprocessor="default"
-ERROR_MISSING_RESOURCESWRF4G=21
+ERROR_MISSING_WRF4GSRC=40
 
 #
 #  Get variables.
@@ -306,22 +306,12 @@ export WRF4G_CHUNK_ID=$5
 export chunk_start_date=$6
 export chunk_end_date=$7
 
-source ${ROOTDIR}/lib/bash/wrf_util.sh
-source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
-source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
-
-sed --in-place 's/\ *=\ */=/' experiment.wrf4g
-source experiment.wrf4g
-sed --in-place 's/\ *=\ */=/' db4g.conf
-source db4g.conf 
-
-python wrf4g_expvar -f resources.wrf4g
-
 #
 #   Expand the WRF4G scripts
 #
 
-tar xzf WRF4G-${WRF4G_VERSION}.tar.gz && rm -f WRF4G-${WRF4G_VERSION}.tar.gz || exit ${ERROR_MISSING_WRF4GSRC}
+tar xzf WRF4G-*.tar.gz && rm -f WRF4G-*.tar.gz 
+[ $? != 0 ] && exit ${ERROR_MISSING_WRF4GSRC}
 
 #   If there are additional files, expand them
 if test -f wrf4g_files.tar.gz; then
@@ -339,6 +329,17 @@ export DB4G_CONF=${ROOTDIR}/db4g.conf
 export PATH=${ROOTDIR}/bin:${ROOTDIR}/lib/bash:$PATH
 export LD_LIBRARY_PATH=${ROOTDIR}/lib:$LD_LIBRARY_PATH
 export PYTHONPATH=${ROOTDIR}/lib/python:${ROOTDIR}/bin:$PYTHONPATH
+
+source ${ROOTDIR}/lib/bash/wrf_util.sh
+source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
+source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
+
+sed --in-place 's/\ *=\ */=/' experiment.wrf4g
+source experiment.wrf4g
+sed --in-place 's/\ *=\ */=/' db4g.conf
+source db4g.conf 
+
+python wrf4g_expvar -f resources.wrf4g
 
 #
 #   Update Job Status in DB
