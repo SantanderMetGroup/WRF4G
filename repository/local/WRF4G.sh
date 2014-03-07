@@ -202,10 +202,11 @@ function wrf4g_exit(){
   #  This is the way out of this script. So close the timing info, move the
   #  logs to a safe place and leave
   #
+  case $excode in
   0)
     status=${JOB_STATUS_FINISHED}
   ;;
-   ${ERROR_UNGRIB_FAILED})
+  ${ERROR_UNGRIB_FAILED})
     ls -lR >& ${logdir}/ls.wps
     status=${JOB_STATUS_FAILED}
   ;;
