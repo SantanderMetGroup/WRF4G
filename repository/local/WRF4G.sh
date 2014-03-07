@@ -6,7 +6,7 @@
 
 function verbose_print() { ((VERBOSE)) && echo $@; return 0; }
 
-function date2int() { date=$[1]; echo $date | sed 's/[-_:]//g' }
+function date2int() { date=$[1]; echo $date | sed 's/[-_:]//g'; }
 
 function prepare_runtime_environment(){
   if (($PPN));then 
