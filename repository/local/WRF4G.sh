@@ -355,13 +355,13 @@ WRF4G_RM_REALIZATION="${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}
 #   Making remote directories for this job
 verbose_print "* `date`: Creating remote output structure ... "
 
-out=$(WRF4G.py --verbose  Realization prepare_remote_storage ${WRF4G_RM_REALIZATION})
+out=$(WRF4G.py --verbose  Realization prepare_remote_storage id=${WRF4G_REALIZATION_ID} ${WRF4G_RM_REALIZATION})
 [ $out != 0 ] && wrf4g_exit ${ERROR_CANNOT_CREATE_REMOTE_DIR} 
 
 #   Coping Making remote directories for this job
 echo "* `date`: Coping configuration files to remote out structure ... "
 
-out=$(WRF4G.py --verbose Realization copy_configuration_files ${WRF4G_RM_REALIZATION})
+out=$(WRF4G.py --verbose Realization copy_configuration_files id=${WRF4G_REALIZATION_ID} ${WRF4G_RM_REALIZATION})
 [ $out != 0 ] && wrf4g_exit ${ERROR_CANNOT_COPY_CONFIGURATION_FILES}
 
 #
@@ -449,15 +449,17 @@ read fyy fmm fdd fhh trash <<< $(echo ${chunk_end_date}     | tr '_:T-' '    ')
 #
 #   Either WPS runs or the boundaries and initial conditions are available
 #
-wps_stored=$(WRF4G.py Chunk get_wps id=${WRF4G_CHUNK_ID}) \
+wps_stored=$(WRF4G.py Chunk get_wps id=${WRF4G_CHUNK_ID}) 
 [ $? != 0 ] && wrf4g_exit ${ERROR_ACCESS_DB}
 
-cd ${LOCALDIR}/WPS || wrf4g_exit ${ERROR_GETTING_WPS}
+cd ${LOCALDIR}/WPS 
+[ $? != 0 ] && wrf4g_exit ${ERROR_GETTING_WPS}
 if test ${wps_stored} -eq "1"; then
   verbose_print "* `date`: The boundaries and initial conditions are available ... "
   vcp ${DEBUG} ${WRF4G_DOMAINPATH}/${domain_name}/namelist.wps . 
   [ $? != 0 ] && wrf4g_exit ${ERROR_VCP_FAILED} 
-  cd ${LOCALDIR}/WRFV3/run || wrf4g_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
+  cd ${LOCALDIR}/WRFV3/run
+  [ $? != 0 ] && wrf4g_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
   namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_rerun} ${timestep_dxfactor}
   output=$(WRF4G.py Job set_status id=${WRF4G_JOB_ID} ${ERROR_MISSING_EXPERIMENTSWRF4G})
   download_file ${DEBUG} real $(date_wrf2iso ${chunk_start_date})
