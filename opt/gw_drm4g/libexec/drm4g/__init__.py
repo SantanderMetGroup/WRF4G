@@ -25,8 +25,8 @@ for file in CONFIG_FILE_LOCATIONS :
         DRM4G_CONFIG_FILE = file
 assert DRM4G_CONFIG_FILE, "framework4g.conf does not exist, please provide one"
 
-REMOTE_JOBS_DIR = join( DRM4G_DIR , "var" , "drm4g" , "jobs" )
-REMOTE_VOS_DIR  = join( DRM4G_DIR , "var" , "drm4g" , "security" ) 
+REMOTE_JOBS_DIR = "~/.drm4g/jobs"
+REMOTE_VOS_DIR  = "~/.drm4g/security"
     
 # ssh communicator
 SSH_PORT            = 22
