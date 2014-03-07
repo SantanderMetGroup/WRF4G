@@ -339,7 +339,7 @@ source experiment.wrf4g
 sed --in-place 's/\ *=\ */=/' db4g.conf
 source db4g.conf 
 
-python wrf4g_expvar -f resources.wrf4g
+wrf4g_expvar -f resources.wrf4g
 
 #
 #   Update Job Status in DB
