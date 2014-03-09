@@ -340,7 +340,7 @@ sed --in-place 's/\ *=\ */=/' db4g.conf
 source db4g.conf 
 
 wrf4g_expvar -f resources.wrf4g
-[ $? == 0 ] && source bash_resources.wrf4g || wrf4g_exit ${ERROR_MISSING_RESOURCESWRF4G}
+[ $? == 0 ] && source bash_resources.wrf4g || exit ${ERROR_MISSING_RESOURCESWRF4G}
 
 #
 #   Should we unpack here or there is a local filesystem for us to run?
@@ -348,11 +348,17 @@ wrf4g_expvar -f resources.wrf4g
 if test -n "${WRF4G_LOCALSCP}"; then
   export LOCALDIR="${WRF4G_LOCALSCP}/wrf4g.$(date +%Y%m%d%H%M%S%N)"
   mkdir -p ${LOCALDIR} 
-  [ $? != 0 ] && wrf4g_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
+  [ $? != 0 ] && exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
   cd ${LOCALDIR}
 else
   export LOCALDIR=${ROOTDIR}
 fi
+
+#   Make log directory
+export logdir=${LOCALDIR}/log
+mkdir -p ${logdir}
+#   Redirect output and error file descriptors
+exec &>log/WRF4G.log
 
 #
 #   Update Job Status in DB
@@ -382,12 +388,6 @@ out=$(WRF4G.py --verbose Realization copy_configuration_files id=${WRF4G_REALIZA
 #
 [ ${clean_after_run} == 0 ] && touch ${ROOTDIR}/.lock
 
-#   Make log directory
-export logdir=${LOCALDIR}/log
-mkdir -p ${logdir}
-#   Redirect output and error file descriptors
-exec &>log/WRF4G.log
-
 #
 #  Create remote tree directory 
 #
@@ -403,7 +403,7 @@ vcp ${DEBUG} ${WRF4G_APPS}/netcdf/netcdf-${NETCDF_VERSION}.tar.gz .
 [ $? != 0 ] && wrf4g_exit ${ERROR_MISSING_NETCDF}
 tar xzf netcdf-${NETCDF_VERSION}.tar.gz && rm netcdf-${NETCDF_VERSION}.tar.gz
 
-vcp ${DEBUG} ${WRF4G_APPS}/nco/nco-${NCO_VERSION}.tar.gz . 
+vcp ${DEBUG} ${WRF4G_APPS}/ncos/nco-${NCO_VERSION}.tar.gz . 
 [ $? != 0 ] && wrf4g_exit ${ERROR_MISSING_NCO}
 tar xzf nco-${NCO_VERSION}.tar.gz && rm nco-${NCO_VERSION}.tar.gz
 
