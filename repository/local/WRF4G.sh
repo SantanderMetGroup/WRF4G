@@ -340,6 +340,19 @@ sed --in-place 's/\ *=\ */=/' db4g.conf
 source db4g.conf 
 
 wrf4g_expvar -f resources.wrf4g
+[ $? == 0 ] && source bash_resources.wrf4g || wrf4g_exit ${ERROR_MISSING_RESOURCESWRF4G}
+
+#
+#   Should we unpack here or there is a local filesystem for us to run?
+#
+if test -n "${WRF4G_LOCALSCP}"; then
+  export LOCALDIR="${WRF4G_LOCALSCP}/wrf4g.$(date +%Y%m%d%H%M%S%N)"
+  mkdir -p ${LOCALDIR} 
+  [ $? != 0 ] && wrf4g_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
+  cd ${LOCALDIR}
+else
+  export LOCALDIR=${ROOTDIR}
+fi
 
 #
 #   Update Job Status in DB
@@ -363,18 +376,6 @@ echo "* `date`: Coping configuration files to remote out structure ... "
 
 out=$(WRF4G.py --verbose Realization copy_configuration_files id=${WRF4G_REALIZATION_ID} ${WRF4G_RM_REALIZATION})
 [ $out != 0 ] && wrf4g_exit ${ERROR_CANNOT_COPY_CONFIGURATION_FILES}
-
-#
-#   Should we unpack here or there is a local filesystem for us to run?
-#
-if test -n "${WRF4G_LOCALSCP}"; then
-  export LOCALDIR="${WRF4G_LOCALSCP}/wrf4g.$(date +%Y%m%d%H%M%S%N)"
-  mkdir -p ${LOCALDIR} 
-  [ $? != 0 ] && wrf4g_exit ${ERROR_CANNOT_ACCESS_LOCALDIR}
-  cd ${LOCALDIR}
-else
-  export LOCALDIR=${ROOTDIR}
-fi
 
 #
 # GridWay won't remove ROOTDIR directory if clean_after_run is 0

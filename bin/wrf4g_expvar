@@ -25,9 +25,8 @@ try:
             if section.startswith( resource_name ) : 
                 section_to_use = section
                 break
-        def _environ( key , val ):
-            os.environ[ key ] = val
-        [ _environ( key , val ) for key, val in resource_env.items( section_to_use  ) ]
+        with open( 'bash_%s' % options.file ) as file :
+            [ file.write( "%s=%s" % ( key , val ) ) for key, val in resource_env.items( section_to_use  ) ]
     else :
         print "You MUST indicate a file"
 except Exception, err:
