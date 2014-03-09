@@ -36,7 +36,13 @@ class VarEnv( object ):
         """
         Indicate whether the named section is present in the configuration.
         """
-        return self._cp.has_section( section  ) 
+        return self._cp.has_section( section  )
+
+    def items( self ):
+        """
+        Return a list of tuples with (name, value) for each option in the section.
+        """
+        return self._cp.items()
 
     def sections( self ):
         """
@@ -44,9 +50,9 @@ class VarEnv( object ):
         """
         return self._cp.sections()
     
-    def get_variable( self , var_name , section = 'DEAFAUTL' , default = '') :
+    def get_variable( self , var_name , section = 'DEFAULT' , default = '') :
         """
-        Get a value for given section. The default section will be 'DEAFAUTL'. 
+        Get a value for given section. The default section will be 'DEFAULT'. 
         """
         
         try :
