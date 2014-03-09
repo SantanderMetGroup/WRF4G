@@ -14,9 +14,16 @@ if test -z $WRF4G_LOCATION; then
 fi
 
 if test -f $WRF4G_LOCATION/etc/framework4g.conf; then
-  FRAMEWORK4G_CONF="$WRF4G_LOCATION/etc/framework4g.conf"
+  export FRAMEWORK4G_CONF="$WRF4G_LOCATION/etc/framework4g.conf"
 else
   echo -e "$WRF4G_LOCATION/etc/framework4g.conf does not exist"
+  exit 1
+fi
+
+if test -f $WRF4G_LOCATION/etc/db4g.conf; then
+  export DB4G_CONF=$WRF4G_LOCATION/etc/db4g.conf 
+else
+  echo -e "$WRF4G_LOCATION/etc/db4g.conf does not exist"
   exit 1
 fi
 
