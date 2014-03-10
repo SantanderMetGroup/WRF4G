@@ -38,11 +38,11 @@ class VarEnv( object ):
         """
         return self._cp.has_section( section  )
 
-    def items( self ):
+    def items( self , section):
         """
         Return a list of tuples with (name, value) for each option in the section.
         """
-        return self._cp.items()
+        return self._cp.items( section )
 
     def sections( self ):
         """
@@ -537,11 +537,6 @@ class Experiment(Component):
                 os.makedirs( exp_sub_dir )
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )  
-        if exists( 'wrf4g_files' ):
-            import tarfile
-            with tarfile.open( 'wrf4g_files.tar.gz' , "w:gz" ) as tar:
-                tar.add( 'wrf4g_files' )
-            shutil.move( 'wrf4g_files.tar.gz' , exp_sub_dir )
          
 class Realization(Component):
     """ 
@@ -855,6 +850,11 @@ class Realization(Component):
                 os.makedirs( rea_submission_dir )
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % rea_submission_dir ) 
+        if exists( 'wrf4g_files' ):
+            import tarfile
+            with tarfile.open( 'wrf4g_files.tar.gz' , "w:gz" ) as tar:
+                tar.add( 'wrf4g_files' )
+            shutil.move( 'wrf4g_files.tar.gz' , rea_submission_dir )
         def _copy( file ):
             shutil.copy( expandvars( file ) , rea_submission_dir )
         [ _copy( file ) for file in files ]
