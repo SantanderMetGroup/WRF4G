@@ -18,7 +18,7 @@ read fyy fmm trash <<< `echo $eformateddate | tr '_T:-' '    '`
 
 if test ! $(which cdo); then
   thisdir=$(pwd)
-  cd `cat ../rootdir`
+  cd ${ROOTDIR}
   vcp ${WRF4G_APPS}/cdo.tar.gz .
   tar xzf cdo.tar.gz && rm cdo.tar.gz
   cd ${thisdir}
