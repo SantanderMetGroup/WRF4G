@@ -127,7 +127,7 @@ function run_metgrid (){
 
 function run_real (){
   clean_real
-  mv ../../WPS/met_em.d??.????-??-??_??:00:00.nc .
+  mv ${LOCALDIR}/WPS/met_em.d??.????-??-??_??:00:00.nc .
   fix_ptop
   namelist_wps2wrf ${chunk_restart_date} ${chunk_end_date} ${max_dom} ${chunk_rerun} ${timestep_dxfactor}
   
@@ -157,7 +157,6 @@ function run_real (){
   # Clean after run
   if test "${clean_after_run}" -eq 1; then
     rm -f met_em*
-    rm -f ../../WPS/met_em*
   fi
 }
 
