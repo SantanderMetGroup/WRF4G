@@ -333,15 +333,15 @@ source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
 
+wrf4g_expvar -f resources.wrf4g
+[ $? != 0 ] && exit ${ERROR_MISSING_RESOURCESWRF4G}
+
+sed --in-place 's/\ *=\ */=/' resources.wrf4g
+source resources.wrf4g
 sed --in-place 's/\ *=\ */=/' experiment.wrf4g
 source experiment.wrf4g
 sed --in-place 's/\ *=\ */=/' db4g.conf
-source db4g.conf 
-
-wrf4g_expvar -f resources.wrf4g
-[ $? != 0 ] && exit ${ERROR_MISSING_RESOURCESWRF4G}
-sed --in-place 's/\ *=\ */=/' resources.wrf4g
-source resources.wrf4g
+source db4g.conf
 
 #
 #   Should we unpack here or there is a local filesystem for us to run?
