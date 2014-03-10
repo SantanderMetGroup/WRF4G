@@ -340,7 +340,7 @@ sed --in-place 's/\ *=\ */=/' db4g.conf
 source db4g.conf 
 
 wrf4g_expvar -f resources.wrf4g
-[ $? == 0 ] && source bash_resources.wrf4g || exit ${ERROR_MISSING_RESOURCESWRF4G}
+[ $? == 0 ] && source resources.wrf4g || exit ${ERROR_MISSING_RESOURCESWRF4G}
 
 #
 #   Should we unpack here or there is a local filesystem for us to run?
