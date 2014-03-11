@@ -408,14 +408,16 @@ vcp ${DEBUG} ${WRF4G_APPS}/nco/nco-${NCO_VERSION}.tar.gz .
 [ $? != 0 ] && wrf4g_exit ${ERROR_MISSING_NCO}
 tar xzf nco-${NCO_VERSION}.tar.gz && rm nco-${NCO_VERSION}.tar.gz
 
-vcp ${DEBUG} ${WRF4G_APPS}/cdo/cdo-${CDO_VERSION}.tar.gz . 
-[ $? != 0 ] && wrf4g_exit ${ERROR_MISSING_CDO}
-tar xzf cdo-${NCO_VERSION}.tar.gz && rm cdo-${CDO_VERSION}.tar.gz
-
+if (($CDO_VERSION));then
+  vcp ${DEBUG} ${WRF4G_APPS}/cdo/cdo-${CDO_VERSION}.tar.gz . 
+  [ $? != 0 ] && wrf4g_exit ${ERROR_MISSING_CDO}
+  tar xzf cdo-${NCO_VERSION}.tar.gz && rm cdo-${CDO_VERSION}.tar.gz
+fi
+  
 cp ${ROOTDIR}/namelist.input ${LOCALDIR}/WRFV3/run/namelist.input 
 [ $? != 0 ] && wrf4g_exit ${ERROR_MISSING_NAMELIST}
 
-verbose_print "* `date`: Preparing WRF4G binaries ... "
+verbose_print "* `date`: Preparing WRF binaries ... "
 #  Move all executables out of LOCALDIR
 mv ${LOCALDIR}/WPS/ungrib/ungrib.exe   ${ROOTDIR}/bin/
 mv ${LOCALDIR}/WPS/metgrid/metgrid.exe ${ROOTDIR}/bin/
