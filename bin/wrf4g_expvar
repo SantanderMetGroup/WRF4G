@@ -21,8 +21,12 @@ try:
         resource_name  = os.environ.get('GW_HOSTNAME')
         resource_env   = VarEnv( options.file )
         section_to_use = 'DEFAULT' 
-        for section in resource_env.sections() : 
-            if section.startswith( resource_name ) : 
+        for section in resource_env.sections() :
+            if ':' in section :
+                _section = section.split( ':' , 1 )[ 1 ]
+            else :
+                _section = section
+            if resource_name.startswith( _section ) : 
                 section_to_use = section
                 break
         with open( options.file , 'w' ) as file :
