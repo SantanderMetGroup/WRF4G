@@ -47,17 +47,20 @@ WRF4G_LOCAL      = ${WRF4G_LOCATION}/repository/local
 #-------------------------------------------------------------------------------
 #             SOFTWARE CONFIGURATION
 #
-# WRF4G_VERSION: Name of the packed version of the WRF4G
+# WRF4G_VERSION: Name of the packed version of the WRF4G utilities
 # It must be on ${WRF4G_LOCAL}/WRF4G-${WRF4G_VERSION}.tar.gz 
 #
-# WRF_VERSION: Name of the packed version of the WRF compilation
+# WRF_VERSION: Name of the packed version of the WRF bundled
 # It must be on ${WRF4G_APPS}/WRF/WRFbin-${WRF_VERSION}.tar.gz
 #
-# NETCDF_VERSION: Name of the packed version of the NETCDF utilities 
+# NETCDF_VERSION: Name of the packed version of the NETCDF bundled
 # It must be on ${WRF4G_APPS}/netcdf/netcdf-${NETCDF_VERSION}.tar.gz 
 #
-# NCO_VERSION: Name of the packed version of the NCO utilities 
+# NCO_VERSION: Name of the packed version of the NCO bundled
 # It must be on ${WRF4G_APPS}/nco/nco-${NCO_VERSION}.tar.gz 
+#
+# CDO_VERSION: Name of the packed version of the CDO bundled 
+# It must be on ${WRF4G_APPS}/cdo/cdo-${CDO_VERSION}.tar.gz 
 #
 #-------------------------------------------------------------------------------
 
@@ -65,6 +68,7 @@ WRF4G_VERSION  = 2.0
 WRF_VERSION    = 3.3.1_r1184INTEL_OMPI
 NETCDF_VERSION = 4.1.1
 NCO_VERSION    = 4.0.9
+CDO_VERSION    = 1.3.0
 
 #-------------------------------------------------------------------------------
 #           RUNNING OPTIONS
