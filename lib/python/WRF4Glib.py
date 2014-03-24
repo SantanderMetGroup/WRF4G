@@ -7,6 +7,7 @@ import os
 import sys
 import shutil
 import StringIO
+import tarfile
 import ConfigParser
 import vdblib
 import vcplib
@@ -530,13 +531,17 @@ class Experiment(Component):
         ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea
     
-    def prepare_storage(self):
+    def prepare_storage(self):    
         exp_sub_dir = expandvars( "$WRF4G_LOCATION/var/submission/%s/" % self.data['name'] )
         if not isdir( exp_sub_dir ) :
             try: 
                 os.makedirs( exp_sub_dir )
             except Exception :
-                raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )  
+                raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )
+        WRF4G_package = join ( exp_sub_dir , "WRF4G.tar.gz" ) 
+        with tarfile.open( WRF4G_package , "w:gz" ) as tar:
+            for name in [ "bin", "lib" ]:
+                tar.add( expandvars( "$WRF4G_LOCATION/%s" % name ) ) 
          
 class Realization(Component):
     """ 
@@ -640,7 +645,6 @@ class Realization(Component):
             return False 
     
     def number_of_chunks(self):
-        
         nchunkd=dbc.select('Chunk','COUNT(Chunk.id_chunk)','id_rea=%s'%self.data['id'])
         nchunk=vdblib.parse_one_field(nchunkd)
         return nchunk
@@ -714,14 +718,9 @@ class Realization(Component):
                 import gridwaylib
                 rea_sub_dir  = expandvars( "$WRF4G_LOCATION/var/submission/%s/%s" % ( exp_name , rea_name ) )
                 os.chdir( rea_sub_dir )
-                run_vars     = VarEnv( join( rea_sub_dir , 'resources.wrf4g' )  )
-                WRF4G_script = "%s/WRF4G.sh" % ( run_vars.get_variable( 'WRF4G_LOCAL' ) )
-                if not exists(  WRF4G_script ) :
-                    raise Exception( "'%s' file does not exist" % WRF4G_script )
-                WRF4G_package = "%s/WRF4G-%s.tar.gz" % ( run_vars.get_variable( 'WRF4G_LOCAL' ) , run_vars.get_variable( 'WRF4G_VERSION' ) )
+                WRF4G_package = expandvars( "$WRF4G_LOCATION/var/WRF4G.tar.gz" ) 
                 if not exists(  WRF4G_package ) :
                     raise Exception( "'%s' file does not exist" % WRF4G_package )
-                sandbox  = "file://%s,"                  % ( WRF4G_script )
                 sandbox += "file://%s,"                  % ( WRF4G_package )
                 sandbox += "file://%s/db4g.conf,"        % ( rea_sub_dir )
                 sandbox += "file://%s/resources.wrf4g,"  % ( rea_sub_dir )
@@ -730,7 +729,8 @@ class Realization(Component):
                 wrf4g_files = join( rea_sub_dir , 'wrf4g_files.tar.gz' )
                 if exists( wrf4g_files ) :
                     sandbox += ",file://%s" % ( wrf4g_files )
-                gw_job = gridwaylib.job()
+                run_vars = VarEnv( join( rea_sub_dir , 'resources.wrf4g' )  )
+                gw_job   = gridwaylib.job()
                 gw_job.create_template( 
                                        rea_name + '__' + str( chi.data['id_chunk'] ) ,
                                        arguments ,
@@ -851,7 +851,6 @@ class Realization(Component):
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % rea_submission_dir ) 
         if exists( 'wrf4g_files' ):
-            import tarfile
             with tarfile.open( 'wrf4g_files.tar.gz' , "w:gz" ) as tar:
                 tar.add( 'wrf4g_files' )
             shutil.move( 'wrf4g_files.tar.gz' , rea_submission_dir )
