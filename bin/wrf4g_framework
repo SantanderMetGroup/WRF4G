@@ -11,7 +11,7 @@ case "$1" in
     if test -f $GW_LOCATION/var/.lock; then
       echo -e "ERROR: GridWay is already running." 
     else
-      $GW_LOCATION/bin/gwd && echo "OK"
+      $G(W_LOCATION/bin/gwd && echo "OK"
     fi
     
     grep "DB_.*=" ${WRF4G_LOCATION}/etc/framework4g.conf | sed -e 's/\ *=\ */=/' > db4g.conf.temp
@@ -31,8 +31,9 @@ case "$1" in
         echo -e "Change WRF4G_DB_PORT in $WRF4G_LOCATION/etc/framework4g.conf to start MySQL on a different port."
         exit 0
       fi
-      
-      nohup ./bin/mysqld_safe --no-defaults --port=$WRF4G_DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock --log-error=$WRF4G_LOCATION/var/mysql.log &>/dev/null &
+      mysql_log=$WRF4G_LOCATION/var/log/mysql.log
+      [ ! -f ${mysql_log} ] && mkdir -p ${mysql_log}
+      nohup ./bin/mysqld_safe --no-defaults --port=$WRF4G_DB_PORT --socket=$MYSQL_LOCATION/data/mysql.sock --log-error=${mysql_log} &>/dev/null &
       cd - &>/dev/null
       echo "OK"
     fi
