@@ -2,164 +2,32 @@ from __future__     import with_statement
 from datetime       import datetime
 from os.path        import join , basename , dirname , exists , expandvars , isdir
 from re             import search , match
+from wrf4g          import vdblib , vcplib , gridwaylib , HOME , WRF4G_LOCATION , WRF4G_DEPLOYMENT_LOCATION , DB4G_CONF , GW_LOCATION , GW_BIN_LOCATION , GW_LIB_LOCATION , MYSQL_LOCATION
+from wrf4g.utils    import VarEnv , datetime2datewrf , list2fields , create_hash
 
 import os
 import sys
 import shutil
 import StringIO
 import tarfile
-import ConfigParser
-import vdblib
-import vcplib
+import subprocess
+import time
+import signal
 
 __version__  = '1.5'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id:$"
 
 
-class VarEnv( object ):
-    """
-    Allow to load the available variables in a file 
-    """
-    
-    def __init__(self, file):
-        """
-        'file' to read
-        """
-        config = StringIO.StringIO()
-        config.write( "[DATA]\n" )
-        config.write( open( file ).read() )
-        config.seek( 0 , os.SEEK_SET )
-        self._cp = ConfigParser.ConfigParser()
-        self._cp.readfp( config )
-        
-    def has_section( self , section ):
-        """
-        Indicate whether the named section is present in the configuration.
-        """
-        return self._cp.has_section( section  )
+dreastatus = { 
+              0 : 'P' , 
+              1 : 'W' , 
+              2 : 'R' ,
+              3 : 'F' ,
+              4 : 'D' ,
+              }
 
-    def items( self , section):
-        """
-        Return a list of tuples with (name, value) for each option in the section.
-        """
-        return self._cp.items( section )
-
-    def sections( self ):
-        """
-        Return a list of section names, excluding [DEFAULT] section.
-        """
-        return self._cp.sections()
-    
-    def get_variable( self , var_name , section = 'DEFAULT' , default = '') :
-        """
-        Get a value for given section. The default section will be 'DEFAULT'. 
-        """
-        
-        try :
-            value = dict( self._cp.items( section ) )[ var_name.lower() ]
-            if value.startswith( '"' ) and value.endswith( '"' ) :
-                value = value[ 1 : -1 ]
-            elif value.startswith( "'" ) and value.endswith( "'" ) :
-                value = value[ 1 : -1 ]
-            return value
-        except ( KeyError , IOError ):
-            return default
-
-class wrffile( object ) :
-    """
-    This class manage the restart and output files and the dates they represent.
-    It recieves a file name with one of the following shapes: wrfrst_d01_1991-01-01_12:00:00 or
-    wrfrst_d01_19910101T120000Z and it return the date of the file, the name,...
-    """
-
-    def __init__(self, url, edate=None):
-        """
-        Change the name of the file in the repository (Change date to the iso format
-        and add .nc at the end of the name
-        """
-        # wrfrst_d01_1991-01-01_12:00:00
-        if edate:
-            self.edate = datewrf2datetime(edate)
-
-        g = search("(.*)(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})", url)
-        if g:
-            base_file, date_file = g.groups()
-            self.date = datewrf2datetime(date_file)
-        else :
-            # wrfrst_d01_19910101T120000Z.nc
-            g = search("(.*)(\d{8}T\d{6}Z)", url)
-            if not g:
-                out="File name is not well formed"
-                raise Exception(out)
-            else :
-                base_file, date_file = g.groups()
-                self.date = dateiso2datetime(date_file)
-        self.file_name = basename(base_file)
-        self.dir_name = dirname(base_file)
-
-    def date_wrf(self):
-        return datetime2datewrf(self.date)
-
-    def date_iso(self):
-        return datetime2dateiso(self.date)
-
-    def file_name_wrf(self):
-        return self.file_name + datetime2datewrf(self.date)
-
-    def file_name_iso(self):
-        return "%s%s.nc" % (self.file_name,datetime2dateiso(self.date))
-
-    def file_name_out_iso(self):
-        return "%s%s_%s.nc" % (self.file_name, datetime2dateiso(self.date), datetime2dateiso(self.edate))
-
-
-############################## FUNCTIONS FOR MANAGE DATES ################################
-def datewrf2datetime (datewrf):
-    g = match("(\d{4})-(\d{2})-(\d{2})_(\d{2}):(\d{2}):(\d{2})", datewrf)
-    if not g :
-        raise Exception("Date is not well formed")
-    date_tuple = g.groups()
-    date_object = datetime(*tuple(map(int, date_tuple)))
-    return date_object
-
-def dateiso2datetime (dateiso):
-    g = match("(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z", dateiso)
-    if not g :
-        raise Exception("Date is not well formed")
-    date_tuple = g.groups()
-    date_object = datetime(*tuple(map(int, date_tuple)))
-    return date_object
-
-def datetime2datewrf (date_object):
-    return date_object.strftime("%Y-%m-%d_%H:%M:%S")
-
-def datetime2dateiso (date_object):
-    return date_object.strftime("%Y%m%dT%H%M%SZ")
-
-############################################################################################
-
-def pairs2dict(pairs):
-    d={}
-    for p in pairs.split(','):
-        s=p.split('=')
-        d[s[0]]=s[1]
-    return d
-
-def list2fields(arr):
-    fields=''
-    for i in arr:
-       fields="%s,%s" %(fields,i)
-    fields=fields[1:]
-    return fields
-
-def create_hash():
-    import random
-    rand=random.randint(1,60000000)
-    text=str(rand)
-    return text
-
-def JobStatus():
+def JobStatus( dbc ):
     dstatus=dbc.select('Jobstatus','id,description')
     sta={}
     for entry in dstatus:
@@ -199,12 +67,12 @@ def getuserid(name,dbc):
     return id      
 
 class Environment:
-    def __init__(self):
-        pass
+    def __init__(self, dbc):
+        self.dbc = dbc
     
     def list_experiments(self):
-        idp=dbc.select('Experiment','id','1=1')
-        id = vdblib.parse_one_list(idp,interpreter='python')
+        idp = self.dbc.select('Experiment','id','1=1')
+        id  = vdblib.parse_one_list(idp,interpreter='python')
         return id
         
 class Component:
@@ -212,18 +80,19 @@ class Component:
     Component CLASS
     """
 
-    def __init__(self,data='',verbose=False,dryrun=False,reconfigure=False):
+    def __init__(self,data='',verbose=False,dryrun=False,reconfigure=False,dbc=False):
         self.verbose=verbose
         self.dryrun=dryrun
         self.reconfigure=reconfigure
         self.element=self.__class__.__name__
-        self.data=data   
+        self.data=data
+        self.dbc=dbc   
             
     def describeDB(self):
         """    
         Returns a list with all the Component fields.
         """
-        salida=dbc.describe(self.element)
+        salida=self.dbc.describe(self.element)
         return salida
     
     def get_id(self,fields):
@@ -241,7 +110,7 @@ class Component:
             wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
         wheresta=wheresta[4:]
         
-        idp=dbc.select(self.element,'id',wheresta,verbose=self.verbose)
+        idp=self.dbc.select(self.element,'id',wheresta,verbose=self.verbose)
         id = vdblib.list_query().one_field(idp)
         if id !='': return id
         else: return -1
@@ -258,7 +127,7 @@ class Component:
         for field in list_query:
             wheresta="%s AND %s='%s'" %(wheresta,field,self.data[field])
         wheresta=wheresta[4:]    
-        dic=dbc.select(self.element,list2fields(fields),wheresta, verbose=self.verbose )
+        dic=self.dbc.select(self.element,list2fields(fields),wheresta, verbose=self.verbose )
         self.__init__(dic[0])
         if id>0: return id
         else: return -1
@@ -270,7 +139,7 @@ class Component:
         id > 0 --> Creation Worked.
         -1--> Creation Failed
         """
-        id=dbc.insert(self.element,self.data,verbose=self.verbose)
+        id=self.dbc.insert(self.element,self.data,verbose=self.verbose)
         self.data['id']=id
         if id>0: return id
         else: return -1
@@ -287,7 +156,7 @@ class Component:
             ddata[field]=self.data[field]
         
         condition='id=%s'%self.data['id']
-        oc=dbc.update(self.element,ddata,condition,verbose=self.verbose)
+        oc=self.dbc.update(self.element,ddata,condition,verbose=self.verbose)
         return oc
     
     def delete(self):
@@ -297,7 +166,7 @@ class Component:
         if self.verbose: 
             sys.stderr.write("Deleting %s with id %s\n"%(self.element,self.data['id']))
         condition='id=%s'%self.data['id']
-        o=dbc.delete_row(self.element,condition)
+        o=self.dbc.delete_row(self.element,condition)
         return 0
     
     def get_one_field(self,val,cond):
@@ -306,7 +175,7 @@ class Component:
             condition="%s AND %s='%s'" %(condition,field,self.data[field])
         condition=condition[4:]   
         
-        dic=dbc.select(self.element,list2fields(val),condition, verbose=self.verbose )
+        dic=self.dbc.select(self.element,list2fields(val),condition, verbose=self.verbose )
         return dic[0][val[0]]
 
     def update_fields(self,val,cond):
@@ -319,7 +188,7 @@ class Component:
             condition="%s AND %s='%s'" %(condition,field,self.data[field])
         condition=condition[4:]
         
-        oc=dbc.update(self.element,ddata,condition,verbose=self.verbose)
+        oc=self.dbc.update(self.element,ddata,condition,verbose=self.verbose)
         return oc     
     
     def prepare(self):
@@ -373,7 +242,7 @@ class Component:
             if self.element == "Experiment":
                 import getpass
                 username=getpass.getuser()
-                userid=getuserid(username,dbc)
+                userid=getuserid(username,self.dbc)
                 self.data['id_user']=userid
                 
             self.data['id']=self.create()
@@ -402,7 +271,7 @@ class Experiment(Component):
 
         wheresta=''
         
-        idp=dbc.select(self.element,'id',"name='%s'"%self.data['name'],verbose=self.verbose)
+        idp=self.dbc.select(self.element,'id',"name='%s'"%self.data['name'],verbose=self.verbose)
         id = vdblib.list_query().one_field(idp)
         self.data['id']=id
         if id !='': return id
@@ -426,7 +295,7 @@ class Experiment(Component):
             rea_ids=rea_ids[0:nrea]
 
         for id_rea in rea_ids:
-            rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
+            rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun, dbc = self.dbc)
             st=rea.run(nchunk=nchunk,priority=priority,rerun=rerun,force=force,type_dep=type_dep)
             if st==1:
                 ncrea=ncrea+1
@@ -444,7 +313,7 @@ class Experiment(Component):
         rea_ids=self.get_realizations_id()
         dout=[]
         for id_rea in rea_ids:
-            rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
+            rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun, dbc = self.dbc)
             rea.ps(number_of_characters)
     
     def statistics(self):
@@ -454,7 +323,7 @@ class Experiment(Component):
         rea_ids=self.get_realizations_id()
         dout=[]
         for id_rea in rea_ids:
-            rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun)
+            rea=Realization(data={'id': str(id_rea)},verbose=self.verbose,dryrun=self.dryrun, dbc = self.dbc)
             rea.statistics()
             
     
@@ -472,7 +341,7 @@ class Experiment(Component):
         Query database and Returns a list with the realization
         ids of an experiment"""        
         
-        idp=dbc.select('Realization','id','id_exp=%s'%self.data['id'],verbose=self.verbose)
+        idp=self.dbc.select('Realization','id','id_exp=%s'%self.data['id'],verbose=self.verbose)
         ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea 
     
@@ -480,7 +349,7 @@ class Experiment(Component):
         """
         Return a list of ids of the realization of a experiment which haven't finished.
         """
-        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status!=4 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s'%self.data['id'],verbose=self.verbose)
+        idp=self.dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status!=4 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s'%self.data['id'],verbose=self.verbose)
         ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea
 
@@ -488,7 +357,7 @@ class Experiment(Component):
         """
         Return a list of ids of the realization of a experiment which are running.
         """
-        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=2 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s AND Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND c2.status=3)'%self.data['id'],verbose=self.verbose)
+        idp=self.dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=2 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s AND Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND c2.status=3)'%self.data['id'],verbose=self.verbose)
         ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea      
     
@@ -496,7 +365,7 @@ class Experiment(Component):
         """
         Return a list of ids of the realization of a experiment which have finished. Any of the Realization Chunks have the status 3.
         """
-        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=3 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s'%self.data['id'],verbose=self.verbose)
+        idp=self.dbc.select('Chunk,Realization','DISTINCT Realization.id','Chunk.status=3 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s'%self.data['id'],verbose=self.verbose)
         ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea  
 
@@ -506,7 +375,7 @@ class Experiment(Component):
         """
         # SELECT DISTINCT(Realization.id) From Chunk,Realization where Realization.id=Chunk.id_rea AND Realization.id_exp=2 and Chunk.status = 1 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Chunk.id_rea AND c2.status!=1)
         condition='Realization.id=Chunk.id_rea AND Realization.id_exp=%s and Chunk.status = 0 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND (c2.status!=0 and c2.status!=4))'%self.data['id']
-        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id',condition,verbose=self.verbose)
+        idp=self.dbc.select('Chunk,Realization','DISTINCT Realization.id',condition,verbose=self.verbose)
         ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea   
 
@@ -516,7 +385,7 @@ class Experiment(Component):
         """
         # SELECT DISTINCT(Realization.id) From Chunk,Realization where Realization.id=Chunk.id_rea AND Realization.id_exp=2 and Chunk.status = 1 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Chunk.id_rea AND c2.status!=1)
         condition='Realization.id=Chunk.id_rea AND Realization.id_exp=%s and Chunk.status = 4 and Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND c2.status!=4)'%self.data['id']
-        idp=dbc.select('Chunk,Realization','DISTINCT Realization.id',condition,verbose=self.verbose)
+        idp=self.dbc.select('Chunk,Realization','DISTINCT Realization.id',condition,verbose=self.verbose)
         ids_rea = vdblib.list_query().one_field(idp,'python')
         return ids_rea
 
@@ -524,7 +393,7 @@ class Experiment(Component):
         """
         Return a list of ids of the realization of a experiment which have finished.
         """
-        idp=dbc.select('Chunk,Realization',
+        idp=self.dbc.select('Chunk,Realization',
                        'DISTINCT Realization.id',
                        'Chunk.status=1 AND Realization.id=Chunk.id_rea AND Realization.id_exp=%s AND Chunk.id_rea not in (select c2.id_rea From Chunk as c2 where c2.id_rea = Realization.id AND (c2.status=2 OR c2.status=3 ) )'%self.data['id'],
                        verbose=self.verbose)
@@ -532,16 +401,15 @@ class Experiment(Component):
         return ids_rea
     
     def prepare_storage(self):    
-        exp_sub_dir = expandvars( "$WRF4G_LOCATION/var/submission/%s/" % self.data['name'] )
+        exp_sub_dir = join( WRF4G_LOCATION , 'var' , 'submission' , self.data['name'] )
         if not isdir( exp_sub_dir ) :
             try: 
                 os.makedirs( exp_sub_dir )
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )
-        WRF4G_package = join ( exp_sub_dir , "WRF4G.tar.gz" ) 
-        with tarfile.open( WRF4G_package , "w:gz" ) as tar:
-            for name in [ "bin", "lib" ]:
-                tar.add( expandvars( "$WRF4G_LOCATION/%s" % name ) ) 
+        with tarfile.open( join ( exp_sub_dir , "WRF4G.tar.gz" ) , "w:gz" ) as tar:
+            for dir in [ "bin", "lib" ]:
+                tar.add( join( WRF4G_DEPLOYMENT_LOCATION , dir ) ) 
          
 class Realization(Component):
     """ 
@@ -567,7 +435,7 @@ class Realization(Component):
     def get_id_from_name(self):
 
         wheresta=''
-        idp=dbc.select(self.element,'id',"name='%s'"%self.data['name'],verbose=self.verbose)
+        idp=self.dbc.select(self.element,'id',"name='%s'"%self.data['name'],verbose=self.verbose)
         id = vdblib.list_query().one_field(idp)
         self.data['id']=id
         if id !='': return id
@@ -600,7 +468,7 @@ class Realization(Component):
     
     def has_finished(self):
         lchunk=self.last_chunk()
-        status=Chunk(data={'id': '%s'%lchunk}).get_status()
+        status=Chunk(data={'id': '%s'%lchunk}, dbc = self.dbc).get_status()
         if status == 4:
             finished=True
         else:
@@ -609,20 +477,20 @@ class Realization(Component):
 
     def get_init_status(self):
         
-        dst=dbc.select('Chunk','status','id_rea=%s AND id_chunk=1'%self.data['id'] )
+        dst=self.dbc.select('Chunk','status','id_rea=%s AND id_chunk=1'%self.data['id'] )
         st=vdblib.parse_one_field(dst)
         return st
     
     def current_chunk_status(self):
         status=0
         nchunks=self.number_of_chunks()
-        failed=dbc.select('Chunk','MIN(id_chunk)','id_rea=%s AND status=3'%self.data['id'] )
+        failed=self.dbc.select('Chunk','MIN(id_chunk)','id_rea=%s AND status=3'%self.data['id'] )
         id_chunk=vdblib.parse_one_field(failed)
         
         if id_chunk:     
             status=3
         else:
-            did=dbc.select('Chunk','MAX(id_chunk)','id_rea=%s AND status=4'%self.data['id'])
+            did=self.dbc.select('Chunk','MAX(id_chunk)','id_rea=%s AND status=4'%self.data['id'])
             id_chunk=vdblib.parse_one_field(did)
             if id_chunk == None:
                 id_chunk=0
@@ -631,31 +499,31 @@ class Realization(Component):
             else:
                 id_chunk=id_chunk + 1
         
-        ch=Chunk(data={'id_chunk':id_chunk,'id_rea':self.data['id']})
+        ch=Chunk(data={'id_chunk':id_chunk,'id_rea':self.data['id']}, dbc = self.dbc)
         id=ch.get_one_field(['id'], ['id_chunk','id_rea'])
         if status !=4 and status !=3:
             status=ch.get_one_field(['status'], ['id_chunk','id_rea'])
         return (id,id_chunk,int(status))    
         
     def has_failed(self):
-        nchunkd=dbc.select('Chunk','id','id_rea=%s AND status=3'%self.data['id'] )
+        nchunkd=self.dbc.select('Chunk','id','id_rea=%s AND status=3'%self.data['id'] )
         if nchunkd != ():     
             return True
         else:
             return False 
     
     def number_of_chunks(self):
-        nchunkd=dbc.select('Chunk','COUNT(Chunk.id_chunk)','id_rea=%s'%self.data['id'])
+        nchunkd=self.dbc.select('Chunk','COUNT(Chunk.id_chunk)','id_rea=%s'%self.data['id'])
         nchunk=vdblib.parse_one_field(nchunkd)
         return nchunk
         
     def last_chunk(self):        
-        nchunkd=dbc.select('Chunk','MAX(Chunk.id)','id_rea=%s'%self.data['id'])
+        nchunkd=self.dbc.select('Chunk','MAX(Chunk.id)','id_rea=%s'%self.data['id'])
         nchunk=vdblib.parse_one_field(nchunkd)
         return nchunk 
     
     def first_chunk(self):        
-        nchunkd=dbc.select('Chunk','MIN(Chunk.id)','id_rea=%s'%self.data['id'])
+        nchunkd=self.dbc.select('Chunk','MIN(Chunk.id)','id_rea=%s'%self.data['id'])
         nchunk=vdblib.parse_one_field(nchunkd)
         return nchunk 
        
@@ -668,20 +536,19 @@ class Realization(Component):
         first_id_chunk=chunk_status[1]
 
         if rerun:
-            if repeatchunk != 0:
-               first_id_chunk=repeatchunk
-               chunkd=dbc.select('Chunk','id,sdate','id_rea=%s AND id_chunk=%d'%(self.data['id'],repeatchunk),
-                                 verbose=self.verbose)
-               first_id=chunkd[0]['id']
-               sdate=chunkd[0]['sdate']              
-               self.set_restart(sdate)
-               self.set_cdate(sdate)
-            else:
-               first_id=first_id-first_id_chunk+1     
-               first_id_chunk=1
-               self.set_restart(None)
-               cdate=self.get_one_field(['sdate'], ['id'])
-               self.set_cdate(cdate)
+            if repeatchunk is 0 :
+                first_id=first_id-first_id_chunk+1     
+                first_id_chunk=1
+                self.set_restart(None)
+                cdate=self.get_one_field(['sdate'], ['id'])
+                self.set_cdate(cdate)
+            else :
+                first_id_chunk=repeatchunk
+                chunkd=self.dbc.select('Chunk','id,sdate','id_rea=%s AND id_chunk=%d'%(self.data['id'],repeatchunk),verbose=self.verbose)
+                first_id=chunkd[0]['id']
+                sdate=chunkd[0]['sdate']              
+                self.set_restart(sdate)
+                self.set_cdate(sdate)
         else:
             if chunk_status[2] == 4:
                 sys.stderr.write('Realization %s already finished.\n'%rea_name)
@@ -689,7 +556,7 @@ class Realization(Component):
             if not force and ( chunk_status[2] == 2 or chunk_status[2] == 1) :
                 sys.stderr.write('Realization %s is still submitting. Use --force if you really want to submit the realization.\n'%rea_name)
                 return 1
-        if repeatchunk == 0:
+        if repeatchunk is 0:
             lchunk=self.last_chunk()
             if nchunk != 0 and lchunk-first_id >= nchunk: 
                 lchunk=first_id+nchunk-1
@@ -697,7 +564,7 @@ class Realization(Component):
             lchunk=first_id
 
         for chunki in range(first_id,lchunk+1):
-            chi=Chunk(data={'id':'%s'%chunki})
+            chi=Chunk(data={'id':'%s'%chunki}, dbc = self.dbc )
             chi.loadfromDB(['id'],chi.get_configuration_fields())
             arguments='%s %s %s %d %d %s %s'%(self.get_exp_name(),
                                               rea_name,self.data['id'],
@@ -715,14 +582,13 @@ class Realization(Component):
                              )
     
             if not self.dryrun :
-                import gridwaylib
-                rea_sub_dir  = expandvars( "$WRF4G_LOCATION/var/submission/%s/%s" % ( exp_name , rea_name ) )
+                rea_sub_dir   = join( WRF4G_LOCATION , 'var' , 'submission' , exp_name , rea_name )
                 os.chdir( rea_sub_dir )
-                WRF4G_package = expandvars( "$WRF4G_LOCATION/var/WRF4G.tar.gz" ) 
+                WRF4G_package = join( WRF4G_LOCATION , 'var', 'WRF4G.tar.gz' ) 
                 if not exists(  WRF4G_package ) :
                     raise Exception( "'%s' file does not exist" % WRF4G_package )
                 sandbox += "file://%s,"                  % ( WRF4G_package )
-                sandbox += "file://%s/db4g.conf,"        % ( rea_sub_dir )
+                sandbox += "file://%s/db.conf,"          % ( rea_sub_dir )
                 sandbox += "file://%s/resources.wrf4g,"  % ( rea_sub_dir )
                 sandbox += "file://%s/experiment.wrf4g," % ( rea_sub_dir )
                 sandbox += "file://%s/namelist.input"    % ( rea_sub_dir )
@@ -751,7 +617,7 @@ class Realization(Component):
                 job = Job(job_data,verbose=self.verbose)
                 jid = job.create()
                 job.set_status('1')
-                dbc.commit()
+                self.dbc.commit()
         return 0
 
     def get_exp_name(self):
@@ -759,7 +625,7 @@ class Realization(Component):
            self.data['name']=self.get_name()
          else:
             self.data['id']=self.get_id(['name'])
-         cexp=Experiment(data={'id': self.get_exp_id()})
+         cexp=Experiment(data={'id': self.get_exp_id()}, dbc = self.dbc)
          exp_name=cexp.get_name()
          return exp_name  
         
@@ -771,7 +637,7 @@ class Realization(Component):
             if self.data['id']== -1:
                 sys.stderr.write('Realization with name %s does not exist\n'%self.data['name'])
                 sys.exit(1)            
-        drea=dbc.select('Realization','name,restart,sdate,cdate,edate','id=%s'%self.data['id'])
+        drea=self.dbc.select('Realization','name,restart,sdate,cdate,edate','id=%s'%self.data['id'])
         dout=drea[0]
         nchunks=self.number_of_chunks()
         status=self.get_init_status()
@@ -783,7 +649,7 @@ class Realization(Component):
             if status == 0:       
                 djob={'gw_job': '-', 'status': 0, 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'%s/%d'%(current_chunk,nchunks)}
             else:
-                ch=Chunk(data={'id': id_chunk}) 
+                ch=Chunk(data={'id': id_chunk},  dbc = self.dbc) 
                 lastjob=ch.get_last_job()
                 j=Job(data={'id':lastjob})            
                 djob=j.get_info()
@@ -791,8 +657,32 @@ class Realization(Component):
                     djob={'gw_job': djob['gw_job'], 'status': djob['status'], 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'0/%d'%nchunks}
                 djob['nchunks']='%d/%d'%(current_chunk,nchunks)
         dout.update(djob)
-        dout['rea_status']=status        
-        print format_output(dout, number_of_characters)
+        dout['rea_status']=status            
+        djobstatus=JobStatus( self.dbc )
+        if dout['exitcode']==None:
+            exitcode='-'
+        else:
+            exitcode=str(dout['exitcode']) 
+    
+        runt=(int(dout['cdate'].strftime("%s"))-int(dout['sdate'].strftime("%s")))*100.    
+        totalt=int(dout['edate'].strftime("%s"))-int(dout['sdate'].strftime("%s"))
+        per=runt/totalt
+        if dout['status'] < 10 and dout['status'] > 0 and dout['rea_status'] != 4: 
+            dout['rea_status']=1  
+        string_to_print = '%-'+ str(number_of_characters) + 's %-5s %-2s %-15s %-10s %-10s %-13s %2s %2.2f'
+        return  string_to_print  % (dout['name'][0:number_of_characters],
+                                    dout['gw_job'],
+                                    dreastatus[dout['rea_status']],
+                                    dout['nchunks'],
+                                    dout['resource'][0:10],
+                                    dout['wn'][0:10],
+                                    djobstatus[dout['status']],
+                                    exitcode,
+                                    per)
+        
+        
+        
+        
                            
     def statistics(self):
         if 'id' in self.data.keys():
@@ -811,11 +701,11 @@ class Realization(Component):
             lastc=last_chunk[0]+1
         ci=1
         for id_chunk in range(self.first_chunk(),lastc):
-            ch=Chunk(data={'id': id_chunk})
+            ch=Chunk(data={'id': id_chunk}, dbc = self.dbc)
             j=Job(data={'id':ch.get_last_job()})
             jobi=j.list_events()
             line="%s;%d;%d;%d;%s;%s;"%(self.get_name(),ci,jobi['gw_job'],jobi['exitcode'],jobi['resource'],jobi['wn'])
-            lestados=JobStatus()
+            lestados=JobStatus( self.dbc )
             es=lestados.keys()
             es.sort()
 
@@ -829,9 +719,8 @@ class Realization(Component):
             ci=ci+1
 
     def prepare_storage(self): 
-        files = [
-                 "$DB4G_CONF" , 
-                 "$RESOURCES_WRF4G" ,
+        files = [ 
+                 "resources.wrf4g" ,
                  "experiment.wrf4g" ,
                  "namelist.input" ,
                  ]        
@@ -844,7 +733,7 @@ class Realization(Component):
         
         rea_name           = self.data['name']        
         exp_name           = self.data['name'].split('__')[0]
-        rea_submission_dir = expandvars( "$WRF4G_LOCATION/var/submission/%s/%s/" % ( exp_name , rea_name ) )
+        rea_submission_dir = join( WRF4G_LOCATION , 'var' , 'submission' , exp_name , rea_name )
         if not isdir( rea_submission_dir ) :
             try :
                 os.makedirs( rea_submission_dir )
@@ -853,13 +742,15 @@ class Realization(Component):
         if exists( 'wrf4g_files' ):
             with tarfile.open( 'wrf4g_files.tar.gz' , "w:gz" ) as tar:
                 tar.add( 'wrf4g_files' )
-            shutil.move( 'wrf4g_files.tar.gz' , rea_submission_dir )
+            dst_file = join( rea_submission_dir , 'wrf4g_files.tar.gz' )
+            if exists( dst_file ):
+                os.remove(dst_file)
+            shutil.move( 'wrf4g_files.tar.gz' , dst_file )
+            
         def _copy( file ):
             shutil.copy( expandvars( file ) , rea_submission_dir )
         [ _copy( file ) for file in files ]
 
-        WRF4G_LOCATION = os.environ.get('WRF4G_LOCATION')
-        HOME           = os.environ.get('HOME')
         map_dict = {'$WRF4G_LOCATION'   : WRF4G_LOCATION ,
                     '${WRF4G_LOCATION}' : WRF4G_LOCATION , 
                     '$HOME'             : HOME ,     
@@ -904,12 +795,12 @@ class Realization(Component):
         Copy configuration files from the WN to the out path such as :
             * experiment.wrf4g
             * resources.wrf4g
-            * db4g.conf
+            * db.conf
             * namelist.input
         """
         # We have to add an overwriting option 
         try :
-            for configuration_file in [ "db4g.conf" , "experiment.wrf4g" ,  "resources.wrf4g" ]:
+            for configuration_file in [ "db.conf" , "experiment.wrf4g" ,  "resources.wrf4g" ]:
                 vcplib.copy_file( configuration_file, join( remote_realization_path , configuration_file  ) , verbose = self.verbose )
             vcplib.copy_file( "namelist.input" , join ( remote_realization_path , "namelist.input" ) , verbose = self.verbose )
             return 0
@@ -919,8 +810,8 @@ class Realization(Component):
                               
     def is_finished(self,id_rea):
         
-        max_id = dbc.select('Chunk','MAX(id)','id_rea=%s'%id_rea,verbose=self.verbose)
-        status = dbc.select('Chunk','status','id=%s'%vdblib.parse_one_field(max_id),verbose=self.verbose)
+        max_id = self.dbc.select('Chunk','MAX(id)','id_rea=%s'%id_rea,verbose=self.verbose)
+        status = self.dbc.select('Chunk','status','id=%s'%vdblib.parse_one_field(max_id),verbose=self.verbose)
         if status == '4':
             return 1
         else:
@@ -929,7 +820,7 @@ class Realization(Component):
     def stop_running_chunks(self):
         import gridwaylib
         condition="Chunk.id_rea=%s and Job.id_chunk=Chunk.id AND (Chunk.status=1 OR Chunk.status=2) GROUP BY Chunk.id"%self.data['id']
-        output=dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
+        output=self.dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
         chunk_id = job_id = []
         for couple in output:
             chunk_id.append(couple['id'])
@@ -940,12 +831,12 @@ class Realization(Component):
         to=task.kill(job_id)
         condition="id_rea=%s AND (status=1 OR status=2)"%self.data['id']
         data={'status':0}
-        output=dbc.update('Chunk',data,'%s'%condition,verbose=self.verbose)
+        output=self.dbc.update('Chunk',data,'%s'%condition,verbose=self.verbose)
 
     def change_priority(self, priority):
         import gridwaylib
         condition="Chunk.id_rea=%s and Job.id_chunk=Chunk.id AND (Chunk.status=1 OR Chunk.status=2) GROUP BY Chunk.id"%self.data['id']
-        output=dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
+        output=self.dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
         chunk_id = job_id = []
         for couple in output:
             chunk_id.append(couple['id'])
@@ -1001,7 +892,7 @@ class Chunk(Component):
         pass
    
     def get_last_job(self):
-        last_job=dbc.select('Job','MAX(Job.id)','Job.id_chunk=%s'%self.data['id'])
+        last_job=self.dbc.select('Job','MAX(Job.id)','Job.id_chunk=%s'%self.data['id'])
         lj=vdblib.parse_one_field(last_job)
         return int(lj)
     
@@ -1024,7 +915,7 @@ class Job(Component):
         dst=self.stjob2stchunk()
         
         if st in dst:
-            Chunk(data={'id': self.get_id_chunk()},verbose=self.verbose).set_status(dst[st])
+            Chunk(data={'id': self.get_id_chunk()},verbose=self.verbose, dbc = self.dbc).set_status(dst[st])
             
         # Add an Event in the DB
         timestamp=datetime2datewrf(datetime.utcnow())
@@ -1037,7 +928,7 @@ class Job(Component):
         return status
     
     def get_info(self):
-        jobd=dbc.select('Job','gw_job,status,exitcode,resource,wn','id=%s'%self.data['id'],verbose=self.verbose)
+        jobd=self.dbc.select('Job','gw_job,status,exitcode,resource,wn','id=%s'%self.data['id'],verbose=self.verbose)
         return jobd[0]
             
     def set_exitcode(self,exitcode):
@@ -1059,10 +950,10 @@ class Job(Component):
         for field in self.get_distinct_fields():
             cond="%s AND %s='%s'" %(cond,field,self.data[field])
         cond=cond[4:]
-        ch=Chunk(data={'id': self.data['id_chunk']})
+        ch=Chunk(data={'id': self.data['id_chunk']}, dbc = self.dbc)
         nchunk=int(ch.get_id_chunk())
         if nchunk > 1:            
-            lch=Chunk(data={'id': str(int(self.data['id_chunk'])-1)})
+            lch=Chunk(data={'id': str(int(self.data['id_chunk'])-1)}, dbc = self.dbc)
             lstatus=int(lch.get_status())
             if lstatus!=4:
                 sys.stderr.write('Error: The previous Chunk did not finished correctly\n')
@@ -1075,7 +966,7 @@ class Job(Component):
             sys.exit(91) 
 
         # In this select statement we have the restriction of gw_job.
-        jobd=dbc.select('Job','MAX(id),gw_restarted',cond,verbose=self.verbose)
+        jobd=self.dbc.select('Job','MAX(id),gw_restarted',cond,verbose=self.verbose)
         [max_id,db_gwres]=jobd[0].values()
 
         # If last_job is bigger than this job's id, then this job should not run.
@@ -1100,9 +991,9 @@ class Job(Component):
         pass
     
     def list_events(self,evid=0):
-        lev=dbc.select("Events","status,timestamp","id_job=%s"%self.data['id'])
+        lev=self.dbc.select("Events","status,timestamp","id_job=%s"%self.data['id'])
         linfo=self.get_info()
-        lstatus=JobStatus()
+        lstatus=JobStatus( self.dbc )
         i=0
         ltiempos={}
         for event in lev[:-1]:
@@ -1114,21 +1005,292 @@ class Job(Component):
 
 class Events(Component):
     pass
-
-
-#Configure WRF4G_DB
-try:
-    db4g_file = expandvars( "$DB4G_CONF" )
-    db4g_vars = VarEnv( db4g_file )
-    dbc = vdblib.vdb( 
-                     host   = db4g_vars.get_variable( 'WRF4G_DB_HOST' , 'DATA' ) ,
-                     user   = db4g_vars.get_variable( 'WRF4G_DB_USER' , 'DATA') ,
-                     db     = db4g_vars.get_variable( 'WRF4G_DB_DATABASE' , 'DATA' ) ,
-                     port   = int ( db4g_vars.get_variable( 'WRF4G_DB_PORT' , 'DATA' ) ) ,
-                     passwd = db4g_vars.get_variable( 'WRF4G_DB_PASSWD' , 'DATA' )
-                     )
-except Exception, err:
-    sys.stderr.write( 'Error accessing MySQL database: %s\n' % str( err ) )
-
    
+
+class FrameWork( object ):
+    
+    def __init__( self ):
+        db4g_vars       = VarEnv( DB4G_CONF ) 
+        self.local_db   = db4g_vars.get_variable( 'WRF4G_DB_LOCAL' , 'Database' )
+        self.mysql_port = db4g_vars.get_variable( 'WRF4G_DB_PORT' , 'Database' )
+        self.gwd_pid    = join( GW_LOCATION    , 'var' , 'gwd.pid' )
+        self.mysql_pid  = join( WRF4G_LOCATION , 'var' , 'mysql',  'mysql.pid' )
+        self.mysql_sock = join( WRF4G_LOCATION , 'var' , 'mysql' , 'mysql.sock' )
+        self.mysql_log  = join( WRF4G_LOCATION , 'var' , 'mysql' , 'mysql.log' )
+        
+    def _process_is_runnig( self , pid_file ):
+        with open( pid_file , 'r') as f:
+            pid = f.readline()
+        try:
+            os.kill( int( pid.strip() ) , 0 )
+        except :
+            return False
+        else:
+            return True
+  
+    def _port_is_free( self , port ):
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if sock.connect_ex( ( '127.0.0.1', int( port ) ) ) is 0 :
+            return False
+        else :
+            return True
+  
+    def status_drm4g( self ):
+        if not exists( self.gwd_pid ) :
+            print "DRM4G (GridWay) is stopped"
+        elif self._process_is_runnig( self.gwd_pid ) :
+            print "DRM4G (GridWay) is running"
+        else :
+            print "DRM4G (GridWay) is stopped"
+
+    def status_database( self ):
+        if not exists( self.mysql_pid ) :
+            print "WRF4G_DB (MySQL) is not running"
+        elif  self._process_is_runnig( self.mysql_pid ) :
+            print "WRF4G_DB (MySQL) is running"
+        else :
+            print "WRF4G_DB (MySQL) is stopped"
+  
+    def start_drm4g( self ):
+        print "Starting DRM4G .... "
+        if not exists( self.gwd_pid ) or ( exists( self.gwd_pid ) and not self._process_is_runnig( self.gwd_pid ) ) :
+            lock = join( GW_LOCATION , 'var' '/.lock' )
+            if exists( lock ) : os.remove( lock )
+            os.environ[ 'PATH' ] = '%s:%s' % ( GW_BIN_LOCATION , os.getenv( 'PATH' ) )
+            exec_cmd = subprocess.Popen( join( GW_BIN_LOCATION , 'gwd' ) , 
+                                         shell=True , 
+                                         stdout=subprocess.PIPE ,
+                                         stderr=subprocess.PIPE
+                                         )
+            out , err = exec_cmd.communicate()
+            if err :
+                print err 
+            else :
+                print "OK"
+        else :
+            print "ERROR: DRM4G is already running."
+    
+    def start_database( self ):        
+        if self.local_db == '1' :
+            print "Starting WRF4G_DB (MySQL) ... "
+            if not self._port_is_free( self.mysql_port ) and not self._process_is_runnig( self.mysql_pid ):
+                raise Exception( "ERROR: Another process is listening on port %s."
+                  "Change WRF4G_DB_PORT in '%s' file to start MySQL on a different port." % ( self.mysql_port , DB4G_CONF )
+                  )
+            elif not exists( self.mysql_pid ) or ( exists( self.mysql_pid ) and not self._process_is_runnig( self.mysql_pid ) ) :
+                mysql_options = "--no-defaults --port=%s --socket=%s --log-error=%s --pid-file=%s" % ( self.mysql_port ,
+                                                                                                     self.mysql_sock ,
+                                                                                                     self.mysql_log ,
+                                                                                                     self.mysql_pid 
+                                                                                                     )                         
+                cmd = "cd %s ; nohup ./bin/mysqld_safe %s &>/dev/null &" % ( MYSQL_LOCATION , mysql_options )
+                exec_cmd = subprocess.Popen( cmd  , 
+                                             shell=True , 
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE
+                                            )
+                time.sleep( 1.0 )
+                if not exists( self.mysql_pid ) or self._port_is_free( self.mysql_port ) :
+                    print "ERROR: MySQL did not start, check '%s' for more information " % self.mysql_log 
+                else :
+                    print "OK"
+            else :
+                print "ERROR: MySQL is already running"
+        else :
+            print "You are using a remote WRF4G_DB (MySQL)"
+                
+    def stop_drm4g( self ):
+        print "Stopping DRM4G .... "
+        cmd_kill = "%s -k" % join( GW_BIN_LOCATION , "gwd" )
+        exec_cmd = subprocess.Popen(  cmd_kill , 
+                                      shell=True , 
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE,
+                                      )
+        out , err =  exec_cmd.communicate()
+        if err :
+            print err 
+        else :
+            print "OK"
+   
+    def stop_database( self ):        
+        if self.local_db == '1' :
+            print "Stopping WRF4G_DB (MySQL) ... "
+            if not exists( self.mysql_pid ) or ( exists( self.mysql_pid ) and not self._process_is_runnig( self.mysql_pid ) ) :
+                raise Exception( "ERROR: MySQL is already stopped." )
+            elif exists( self.mysql_pid ) and self._process_is_runnig( self.mysql_pid ) :
+                with open( self.mysql_pid , 'r') as f:
+                    pid = f.readline().strip()
+                exec_cmd = subprocess.Popen( "ps h -p %s -o ppid" % pid , 
+                                             shell=True , 
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE,
+                                             )
+                mysql_ppid ,  err = exec_cmd.communicate()
+                if err :
+                    raise Exception( str( err ) )
+                try :
+                    os.kill( int( mysql_ppid ), signal.SIGKILL )
+                    os.kill( int( pid ) , signal.SIGKILL )
+                    print "OK"
+                except Exception , err :
+                    print "ERROR: stopping MySQL: %s" % str( err )
+            else :
+                print "ERROR: MySQL is already stopped."
+        else :
+            print "You are using a remote WRF4G_DB (MySQL)"
+            
+    def stop( self ):
+        self.stop_drm4g()
+        self.stop_database()  
+      
+    def start( self ):
+        self.start_drm4g()
+        self.start_database()       
+        
+    def status( self ):
+        self.status_drm4g()
+        self.status_database()       
+
+class Proxy( object ):
+    
+    def __init__( self , resource , communicator ):
+        self.resource      = resource  
+        self.communicator  = communicator
+        
+    def download( self ):
+        print "\tCreating '%s' directory to store the proxy ... " % REMOTE_VOS_DIR
+        cmd = "mkdir -p %s" % REMOTE_VOS_DIR
+        print "\tExecuting command ... ", cmd 
+        self.communicator.execCommand( cmd )
+        out, err = communicator.execCommand( cmd )
+        if not err :
+            message      = '\tInsert your GRID pass: '
+            grid_passwd  = getpass.getpass(message)
+        
+            message      = '\tInsert MyProxy password: '
+            proxy_passwd = getpass.getpass(message)
+        
+            if self.resource.has_key( 'myproxy_server' ) :
+                cmd = "MYPROXY_SERVER=%s myproxy-init -S -t %s" % (
+                                                                   self.resource[ 'myproxy_server' ] ,
+                                                                   PROXY_THRESHOLD 
+                                                                   )
+            else :
+                cmd = "myproxy-init -S -t %s" % PROXY_THRESHOLD
+            print "\tExecuting command ... ", cmd 
+            out , err = self.communicator.execCommand( cmd , input = '\n'.join( [ grid_passwd, proxy_passwd, proxy_passwd ] ) )
+            print "\t", out , err
+        else :
+            print "\t", err
+            
+    def check( self ):
+        if self.resource.has_key( 'myproxy_server' ) :
+            cmd = "MYPROXY_SERVER=%s myproxy-info" % self.resource[ 'myproxy_server' ] 
+        else :
+            cmd = "myproxy-info"
+        print "\tExecuting command ... ", cmd 
+        out, err = self.communicator.execCommand( cmd )
+        print "\t", out , err    
+    
+    def upload( self ):
+        message      = '\tInsert MyProxy password: '
+        proxy_passwd = getpass.getpass(message)
+ 
+        if self.resource.has_key( 'myproxy_server' ) :
+            cmd = "X509_USER_PROXY=%s/%s MYPROXY_SERVER=%s myproxy-logon -S" % (
+                                                                                   REMOTE_VOS_DIR ,
+                                                                                   self.resource[ 'myproxy_server' ] ,
+                                                                                   self.resource[ 'myproxy_server' ]
+                                                                                   ) 
+        else :
+            cmd = "X509_USER_PROXY=%s/${MYPROXY_SERVER} myproxy-logon -S" % ( REMOTE_VOS_DIR )
+        print "\tExecuting command ... ", cmd 
+        out, err = self.communicator.execCommand( cmd , input = proxy_passwd )
+        print "\t", out , err
+    
+    def destroy( self ):
+        if self.resource.has_key( 'myproxy_server' ) :
+            cmd = "MYPROXY_SERVER=%s myproxy-destroy" %  self.resource[ 'myproxy_server' ]                          
+        else :
+            cmd = "myproxy-destroy" % REMOTE_VOS_DIR 
+        print "\tExecuting command ... ", cmd
+        out , err = self.communicator.execCommand( cmd )
+        print "\t", out , err
+        
+class Resource( object ):
+    
+    def __init__( self , config ):
+        self.config = config
+        
+    def check_frontends( self ) :
+        """
+        Check if all frontends are reachable.
+        """
+        self.check_resources( )
+        communicators = self.config.make_communicators()
+        for resname, communicator in sorted( communicators.iteritems() ) :
+            print "\t--> Resource '%s' ... " % resname
+            try :
+                communicator.connect()
+            except Exception , err :
+                print "\t\tThe front-end %s is not reachable" % communicator.frontend 
+                print "\t\t" , err
+            print "\t\tThe front-end %s is reachable" % communicator.frontend
+
+    def list_resources( self ) :
+        """
+        Check if the resource.conf file has been configured well and list the resources available.
+        """
+        self.check_resources( )
+        print """\tName                          State
+        ---------------------------------------------"""
+        for resname, resdict in sorted( self.config.resources.iteritems() ) :
+            if resdict[ 'enable' ] == 'True' :
+                state = 'enable'
+            else :
+                state = 'disable'
+            print "\t%-30.30s%s" % ( resname , state )
+    
+    def list_host( self , hid ) :
+        """
+        List the hosts and their features.
+        """
+        self.check_resources( )
+        if hid is None :
+            cmd_option = 'gwhost'
+        else :
+            cmd_option = 'gwhost ' + hid
+        exec_cmd = subprocess.Popen( join ( GW_BIN_LOCATION , cmd_option ) , 
+                                     shell=True , 
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE,
+                                     )
+        out, err = exec_cmd.communicate()
+        if err :
+            print out , err
+        else :
+            print out
+                    
+    def resource_features( self ) :
+        """
+        List the features of a given resource.
+        """
+        self.check_resources( )
+        for resname, resdict in sorted( self.config.resources.iteritems() ) :
+            print "\t--> Resource '%s' ... " % resname
+            for key , val in sorted( resdict.iteritems() ) :
+                print "\t\t--> '%s' : '%s' " % ( key , val )        
+    
+
+    def check_resources( self ) :
+        """
+        Check if the resource.conf file has been configured well.
+        """
+        self.config.load()
+        errors = self.config.check()
+        if errors :
+            message = '\n'.join( errors )
+            raise Exception( "Please, review your configuration file\n%s" % message )
 

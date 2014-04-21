@@ -1,6 +1,6 @@
 #! /bin/bash  
 #
-# wrf4g_prepare
+# prepare
 #
 # function get_ni_vars()
 # function get_nin_vars()
@@ -10,8 +10,13 @@
 # function cycle_time(realization_name, start_date, end_date)
 #
 
-# Common initialization
-. `dirname $0`/wrf4g_env
+# Initialization
+if test -z $WRF4G_LOCATION; then
+  WRF4G_LOCATION=$HOME/.wrf4g
+fi
+current_directory=`dirname $0`
+WRF4G_DEPLOYMENT_LOCATION=`dirname $current_directory`
+export PYTHONPATH=${WRF4G_DEPLOYMENT_LOCATION}/lib/python:${PYTHONPATH}
 
 nchunks=""
 isdry="no"
@@ -27,7 +32,7 @@ if test ${#} -ge 1; then
     case $1 in   
       --dry-run)
         isdry="yes"
-	dryrun="--dry-run"
+	      dryrun="--dry-run"
         ;;      
       --reconfigure)
       	reconfigure="-r"
@@ -63,7 +68,6 @@ EOF
 fi
 
 WRF4G_FLAGS="${verbose} ${reconfigure} ${dryrun}"
-userdir=`pwd`
 
 function get_ni_vars(){
   set | grep '^NI_' | sed -e 's/^NI_\(.*\)=.*$/\1/'
@@ -133,7 +137,7 @@ function cycle_chunks(){
     fi
     
     echo -e "\t\t---> chunks ${chunkno}: ${realization_name} ${current_date} ${final_date}">&2
-    id_chunk=$(WRF4G.py $WRF4G_FLAGS Chunk prepare id_rea=${id_rea},id_chunk=${chunkno},sdate=${current_date},edate=${final_date},wps=0,status=0)  
+    id_chunk=$(wrf4g shell $WRF4G_FLAGS Chunk prepare id_rea=${id_rea},id_chunk=${chunkno},sdate=${current_date},edate=${final_date},wps=0,status=0)  
 
     current_date=${final_date}
     read cyy cmm cdd chh trash <<< $(echo ${current_date} | tr '_:T-' '    ')
@@ -167,7 +171,7 @@ function cycle_hindcasts(){
       read fyy fmm fdd fhh trash <<< $(echo ${final_date} | tr '_:T-' '    ')
     fi
     rea_name="${realization_name}__${cyy}${cmm}${cdd}${chh}_${fyy}${fmm}${fdd}${fhh}"
-    id_rea=$(WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},multiparams_label=${multiparams_label})
+    id_rea=$(wrf4g shell $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${rea_name},sdate=${current_date},edate=${final_date},status=0,cdate=${current_date},multiparams_label=${multiparams_label})
     if test $?  -ne 0; then
       exit
     fi
@@ -200,7 +204,7 @@ function cycle_time(){
       ;;
     0)
       echo "---> Continuous run">&2
-      id_rea=$(WRF4G.py $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${realization_name},sdate=${start_date},edate=${end_date},status=0,cdate=${start_date},multiparams_label=${multiparams_label})
+      id_rea=$(wrf4g shell $WRF4G_FLAGS Realization prepare id_exp=${id_exp},name=${realization_name},sdate=${start_date},edate=${end_date},status=0,cdate=${start_date},multiparams_label=${multiparams_label})
       if test $?  -ne 0; then
         echo $id >&2 
         exit $?
@@ -218,19 +222,11 @@ function cycle_time(){
 #  Load configuration files
 #
 
-printf "Warning: You are using resources.wrf4g located in the "
-if test -f resources.wrf4g; then
-  echo "${PWD} directory."
-  export RESOURCES_WRF4G=${PWD}/resources.wrf4g
-else
-  echo "${WRF4G_LOCATION}/etc/ directory."
-  export RESOURCES_WRF4G=${WRF4G_LOCATION}/etc/resources.wrf4g
-fi
-
-sed --in-place 's/\ *=\ */=/' experiment.wrf4g  || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
-source experiment.wrf4g
-source ${WRF4G_LOCATION}/lib/bash/wrf_util.sh   || exit ${ERROR_MISSING_WRFUTIL}
-export WRF4G_EXPERIMENT="${experiment_name}"
+cd `dirname ${W4G_EXPERIMENT}`
+experiment_wrf4g=`basename ${W4G_EXPERIMENT}`
+sed --in-place 's/\ *=\ */=/' ${experiment_wrf4g} || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
+source ${experiment_wrf4g}
+source ${WRF4G_DEPLOYMENT_LOCATION}/lib/bash/wrf_util.sh   || exit ${ERROR_MISSING_WRFUTIL}
 
 #
 #  Initial override of namelist values
@@ -257,7 +253,7 @@ if test -z "${NI_restart_interval}"; then
 fi
 
 data="name=${experiment_name},sdate=${start_date},edate=${end_date},multiple_parameters=${multiple_parameters},multiple_dates=${multiple_dates},basepath=${WRF4G_BASEPATH},multiparams_labels=${multiparams_labels}"  #,experiment_description=\'${experiment_description}\'"
-id=$(WRF4G.py $WRF4G_FLAGS Experiment  prepare $data )
+id=$(wrf4g shell $WRF4G_FLAGS Experiment prepare $data )
 if test $?  -ne 0; then
   echo $id >&2
   exit $?
@@ -267,32 +263,27 @@ if test ${id} -ge 0; then
   echo "Preparing namelist...">&2
   if ! is_dry_run; then 
     cp ${WRF4G_LOCATION}/etc/namelist/namelist.input-${namelist_version} namelist.input
-    namelist=`pwd`/namelist.input
-    if test -f ${namelist}; then
-      cp ${namelist} ${userdir}/namelist.input.base
-      rm ${namelist}
-      fortnml -wof namelist.input.base -s max_dom ${max_dom}
+    if test -f namelist.input; then
+      fortnml -o -w -f namelist.input -s max_dom ${max_dom}
     else
-      echo "There is not a namelist template for WRF ${wrf_ver} (File ${namelist} does not exist) "
+      echo "There is not a namelist template for WRF ${wrf_ver} (File namelist.input does not exist) "
       exit 10
     fi
 
     for var in $(get_ni_vars); do
       fnvar=${var/__/@}
-      fortnml -wof namelist.input.base -s $fnvar -- $(eval echo \$NI_${var})
+      fortnml -o -w -f namelist.input -s $fnvar -- $(eval echo \$NI_${var})
     done
 	
     for var in $(get_nim_vars); do
       fnvar=${var/__/@}
-      fortnml -wof namelist.input.base -s $fnvar -- $(eval "echo \$NIM_${var} | tr ',' ' '")
+      fortnml -o -w -f namelist.input -s $fnvar -- $(eval "echo \$NIM_${var} | tr ',' ' '")
     done
 	  
     for var in $(get_nin_vars); do
       fnvar=${var/__/@}
-      fortnml -wof namelist.input.base -m $fnvar -- $(eval echo \$NIN_${var})
+      fortnml -o -w -f namelist.input -m $fnvar -- $(eval echo \$NIN_${var})
     done
-
-    cp namelist.input.base namelist.input
   fi
     
   #
@@ -304,7 +295,6 @@ if test ${id} -ge 0; then
     for mpid in $(echo ${multiparams_combinations} | tr '/' ' '); do
       realabel=$(tuple_item ${multiparams_labels//\//,} ${icomb})
       echo -e "\n--->Realization: multiparams=${realabel} ${start_date} ${end_date}">&2
-      if_not_dry cp namelist.input.base namelist.input
       iparam=1
       for var in $(echo ${multiparams_variables} | tr ',' ' '); do
         thisparam=$(tuple_item ${mpid} ${iparam})
@@ -323,6 +313,5 @@ if test ${id} -ge 0; then
     echo -e "\n---> Single params run">&2
     cycle_time "${experiment_name}" ${id} ${start_date} ${end_date}
   fi
-  if_not_dry rm namelist.input namelist.input.base
 fi
 

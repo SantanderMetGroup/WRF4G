@@ -1,9 +1,8 @@
-from sys import stderr, exit, path, version_info
 import os
-from re import search
+from sys import stderr, exit, path, version_info
+from re  import search
 
 try:
-    path.insert(0, os.path.dirname(__file__))
     import pymysql as MySQLdb
     MySQLdb.install_as_MySQLdb() 
 except Exception, e:
@@ -36,16 +35,37 @@ class vdb:
     vdb CLASS
     """
     def __init__(self, host="ui01.macc.unican.es", user="gridway", db="cam", port=13306, passwd="ui01"):
+        self.con    = None
+        self.host   = host
+        self.user   = user
+        self.db     = db
+        self.port   = port
+        self.passwd = passwd
+        self.open   = False
+        
+    def connect(self):
         try:
-            self.con = MySQLdb.connect(host=host, user=user, db=db, port=port, passwd=passwd)
+            self.con = MySQLdb.connect(host=self.host, user=self.user, db=self.db, port=self.port, passwd=self.passwd)
+            self.open = True
         except MySQLdb.Error, e:
+            self.con = None
             raise Exception("Error %d: %s" % (e.args[0], e.args[1]))
     
     def close(self):
         self.con.close()
+        self.open = False
         
     def commit(self):
         self.con.commit()
+        
+    def is_open(self):
+        """
+        True if connection is open
+        """
+        if self.con is None :
+            return False
+        else :
+            return self.open
         
     def rollback(self):
         self.con.rollback()

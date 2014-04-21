@@ -5,8 +5,8 @@ from commands import getstatusoutput
 from optparse import OptionParser
 from os.path  import join, dirname, abspath
 try:
-    import vcplib
-    import WRF4Glib
+    from wrf4g       import vcplib
+    from wrf4g.utils import wrffile
 except Exception, e:
     print 'Caught exception: %s' % (str(e))
     sys.exit(-1)
@@ -55,7 +55,7 @@ pattern = {
 orig_folder = join( env_var[ "WRF4G_BASEPATH"] , env_var["WRF4G_EXPERIMENT"] , env_var["WRF4G_REALIZATION"] , type_list[type] + "/" )
 for file in vcplib.VCPURL(orig_folder).ls(pattern[type]):
     # file will follow the pattern: wrfrst_d01_19900101T000000Z.nc or wrflowinp_d08_19900101T000000Z.nc
-    file_c = WRF4Glib.wrffile(file)
+    file_c = wrffile(file)
     if type == "rst" :
         dest = file_c.file_name + file_c.date_wrf()
     else: 

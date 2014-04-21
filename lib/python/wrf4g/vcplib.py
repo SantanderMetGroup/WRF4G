@@ -1,11 +1,12 @@
-from re import match, search
-from sys import stderr
-from commands import getstatusoutput
-from os.path import abspath, isdir, isfile, basename, dirname, join
 import os 
 import datetime
 import time
 import logging
+import commands
+
+from re        import match, search
+from sys       import stderr
+from os.path   import abspath, isdir, isfile, basename, dirname, join
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +183,7 @@ class VCPURL(object):
         command = eval(self.command[self.protocol]['ls'])
         if verbose:
             stderr.write(command + "\n")
-        (err, out) = getstatusoutput(command)
+        (err, out) = commands.getstatusoutput(command)
         if err != 0 :
             out = "Error reading dir: " + str(out)
             logger.error(out)
@@ -221,7 +222,7 @@ class VCPURL(object):
         command = eval(self.command[self.protocol]['mkdir'])
         if verbose:
             stderr.write(command + "\n")
-        (err, out) = getstatusoutput(command)
+        (err, out) = commands.getstatusoutput(command)
         
         if err != 0 :
             out = "Error creating dir: " + str(out)
@@ -238,7 +239,7 @@ class VCPURL(object):
         command = eval(self.command[self.protocol]['rm'])
         if verbose: 
             stderr.write(command + "\n")
-        (err, out) = getstatusoutput(command)
+        (err, out) = commands.getstatusoutput(command)
         
         if err != 0 : 
             out="Error deleting file: " + str(out)
@@ -260,7 +261,7 @@ class VCPURL(object):
         command = eval(self.command[self.protocol]['rename'])
         if verbose: 
             stderr.write(command + "\n")
-        (err, out) = getstatusoutput(command)
+        (err, out) = commands.getstatusoutput(command)
         if err != 0 :
             out="Error listing file: " + str(out)
             logger.error(out)
@@ -438,7 +439,7 @@ def copy_file(origin, destination, overwrite=True, verbose=False):
     logger.debug(out)
     if verbose :  
         stderr.write(out + "\n")
-    (err, out) = getstatusoutput(command)
+    (err, out) = commands.getstatusoutput(command)
     if err != 0 :
         raise Exception("Error copying file: " + out)
     elapsed = time.time()- start

@@ -57,7 +57,7 @@ function clean_while_running(){
           fi
           post_and_register --no-bg $(filetype $file) $(filedate $file) $file $edate
           if test $patt == "wrfrst" -a $dom == "d01"; then
-            output=$(WRF4G.py Realization set_restart id=${WRF4G_REALIZATION_ID} $(filedate $file)) # In the future kill the job if it can't contact the DB
+            output=$(wrf4g shell Realization set_restart id=${WRF4G_REALIZATION_ID} $(filedate $file)) # In the future kill the job if it can't contact the DB
           fi
           time_debug "Uploading ${file} (end)"
         fi
@@ -67,7 +67,7 @@ function clean_while_running(){
 }
 
 function clean_all(){
-  output=$(WRF4G.py Realization set_cdate id=${WRF4G_REALIZATION_ID} $(current_date))
+  output=$(wrf4g shell Realization set_cdate id=${WRF4G_REALIZATION_ID} $(current_date))
   for patt in ${file_patterns}; do
     domains=$(ls ${patt}* 2>/dev/null | sort | awk -F_ '{print $2}' | grep '^d' | sort | uniq)
     for dom in ${domains}; do
@@ -83,7 +83,7 @@ function clean_all(){
           fi
           post_and_register --no-bg $(filetype $file) $(filedate $file) $file $edate
           if test $(filetype $file) == "rst" -a $dom == "d01"; then
-            output=$(WRF4G.py Realization set_restart id=${WRF4G_REALIZATION_ID} $(filedate $file)) # In the future kill the job if it can't contact the DB
+            output=$(wrf4g shell Realization set_restart id=${WRF4G_REALIZATION_ID} $(filedate $file)) # In the future kill the job if it can't contact the DB
           fi
           time_debug "Uploading ${file} (end)"
         fi
@@ -105,7 +105,7 @@ while true
 do
   let i++
   if test $i -eq 10;then
-    output=$(WRF4G.py Realization set_cdate id=${WRF4G_REALIZATION_ID} $(current_date))
+    output=$(wrf4g shell Realization set_cdate id=${WRF4G_REALIZATION_ID} $(current_date))
     i=0
   fi
   if ps aux | awk '$2=='${wrf_pid}'' | grep -q wrf.exe

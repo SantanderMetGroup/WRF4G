@@ -1,11 +1,12 @@
 import commands
 import os
 import sys
-from os.path import dirname, abspath, join 
 
-GW_LOCATION = join( dirname( dirname( dirname( abspath( __file__ ) ) ) ) , '/opt/gw_drm4g' )
+from os.path import dirname, abspath, join 
+from wrf4g   import GW_BIN_LOCATION
+
     
-class job:
+class job(object):
     """
     gwjob CLASS
     """
@@ -38,7 +39,7 @@ class job:
             depend="-d %s -r %s" % (dep, type_dep)
         else:
             depend=''
-        command="%s/bin/gwsubmit -p %d -v %s -t %s"%(GW_LOCATION,priority,depend,self.template)
+        command="%s/gwsubmit -p %d -v %s -t %s"%(GW_BIN_LOCATION,priority,depend,self.template)
         (err,out)=commands.getstatusoutput(command)
         os.unlink(self.template)
         if err != 0:
@@ -48,14 +49,14 @@ class job:
         
     def kill(self,job_array):
         for i in job_array:
-            command="%s/bin/gwkill -9 %s"%(GW_LOCATION,i)
+            command="%s/gwkill -9 %s"%(GW_BIN_LOCATION,i)
             (err,out)=commands.getstatusoutput(command)
             if out:
                 raise Exception(out)
                 
     def change_priority(self,priority,job_array):
         for i in job_array:
-            command="%s/bin/gwkill -9 -p %d %s"%(GW_LOCATION,priority,i)
+            command="%s/gwkill -9 -p %d %s"%(GW_BIN_LOCATION,priority,i)
             (err,out)=commands.getstatusoutput(command)
             if out:
                 raise Exception(out)

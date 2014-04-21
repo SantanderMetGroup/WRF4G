@@ -87,7 +87,10 @@ class Job (drm4g.managers.Job):
     def _renew_proxy(self):
         output = "The proxy 'x509up.%s' has probably expired" %  self.resfeatures[ 'vo' ]  
         logger.debug( output )
-        X509_USER_PROXY = "X509_USER_PROXY=%s/proxy" % REMOTE_VOS_DIR
+        if self.resfeatures.has_key( 'myproxy_server' ) :
+            X509_USER_PROXY = "X509_USER_PROXY=%s/%s" % ( REMOTE_VOS_DIR , self.resfeatures[ 'myproxy_server' ] )
+        else :
+            X509_USER_PROXY = "X509_USER_PROXY=%s/${MYPROXY_SERVER}" % ( REMOTE_VOS_DIR )
         cmd = "%s voms-proxy-init -ignorewarn -timeout 30 -valid 24:00 -q -voms %s -noregen -out %s/x509up.%s" % (
                                                                                                          X509_USER_PROXY ,
                                                                                                          self.resfeatures[ 'vo' ] ,

@@ -27,7 +27,7 @@ class Configuration(object):
     def __init__(self):
         self.resources  = dict()
         if not os.path.exists( DRM4G_CONFIG_FILE ):
-            assert DRM4G_CONFIG_FILE, "drm4g.conf does not exist, please provide one"
+            assert DRM4G_CONFIG_FILE, "%s does not exist, please provide one" % DRM4G_CONFIG_FILE
         self.init_time = os.stat( DRM4G_CONFIG_FILE ).st_mtime
         
     def check_update(self):
