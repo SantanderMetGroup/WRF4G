@@ -546,10 +546,11 @@ class ManagementUtility( cmdln.Cmdln ) :
                   help="Perform a trial run with no changes made")
 
     def do_prepare(self, subcmd, opts, *args):
-        """Given a file (experiment.wrf4g), it prepares the experiment creating the realization and chunks needed to perform it.
+        """Given the location of a experiment.wrf4g file, it prepares the experiment
+        creating the realizations and chunks needed to perform it.
         
         usage:
-            wrf4g prepare [options] [file]
+            wrf4g prepare [options] [directory]
                     
         ${cmd_option_list}
         """
@@ -587,17 +588,18 @@ class ManagementUtility( cmdln.Cmdln ) :
             sys.stderr.write( str( err ) + '\n' )  
 
     @cmdln.option("-t", "--test", action="store", type="choice", choices=["single", "physics"],
-                  help="Test experiment to choose")
+                  help="Test experiment to choose. You can choose either 'single' or 'physics' experiments")
     @cmdln.option("-d", "--directory",action="store_true",
                   help="Directory to create the WRF4G experiment directory structure")
     @cmdln.option("-v", "--verbose",action="store_true",default=False,
                   help="Verbose mode. Explain what is being done")
 
     def do_startexp(self, subcmd, opts, *args):
-        """Creates a WRF4G experiment directory structure for the given experiment name in the current directory or in the given directory.
+        """Creates a WRF4G experiment directory structure for the given experiment name 
+        in the current directory or in the given directory.
 
         usage:
-            wrf4g startexp [options] experiment_name 
+            wrf4g startexp [options] [experiment_name] 
                     
         ${cmd_option_list}
         """
