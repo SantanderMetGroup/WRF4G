@@ -639,7 +639,7 @@ class ManagementUtility( cmdln.Cmdln ) :
                     print "Creating '%s'" % wrf4g_files
                 _create_directory( wrf4g_files )
                 experiment_wrf4g_template = """
-#
+[DEFAULT]
 #   Experiment configuration
 #
 experiment_name      = "%s"
