@@ -22,13 +22,13 @@ class job(object):
         try:
             f = open (ftemplate,'w')
             template="""NAME = %s
-            EXECUTABLE   = /bin/bash 
-            ARGUMENTS    = "%s ./WRF4G.sh %s"
-            INPUT_FILES  = %s
-            RANK         = QUEUE_FREENODECOUNT
-            REQUIREMENTS = %s
-            ENVIRONMENT  = %s
-            NP           = %d"""%(name,debug,arguments,inputsandbox,req,environ,np)
+EXECUTABLE   = /bin/bash 
+ARGUMENTS    = "%s ./bin/WRF4G.sh %s"
+INPUT_FILES  = %s
+RANK         = QUEUE_FREENODECOUNT
+REQUIREMENTS = %s
+ENVIRONMENT  = %s
+NP           = %d""" % (name,debug,arguments,inputsandbox,req,environ,np)
             f.write(template)
         finally:
             f.close()

@@ -114,7 +114,7 @@ execution(){
 			
 		printf "`date`: Uncompressing file WRF4G package ... "
 
-    tar xzf WRF4G*.tar.gz  
+    tar xzf WRF4G.tar.gz  
  
     if [ $? -eq 0 ]; then
         

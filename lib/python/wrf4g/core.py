@@ -34,30 +34,6 @@ def JobStatus( dbc ):
         sta[entry['id']]=entry['description']
     return sta
 
-def format_output(dout,number_of_characters, ext=False):
-    dreastatus={0:'P',1:'W',2:'R',3: 'F',4:'D'}
-    djobstatus=JobStatus()
-    if dout['exitcode']==None:
-        exitcode='-'
-    else:
-        exitcode=str(dout['exitcode']) 
-
-    runt=(int(dout['cdate'].strftime("%s"))-int(dout['sdate'].strftime("%s")))*100.    
-    totalt=int(dout['edate'].strftime("%s"))-int(dout['sdate'].strftime("%s"))
-    per=runt/totalt
-    if dout['status'] < 10 and dout['status'] > 0 and dout['rea_status'] != 4: 
-        dout['rea_status']=1  
-    string_to_print = '%-'+ str(number_of_characters) + 's %-5s %-2s %-15s %-10s %-10s %-13s %2s %2.2f'
-    return  string_to_print  % (dout['name'][0:number_of_characters],
-                                dout['gw_job'],
-                                dreastatus[dout['rea_status']],
-                                dout['nchunks'],
-                                dout['resource'][0:10],
-                                dout['wn'][0:10],
-                                djobstatus[dout['status']],
-                                exitcode,
-                                per)
-        
 def getuserid(name,dbc):
     idp=dbc.select('User','id',"name='%s'"%name)
     if len(idp) == 0:
@@ -407,9 +383,12 @@ class Experiment(Component):
                 os.makedirs( exp_sub_dir )
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )
+        current_path = os.getcwd()
+        os.chdir( WRF4G_DEPLOYMENT_LOCATION )
         with tarfile.open( join ( exp_sub_dir , "WRF4G.tar.gz" ) , "w:gz" ) as tar:
             for dir in [ "bin", "lib" ]:
-                tar.add( join( WRF4G_DEPLOYMENT_LOCATION , dir ) ) 
+                tar.add( dir )
+        os.chdir( current_path )
          
 class Realization(Component):
     """ 
@@ -447,7 +426,11 @@ class Realization(Component):
            restart=datetime2datewrf(restart)
         return restart
         
-    def set_restart(self,restart_date):
+    def set_restart(self, args):
+        if type( args ) is tuple :
+            restart_date = args[ 0 ]
+        else :
+            restart_date = args
         self.data['restart']=restart_date
         oc=self.update_fields(['restart'], ['id'])    
         return oc
@@ -460,7 +443,11 @@ class Realization(Component):
         id_exp=self.get_one_field(['id_exp'], ['id'])
         return id_exp
    
-    def set_cdate(self,cdate):
+    def set_cdate(self, args ):
+        if type( args ) is tuple :
+            cdate = args[ 0 ]
+        else :
+            cdate = args
         self.data['cdate']=cdate
         self.data['ctime']=timestamp=datetime2datewrf(datetime.utcnow())
         oc=self.update_fields(['cdate','ctime'], ['id'])    
@@ -584,10 +571,10 @@ class Realization(Component):
             if not self.dryrun :
                 rea_sub_dir   = join( WRF4G_LOCATION , 'var' , 'submission' , exp_name , rea_name )
                 os.chdir( rea_sub_dir )
-                WRF4G_package = join( WRF4G_LOCATION , 'var', 'WRF4G.tar.gz' ) 
+                WRF4G_package = join( WRF4G_LOCATION , 'var' , 'submission' , exp_name , 'WRF4G.tar.gz' ) 
                 if not exists(  WRF4G_package ) :
                     raise Exception( "'%s' file does not exist" % WRF4G_package )
-                sandbox += "file://%s,"                  % ( WRF4G_package )
+                sandbox  = "file://%s,"                  % ( WRF4G_package )
                 sandbox += "file://%s/db.conf,"          % ( rea_sub_dir )
                 sandbox += "file://%s/resources.wrf4g,"  % ( rea_sub_dir )
                 sandbox += "file://%s/experiment.wrf4g," % ( rea_sub_dir )
@@ -614,7 +601,7 @@ class Realization(Component):
                             'id_chunk': str(chi.data['id']), 
                             'hash'    : create_hash(),
                             }
-                job = Job(job_data,verbose=self.verbose)
+                job = Job(job_data,verbose=self.verbose,dbc = self.dbc)
                 jid = job.create()
                 job.set_status('1')
                 self.dbc.commit()
@@ -651,7 +638,7 @@ class Realization(Component):
             else:
                 ch=Chunk(data={'id': id_chunk},  dbc = self.dbc) 
                 lastjob=ch.get_last_job()
-                j=Job(data={'id':lastjob})            
+                j=Job(data={'id':lastjob},dbc = self.dbc)            
                 djob=j.get_info()
                 if djob['status'] < 10:
                     djob={'gw_job': djob['gw_job'], 'status': djob['status'], 'wn': '-', 'resource': '-', 'exitcode': None,'nchunks':'0/%d'%nchunks}
@@ -664,13 +651,13 @@ class Realization(Component):
         else:
             exitcode=str(dout['exitcode']) 
     
-        runt=(int(dout['cdate'].strftime("%s"))-int(dout['sdate'].strftime("%s")))*100.    
-        totalt=int(dout['edate'].strftime("%s"))-int(dout['sdate'].strftime("%s"))
-        per=runt/totalt
+        runt   = int(dout['cdate'].strftime("%s"))-int(dout['sdate'].strftime("%s"))    
+        totalt = int(dout['edate'].strftime("%s"))-int(dout['sdate'].strftime("%s"))
+        per = ( runt * 100.0) / totalt
         if dout['status'] < 10 and dout['status'] > 0 and dout['rea_status'] != 4: 
             dout['rea_status']=1  
         string_to_print = '%-'+ str(number_of_characters) + 's %-5s %-2s %-15s %-10s %-10s %-13s %2s %2.2f'
-        return  string_to_print  % (dout['name'][0:number_of_characters],
+        print string_to_print  % (dout['name'][0:number_of_characters],
                                     dout['gw_job'],
                                     dreastatus[dout['rea_status']],
                                     dout['nchunks'],
@@ -678,11 +665,7 @@ class Realization(Component):
                                     dout['wn'][0:10],
                                     djobstatus[dout['status']],
                                     exitcode,
-                                    per)
-        
-        
-        
-        
+                                    per)    
                            
     def statistics(self):
         if 'id' in self.data.keys():
@@ -702,7 +685,7 @@ class Realization(Component):
         ci=1
         for id_chunk in range(self.first_chunk(),lastc):
             ch=Chunk(data={'id': id_chunk}, dbc = self.dbc)
-            j=Job(data={'id':ch.get_last_job()})
+            j=Job(data={'id':ch.get_last_job()},dbc = self.dbc)
             jobi=j.list_events()
             line="%s;%d;%d;%d;%s;%s;"%(self.get_name(),ci,jobi['gw_job'],jobi['exitcode'],jobi['resource'],jobi['wn'])
             lestados=JobStatus( self.dbc )
@@ -720,14 +703,14 @@ class Realization(Component):
 
     def prepare_storage(self): 
         files = [ 
+                 join( WRF4G_LOCATION , 'etc' , 'db.conf' ) ,
                  "resources.wrf4g" ,
                  "experiment.wrf4g" ,
                  "namelist.input" ,
                  ]        
 
-        def _file_exist( file ) : 
-            file_path = expandvars( file )   
-            if not exists ( file_path ) :
+        def _file_exist( file ) :    
+            if not exists ( file ) :
                 raise Exception( "'%s' is not available" % file_path )
         [  _file_exist( file ) for file in files ] 
         
@@ -767,7 +750,7 @@ class Realization(Component):
             file.writelines( lines  )
          
                 
-    def prepare_remote_storage(self , remote_realization_path ):
+    def prepare_remote_storage(self , args ):
         """
         Create a remote tree directory of a Realization
         
@@ -778,6 +761,7 @@ class Realization(Component):
            *  log          
         """
         try :
+            remote_realization_path = args[ 0 ]
             vcp_remote_path = vcplib.VCPURL( dirname( remote_realization_path ) )
             if not vcp_remote_path.exists( verbose = self.verbose ) :
                 vcp_remote_path.mkdir( verbose = self.verbose )
@@ -790,7 +774,7 @@ class Realization(Component):
             sys.stderr.write( 'Error creating the remote repository: %s\n' % str( err ) )
             return 1
         
-    def copy_configuration_files(self , remote_realization_path ):
+    def copy_configuration_files(self , args ):
         """
         Copy configuration files from the WN to the out path such as :
             * experiment.wrf4g
@@ -800,6 +784,7 @@ class Realization(Component):
         """
         # We have to add an overwriting option 
         try :
+            remote_realization_path = args[ 0 ]
             for configuration_file in [ "db.conf" , "experiment.wrf4g" ,  "resources.wrf4g" ]:
                 vcplib.copy_file( configuration_file, join( remote_realization_path , configuration_file  ) , verbose = self.verbose )
             vcplib.copy_file( "namelist.input" , join ( remote_realization_path , "namelist.input" ) , verbose = self.verbose )
@@ -824,7 +809,7 @@ class Realization(Component):
         chunk_id = job_id = []
         for couple in output:
             chunk_id.append(couple['id'])
-            j=Job(data={'id':couple['MAX(Job.id)']})
+            j=Job(data={'id':couple['MAX(Job.id)']},dbc = self.dbc)
             job_id.append(j.get_gw_job())
             
         task=gridwaylib.job()
@@ -840,7 +825,7 @@ class Realization(Component):
         chunk_id = job_id = []
         for couple in output:
             chunk_id.append(couple['id'])
-            j=Job(data={'id':couple['MAX(Job.id)']})
+            j=Job(data={'id':couple['MAX(Job.id)']},dbc = self.dbc)
             job_id.append(j.get_gw_job())
         task=gridwaylib.job()
         to=task.change_priority(priority,job_id)
@@ -866,8 +851,8 @@ class Chunk(Component):
         wps=self.get_one_field(['wps'], ['id'])
         return wps     
    
-    def set_wps(self,f):
-        self.data['wps']=f
+    def set_wps(self, args):
+        self.data['wps'] = args[ 0 ] 
         oc=self.update_fields(['wps'], ['id'])
         return oc     
    
@@ -908,7 +893,8 @@ class Job(Component):
         dst={'1':1, '10': 2, '40': 4, '41': 3}
         return dst
         
-    def set_status(self,st):
+    def set_status(self, args ):
+        st = args[ 0 ]
         self.data['status']=st
         oc=self.update_fields(['status'], ['id'])
         # If status involves any change in Chunk status, change the Chunk in DB
@@ -920,7 +906,7 @@ class Job(Component):
         # Add an Event in the DB
         timestamp=datetime2datewrf(datetime.utcnow())
         event_data= {'id_job': self.data['id'], 'status': st, 'timestamp': timestamp }
-        id_event=Events(data=event_data).create()
+        id_event=Events(data=event_data, dbc = self.dbc).create()
         return oc   
 
     def get_status(self):
@@ -931,7 +917,8 @@ class Job(Component):
         jobd=self.dbc.select('Job','gw_job,status,exitcode,resource,wn','id=%s'%self.data['id'],verbose=self.verbose)
         return jobd[0]
             
-    def set_exitcode(self,exitcode):
+    def set_exitcode(self, args ):
+        exitcode = args[ 0 ]
         self.data['exitcode']=exitcode
         oc=self.update_fields(['exitcode'], ['id'])    
         return oc 
@@ -944,8 +931,8 @@ class Job(Component):
         gw_job=self.get_one_field(['gw_job'], ['id'])
         return gw_job
 
-    def load_wn_conf(self,wn_gwres):
-        wn_gwres=int(wn_gwres)
+    def load_wn_conf(self, args ):
+        wn_gwres=int( args[ 0 ] )
         cond=''
         for field in self.get_distinct_fields():
             cond="%s AND %s='%s'" %(cond,field,self.data[field])
@@ -1002,6 +989,32 @@ class Job(Component):
             i=i+1
         linfo['tiempos']=ltiempos       
         return linfo
+
+    def expvar(self,args):
+        """
+        Exports the environment variables of a resource file.
+        """
+        try:
+            list_files = args[0:]
+            resource_name  = os.environ.get('GW_HOSTNAME')
+            for file in list_files :
+                resource_env   = VarEnv( file )
+                section_to_use = 'DEFAULT' 
+                for section in resource_env.sections() :
+                    if ':' in section :
+                        _section = section.split( ':' , 1 )[ 1 ]
+                    else :
+                        _section = section
+                    if resource_name.startswith( _section ) : 
+                        section_to_use = section
+                        break
+                dict_values = resource_env.items( section_to_use  )
+                with open( file , 'w' ) as file :
+                    [ file.write( "export %s=%s\n" % ( key , val ) ) for key, val in dict_values ]
+            return 0
+        except Exception, err:
+            sys.stderr.write( str( err ) + '\n' )
+            sys.exit( -1 )
 
 class Events(Component):
     pass
@@ -1113,7 +1126,7 @@ class FrameWork( object ):
             print err 
         else :
             print "OK"
-   
+            
     def stop_database( self ):        
         if self.local_db == '1' :
             print "Stopping WRF4G_DB (MySQL) ... "
@@ -1140,6 +1153,21 @@ class FrameWork( object ):
                 print "ERROR: MySQL is already stopped."
         else :
             print "You are using a remote WRF4G_DB (MySQL)"
+    
+    def clear_drm4g( self ):
+        self.stop_drm4g()
+        print "Clearing DRM4G .... "
+        cmd_kill = "%s -k" % join( GW_BIN_LOCATION , "gwd -c" )
+        exec_cmd = subprocess.Popen(  cmd_kill , 
+                                      shell=True , 
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE,
+                                      )
+        out , err =  exec_cmd.communicate()
+        if err :
+            print err 
+        else :
+            print "OK"
             
     def stop( self ):
         self.stop_drm4g()
@@ -1293,4 +1321,8 @@ class Resource( object ):
         if errors :
             message = '\n'.join( errors )
             raise Exception( "Please, review your configuration file\n%s" % message )
+        
+
+
+
 

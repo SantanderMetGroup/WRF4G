@@ -6,15 +6,18 @@ import cmdln
 import errno
 import shutil
 
-from os.path     import exists , expandvars , join , abspath , dirname , expanduser
+from os.path     import exists , expandvars , join , abspath , dirname , expanduser , basename , isdir 
 from wrf4g.core  import Experiment , Realization , JobStatus , Environment , Chunk , Job , FrameWork , Proxy , Resource
 from wrf4g.utils import VarEnv , validate_name , pairs2dict
 from wrf4g       import WRF4G_LOCATION , WRF4G_DEPLOYMENT_LOCATION , DB4G_CONF , GW_LOCATION , GW_BIN_LOCATION , GW_LIB_LOCATION , MYSQL_LOCATION
 from wrf4g       import vcplib , vdblib
 
-sys.path.insert( 0 , GW_LIB_LOCATION  )
-from drm4g.core.configure import Configuration
-from drm4g                import REMOTE_VOS_DIR , PROXY_THRESHOLD 
+try :
+    sys.path.insert( 0 , GW_LIB_LOCATION  )
+    from drm4g.core.configure import Configuration
+    from drm4g                import REMOTE_VOS_DIR , PROXY_THRESHOLD
+except :
+    pass 
 
 __version__  = '1.5'
 __author__   = 'Carlos Blanco'
@@ -33,7 +36,10 @@ class ManagementUtility( cmdln.Cmdln ) :
     
     prompt = "> "
     name   = "wrf4g"
-    config = Configuration()
+    try :
+        config = Configuration()
+    except :
+        config = None
     
     #Configure WRF4G_DB
     try:
@@ -410,41 +416,15 @@ class ManagementUtility( cmdln.Cmdln ) :
                 else:
                     self.dbc.commit()
                 self.dbc.close()    
-
-    def do_expvar(self, subcmd, opts, *args):
-        """Exports the environment variables of a resource file.
-        
-        usage:
-            wrf4g expvar experiment_file
                     
-        ${cmd_option_list}
-        """
-        try:
-            if len( args ) is not 1 : 
-                raise Exception( "Please use '--help' option " )
-            else :
-                resource_name  = os.environ.get('GW_HOSTNAME')
-                resource_env   = VarEnv( args[ 0 ] )
-                section_to_use = 'DEFAULT' 
-                for section in resource_env.sections() :
-                    if ':' in section :
-                        _section = section.split( ':' , 1 )[ 1 ]
-                    else :
-                        _section = section
-                    if resource_name.startswith( _section ) : 
-                        section_to_use = section
-                        break
-                with open( options.file , 'w' ) as file :
-                    [ file.write( "export %s=%s\n" % ( key.upper() , val ) ) for key, val in resource_env.items( section_to_use  ) ]
-        except Exception, err:
-            sys.stderr.write( str( err ) + '\n' ) 
-            
     @cmdln.option("-s", "--start",action="store_true",
                   help="Start DRM4G and WRF4G database")
     @cmdln.option("-S", "--stop",action="store_true",
                   help="Stop DRM4G and WRF4G database")
     @cmdln.option("-t", "--status",action="store_true",
                   help="DRM4G and WRF4G database status")
+    @cmdln.option("-c", "--clear",action="store_true",
+                  help="Clears previous DRM4G jobs")
     
     def do_framework(self, subcmd, opts, *args):
         """Manages WRF4G framework components both DRM4G and WRF4G_DB.
@@ -463,6 +443,8 @@ class ManagementUtility( cmdln.Cmdln ) :
                 framework.stop()
             elif opts.status :
                 framework.status()
+            elif opts.clear : 
+                framework.clear_drm4g()
             else :
                 raise Exception( "Please use '--help' option " )
         except Exception, err:
@@ -530,7 +512,7 @@ class ManagementUtility( cmdln.Cmdln ) :
             if len( args ) < 2 :
                 raise Exception( "Incorrect number of arguments" )
             class_name , function = args[ 0:2 ]
-            if len( args ) >= 2 :
+            if len( args ) > 2 :
                 data = pairs2dict( args[ 2 ] )
             else :
                 data = ''
@@ -555,7 +537,7 @@ class ManagementUtility( cmdln.Cmdln ) :
             sys.stderr.write( str( err ) + '\n' )
             sys.exit(-1)    
             
-    @cmdln.option("-f", "--verbose",action="store_true", default=False,
+    @cmdln.option("-v", "--verbose",action="store_true", default=False,
                   help="Verbose mode. Explain what is being done")
     @cmdln.option("-r", "--reconfigure",action="store_true", default=False,
                   help="Reconfigure experiment. With this option we can change the start and end date of the experiments and add new physics." 
@@ -582,9 +564,15 @@ class ManagementUtility( cmdln.Cmdln ) :
             if opts.dryrun :
                 options += ' --dry-run'
             if not args :
-                experiment_wrf4g = join( os.getcwd( ) , 'experiment.wrf4g' )
+                dir_experiment_wrf4g = os.getcwd( )
             else :
-                experiment_wrf4g = args[ 0 ]
+                if isdir( args[ 0 ] ) :
+                    dir_experiment_wrf4g = args[ 0 ]
+                else :
+                    raise Exception( "'%s' is not a directory" %  dir_experiment_wrf4g )
+            experiment_wrf4g = join( dir_experiment_wrf4g , 'experiment.wrf4g' )
+            if not exists( experiment_wrf4g ) :
+                raise Exception( "'%s' does not exist" %  experiment_wrf4g )
             os.environ['W4G_EXPERIMENT'] = experiment_wrf4g
             cmd_prepare = join( WRF4G_DEPLOYMENT_LOCATION , 'bin' , 'prepare' ) + options
             exec_cmd = subprocess.Popen( cmd_prepare, shell=True , stderr=subprocess.PIPE )
@@ -788,7 +776,7 @@ namelist_version       = "x.x.x" """ % exp_name
             if '*' in orig_file :
                 orig_dir = dirname(orig)
                 for file in vcplib.VCPURL(orig_dir).ls(orig_file):
-                    vcplib.copy(join(orig_dir, file), dest, overwrite = opts.overwrite, verbose=options.verbose)
+                    vcplib.copy(join(orig_dir, file), dest, overwrite = opts.overwrite, verbose=opts.verbose)
             else:
                 vcplib.copy(orig, dest, overwrite = opts.overwrite, verbose=opts.verbose)
         except Exception, err :

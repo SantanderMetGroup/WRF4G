@@ -165,7 +165,7 @@ function run_wrf (){
   # If wrf is run in parallel and the environment is not prepared, prepare it.  	 
   [ ${wrf_parallel} == 1 -a ${LOCALDIR} != ${ROOTDIR} ] && prepare_local_environment
   fortnml -o -f namelist.input -s debug_level 0
-  wrf_file=${logdir}/wrf_${ryy}${rmm}${rdd}${rhh}.out
+  wrf_file=wrf_${ryy}${rmm}${rdd}${rhh}.out
   ${LAUNCHER_WRF} ${ROOTDIR}/bin/wrapper.exe wrf.exe >& ${logdir}/${wrf_file} &
   # Wait enough time to allow 'wrf_wrapper.exe' create 'wrf.pid'
   # This time is also useful to copy the wpsout data
@@ -177,7 +177,7 @@ function run_wrf (){
     log_wrf_file=rsl.out.0000
   fi
    
-  bash wrf_monitor $(cat wrf.pid) ${log_wrf_file} >& ${logdir}/monitor.log &
+  bash wrf_monitor $(cat wrf.pid) ${log_wrf_file} >& ${logdir}/wrf_monitor.log &
   echo $! > monitor.pid
   wait $(cat monitor.pid)
    
@@ -276,7 +276,8 @@ function wrf4g_exit(){
 #     └── run                  #
 ################################
 
-cd `dirname $0`
+W4G_ROOTDIR_BIN=`dirname $0`
+cd `dirname ${W4G_ROOTDIR_BIN}`
 export ROOTDIR=`pwd`
 
 #
@@ -309,9 +310,6 @@ export chunk_end_date=$7
 #   Expand the WRF4G scripts
 #
 
-tar xzf WRF4G.tar.gz && rm -f WRF4G.tar.gz 
-[ $? != 0 ] && exit ${ERROR_MISSING_WRF4GSRC}
-
 #   If there are additional files, expand them
 if test -f wrf4g_files.tar.gz; then
   verbose_print "* `date`: There is a wrf4g_files.tar.gz package available ... "
@@ -333,12 +331,13 @@ source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
 
-wrf4g expvar -f resources.wrf4g
-[ $? != 0 ] && exit ${ERROR_MISSING_RESOURCESWRF4G}
-
 sed --in-place 's/\ *=\ */=/' resources.wrf4g
-source resources.wrf4g
 sed --in-place 's/\ *=\ */=/' experiment.wrf4g
+
+wrf4g shell Job expvar id=None experiment.wrf4g resources.wrf4g
+[ $? != 0 ] && exit ${ERROR_CUSTOMIZATION_WRF4G_FILES}
+
+source resources.wrf4g
 source experiment.wrf4g
 
 #

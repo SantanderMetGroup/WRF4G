@@ -223,9 +223,8 @@ function cycle_time(){
 #
 
 cd `dirname ${W4G_EXPERIMENT}`
-experiment_wrf4g=`basename ${W4G_EXPERIMENT}`
-sed --in-place 's/\ *=\ */=/' ${experiment_wrf4g} || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
-source ${experiment_wrf4g}
+sed --in-place 's/\ *=\ */=/' experiment.wrf4g || exit ${ERROR_MISSING_EXPERIMENTSWRF4G}
+source experiment.wrf4g 2>/dev/null
 source ${WRF4G_DEPLOYMENT_LOCATION}/lib/bash/wrf_util.sh   || exit ${ERROR_MISSING_WRFUTIL}
 
 #

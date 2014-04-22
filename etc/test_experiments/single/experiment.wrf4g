@@ -1,4 +1,4 @@
-#
+[DEFAULT]
 #   Experiment configuration
 #
 experiment_name      = "single"

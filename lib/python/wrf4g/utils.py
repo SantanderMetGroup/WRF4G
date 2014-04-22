@@ -2,6 +2,8 @@ from __future__     import with_statement
 from datetime       import datetime
 from os.path        import join , basename , dirname , exists , expandvars , isdir
 from re             import search , match
+from ConfigParser import ConfigParser
+
 
 import os
 import sys
@@ -30,6 +32,7 @@ class VarEnv( object ):
         config.write( open( file ).read() )
         config.seek( 0 , os.SEEK_SET )
         self._cp = ConfigParser.ConfigParser()
+        self._cp.optionxform=str
         self._cp.readfp( config )
         
     def has_section( self , section ):
@@ -56,7 +59,7 @@ class VarEnv( object ):
         """
         
         try :
-            value = dict( self._cp.items( section ) )[ var_name.lower() ]
+            value = dict( self._cp.items( section ) )[ var_name ]
             if value.startswith( '"' ) and value.endswith( '"' ) :
                 value = value[ 1 : -1 ]
             elif value.startswith( "'" ) and value.endswith( "'" ) :

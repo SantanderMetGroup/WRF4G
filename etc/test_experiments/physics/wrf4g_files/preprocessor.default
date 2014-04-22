@@ -19,7 +19,7 @@ mkdir -p grbData
 for yearmon in $(get_yearmons $iyy $imm $fyy $fmm) 
 do
      year=${yearmon:0:4}
-     vcp ${VCPDEBUG} ${extdata_path}/${year}/'*'${yearmon}'*'.grb ln://`pwd`/grbData/ 
+     wrf4g vcp ${VCPDEBUG} ${extdata_path}/${year}/'*'${yearmon}'*'.grb ln://`pwd`/grbData/ 
 done
 
 
