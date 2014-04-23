@@ -109,6 +109,8 @@ class ManagementUtility( cmdln.Cmdln ) :
      
                     If you really want to run this command use the --force option
                 """)
+            if  opts.repeatchunk and  not opts.rea_name:
+                raise Exception("--chunk option is available specifying a realization")
             if opts.runone:
                 nrea=1
                 nchunk=1    
