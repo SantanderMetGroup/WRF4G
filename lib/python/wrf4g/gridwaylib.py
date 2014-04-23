@@ -5,6 +5,9 @@ import sys
 from os.path import dirname, abspath, join 
 from wrf4g   import GW_BIN_LOCATION
 
+__version__  = '1.5.1'
+__author__   = 'Carlos Blanco'
+__revision__ = "$Id:$"
     
 class job(object):
     """

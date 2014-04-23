@@ -10,6 +10,8 @@ __version__  = '1.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: im_mad.py 1953 2013-11-26 12:32:33Z carlos $"
 
+logger  = logging.getLogger(__name__)
+
 class GwImMad (object):
     """
     Information manager MAD 
@@ -40,7 +42,6 @@ class GwImMad (object):
 		it contains a list of host attributes.
     """
 
-    logger  = logging.getLogger(__name__)
     message = Send()
     
     def __init__(self):
@@ -55,7 +56,7 @@ class GwImMad (object):
         """
         out = 'INIT - SUCCESS -'
         self.message.stdout(out)
-        self.logger.debug(out)
+        logger.debug(out)
         
     def do_DISCOVER(self, args):
         """
@@ -81,12 +82,12 @@ class GwImMad (object):
                     hosts = hosts + " " + self._resources[ resname ] [ 'Resource' ].hosts()
                     self._resources[ resname ][ 'Resource' ].Communicator.close() 
                 except Exception , err :
-                    self.logger.error( err , exc_info=1 )
+                    logger.error( err , exc_info=1 )
             out = 'DISCOVER %s SUCCESS %s' % ( HID , hosts  )
         except Exception , err :
             out = 'DISCOVER - FAILURE %s' % str( err )
         self.message.stdout( out )
-        self.logger.debug( out , exc_info=1 )
+        logger.debug( out , exc_info=1 )
  
     def do_MONITOR(self, args):
         """
@@ -109,7 +110,7 @@ class GwImMad (object):
         except Exception , err :
             out = 'MONITOR %s FAILURE %s' % (HID , str( err ) )
         self.message.stdout(out)
-        self.logger.debug( out , exc_info=1 )
+        logger.debug( out , exc_info=1 )
  
     def do_FINALIZE(self, args):
         """
@@ -119,7 +120,7 @@ class GwImMad (object):
         """
         out = 'FINALIZE - SUCCESS -'
         self.message.stdout(out)
-        self.logger.debug(out)
+        logger.debug(out)
         sys.exit(0)
         
     methods = { 'INIT'	  : do_INIT,
@@ -135,14 +136,14 @@ class GwImMad (object):
         try:
             while True:
                 input = sys.stdin.readline().split()
-                self.logger.debug(' '.join(input))
+                logger.debug(' '.join(input))
                 OPERATION = input[0].upper()
                 if len(input) == 4 and self.methods.has_key(OPERATION):
                     self.methods[OPERATION](self, ' '.join(input))
                 else:
                     out = 'WRONG COMMAND'
                     self.message.stdout(out)
-                    self.logger.debug(out)
+                    logger.debug(out)
         except Exception, e:
-            self.logger.warning(str(e))
+            logger.warning(str(e))
             

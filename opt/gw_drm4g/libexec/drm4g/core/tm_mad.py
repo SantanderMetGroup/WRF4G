@@ -14,6 +14,7 @@ __version__  = '1.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: tm_mad.py 1983 2014-01-26 15:04:29Z carlos $"
 
+logger  = logging.getLogger(__name__)
 
 class GwTmMad (object):
     """
@@ -60,8 +61,6 @@ class GwTmMad (object):
     -INFO: If RESULT is FAILURE, it contains the cause of failure.
     
     """
-    
-    logger  = logging.getLogger(__name__)
     message = Send()
     
     def __init__(self):
@@ -80,7 +79,7 @@ class GwTmMad (object):
         """
         out = 'INIT - - SUCCESS -'
         self.message.stdout( out )
-        self.logger.debug( out )
+        logger.debug( out )
 
     def do_START(self, args):
         """
@@ -90,7 +89,7 @@ class GwTmMad (object):
         """
         out = 'START %s - SUCCESS -' % ( args.split( ) [ 1 ] )    
         self.message.stdout( out )
-        self.logger.debug( out )
+        logger.debug( out )
         
     def do_END(self, args):
         """
@@ -100,7 +99,7 @@ class GwTmMad (object):
         """
         out = 'END %s - SUCCESS -' % ( args.split( ) [ 1 ] )
         self.message.stdout( out )
-        self.logger.debug( out )
+        logger.debug( out )
   
     def do_FINALIZE(self, args):
         """
@@ -110,7 +109,7 @@ class GwTmMad (object):
         """
         out = 'FINALIZE %s - SUCCESS -' % ( args.split( ) [ 1 ] )
         self.message.stdout( out )
-        self.logger.debug( out )
+        logger.debug( out )
         sys.exit( 0 )
  
     def do_MKDIR(self, args):
@@ -128,7 +127,7 @@ class GwTmMad (object):
         except Exception, err :
             out = 'MKDIR %s - FAILURE %s' % ( JID , str( err ) )
         self.message.stdout( out )
-        self.logger.debug( out , exc_info=1 )
+        logger.debug( out , exc_info=1 )
         
     def do_RMDIR(self, args):
         """
@@ -145,7 +144,7 @@ class GwTmMad (object):
         except Exception , err :
             out = 'RMDIR %s - FAILURE %s' % ( JID , str( err ) )
         self.message.stdout( out )        
-        self.logger.debug( out, exc_info=1 )
+        logger.debug( out, exc_info=1 )
     
     def do_CP(self, args):
         """
@@ -164,17 +163,17 @@ class GwTmMad (object):
             com.copy( SRC_URL , DST_URL , EXE_MODE )
             out = 'CP %s %s SUCCESS -' % ( JID , TID )
         except Exception, err :
-            self.logger.warning( 'Error copying from %s to %s : %s' %( SRC_URL , DST_URL, str( err ) ) , exc_info=1 )
+            logger.warning( 'Error copying from %s to %s : %s' %( SRC_URL , DST_URL, str( err ) ) , exc_info=1 )
             time.sleep( 60 )
             try:
-                self.logger.debug( 'Copying again from %s to %s' % ( SRC_URL , DST_URL ) )
+                logger.debug( 'Copying again from %s to %s' % ( SRC_URL , DST_URL ) )
                 com = self._update_com( urlparse( SRC_URL ).host )
                 com.copy( SRC_URL , DST_URL , EXE_MODE )
                 out = 'CP %s %s SUCCESS -' % (JID, TID)
             except Exception, err :
                 out = 'CP %s %s FAILURE %s' % ( JID , TID , str( err ) )   
         self.message.stdout( out )
-        self.logger.debug(out , exc_info=1 )
+        logger.debug(out , exc_info=1 )
         
     methods = {'INIT'    : do_INIT,
                'START'   : do_START,
@@ -193,7 +192,7 @@ class GwTmMad (object):
             self._configure = Configuration()
             while True:
                 input = sys.stdin.readline().split()
-                self.logger.debug(' '.join(input))
+                logger.debug(' '.join(input))
                 OPERATION = input[0].upper()
                 if len(input) == 6 and self.methods.has_key(OPERATION):
                     if OPERATION == 'FINALIZE' or OPERATION == 'INIT':
@@ -202,9 +201,9 @@ class GwTmMad (object):
                 else:
                     out = 'WRONG COMMAND'
                     self.message.stdout(out)
-                    self.logger.debug(out)
+                    logger.debug(out)
         except Exception , err : 
-            self.logger.warning( str ( err ) , exc_info=1 )
+            logger.warning( str ( err ) , exc_info=1 )
     
     def _update_com(self, host):
         with self._lock :
@@ -212,7 +211,7 @@ class GwTmMad (object):
                 self._configure.load()
                 errors = self._configure.check()
                 if errors :
-                    self.logger.error ( ' '.join( errors ) )
+                    logger.error ( ' '.join( errors ) )
                     raise Exception ( ' '.join( errors ) )
             for resname, resdict in self._configure.resources.iteritems() :
                 if '_' in host :

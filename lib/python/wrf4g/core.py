@@ -14,7 +14,7 @@ import subprocess
 import time
 import signal
 
-__version__  = '1.5'
+__version__  = '1.5.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id:$"
 
@@ -1029,7 +1029,7 @@ class FrameWork( object ):
         self.gwd_pid    = join( GW_LOCATION    , 'var' , 'gwd.pid' )
         self.mysql_pid  = join( WRF4G_LOCATION , 'var' , 'mysql',  'mysql.pid' )
         self.mysql_sock = join( WRF4G_LOCATION , 'var' , 'mysql' , 'mysql.sock' )
-        self.mysql_log  = join( WRF4G_LOCATION , 'var' , 'mysql' , 'mysql.log' )
+        self.mysql_log  = join( WRF4G_LOCATION , 'var' , 'log'   , 'mysql.log' )
         
     def _process_is_runnig( self , pid_file ):
         with open( pid_file , 'r') as f:

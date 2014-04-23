@@ -2,7 +2,7 @@ import os
 import sys
 from os.path  import dirname, join , abspath , exists
 
-__version__  = '1.5'
+__version__  = '1.5.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id:$"
 
@@ -20,7 +20,6 @@ if exists( WRF4G_LOCATION ) is False and WRF4G_LOCATION is not "NONE" :
     directories  = [
                     'var/log' , 
                     'var/submission' , 
-                    'var/drm4g' ,
                     'var/mysql' ,
                     'opt/gw_drm4g/var' ,
                     ]

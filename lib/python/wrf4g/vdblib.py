@@ -2,6 +2,10 @@ import os
 from sys import stderr, exit, path, version_info
 from re  import search
 
+__version__  = '1.5.1'
+__author__   = 'Carlos Blanco'
+__revision__ = "$Id:$"
+
 try:
     import pymysql as MySQLdb
     MySQLdb.install_as_MySQLdb() 

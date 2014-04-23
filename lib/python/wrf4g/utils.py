@@ -2,8 +2,6 @@ from __future__     import with_statement
 from datetime       import datetime
 from os.path        import join , basename , dirname , exists , expandvars , isdir
 from re             import search , match
-from ConfigParser import ConfigParser
-
 
 import os
 import sys
@@ -14,7 +12,7 @@ import ConfigParser
 import vdblib
 import vcplib
 
-__version__  = '1.5'
+__version__  = '1.5.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id:$"
 

@@ -8,6 +8,10 @@ from re        import match, search
 from sys       import stderr
 from os.path   import abspath, isdir, isfile, basename, dirname, join
 
+__version__  = '1.5.1'
+__author__   = 'Carlos Blanco'
+__revision__ = "$Id:$"
+
 logger = logging.getLogger(__name__)
 
 def http_ftp_protocol(protocol):
