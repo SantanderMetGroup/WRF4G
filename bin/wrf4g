@@ -9,7 +9,7 @@ from wrf4g.command  import execute_from_command_line
 
 __version__  = '1.5.1'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id:$"
+__revision__ = "$Id$"
 
 if __name__ == "__main__":
     try:

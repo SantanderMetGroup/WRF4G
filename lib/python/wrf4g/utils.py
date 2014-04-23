@@ -9,12 +9,10 @@ import shutil
 import StringIO
 import tarfile
 import ConfigParser
-import vdblib
-import vcplib
 
 __version__  = '1.5.1'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id:$"
+__revision__ = "$Id$"
 
 class VarEnv( object ):
     """

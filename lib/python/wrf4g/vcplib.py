@@ -10,7 +10,7 @@ from os.path   import abspath, isdir, isfile, basename, dirname, join
 
 __version__  = '1.5.1'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id:$"
+__revision__ = "$Id$"
 
 logger = logging.getLogger(__name__)
 

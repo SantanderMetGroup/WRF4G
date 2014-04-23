@@ -4,7 +4,7 @@ from os.path  import dirname, join , abspath , exists
 
 __version__  = '1.5.1'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id:$"
+__revision__ = "$Id$"
 
     
 HOME                      = os.environ.get( 'HOME' )
