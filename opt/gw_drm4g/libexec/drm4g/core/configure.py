@@ -94,7 +94,7 @@ class Configuration(object):
                 self.resources[resname]['queue'] = "default"
                 output = "'queue' key will be called 'default' for '%s' resource" % resname
                 logger.debug( output )
-            if resdict.get( 'ncores' ).count( ',' ) !=  resdict.get( 'queue' ).count( ',' ) :
+            if ( 'ncores' in reslist ) and ( resdict.get( 'ncores' ).count( ',' ) !=  resdict.get( 'queue' ).count( ',' ) ) :
                 output = "The number of elements in 'ncores' are different to the elements of 'queue'"
                 logger.error( output )
                 errors.append( output ) 
