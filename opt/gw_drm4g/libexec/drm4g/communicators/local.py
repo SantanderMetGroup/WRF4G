@@ -27,9 +27,9 @@ class Communicator(drm4g.communicators.Communicator):
             env = os.environ)
         if input :
             for line in input.split():
-                stdout, stderr = command_proc.communicate("%s\n" % line)
-        else :
-            stdout, stderr = command_proc.communicate()
+                command_proc.stdin.write("%s\n" % line)
+                command_proc.stdin.flush()
+        stdout, stderr = command_proc.communicate()
         return stdout , stderr 
         
     def mkDirectory(self, url):
