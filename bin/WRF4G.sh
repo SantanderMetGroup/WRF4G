@@ -284,15 +284,16 @@ export ROOTDIR=`pwd`
 #  Default values
 #
 
-save_wps=0
-clean_after_run=1
-timestep_dxfactor=6
-real_parallel=0
-wrf_parallel=1
-DEBUG="-v"
-VERBOSE=1
-default_preprocessor="default"
-ERROR_MISSING_WRF4GSRC=40
+export save_wps=0
+export clean_after_run=1
+export timestep_dxfactor=6
+export real_parallel=0
+export wrf_parallel=1
+export WRF4G_LOCATION="NONE"
+export DEBUG="-v"
+export VERBOSE=1
+export default_preprocessor="default"
+export ERROR_MISSING_WRF4GSRC=40
 
 #
 #  Get variables.
