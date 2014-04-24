@@ -32,7 +32,7 @@ WRF4G_APPS       = ${WRF4G_LOCATION}/repository/apps
 #-------------------------------------------------------------------------------
 #             SOFTWARE CONFIGURATION 
 #
-# Location of WRF, NETCDF, NCO and CDO bundleds. 
+# Location of WRF, NETCDF, NCO and CDO bundles. 
 #
 #-------------------------------------------------------------------------------
 
