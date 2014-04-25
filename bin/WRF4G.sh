@@ -290,6 +290,7 @@ export timestep_dxfactor=6
 export real_parallel=0
 export wrf_parallel=1
 export WRF4G_LOCATION="NONE"
+export WRF4G_SHELL="Yes"
 export DEBUG="-v"
 export VERBOSE=1
 export default_preprocessor="default"
@@ -312,11 +313,10 @@ export chunk_end_date=$7
 #
 
 #   If there are additional files, expand them
-if test -f wrf4g_files.tar.gz; then
-  verbose_print "* `date`: There is a wrf4g_files.tar.gz package available ... "
-  tar xzf wrf4g_files.tar.gz
-  mv ${ROOTDIR}/wrf4g_files/* ${ROOTDIR}/bin
-  rm -rf wrf4g_files* 
+if test -f input_files.tar.gz; then
+  verbose_print "* `date`: There is a input_files.tar.gz package available ... "
+  tar xzf input_files.tar.gz
+  rm -rf input_files.tat.gz
 fi
 chmod +x ${ROOTDIR}/bin/*
 
@@ -336,7 +336,7 @@ sed --in-place 's/\ *=\ */=/' resources.wrf4g
 sed --in-place 's/\ *=\ */=/' experiment.wrf4g
 
 wrf4g shell Job expvar id=None experiment.wrf4g resources.wrf4g
-[ $? != 0 ] && exit ${ERROR_CUSTOMIZATION_WRF4G_FILES}
+[ $? != 0 ] && exit ${ERROR_CUSTOMIZATION_input_files}
 
 source resources.wrf4g
 source experiment.wrf4g
@@ -406,7 +406,7 @@ wrf4g vcp ${DEBUG} ${WRF4G_NCO} .
 [ $? != 0 ] && wrf4g_exit ${ERROR_MISSING_NCO}
 tar xzf $(basename ${WRF4G_NCO}) && rm $(basename ${WRF4G_NCO})
 
-if ((${WRF4G_CDO}));then
+if [ -n ${WRF4G_CDO} ];then
   wrf4g vcp ${DEBUG} ${WRF4G_CDO} . 
   [ $? != 0 ] && wrf4g_exit ${ERROR_MISSING_CDO}
   tar xzf  $(basename ${WRF4G_CDO}) && rm  $(basename ${WRF4G_CDO})

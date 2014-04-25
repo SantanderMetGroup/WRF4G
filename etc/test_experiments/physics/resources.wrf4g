@@ -24,10 +24,10 @@
 #
 #-------------------------------------------------------------------------------
 
-WRF4G_BASEPATH   = ${WRF4G_LOCATION}/repository/output
-WRF4G_DOMAINPATH = ${WRF4G_LOCATION}/repository/domains
-WRF4G_INPUT      = ${WRF4G_LOCATION}/repository/input
-WRF4G_APPS       = ${WRF4G_LOCATION}/repository/apps
+WRF4G_BASEPATH   = %(here)s/output
+WRF4G_DOMAINPATH = %(WRF4G_DEPLOYMENT_LOCATION)s/repository/domains
+WRF4G_INPUT      = %(WRF4G_DEPLOYMENT_LOCATION)s/repository/input
+WRF4G_APPS       = %(WRF4G_DEPLOYMENT_LOCATION)s/repository/apps
 
 #-------------------------------------------------------------------------------
 #             SOFTWARE CONFIGURATION 

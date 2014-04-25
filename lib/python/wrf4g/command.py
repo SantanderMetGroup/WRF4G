@@ -7,15 +7,14 @@ import errno
 import shutil
 
 from os.path     import exists , expandvars , join , abspath , dirname , expanduser , basename , isdir 
-from wrf4g.core  import Experiment , Realization , JobStatus , Environment , Chunk , Job , FrameWork , Proxy , Resource
-from wrf4g.utils import VarEnv , validate_name , pairs2dict
+from wrf4g.core  import Experiment , Realization , JobStatus , Environment , Chunk , Job , FrameWork , Proxy , Resource , Host
+from wrf4g.utils import VarEnv , validate_name , pairs2dict 
 from wrf4g       import WRF4G_LOCATION , WRF4G_DEPLOYMENT_LOCATION , DB4G_CONF , GW_LOCATION , GW_BIN_LOCATION , GW_LIB_LOCATION , MYSQL_LOCATION
 from wrf4g       import vcplib , vdblib
 
 try :
     sys.path.insert( 0 , GW_LIB_LOCATION  )
     from drm4g.core.configure import Configuration
-    from drm4g                import REMOTE_VOS_DIR , PROXY_THRESHOLD
 except :
     pass 
 
@@ -25,8 +24,8 @@ __revision__ = "$Id$"
             
 class ManagementUtility( cmdln.Cmdln ) :
     """Usage:
-        wrf4g SUBCOMMAND [ARGS...]
-        wrf4g help SUBCOMMAND
+        wrf4g COMMAND [ARGS...]
+        wrf4g help COMMAND
 
     ${command_list}
     ${help_list}
@@ -92,7 +91,7 @@ class ManagementUtility( cmdln.Cmdln ) :
         """Submit command submits an experiment or realization.
 
         usage:
-            wrf4g submit [options]
+            wrf4g submit options
         
         ${cmd_option_list}
         """
@@ -129,7 +128,7 @@ class ManagementUtility( cmdln.Cmdln ) :
                         force=opts.force,
                         type_dep=opts.type_dep)
             elif opts.rea_name:
-                rea=Realization(data={'name':'%s'%opts.rea_name},
+                rea=Realization(data={'name': opts.rea_name },
                                          verbose=opts.verbose,
                                          dryrun=opts.dryrun,
                                          dbc = self.dbc)
@@ -152,11 +151,13 @@ class ManagementUtility( cmdln.Cmdln ) :
                             force=opts.force,
                             type_dep=opts.type_dep)
             elif opts.rea_file:
-                try:
-                    f=open(opts.rea_file)
+                with open( opts.rea_file , 'r') as f :
                     for realization in f.readlines():
                         realization=realization.rstrip()
-                        rea=Realization(data={'name': realization},verbose=opts.verbose,dryrun=opts.dryrun,dbc = self.dbc)
+                        rea=Realization(data={'name': realization},
+                                        verbose=opts.verbose,
+                                        dryrun=opts.dryrun,
+                                        dbc = self.dbc)
                         id=rea.get_id_from_name()
                         if id < 0 :
                             raise Exception( "Realization with name '%s' does not exist" % realization )
@@ -166,8 +167,6 @@ class ManagementUtility( cmdln.Cmdln ) :
                                     rerun=opts.rerun,
                                     force=opts.force,
                                     type_dep=opts.type_dep)      
-                finally:     
-                    f.close()
             else:
                 raise Exception( "Use '--help' option " )
         except Exception, err :
@@ -193,7 +192,7 @@ class ManagementUtility( cmdln.Cmdln ) :
         """Status command prints the experiment or realization status.
         
         usage:
-            wrf4g status [options]
+            wrf4g status options
         
         ${cmd_option_list}
         """
@@ -262,7 +261,7 @@ class ManagementUtility( cmdln.Cmdln ) :
             This chunk is dispatched as soon as possible, bypassing all the scheduling policies. 
         
         usage:
-            wrf4g priority [options]
+            wrf4g priority options
         
         ${cmd_option_list}
         """
@@ -290,8 +289,7 @@ class ManagementUtility( cmdln.Cmdln ) :
                     else:
                         rea.change_priority(opts.priority)
             elif opts.rea_file:
-                try:
-                    f=open(opts.rea_file)
+                with open( opts.rea_file , 'r') as f :
                     for realization in f.readlines():
                         realization=realization.rstrip()
                     rea=Realization(data={'name':'%s'%realization},verbose=opts.verbose,dbc = self.dbc)
@@ -300,8 +298,6 @@ class ManagementUtility( cmdln.Cmdln ) :
                         raise Exception( "Realization with name '%s' does not exist" % realization )
                     else:
                         rea.change_priority(opts.priority)
-                finally: 
-                    f.close()
         except Exception, err :
             sys.stderr.write( str( err ) + '\n' )    
         finally:
@@ -317,7 +313,7 @@ class ManagementUtility( cmdln.Cmdln ) :
         """Prints the experiment or realization status.
         
         usage:
-            wrf4g statistic [options]
+            wrf4g statistic options
                     
         ${cmd_option_list}
         """
@@ -368,7 +364,7 @@ class ManagementUtility( cmdln.Cmdln ) :
             the experiment and realization ckunks, which have not done, will go back to "Prepared" status.
         
         usage:
-            wrf4g kill [options]
+            wrf4g kill options
                     
         ${cmd_option_list}
         """
@@ -397,8 +393,7 @@ class ManagementUtility( cmdln.Cmdln ) :
                     else:
                         rea.stop_running_chunks()
             elif opts.rea_file:
-                f=open(opts.rea_file)
-                try:
+                with open( opts.rea_file , 'r') as f :
                     for realization in f.readlines():
                         realization=realization.rstrip()
                         rea=Realization(data={'name':'%s'%realization},verbose=opts.verbose,dryrun=opts.dryrun,dbc = self.dbc)
@@ -407,8 +402,6 @@ class ManagementUtility( cmdln.Cmdln ) :
                             raise Exception( "Realization '%s' does not exist" % realization )
                         else:
                             rea.stop_running_chunks()
-                finally:
-                    f.close()
         except Exception, err :
             sys.stderr.write( str( err ) + '\n' )
         finally:
@@ -433,7 +426,7 @@ class ManagementUtility( cmdln.Cmdln ) :
         It loads the framework configuration from db.conf and resources.conf files.
         
         usage:
-            wrf4g framework [options]
+            wrf4g framework options
                     
         ${cmd_option_list}
         """
@@ -451,94 +444,7 @@ class ManagementUtility( cmdln.Cmdln ) :
                 raise Exception( "Please use '--help' option " )
         except Exception, err:
             sys.stderr.write( str( err ) + '\n' )        
-            
-    @cmdln.option("-c", "--check",action="store_true",
-                  help="Check if the Grid proxy certificate is valid. You have to indicate the resource.")
-    @cmdln.option("-d", "--download",action="store_true",
-                  help="It  retrieves  a  proxy  credential  from  the myproxy-server. You have to indicate the resource.")
-    @cmdln.option("-u", "--upload", action="store_true",
-                  help="It uploads the credential to a myproxy-server. You have to indicate the resource")
-    @cmdln.option("-C", "--create",action="store_true",
-                  help=" It creates a proxy for 7 days. You only have to indicate the resource.")
-    @cmdln.option("-D", "--destroy", action="store_true",
-                  help="It destroys the proxy on the myproxy-server. You have to indicate the resource.")
-
-    def do_proxy(self, subcmd, opts, *args):
-        """Command for managing X.509 Public Key Infrastructure (PKI) security credentials
-        
-        usage:
-            wrf4g proxy [options] resource
-                    
-        ${cmd_option_list}
-        """
-        try :
-            if len( args ) is not 1 :
-               raise Exception( "Please, provide a resource" )
-            res_name  = args[ 0 ]
-            resource  = self.config.resources[ res_name ]
-            communicator = self.config.make_communicators()[ res_name ]
-            communicator.connect()
-            proxy = Proxy( resource , communicator )
-            if opts.download:
-                proxy.download( )
-            elif opts.check :
-                proxy.check( )
-            elif opts.destroy :
-                proxy.destroy( )
-            elif opts.upload :
-                proxy.upload( )
-            elif opts.create:
-                proxy.upload( )
-                proxy.download( )
-            else :
-                raise Exception( "Please use '--help' option " )
-        except Exception, err:
-            sys.stderr.write( str( err ) + '\n' )    
-            
-    @cmdln.option("-v", "--verbose",action="store_true", dest="verbose", default=False,
-                  help="Verbose mode. Explain what is being done")
-    @cmdln.option("-r", "--reconfigure",action="store_true", dest="reconfigure", default=False,
-                  help="Reconfigure element in WRF4G")
-    @cmdln.option("-n", "--dry-run",action="store_true", dest="dryrun", default=False,
-                  help="Perform a trial run with no changes made")
-
-    def do_shell(self, subcmd, opts, *args):
-        """Specify an interpreter interface to execute WRF4G.
-        
-        usage:
-            wrf4g shell [options] 
-                    
-        ${cmd_option_list}
-        """
-        try :
-            if len( args ) < 2 :
-                raise Exception( "Incorrect number of arguments" )
-            class_name , function = args[ 0:2 ]
-            if len( args ) > 2 :
-                data = pairs2dict( args[ 2 ] )
-            else :
-                data = ''
-            inst = "%s(data=%s,verbose=opts.verbose,reconfigure=opts.reconfigure,dryrun=opts.dryrun,dbc=self.dbc)" % ( class_name , data )
-            comp = eval( inst )
-            try:
-                self.dbc.connect()
-                if len( args ) > 3 :     
-                    # Call the Class method.
-                    output = getattr( comp , function )( args[ 3: ] )
-                else:                  
-                    output = getattr( comp , function )()
-                sys.stdout.write( str( output ) )
-            finally:
-                if self.dbc.is_open() :
-                    if opts.dryrun:
-                        self.dbc.rollback()
-                    else:
-                        self.dbc.commit()
-                    self.dbc.close()
-        except Exception , err :
-            sys.stderr.write( str( err ) + '\n' )
-            sys.exit(-1)    
-            
+             
     @cmdln.option("-v", "--verbose",action="store_true", default=False,
                   help="Verbose mode. Explain what is being done")
     @cmdln.option("-r", "--reconfigure",action="store_true", default=False,
@@ -547,12 +453,12 @@ class ManagementUtility( cmdln.Cmdln ) :
     @cmdln.option("-n", "--dry-run",action="store_true", dest="dryrun", default=False,
                   help="Perform a trial run with no changes made")
 
-    def do_prepare(self, subcmd, opts, *args):
+    def do_startexp(self, subcmd, opts, *args):
         """Given the location of a experiment.wrf4g file, it prepares the experiment
         creating the realizations and chunks needed to perform it.
         
         usage:
-            wrf4g prepare [options] [directory]
+            wrf4g startexp [options] [directory]
                     
         ${cmd_option_list}
         """
@@ -589,30 +495,30 @@ class ManagementUtility( cmdln.Cmdln ) :
         except Exception, err:
             sys.stderr.write( str( err ) + '\n' )  
 
-    @cmdln.option("-t", "--test", action="store", type="choice", choices=["single", "physics"],
-                  help="Test experiment to choose. You can choose either 'single' or 'physics' experiments")
+    @cmdln.option("-t", "--template", action="store", type="choice", choices=["single", "physics"],
+                  help="Experiment template to choose. You can choose either 'single' or 'physics' experiments")
     @cmdln.option("-d", "--directory",action="store_true",
-                  help="Directory to create the WRF4G experiment directory structure")
+                  help="Directory to create a WRF4G experiment directory structure")
     @cmdln.option("-v", "--verbose",action="store_true",default=False,
                   help="Verbose mode. Explain what is being done")
 
-    def do_startexp(self, subcmd, opts, *args):
+    def do_setupexp(self, subcmd, opts, *args):
         """Creates a WRF4G experiment directory structure for the given experiment name 
         in the current directory or in the given directory.
 
         usage:
-            wrf4g startexp [options] [experiment_name] 
+            wrf4g setupexp [options] [experiment_name] 
                     
         ${cmd_option_list}
         """
         try :
-            if opts.test is None :
-                if len( args ) is not 1 :
-                    raise Exception( "Please, provide a resource" )
+            if opts.template is None and len( args ) is not 1 :
+                raise Exception( "Please, provide an experiment name" )
+            elif ( opts.template and len( args ) is 1 ) or ( len( args ) is 1 ):
                 exp_name  = args[ 0 ]
                 validate_name( exp_name )
             else :
-                exp_name = opts.test
+                exp_name = opts.template
         
             def _create_directory( dir ) :
                 try:
@@ -625,7 +531,7 @@ class ManagementUtility( cmdln.Cmdln ) :
                     raise Exception( message )
         
             # if some directory is given, make sure it's nicely expanded
-            if opts.directory is None:
+            if opts.directory is None :
                 exp_dir = join( os.getcwd( ) , exp_name ) 
             else:
                 top_dir = abspath( expanduser( opts.directory ) )
@@ -633,92 +539,142 @@ class ManagementUtility( cmdln.Cmdln ) :
                     raise Exception("Destination directory '%s' does not "
                                        "exist, please create it first." % top_dir )
                 exp_dir = join( top_dir, exp_name )
-           
-            if opts.test is None :
-                if opts.verbose : 
-                    print "Creating '%s'" % exp_dir
-                _create_directory( exp_dir )
-                wrf4g_files = join( exp_dir , 'wrf4g_files' )
-                if opts.verbose : 
-                    print "Creating '%s'" % wrf4g_files
-                _create_directory( wrf4g_files )
-                experiment_wrf4g_template = """
-[DEFAULT]
-#   Experiment configuration
-#
-experiment_name      = "%s"
+            if exists( exp_dir ):
+                raise Exception("'%s' already exists" % exp_dir )
 
-#   Simulation domain
-max_dom              = 1
-domain_name          = "domain"
-
-#   Input data
-extdata_vtable       = "GFS"    # Vtables must exist as Vtable.[input_extdata]
-extdata_path         = "PATH"
-extdata_interval     = SS       # Seconds between global analysis input times
-extdata_preprocessor = "preprocessor_name"
-
-#   Output data
-postprocessor        = "postprocessor_name"
-wrfout_name_end_date = 0
-
-#   Experiment time-specification
-rerun                = 0
-start_date           = "Year-Month-Day_HH:MM:SS"
-end_date             = "Year-Month-Day_HH:MM:SS"
-chunk_size_h         = HH
-
-multiple_dates       = 0
-simulation_interval_h    = 0
-simulation_length_h      = 0
-
-multiple_parameters  = 0
-multiparams_variables    = ""
-multiparams_nitems       = ""
-multiparams_combinations = ""
-multiparams_labels       = ""
-
-#   Debugging
-clean_after_run      = 1
-save_wps             = 0
-
-#   Parallel configuration  
-real_parallel        = 0
-wrf_parallel         = 1
-
-#   WRF-namelist parameters. Override namelist.input variables 
-
-namelist_version       = "x.x.x" """ % exp_name
-                exp_file = join( exp_dir , 'experiment.wrf4g' )
+            if opts.template is None :
                 if opts.verbose :
-                    print "Creating '%s'" % exp_file
-                with open( exp_file , 'wb' ) as file:
-                    file.write( experiment_wrf4g_template )
-                old_path = join( WRF4G_LOCATION , 'etc' , 'resources.wrf4g' )
-                new_path = join( exp_dir , 'resources.wrf4g' )
-                if opts.verbose : 
-                    print "Creating '%s'" % new_path
-                shutil.copy( old_path , new_path )
+                    print "Creating '%s' directory" % exp_dir
+                _create_directory( exp_dir )
+                if opts.verbose :
+                    print "Creating 'input_files' directory"
+                _create_directory( join( exp_dir , 'input_files' ) )
             else :
-                old_path = join( WRF4G_LOCATION , 'etc' , 'test_experiments' , opts.test )
-                new_path = exp_dir 
+                if opts.verbose :
+                    print "Creating '%s' directory" % exp_dir
+                    print "Creating '%s/input_files' directory" %  exp_dir
+                shutil.copytree( join( WRF4G_LOCATION , 'etc' , 'test_experiments',  opts.template , 'input_files' ) , 
+                                 join( exp_dir , 'input_files' ) )
+            output = join( exp_dir , 'output' )
+            if opts.verbose : 
+                print "Creating '%s' directory" % output
+            _create_directory( output ) 
+            for file in [ 'resources.wrf4g' , 'experiment.wrf4g' ] :  
+                if opts.template is None : 
+                    src_path = join( WRF4G_LOCATION , 'etc' , file )
+                else :
+                    src_path = join( WRF4G_LOCATION , 'etc' , 'test_experiments' , opts.template , file )
+                dest_path = join( exp_dir , file )
                 if opts.verbose : 
-                    print "Creating '%s' test experiment" % opts.test
-                shutil.copytree( old_path , new_path )
+                    print "Creating '%s' file" % file
+                shutil.copy( src_path , dest_path )
+                with open( dest_path , 'r') as f :
+                    data = ''.join( f.readlines( ) )
+                data_updated = data % { 'here' : exp_dir , 
+                                       'WRF4G_DEPLOYMENT_LOCATION' : WRF4G_DEPLOYMENT_LOCATION ,
+                                       'exp_name' : exp_name ,
+                                        }
+                with open( dest_path , 'w') as f :
+                    f.writelines( data_updated )
         except Exception , err :
             sys.stderr.write( str( err ) + '\n' )
+        
+    @cmdln.option("-c", "--check",action="store_true",
+                  help="Check if the Grid proxy certificate is valid. You have to indicate the resource.")
+    @cmdln.option("-d", "--download",action="store_true",
+                  help="It  retrieves  a  proxy  credential  from  the myproxy-server. You have to indicate the resource.")
+    @cmdln.option("-u", "--upload", action="store_true",
+                  help="It uploads the credential to a myproxy-server. You have to indicate the resource")
+    @cmdln.option("-C", "--create",action="store_true",
+                  help=" It creates a proxy for 7 days. You only have to indicate the resource.")
+    @cmdln.option("-D", "--destroy", action="store_true",
+                  help="It destroys the proxy on the myproxy-server. You have to indicate the resource.")
+
+    def do_proxy(self, subcmd, opts, *args):
+        """Command for managing X.509 Public Key Infrastructure (PKI) security credentials
+        
+        usage:
+            wrf4g proxy [options] RESOURCE
+                    
+        ${cmd_option_list}
+        """
+        try :
+            if len( args ) is not 1 :
+               raise Exception( "Please, provide a resource" )
+            res_name  = args[ 0 ]
+            self.config.load()
+            resource  = self.config.resources[ res_name ]
+            communicator = self.config.make_communicators()[ res_name ]
+            communicator.connect()
+            proxy = Proxy( resource , communicator )
+            if opts.download:
+                proxy.download( )
+            elif opts.check :
+                proxy.check( )
+            elif opts.destroy :
+                proxy.destroy( )
+            elif opts.upload :
+                proxy.upload( )
+            elif opts.create:
+                proxy.upload( )
+                proxy.download( )
+            else :
+                proxy.check( )
+        except Exception, err:
+            sys.stderr.write( str( err ) + '\n' )    
+            
+    @cmdln.option("-v", "--verbose",action="store_true", dest="verbose", default=False,
+                  help="Verbose mode. Explain what is being done")
+    @cmdln.option("-r", "--reconfigure",action="store_true", dest="reconfigure", default=False,
+                  help="Reconfigure element in WRF4G")
+    @cmdln.option("-n", "--dry-run",action="store_true", dest="dryrun", default=False,
+                  help="Perform a trial run with no changes made")
+
+    def do_shell(self, subcmd, opts, *args):
+        """Specify an interpreter interface to execute WRF4G classes.
+        
+        usage:
+            wrf4g shell [options] CLASSES
+                    
+        ${cmd_option_list}
+        """
+        try :
+            if len( args ) < 2 :
+                raise Exception( "Incorrect number of arguments" )
+            class_name , function = args[ 0:2 ]
+            if len( args ) > 2 :
+                data = pairs2dict( args[ 2 ] )
+            else :
+                data = ''
+            inst = "%s(data=%s,verbose=opts.verbose,reconfigure=opts.reconfigure,dryrun=opts.dryrun,dbc=self.dbc)" % ( class_name , data )
+            comp = eval( inst )
+            try:
+                self.dbc.connect()
+                if len( args ) > 3 :     
+                    # Call the Class method.
+                    output = getattr( comp , function )( args[ 3: ] )
+                else:                  
+                    output = getattr( comp , function )()
+                sys.stdout.write( str( output ) )
+            finally:
+                if self.dbc.is_open() :
+                    if opts.dryrun:
+                        self.dbc.rollback()
+                    else:
+                        self.dbc.commit()
+                    self.dbc.close()
+        except Exception , err :
+            sys.stderr.write( str( err ) + '\n' )
+            sys.exit(-1)            
             
     @cmdln.option("-l", "--list",action="store_true",
                   help="List the resources available.")
     @cmdln.option("-c", "--check", action="store_true",
                   help="Check if the resources.conf file has been configured well.")
     @cmdln.option("-f", "--features", action="store_true",
-                  help="List the features of a given resource.")
-    @cmdln.option("-C", "--check_frontends",action="store_true",
-                  help="Check if all frontends are reachable.")
-    @cmdln.option("-L", "--list_host",action="store_true",
-                  help="List the hosts and their features."
-                  "In order to see all the information you have to specify the HID.")
+                  help="List the features of each resource.")
+    @cmdln.option("-C", "--check-frontends",dest="checkfrontends",action="store_true",
+                  help="Check if all front-ends are reachable.")
 
     def do_resources(self, subcmd, opts, *args):
         """Prints information about the resources in WRF4G 
@@ -732,20 +688,36 @@ namelist_version       = "x.x.x" """ % exp_name
             res = Resource( self.config )
             if opts.list :
                 res.list_resources()
-            elif opts.check_frontends :
+            elif opts.checkfrontends :
                 res.check_frontends()
             elif opts.features :
                 res.resource_features()
-            elif opts.list_host :
-                if len( args ) is 1 :
-                    hid = args[ 0 ]
-                else :
-                    hid = None
-                res.list_host( hid )
             elif opts.check :
                 res.check_resources()
             else :
-                raise Exception( "Please use '--help' option " )
+                res.list_resources()
+        except Exception , err :
+            sys.stderr.write( str( err ) + '\n' )
+
+    @cmdln.option("-l", "--list",dest="list",action="store_true",
+                  help="List the hosts and their features."
+                  "In order to see all the information them, you have to specify the HID.")
+            
+    def do_host(self, subcmd, opts, *args):
+        """Prints information about the hosts available
+        
+        usage:
+            wrf4g hosts [options] [HID] 
+                    
+        ${cmd_option_list}
+        """
+        try :
+            host = Host( )
+            if opts.list and len( args ) is not 0 :
+                for hid in args[ 0: ] :
+                    host.list( hid )
+            else :
+                host.host( None )
         except Exception , err :
             sys.stderr.write( str( err ) + '\n' )
 
@@ -787,13 +759,11 @@ namelist_version       = "x.x.x" """ % exp_name
             sys.stderr.write( str( err ) + '\n' )
             sys.exit(-1)
 
-    def do_exit( self, subcmd, opts, *args ):
+    def do_quit( self, subcmd, opts, *args ):
         """
         Quits the console.
         """
         sys.exit( 0 )
-    
-    do_quit = do_exit
            
                 
 def execute_from_command_line( argv ):

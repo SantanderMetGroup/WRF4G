@@ -1,7 +1,7 @@
 [DEFAULT]
 #   Experiment configuration
 #
-experiment_name      = "single"
+experiment_name      = "%(exp_name)s"
 
 #   Simulation domain
 max_dom              = 1

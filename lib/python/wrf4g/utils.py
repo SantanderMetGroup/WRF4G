@@ -6,7 +6,6 @@ from re             import search , match
 import os
 import sys
 import shutil
-import StringIO
 import tarfile
 import ConfigParser
 
@@ -23,13 +22,9 @@ class VarEnv( object ):
         """
         'file' to read
         """
-        config = StringIO.StringIO()
-        config.write( "[DATA]\n" )
-        config.write( open( file ).read() )
-        config.seek( 0 , os.SEEK_SET )
         self._cp = ConfigParser.ConfigParser()
         self._cp.optionxform=str
-        self._cp.readfp( config )
+        self._cp.read( file )
         
     def has_section( self , section ):
         """
@@ -48,6 +43,18 @@ class VarEnv( object ):
         Return a list of section names, excluding [DEFAULT] section.
         """
         return self._cp.sections()
+    
+    def write( self , dest_file ):
+        """
+        Write an ini-format representation of the configuration
+        """
+        self._cp.write( dest_file )
+        
+    def set_variable( self , section , name , value ) :
+        """
+        Set an option
+        """
+        self._cp.set(section, option, value)
     
     def get_variable( self , var_name , section = 'DEFAULT' , default = '') :
         """

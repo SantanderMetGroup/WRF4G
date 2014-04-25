@@ -2,7 +2,7 @@ from __future__     import with_statement
 from datetime       import datetime
 from os.path        import join , basename , dirname , exists , expandvars , isdir
 from re             import search , match
-from wrf4g          import vdblib , vcplib , gridwaylib , HOME , WRF4G_LOCATION , WRF4G_DEPLOYMENT_LOCATION , DB4G_CONF , GW_LOCATION , GW_BIN_LOCATION , GW_LIB_LOCATION , MYSQL_LOCATION
+from wrf4g          import vdblib , vcplib , gridwaylib , WRF4G_LOCATION , WRF4G_DEPLOYMENT_LOCATION , DB4G_CONF , GW_LOCATION , GW_BIN_LOCATION , GW_LIB_LOCATION , MYSQL_LOCATION
 from wrf4g.utils    import VarEnv , datetime2datewrf , list2fields , create_hash
 
 import os
@@ -13,6 +13,13 @@ import tarfile
 import subprocess
 import time
 import signal
+import getpass
+
+try :
+    sys.path.insert( 0 , GW_LIB_LOCATION  )
+    from drm4g  import REMOTE_VOS_DIR , PROXY_THRESHOLD
+except :
+    pass
 
 __version__  = '1.5.1'
 __author__   = 'Carlos Blanco'
@@ -210,13 +217,13 @@ class Component:
                 if self.reconfigure == False:
                     sys.stderr.write('%s already exists. \n'%self.element)
                     self.data['id']=-1
+                    sys.exit(9)
                 else:                
                     self.prepare_storage()
         else:
             if self.verbose: 
                 sys.stderr.write('Creating %s\n'%self.element)
             if self.element == "Experiment":
-                import getpass
                 username=getpass.getuser()
                 userid=getuserid(username,self.dbc)
                 self.data['id_user']=userid
@@ -384,8 +391,8 @@ class Experiment(Component):
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )
         current_path = os.getcwd()
-        os.chdir( WRF4G_DEPLOYMENT_LOCATION )
         with tarfile.open( join ( exp_sub_dir , "WRF4G.tar.gz" ) , "w:gz" ) as tar:
+            os.chdir( WRF4G_DEPLOYMENT_LOCATION )
             for dir in [ "bin", "lib" ]:
                 tar.add( dir )
         os.chdir( current_path )
@@ -558,7 +565,8 @@ class Realization(Component):
                                               chi.data['id_chunk'],
                                               chi.data['id'],
                                               datetime2datewrf(chi.data['sdate']),
-                                              datetime2datewrf(chi.data['edate']))
+                                              datetime2datewrf(chi.data['edate'])
+                                              )
             
             if chunki == first_id: 
                 sys.stderr.write('Submitting realization: "%s"\n'%(rea_name))
@@ -579,9 +587,9 @@ class Realization(Component):
                 sandbox += "file://%s/resources.wrf4g,"  % ( rea_sub_dir )
                 sandbox += "file://%s/experiment.wrf4g," % ( rea_sub_dir )
                 sandbox += "file://%s/namelist.input"    % ( rea_sub_dir )
-                wrf4g_files = join( rea_sub_dir , 'wrf4g_files.tar.gz' )
-                if exists( wrf4g_files ) :
-                    sandbox += ",file://%s" % ( wrf4g_files )
+                input_files = join( rea_sub_dir , 'input_files.tar.gz' )
+                if exists( input_files ) :
+                    sandbox += ",file://%s" % ( input_files )
                 run_vars = VarEnv( join( rea_sub_dir , 'resources.wrf4g' )  )
                 gw_job   = gridwaylib.job()
                 gw_job.create_template( 
@@ -722,33 +730,21 @@ class Realization(Component):
                 os.makedirs( rea_submission_dir )
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % rea_submission_dir ) 
-        if exists( 'wrf4g_files' ):
-            with tarfile.open( 'wrf4g_files.tar.gz' , "w:gz" ) as tar:
-                tar.add( 'wrf4g_files' )
-            dst_file = join( rea_submission_dir , 'wrf4g_files.tar.gz' )
+        if exists( 'input_files' ):
+            current_path = os.getcwd()
+            with tarfile.open( 'input_files.tar.gz' , "w:gz" ) as tar:
+                os.chdir( 'input_files')
+                for elem in os.listdir('.') :
+                    tar.add( elem )
+            os.chdir( current_path )
+            dst_file = join( rea_submission_dir , 'input_files.tar.gz' )
             if exists( dst_file ):
                 os.remove(dst_file)
-            shutil.move( 'wrf4g_files.tar.gz' , dst_file )
+            shutil.move( 'input_files.tar.gz' , dst_file )
             
         def _copy( file ):
             shutil.copy( expandvars( file ) , rea_submission_dir )
-        [ _copy( file ) for file in files ]
-
-        map_dict = {'$WRF4G_LOCATION'   : WRF4G_LOCATION ,
-                    '${WRF4G_LOCATION}' : WRF4G_LOCATION , 
-                    '$HOME'             : HOME ,     
-                    '${HOME}'           : HOME , 
-                    }
-        submission_resources = join( rea_submission_dir , 'resources.wrf4g' )
-        lines = ''
-        with open( submission_resources , 'r' ) as file :
-            for line in file :
-                for k , v in map_dict.iteritems():
-                   line = line.replace( k , v)
-                lines += line
-        with open( submission_resources , 'w' ) as file :
-            file.writelines( lines  )
-         
+        [ _copy( file ) for file in files ]         
                 
     def prepare_remote_storage(self , args ):
         """
@@ -1082,13 +1078,13 @@ class FrameWork( object ):
             else :
                 print "OK"
         else :
-            print "ERROR: DRM4G is already running."
+            print "WARNING: DRM4G is already running."
     
     def start_database( self ):        
         if self.local_db == '1' :
             print "Starting WRF4G_DB (MySQL) ... "
             if not self._port_is_free( self.mysql_port ) and not self._process_is_runnig( self.mysql_pid ):
-                raise Exception( "ERROR: Another process is listening on port %s."
+                raise Exception( "WARNING: Another process is listening on port %s."
                   "Change WRF4G_DB_PORT in '%s' file to start MySQL on a different port." % ( self.mysql_port , DB4G_CONF )
                   )
             elif not exists( self.mysql_pid ) or ( exists( self.mysql_pid ) and not self._process_is_runnig( self.mysql_pid ) ) :
@@ -1109,7 +1105,7 @@ class FrameWork( object ):
                 else :
                     print "OK"
             else :
-                print "ERROR: MySQL is already running"
+                print "WARNING: MySQL is already running"
         else :
             print "You are using a remote WRF4G_DB (MySQL)"
                 
@@ -1131,7 +1127,7 @@ class FrameWork( object ):
         if self.local_db == '1' :
             print "Stopping WRF4G_DB (MySQL) ... "
             if not exists( self.mysql_pid ) or ( exists( self.mysql_pid ) and not self._process_is_runnig( self.mysql_pid ) ) :
-                raise Exception( "ERROR: MySQL is already stopped." )
+                raise Exception( "WARNING: MySQL is already stopped." )
             elif exists( self.mysql_pid ) and self._process_is_runnig( self.mysql_pid ) :
                 with open( self.mysql_pid , 'r') as f:
                     pid = f.readline().strip()
@@ -1150,7 +1146,7 @@ class FrameWork( object ):
                 except Exception , err :
                     print "ERROR: stopping MySQL: %s" % str( err )
             else :
-                print "ERROR: MySQL is already stopped."
+                print "WARNING: MySQL is already stopped."
         else :
             print "You are using a remote WRF4G_DB (MySQL)"
     
@@ -1187,12 +1183,12 @@ class Proxy( object ):
         self.resource      = resource  
         self.communicator  = communicator
         
-    def download( self ):
+    def upload( self ):
         print "\tCreating '%s' directory to store the proxy ... " % REMOTE_VOS_DIR
         cmd = "mkdir -p %s" % REMOTE_VOS_DIR
         print "\tExecuting command ... ", cmd 
         self.communicator.execCommand( cmd )
-        out, err = communicator.execCommand( cmd )
+        out, err = self.communicator.execCommand( cmd )
         if not err :
             message      = '\tInsert your GRID pass: '
             grid_passwd  = getpass.getpass(message)
@@ -1222,7 +1218,7 @@ class Proxy( object ):
         out, err = self.communicator.execCommand( cmd )
         print "\t", out , err    
     
-    def upload( self ):
+    def download( self ):
         message      = '\tInsert MyProxy password: '
         proxy_passwd = getpass.getpass(message)
  
@@ -1276,30 +1272,10 @@ class Resource( object ):
         ---------------------------------------------"""
         for resname, resdict in sorted( self.config.resources.iteritems() ) :
             if resdict[ 'enable' ] == 'True' :
-                state = 'enable'
+                state = 'enabled'
             else :
-                state = 'disable'
+                state = 'disabled'
             print "\t%-30.30s%s" % ( resname , state )
-    
-    def list_host( self , hid ) :
-        """
-        List the hosts and their features.
-        """
-        self.check_resources( )
-        if hid is None :
-            cmd_option = 'gwhost'
-        else :
-            cmd_option = 'gwhost ' + hid
-        exec_cmd = subprocess.Popen( join ( GW_BIN_LOCATION , cmd_option ) , 
-                                     shell=True , 
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE,
-                                     )
-        out, err = exec_cmd.communicate()
-        if err :
-            print out , err
-        else :
-            print out
                     
     def resource_features( self ) :
         """
@@ -1323,6 +1299,23 @@ class Resource( object ):
             raise Exception( "Please, review your configuration file\n%s" % message )
         
 
-
-
-
+class Host( object ):
+        
+    def list( self , hid ) :
+        """
+        List the hosts and their features.
+        """
+        if hid is None :
+            cmd_option = 'gwhost'
+        else :
+            cmd_option = 'gwhost ' + hid
+        exec_cmd = subprocess.Popen( join ( GW_BIN_LOCATION , cmd_option ) , 
+                                     shell=True , 
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE,
+                                     )
+        out, err = exec_cmd.communicate()
+        if err :
+            print out , err
+        else :
+            print out

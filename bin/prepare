@@ -17,6 +17,7 @@ fi
 current_directory=`dirname $0`
 WRF4G_DEPLOYMENT_LOCATION=`dirname $current_directory`
 export PYTHONPATH=${WRF4G_DEPLOYMENT_LOCATION}/lib/python:${PYTHONPATH}
+export WRF4G_SHELL="Yes"
 
 nchunks=""
 isdry="no"

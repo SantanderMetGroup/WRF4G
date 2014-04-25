@@ -6,7 +6,7 @@
 # WRFV3/run directory between the real.exe and wrf.exe calls. This allows
 # modifying the initial or boundary conditions. If you need some file to take
 # the input data or perturbation data, just make it available under this
-# directory by the wrf4g_files mechanism.
+# directory by the input_files mechanism.
 #
 # This script is intended to modify wrfinput, wrflowbdy, wrfbdy, ... files and
 # leave them with the same name, ready to be used by wrf.exe
