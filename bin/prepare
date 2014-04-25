@@ -262,7 +262,7 @@ fi
 if test ${id} -ge 0; then
   echo "Preparing namelist...">&2
   if ! is_dry_run; then 
-    cp ${WRF4G_LOCATION}/etc/namelist/namelist.input-${namelist_version} namelist.input
+    cp ${WRF4G_LOCATION}/etc/templates/namelist/namelist.input-${namelist_version} namelist.input
     if test -f namelist.input; then
       fortnml -o -w -f namelist.input -s max_dom ${max_dom}
     else

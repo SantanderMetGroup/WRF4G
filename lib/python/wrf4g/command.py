@@ -33,8 +33,7 @@ class ManagementUtility( cmdln.Cmdln ) :
     For additional information, see http://www.meteo.unican.es/software/wrf4g
     """
     
-    prompt = "> "
-    name   = "wrf4g"
+    prompt = "wrf4g > "
     try :
         config = Configuration()
     except :
@@ -519,17 +518,7 @@ class ManagementUtility( cmdln.Cmdln ) :
                 validate_name( exp_name )
             else :
                 exp_name = opts.template
-        
-            def _create_directory( dir ) :
-                try:
-                    os.makedirs( dir )
-                except OSError as err :
-                    if err.errno == errno.EEXIST:
-                        message = "'%s' already exists" % dir
-                    else:
-                        message = err
-                    raise Exception( message )
-        
+                
             # if some directory is given, make sure it's nicely expanded
             if opts.directory is None :
                 exp_dir = join( os.getcwd( ) , exp_name ) 
@@ -541,33 +530,12 @@ class ManagementUtility( cmdln.Cmdln ) :
                 exp_dir = join( top_dir, exp_name )
             if exists( exp_dir ):
                 raise Exception("'%s' already exists" % exp_dir )
-
-            if opts.template is None :
-                if opts.verbose :
-                    print "Creating '%s' directory" % exp_dir
-                _create_directory( exp_dir )
-                if opts.verbose :
-                    print "Creating 'input_files' directory"
-                _create_directory( join( exp_dir , 'input_files' ) )
-            else :
-                if opts.verbose :
-                    print "Creating '%s' directory" % exp_dir
-                    print "Creating '%s/input_files' directory" %  exp_dir
-                shutil.copytree( join( WRF4G_LOCATION , 'etc' , 'test_experiments',  opts.template , 'input_files' ) , 
-                                 join( exp_dir , 'input_files' ) )
-            output = join( exp_dir , 'output' )
-            if opts.verbose : 
-                print "Creating '%s' directory" % output
-            _create_directory( output ) 
+                
+            if opts.verbose :
+                print "Creating '%s' directory" % exp_dir                    
+            shutil.copytree( join( WRF4G_LOCATION , 'etc' , 'templates' , 'experiments',  opts.template ) ,  exp_dir )
             for file in [ 'resources.wrf4g' , 'experiment.wrf4g' ] :  
-                if opts.template is None : 
-                    src_path = join( WRF4G_LOCATION , 'etc' , file )
-                else :
-                    src_path = join( WRF4G_LOCATION , 'etc' , 'test_experiments' , opts.template , file )
                 dest_path = join( exp_dir , file )
-                if opts.verbose : 
-                    print "Creating '%s' file" % file
-                shutil.copy( src_path , dest_path )
                 with open( dest_path , 'r') as f :
                     data = ''.join( f.readlines( ) )
                 data_updated = data % { 'here' : exp_dir , 
@@ -600,11 +568,11 @@ class ManagementUtility( cmdln.Cmdln ) :
         """
         try :
             if len( args ) is not 1 :
-               raise Exception( "Please, provide a resource" )
+                raise Exception( "Please, provide a resource" )
             res_name  = args[ 0 ]
             self.config.load()
             if not self.config.resources.has_key( res_name ) :
-                print "\t'%s' is not a resource." % res_name
+                raise Exception( "\t'%s' is not a resource." % res_name )
             resource  = self.config.resources[ res_name ]
             communicator = self.config.make_communicators()[ res_name ]
             communicator.connect()
@@ -696,6 +664,7 @@ class ManagementUtility( cmdln.Cmdln ) :
                 res.resource_features()
             elif opts.check :
                 res.check_resources()
+                print "The check has passed with flying colors"
             else :
                 res.list_resources()
         except Exception , err :
@@ -719,7 +688,7 @@ class ManagementUtility( cmdln.Cmdln ) :
                 for hid in args[ 0: ] :
                     host.list( hid )
             else :
-                host.host( None )
+                host.list( None )
         except Exception , err :
             sys.stderr.write( str( err ) + '\n' )
 
