@@ -1204,7 +1204,7 @@ class Proxy( object ):
             else :
                 cmd = "myproxy-init -S -t %s" % PROXY_THRESHOLD
             print "\tExecuting command ... ", cmd 
-            out , err = self.communicator.execCommand( cmd , input = '\n'.join( [ grid_passwd, proxy_passwd, proxy_passwd ] ) )
+            out , err = self.communicator.execCommand( cmd , input = '\n'.join( [ grid_passwd, proxy_passwd ] ) )
             print "\t", out , err
         else :
             print "\t", err
