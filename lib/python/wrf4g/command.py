@@ -603,6 +603,8 @@ class ManagementUtility( cmdln.Cmdln ) :
                raise Exception( "Please, provide a resource" )
             res_name  = args[ 0 ]
             self.config.load()
+            if not self.config.resources.has_key( res_name ) :
+                print "\t'%s' is not a resource." % res_name
             resource  = self.config.resources[ res_name ]
             communicator = self.config.make_communicators()[ res_name ]
             communicator.connect()
