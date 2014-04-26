@@ -593,22 +593,20 @@ class ManagementUtility( cmdln.Cmdln ) :
                 proxy.check( )
         except Exception, err:
             sys.stderr.write( str( err ) + '\n' )    
-            
-    @cmdln.option("-e", "--editor", action="store", type="choice", dest="type_dep", choices=["vi", "nano", "pico"], default="vi",
-                  help="Which editor you want to use (vi by default).")
 
     def do_edit(self, subcmd, opts, *args):
-        """Edit files.
+        """Edit a file. vi will be set by default. In order to modify that, 
+        configure EDITOR shell variable.
         
         usage:
-            wrf4g edit [options] FILE
+            wrf4g edit FILE
                     
         ${cmd_option_list}
         """
         try :        
             if len( args ) is not 1 :
-                raise Exception( "Please use '--help' option " )
-            os.system("%s %s" % ( opts.editor , arg[ 0 ] ) )
+                raise Exception( "Please provide one file" )
+            os.system( "%s %s" % ( os.environ.get('EDITOR', 'vi') , arg[ 0 ] ) )
         except Exception, err:
             sys.stderr.write( str( err ) + '\n' ) 
             
@@ -662,8 +660,11 @@ class ManagementUtility( cmdln.Cmdln ) :
                   help="Check if the resources.conf file has been configured well.")
     @cmdln.option("-f", "--features", action="store_true",
                   help="List the features of each resource.")
+    @cmdln.option("-e", "--edit",action="store_true",
+                  help="Edit resources file.")
     @cmdln.option("-C", "--check-frontends",dest="checkfrontends",action="store_true",
                   help="Check if all front-ends are reachable.")
+    
 
     def do_resources(self, subcmd, opts, *args):
         """Prints information about the resources in WRF4G 
@@ -681,6 +682,8 @@ class ManagementUtility( cmdln.Cmdln ) :
                 res.check_frontends()
             elif opts.features :
                 res.resource_features()
+            elif opts.edit :
+                res.edit_resources()
             elif opts.check :
                 res.check_resources()
                 print "The check has passed with flying colors"

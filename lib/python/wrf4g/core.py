@@ -1262,6 +1262,16 @@ class Resource( object ):
                 print "\t\tThe front-end %s is not reachable" % communicator.frontend 
                 print "\t\t" , err
             print "\t\tThe front-end %s is reachable" % communicator.frontend
+            
+    def edit_resources( self ) :
+        """
+        Edit reosurces file.
+        """
+        editor = os.environ.get('EDITOR', None)
+        if not editor : 
+            editor = 'vi'
+        os.system( "%s %s" % ( editor , join( WRF4G_LOCATION , 'etc' , 'resources.conf' ) ) )
+
 
     def list_resources( self ) :
         """
