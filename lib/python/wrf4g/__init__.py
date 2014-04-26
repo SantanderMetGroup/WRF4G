@@ -1,16 +1,17 @@
+from __future__   import with_statement
 import os
 import sys
-from os.path  import dirname, join , abspath , exists
+from os.path      import dirname, join , abspath , exists
 
 __version__  = '1.5.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-    
 HOME                      = os.environ.get( 'HOME' )
 WRF4G_LOCATION            = os.environ.get( 'WRF4G_LOCATION' , join ( HOME , '.wrf4g' ) )
 WRF4G_DEPLOYMENT_LOCATION = dirname( dirname( dirname( dirname( abspath( __file__ ) ) ) ) )
 WRF4G_SHELL               = os.environ.get( 'WRF4G_SHELL', None )
+HOSTNAME                  = os.environ.get( 'HOSTNAME')
 DB4G_CONF                 = os.environ.get( 'DB4G_CONF' ,  join( WRF4G_LOCATION , 'etc' , 'db.conf' ) )       
 GW_LOCATION               = os.environ[ 'GW_LOCATION' ] = join( WRF4G_LOCATION , 'opt' , 'gw_drm4g' )
 GW_BIN_LOCATION           = join( WRF4G_DEPLOYMENT_LOCATION , 'opt' , 'gw_drm4g' , 'bin' )
@@ -34,7 +35,12 @@ if exists( WRF4G_LOCATION ) is False and WRF4G_LOCATION != "NONE" :
         src  = join ( WRF4G_DEPLOYMENT_LOCATION  , dir_to_copy )
         dest = join ( WRF4G_LOCATION             , dir_to_copy )
         print "Coping from '%s' to '%s'" % ( src , dest )
-        copytree( src , dest )    
+        copytree( src , dest )
+    with open( DB4G_CONF , 'r') as f :
+        data = ''.join( f.readlines( ) )
+    data_updated = data % { 'hostname' :  HOSTNAME }
+    with open( DB4G_CONF , 'w') as f :
+        f.writelines( data_updated )
 try :
     import logging.config  
     logging.config.fileConfig( 
@@ -47,7 +53,6 @@ except :
 if not WRF4G_SHELL :
     import readline
     import atexit
-
     # history file
     histfile = join(  WRF4G_LOCATION , '.wrf4ghistory' )
     try:

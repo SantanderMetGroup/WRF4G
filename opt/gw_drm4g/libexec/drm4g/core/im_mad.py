@@ -99,6 +99,8 @@ class GwImMad (object):
         try:
             info = ""
             for resname, resdict in self._resources.iteritems() :
+                if '_' in HOST : 
+                    resname , _ = HOST.split( '_' )
                 if self._config.resources[ resname ][ 'enable' ] == 'False': 
                     raise Exception( "Resource '%s' is not enable" % resname )
                 if HOST in resdict['Resource'].host_list :

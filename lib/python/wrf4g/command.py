@@ -494,7 +494,7 @@ class ManagementUtility( cmdln.Cmdln ) :
         except Exception, err:
             sys.stderr.write( str( err ) + '\n' )  
 
-    @cmdln.option("-t", "--template", action="store", type="choice", choices=["single", "physics"],
+    @cmdln.option("-t", "--template", action="store", type="choice", choices=[ "default", "single", "physics"],
                   help="Experiment template to choose. You can choose either 'single' or 'physics' experiments")
     @cmdln.option("-d", "--directory",action="store_true",
                   help="Directory to create a WRF4G experiment directory structure")
@@ -538,7 +538,8 @@ class ManagementUtility( cmdln.Cmdln ) :
                 dest_path = join( exp_dir , file )
                 with open( dest_path , 'r') as f :
                     data = ''.join( f.readlines( ) )
-                data_updated = data % { 'here' : exp_dir , 
+                data_updated = data % { 
+                                       'WRF4G_EXPERIMENT_HOME'     : exp_dir , 
                                        'WRF4G_DEPLOYMENT_LOCATION' : WRF4G_DEPLOYMENT_LOCATION ,
                                        'exp_name' : exp_name ,
                                         }
