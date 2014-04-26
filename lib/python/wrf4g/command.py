@@ -360,7 +360,7 @@ class ManagementUtility( cmdln.Cmdln ) :
 
     def do_kill(self, subcmd, opts, *args):
         """Kills the jobs that belong to an experiment or realization. Additionally, 
-            the experiment and realization ckunks, which have not done, will go back to "Prepared" status.
+        the experiment and realization ckunks, which have not done, will go back to "Prepared" status.
         
         usage:
             wrf4g kill options
@@ -593,6 +593,24 @@ class ManagementUtility( cmdln.Cmdln ) :
                 proxy.check( )
         except Exception, err:
             sys.stderr.write( str( err ) + '\n' )    
+            
+    @cmdln.option("-e", "--editor", action="store", type="choice", dest="type_dep", choices=["vi", "nano", "pico"], default="vi",
+                  help="Which editor you want to use (vi by default).")
+
+    def do_edit(self, subcmd, opts, *args):
+        """Edit files.
+        
+        usage:
+            wrf4g edit [options] FILE
+                    
+        ${cmd_option_list}
+        """
+        try :        
+            if len( args ) is not 1 :
+                raise Exception( "Please use '--help' option " )
+            os.system("%s %s" % ( opts.editor , arg[ 0 ] ) )
+        except Exception, err:
+            sys.stderr.write( str( err ) + '\n' ) 
             
     @cmdln.option("-v", "--verbose",action="store_true", dest="verbose", default=False,
                   help="Verbose mode. Explain what is being done")
