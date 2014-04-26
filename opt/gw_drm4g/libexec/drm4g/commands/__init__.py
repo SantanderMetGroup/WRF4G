@@ -157,10 +157,10 @@ class ManagementUtility( cmd.Cmd ):
             print "\t--> Resource '%s' ... " % resname
             try :
                 communicator.connect()
+                print "\t\tThe front-end %s is reachable" % communicator.frontend
             except Exception , err :
                 print "\t\tThe front-end %s is not reachable" % communicator.frontend 
                 print "\t\t" , err
-            print "\t\tThe front-end %s is reachable" % communicator.frontend
 
     def do_list_resources(self, line):
         """
