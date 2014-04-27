@@ -30,16 +30,6 @@ re_executable_file = re.compile( "GW_EXECUTABLE\s*=\s*\"(.*)\"" )
 
 def sandbox_files(env_file):
 
-    def executable_file(env):
-        re_executable = re_executable_file.search(env)
-        executable    = re_executable.groups()[0].split()[0]
-        if executable.startswith( "file:" ) or ( executable.startswith( "/" ) and exists ( executable  ) ) :
-            return basename ( executable )
-        elif not executable.startswith( "gsiftp:" ) :
-            return executable
-        else :
-            return None
-
     def parse_files(env, type, re_exp):
         files_to_copy = []
         files         = re_exp.search(env)
@@ -60,9 +50,6 @@ def sandbox_files(env_file):
     f.close()
     input_files      = parse_files( line_env , 'input' , re_input_files )
     output_files     = parse_files( line_env , 'output' , re_output_files )
-    executable_file = executable_file(line_env)
-    if executable_file :
-        input_files.append( executable_file )
     return input_files, output_files
 
 class Resource (drm4g.managers.Resource):

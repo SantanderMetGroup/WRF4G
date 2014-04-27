@@ -494,7 +494,7 @@ class ManagementUtility( cmdln.Cmdln ) :
         except Exception, err:
             sys.stderr.write( str( err ) + '\n' )  
 
-    @cmdln.option("-t", "--template", action="store", type="choice", choices=[ "default", "single", "physics"],
+    @cmdln.option("-t", "--template", action="store", type="choice", choices=[ "default", "single", "physics"], default="default",
                   help="Experiment template to choose. You can choose either 'single' or 'physics' experiments")
     @cmdln.option("-d", "--directory",action="store_true",
                   help="Directory to create a WRF4G experiment directory structure")
@@ -606,7 +606,7 @@ class ManagementUtility( cmdln.Cmdln ) :
         try :        
             if len( args ) is not 1 :
                 raise Exception( "Please provide one file" )
-            os.system( "%s %s" % ( os.environ.get('EDITOR', 'vi') , arg[ 0 ] ) )
+            os.system( "%s %s" % ( os.environ.get('EDITOR', 'vi') , args[ 0 ] ) )
         except Exception, err:
             sys.stderr.write( str( err ) + '\n' ) 
             
@@ -661,7 +661,7 @@ class ManagementUtility( cmdln.Cmdln ) :
     @cmdln.option("-f", "--features", action="store_true",
                   help="List the features of each resource.")
     @cmdln.option("-e", "--edit",action="store_true",
-                  help="Edit resources file.")
+                  help="Edit resource file configuration.")
     @cmdln.option("-C", "--check-frontends",dest="checkfrontends",action="store_true",
                   help="Check if all front-ends are reachable.")
     

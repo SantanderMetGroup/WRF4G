@@ -21,7 +21,8 @@ class Communicator(drm4g.communicators.Communicator):
 
     def execCommand(self, command, input=None ):
         command_proc = subprocess.Popen(command,
-            shell = True,
+            shell  = True,
+            stdin  = subprocess.PIPE,
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE,
             env = os.environ)

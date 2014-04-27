@@ -391,10 +391,10 @@ class Experiment(Component):
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )
         current_path = os.getcwd()
-        with tarfile.open( join ( exp_sub_dir , "WRF4G.tar.gz" ) , "w:gz" ) as tar:
-            os.chdir( WRF4G_DEPLOYMENT_LOCATION )
-            for dir in [ "bin", "lib" ]:
-                tar.add( dir )
+        tar = tarfile.open( join ( exp_sub_dir , "WRF4G.tar.gz" ) , "w:gz" )
+        os.chdir( WRF4G_DEPLOYMENT_LOCATION )
+        for dir in [ "bin", "lib" ]:
+            tar.add( dir )
         os.chdir( current_path )
          
 class Realization(Component):
@@ -732,10 +732,10 @@ class Realization(Component):
                 raise Exception( "Couldn't be created '%s' directory" % rea_submission_dir ) 
         if exists( 'input_files' ):
             current_path = os.getcwd()
-            with tarfile.open( 'input_files.tar.gz' , "w:gz" ) as tar:
-                os.chdir( 'input_files')
-                for elem in os.listdir('.') :
-                    tar.add( elem )
+            tar = tarfile.open( 'input_files.tar.gz' , "w:gz" )
+            os.chdir( 'input_files')
+            for elem in os.listdir('.') :
+                tar.add( elem )
             os.chdir( current_path )
             dst_file = join( rea_submission_dir , 'input_files.tar.gz' )
             if exists( dst_file ):
@@ -1161,7 +1161,7 @@ class FrameWork( object ):
                                       )
         out , err =  exec_cmd.communicate()
         if err :
-            print err 
+            print out , err 
         else :
             print "OK"
             
@@ -1187,7 +1187,6 @@ class Proxy( object ):
         print "\tCreating '%s' directory to store the proxy ... " % REMOTE_VOS_DIR
         cmd = "mkdir -p %s" % REMOTE_VOS_DIR
         print "\tExecuting command ... ", cmd 
-        self.communicator.execCommand( cmd )
         out, err = self.communicator.execCommand( cmd )
         if not err :
             message      = '\tInsert your GRID pass: '
@@ -1221,7 +1220,6 @@ class Proxy( object ):
     def download( self ):
         message      = '\tInsert MyProxy password: '
         proxy_passwd = getpass.getpass(message)
- 
         if self.resource.has_key( 'myproxy_server' ) :
             cmd = "X509_USER_PROXY=%s/%s MYPROXY_SERVER=%s myproxy-logon -S" % (
                                                                                    REMOTE_VOS_DIR ,
