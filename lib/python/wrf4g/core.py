@@ -7,8 +7,8 @@ from wrf4g.utils    import VarEnv , datetime2datewrf , list2fields , create_hash
 
 import os
 import sys
+import re
 import shutil
-import StringIO
 import tarfile
 import subprocess
 import time
@@ -391,7 +391,10 @@ class Experiment(Component):
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )
         current_path = os.getcwd()
-        tar = tarfile.open( join ( exp_sub_dir , "WRF4G.tar.gz" ) , "w:gz" )
+        wrf4g_bundle = join ( exp_sub_dir , "WRF4G.tar.gz" )
+        if exists( wrf4g_bundle  ):
+            os.remove( wrf4g_bundle )
+        tar = tarfile.open( wrf4g_bundle , "w:gz" )
         os.chdir( WRF4G_DEPLOYMENT_LOCATION )
         for dir in [ "bin", "lib" ]:
             tar.add( dir )
@@ -739,7 +742,7 @@ class Realization(Component):
             os.chdir( current_path )
             dst_file = join( rea_submission_dir , 'input_files.tar.gz' )
             if exists( dst_file ):
-                os.remove(dst_file)
+                os.remove( dst_file )
             shutil.move( 'input_files.tar.gz' , dst_file )
             
         def _copy( file ):
@@ -1004,10 +1007,20 @@ class Job(Component):
                     if resource_name.startswith( _section ) : 
                         section_to_use = section
                         break
-                dict_values = resource_env.items( section_to_use  )
-                with open( file , 'w' ) as file :
-                    [ file.write( "export %s=%s\n" % ( key , val ) ) for key, val in dict_values ]
-            return 0
+                list_values = resource_env.items( section_to_use  )
+                dict_values = dict( ( key , val ) for key, val in list_values ) 
+                _KEYCRE = re.compile(r"\$\{([^}]+)\}")
+                def update_list():
+                    for key , val in  list_values  :
+                        if "${" in val :
+                            vars =_KEYCRE.findall( val )
+                            for var in vars :
+                                if var in dict_values :
+                                    dict_values[ key ] = _KEYCRE.sub( dict_values[ var ] , val , count = 1 )
+                [ update_list() for key , val in dict_values.items() if "${" in val ]
+                with open( file , 'w' ) as f :
+                    [ f.write( "export %s=%s\n" % ( key , val ) ) for key, val in dict_values.items() ]
+            return 0         
         except Exception, err:
             sys.stderr.write( str( err ) + '\n' )
             sys.exit( -1 )
