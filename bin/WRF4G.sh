@@ -309,18 +309,6 @@ export chunk_start_date=$6
 export chunk_end_date=$7
 
 #
-#   Expand the WRF4G scripts
-#
-
-#   If there are additional files, expand them
-if test -f input_files.tar.gz; then
-  verbose_print "* `date`: There is a input_files.tar.gz package available ... "
-  tar xzf input_files.tar.gz
-  rm -rf input_files.tat.gz
-fi
-chmod +x ${ROOTDIR}/bin/*
-
-#
 #   Load functions and set the PATH
 #
 export DB4G_CONF=${ROOTDIR}/db.conf
@@ -332,11 +320,22 @@ source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
 
+#
+#   Expand the WRF4G scripts
+#
+
+#   If there are additional files, expand them
+if test -f input_files.tar.gz; then
+  verbose_print "* `date`: There is a input_files.tar.gz package available ... "
+  tar xzf input_files.tar.gz && rm -rf input_files.tat.gz || exit ${ERROR_UNCOMPRESS_INPUTFILES}
+fi
+chmod +x ${ROOTDIR}/bin/*
+
 sed --in-place 's/\ *=\ */=/' resources.wrf4g  && cp resources.wrf4g  new_resources.wrf4g
 sed --in-place 's/\ *=\ */=/' experiment.wrf4g && cp experiment.wrf4g new_experiment.wrf4g
 
 wrf4g shell Job expvar id=None new_experiment.wrf4g new_resources.wrf4g
-[ $? != 0 ] && exit ${ERROR_CUSTOMIZATION_input_files}
+[ $? != 0 ] && exit ${ERROR_CUSTOMIZATION_CONFIGURATIONFILES}
 
 source new_resources.wrf4g
 source new_experiment.wrf4g
@@ -396,20 +395,20 @@ out=$(wrf4g shell Job set_status id=${WRF4G_JOB_ID} ${JOB_STATUS_DOWN_BIN})
 
 wrf4g vcp ${DEBUG} ${WRF4G_WRF} . 
 [ $? != 0 ] && wrf4g_exit ${ERROR_MISSING_WRFbin}
-tar xzf $(basename ${WRF4G_WRF}) && rm $(basename ${WRF4G_WRF})
+tar xzf $(basename ${WRF4G_WRF}) && rm $(basename ${WRF4G_WRF}) || wrf4g_exit ${ERROR_UNCOMPRESS_WRFBIN}
 
 wrf4g vcp ${DEBUG} ${WRF4G_NETCDF} . 
 [ $? != 0 ] && wrf4g_exit ${ERROR_MISSING_NETCDF}
-tar xzf $(basename ${WRF4G_NETCDF}) && rm $(basename ${WRF4G_NETCDF})
+tar xzf $(basename ${WRF4G_NETCDF}) && rm $(basename ${WRF4G_NETCDF}) || wrf4g_exit ${ERROR_UNCOMPRESS_NETCDF}
 
 wrf4g vcp ${DEBUG} ${WRF4G_NCO} . 
 [ $? != 0 ] && wrf4g_exit ${ERROR_MISSING_NCO}
-tar xzf $(basename ${WRF4G_NCO}) && rm $(basename ${WRF4G_NCO})
+tar xzf $(basename ${WRF4G_NCO}) && rm $(basename ${WRF4G_NCO}) || wrf4g_exit ${ERROR_UNCOMPRESS_NCO}
 
 if [ -n ${WRF4G_CDO} ];then
   wrf4g vcp ${DEBUG} ${WRF4G_CDO} . 
   [ $? != 0 ] && wrf4g_exit ${ERROR_MISSING_CDO}
-  tar xzf  $(basename ${WRF4G_CDO}) && rm  $(basename ${WRF4G_CDO})
+  tar xzf  $(basename ${WRF4G_CDO}) && rm  $(basename ${WRF4G_CDO}) || wrf4g_exit ${ERROR_UNCOMPRESS_CDO}
 fi
   
 cp ${ROOTDIR}/namelist.input ${LOCALDIR}/WRFV3/run/namelist.input 
