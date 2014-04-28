@@ -332,14 +332,14 @@ source ${ROOTDIR}/lib/bash/wrf_util.sh
 source ${ROOTDIR}/lib/bash/wrf4g_exit_codes.sh
 source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
 
-sed --in-place 's/\ *=\ */=/' resources.wrf4g
-sed --in-place 's/\ *=\ */=/' experiment.wrf4g
+sed --in-place 's/\ *=\ */=/' resources.wrf4g  && cp resources.wrf4g  new_resources.wrf4g
+sed --in-place 's/\ *=\ */=/' experiment.wrf4g && cp experiment.wrf4g new_experiment.wrf4g
 
-wrf4g shell Job expvar id=None experiment.wrf4g resources.wrf4g
+wrf4g shell Job expvar id=None new_experiment.wrf4g new_resources.wrf4g
 [ $? != 0 ] && exit ${ERROR_CUSTOMIZATION_input_files}
 
-source resources.wrf4g
-source experiment.wrf4g
+source new_resources.wrf4g
+source new_experiment.wrf4g
 
 #
 #   Should we unpack here or there is a local filesystem for us to run?
