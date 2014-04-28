@@ -12,7 +12,10 @@ __version__  = '1.5.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-logger = logging.getLogger(__name__)
+try :
+    logger = logging.getLogger(__name__)
+except :
+    pass
 
 def http_ftp_protocol(protocol):
     if protocol == 'http' or protocol == 'https' or protocol == 'ftp':
@@ -194,10 +197,10 @@ class VCPURL(object):
             raise Exception(out)
             
         out_list = out.split("\n")
-        if self.protocol == "gsiftp":
+        if self.protocol == "gsiftp": 
             for i, elem in enumerate(out_list):
                 out_list[i] = elem.split()[-1]
-        pattern = file.replace(".", "\.")
+        pattern = basename( file ).replace(".", "\.")
         pattern = pattern.replace("*", ".*")
         pattern = pattern + "$"
         
@@ -279,7 +282,7 @@ class VCPURL(object):
            return True
         else:
            out = self.ls(self.file)
-           if len(out) != 0 and self.file == out[0]:
+           if len(out) != 0 and basename(self.file) == out[0]:
               return True
            else:
               return False
