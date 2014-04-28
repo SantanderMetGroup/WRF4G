@@ -17,7 +17,7 @@ import getpass
 
 try :
     sys.path.insert( 0 , GW_LIB_LOCATION  )
-    from drm4g  import REMOTE_VOS_DIR , PROXY_THRESHOLD
+    from drm4g  import REMOTE_VOS_DIR 
 except :
     pass
 
@@ -1020,7 +1020,7 @@ class Job(Component):
                 [ update_list() for key , val in dict_values.items() if "${" in val ]
                 with open( file , 'w' ) as f :
                     [ f.write( "export %s=%s\n" % ( key , val ) ) for key, val in dict_values.items() ]
-            return 0         
+            return 0
         except Exception, err:
             sys.stderr.write( str( err ) + '\n' )
             sys.exit( -1 )
@@ -1192,9 +1192,11 @@ class FrameWork( object ):
 
 class Proxy( object ):
     
-    def __init__( self , resource , communicator ):
-        self.resource      = resource  
-        self.communicator  = communicator
+    def __init__( self , resource , communicator , cred_lifetime , proxy_lifetime ):
+        self.resource       = resource  
+        self.communicator   = communicator
+        self.cred_lifetime  = cred_lifetime
+        self.proxy_lifetime = proxy_lifetime
         
     def upload( self ):
         print "\tCreating '%s' directory to store the proxy ... " % REMOTE_VOS_DIR
@@ -1209,12 +1211,16 @@ class Proxy( object ):
             proxy_passwd = getpass.getpass(message)
         
             if self.resource.has_key( 'myproxy_server' ) :
-                cmd = "MYPROXY_SERVER=%s myproxy-init -S -t %s" % (
+                cmd = "MYPROXY_SERVER=%s myproxy-init -S --cred_lifetime %d --proxy_lifetime %d" % (
                                                                    self.resource[ 'myproxy_server' ] ,
-                                                                   PROXY_THRESHOLD 
+                                                                   self.cred_lifetime ,
+                                                                   self.proxy_lifetime
                                                                    )
             else :
-                cmd = "myproxy-init -S -t %s" % PROXY_THRESHOLD
+                cmd = "myproxy-init -S --cred_lifetime %d --proxy_lifetime %d" % (
+                                                                                  self.cred_lifetime ,
+                                                                                  self.proxy_lifetime
+                                                                                  )
             print "\tExecuting command ... ", cmd 
             out , err = self.communicator.execCommand( cmd , input = '\n'.join( [ grid_passwd, proxy_passwd ] ) )
             print "\t", out , err
@@ -1234,13 +1240,17 @@ class Proxy( object ):
         message      = '\tInsert MyProxy password: '
         proxy_passwd = getpass.getpass(message)
         if self.resource.has_key( 'myproxy_server' ) :
-            cmd = "X509_USER_PROXY=%s/%s MYPROXY_SERVER=%s myproxy-logon -S" % (
+            cmd = "X509_USER_PROXY=%s/%s MYPROXY_SERVER=%s myproxy-logon -S --proxy_lifetime %d" % (
                                                                                    REMOTE_VOS_DIR ,
                                                                                    self.resource[ 'myproxy_server' ] ,
-                                                                                   self.resource[ 'myproxy_server' ]
+                                                                                   self.resource[ 'myproxy_server' ] ,
+                                                                                   self.cred_lifetime
                                                                                    ) 
         else :
-            cmd = "X509_USER_PROXY=%s/${MYPROXY_SERVER} myproxy-logon -S" % ( REMOTE_VOS_DIR )
+            cmd = "X509_USER_PROXY=%s/${MYPROXY_SERVER} myproxy-logon -S --proxy_lifetime %d" % ( 
+                                                                                                 REMOTE_VOS_DIR ,
+                                                                                                 self.cred_lifetime
+                                                                                                 )
         print "\tExecuting command ... ", cmd 
         out, err = self.communicator.execCommand( cmd , input = proxy_passwd )
         print "\t", out , err

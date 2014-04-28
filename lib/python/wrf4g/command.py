@@ -555,9 +555,13 @@ class ManagementUtility( cmdln.Cmdln ) :
     @cmdln.option("-u", "--upload", action="store_true",
                   help="It uploads the credential to a myproxy-server. You have to indicate the resource")
     @cmdln.option("-C", "--create",action="store_true",
-                  help=" It creates a proxy for 7 days. You only have to indicate the resource.")
+                  help=" It creates a proxy for 1 week. You only have to indicate the resource.")
     @cmdln.option("-D", "--destroy", action="store_true",
                   help="It destroys the proxy on the myproxy-server. You have to indicate the resource.")
+    @cmdln.option("-l", "--cred-lifetime", metavar = "hours" , type = "int" , default = 168 , dest = "cred_lifetime" ,
+                  help="Lifetime of delegated proxy on server (default 1 week).")
+    @cmdln.option("-p", "--proxy-lifetime", metavar = "hours" , type = "int", default = 12 ,  dest = "proxy_lifetime" ,
+                  help="Lifetime of proxies delegated by server (default 12 hours).")
 
     def do_proxy(self, subcmd, opts, *args):
         """Command for managing X.509 Public Key Infrastructure (PKI) security credentials
@@ -577,7 +581,7 @@ class ManagementUtility( cmdln.Cmdln ) :
             resource  = self.config.resources[ res_name ]
             communicator = self.config.make_communicators()[ res_name ]
             communicator.connect()
-            proxy = Proxy( resource , communicator )
+            proxy = Proxy( resource , communicator , opts.cred_lifetime , opts.proxy_lifetime )
             if opts.download:
                 proxy.download( )
             elif opts.check :
