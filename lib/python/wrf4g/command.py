@@ -208,7 +208,7 @@ class ManagementUtility( cmdln.Cmdln ) :
 
         def _long_header( num_char ):
             string = bold + '%-' + str( num_char ) + 's %-3s %-4s %-15s %-10s %-10s %-13s %2s %3s' + reset
-            print string % ('Realization','GW','Stat','Chunks','Comp.Res','WN','Run.Sta','ext','%')        
+            print string % ('Realization','GW','Stat','Chunks','Host','WN','Run.Sta','ext','%')        
         
         try:
             self.dbc.connect()
