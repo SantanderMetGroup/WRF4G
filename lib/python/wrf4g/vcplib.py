@@ -126,10 +126,10 @@ class VCPURL(object):
                                        'rm'    : "'ssh -q %s rm -rf %s'   %(self.usercomputer,self.file)", 
                                        'rename': "'ssh -q %s mv %s %s'    %(self.usercomputer,orig,dest)", 
                                        'name'  : "self.file"},
-                            'gsiftp': {'ls'    : "'uberftp %s \"ls %s\" | awk \"NR>2\"'  %(self.computer,self.file)", 
-                                       'mkdir' : "'uberftp %s \"mkdir %s\"'              %(self.computer,self.file)", 
-                                       'rm'    : "'uberftp %s \"rm -r %s\"'              %(self.computer,self.file)", 
-                                       'rename': "'uberftp %s \"rename %s %s\"'          %(self.computer,orig,dest)",
+                            'gsiftp': {'ls'    : "'uberftp %s \"ls %s\" '         %(self.computer,self.file)", 
+                                       'mkdir' : "'uberftp %s \"mkdir %s\"'       %(self.computer,self.file)", 
+                                       'rm'    : "'uberftp %s \"rm -r %s\"'       %(self.computer,self.file)", 
+                                       'rename': "'uberftp %s \"rename %s %s\"'   %(self.computer,orig,dest)",
                                        'name'  : "self.file"},
                             'lfn'   : {'ls'    : "'lfc-ls %s'         %(self.file)",
                                        'mkdir' : "'lfc-mkdir -p %s'   %(self.file)",
@@ -198,7 +198,7 @@ class VCPURL(object):
             
         out_list = out.split("\n")
         if self.protocol == "gsiftp": 
-            for i, elem in enumerate(out_list):
+            for i, elem in enumerate(out_list[2:]):
                 out_list[i] = elem.split()[-1]
         pattern = basename( file ).replace(".", "\.")
         pattern = pattern.replace("*", ".*")
@@ -211,7 +211,8 @@ class VCPURL(object):
             pass
         
         file_list = []
-        for file_name in out_list :
+        for file in out_list :
+            file_name = basename( file )
             if match(pattern, file_name) :
                 file_list.append(file_name)
         file_list.sort()
