@@ -810,14 +810,13 @@ class Realization(Component):
     def stop_running_chunks(self):
         condition="Chunk.id_rea=%s and Job.id_chunk=Chunk.id AND (Chunk.status=1 OR Chunk.status=2) GROUP BY Chunk.id"%self.data['id']
         output=self.dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
-        chunk_id = job_id = []
+        job_id = []
         for couple in output:
-            chunk_id.append(couple['id'])
+            print  "--> Stopping Chunk " + str( couple['id'] )
             j=Job(data={'id':couple['MAX(Job.id)']},dbc = self.dbc)
             job_id.append(j.get_gw_job())
             
-        task=gridwaylib.job()
-        to=task.kill(job_id)
+        gridwaylib.job().kill(job_id)
         condition="id_rea=%s AND (status=1 OR status=2)"%self.data['id']
         data={'status':0}
         output=self.dbc.update('Chunk',data,'%s'%condition,verbose=self.verbose)
@@ -825,13 +824,12 @@ class Realization(Component):
     def change_priority(self, priority):
         condition="Chunk.id_rea=%s and Job.id_chunk=Chunk.id AND (Chunk.status=1 OR Chunk.status=2) GROUP BY Chunk.id"%self.data['id']
         output=self.dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
-        chunk_id = job_id = []
+        job_id = []
         for couple in output:
-            chunk_id.append(couple['id'])
+            print  "--> Prioritizing Chunk " + str( couple['id'] )
             j=Job(data={'id':couple['MAX(Job.id)']},dbc = self.dbc)
             job_id.append(j.get_gw_job())
-        task=gridwaylib.job()
-        to=task.change_priority(priority,job_id)
+        gridwaylib.job().change_priority(priority,job_id)
                   
 class Chunk(Component):
     """ 
