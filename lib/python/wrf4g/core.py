@@ -761,9 +761,12 @@ class Realization(Component):
         """
         try :
             remote_realization_path = args[ 0 ]
-            vcp_remote_path = vcplib.VCPURL( dirname( remote_realization_path ) )
-            if not vcp_remote_path.exists( verbose = self.verbose ) :
-                vcp_remote_path.mkdir( verbose = self.verbose )
+            vcp_remote_exp_path = vcplib.VCPURL( dirname( remote_realization_path ) )
+            if not vcp_remote_exp_path.exists( verbose = self.verbose ) :
+                vcp_remote_exp_path.mkdir( verbose = self.verbose )
+            vcp_remote_rea_path = vcplib.VCPURL( remote_realization_path )
+            if not vcp_remote_rea_path.exists( verbose = self.verbose ) :
+                vcp_remote_rea_path.mkdir( verbose = self.verbose )
             for dir in [ "output" , "restart" , "realout" , "log" ]:
                 vcp_repo = vcplib.VCPURL( "%s/%s/" % ( remote_realization_path , dir ) )
                 if not vcp_repo.exists( verbose = self.verbose ) :
