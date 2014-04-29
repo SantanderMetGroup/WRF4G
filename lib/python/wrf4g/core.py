@@ -3,7 +3,7 @@ from datetime       import datetime
 from os.path        import join , basename , dirname , exists , expandvars , isdir
 from re             import search , match
 from wrf4g          import vdblib , vcplib , gridwaylib , WRF4G_LOCATION , WRF4G_DEPLOYMENT_LOCATION , DB4G_CONF , GW_LOCATION , GW_BIN_LOCATION , GW_LIB_LOCATION , MYSQL_LOCATION
-from wrf4g.utils    import VarEnv , datetime2datewrf , list2fields , create_hash
+from wrf4g.utils    import VarEnv , datetime2datewrf , list2fields , create_hash , edit_file
 
 import os
 import sys
@@ -1295,10 +1295,7 @@ class Resource( object ):
         """
         Edit reosurces file.
         """
-        editor = os.environ.get('EDITOR', None)
-        if not editor : 
-            editor = 'vi'
-        os.system( "%s %s" % ( editor , join( WRF4G_LOCATION , 'etc' , 'resources.conf' ) ) )
+        edit_file( join( WRF4G_LOCATION , 'etc' , 'resources.conf' ) )
 
 
     def list_resources( self ) :

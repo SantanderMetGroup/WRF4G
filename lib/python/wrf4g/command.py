@@ -8,7 +8,7 @@ import shutil
 
 from os.path     import exists , expandvars , join , abspath , dirname , expanduser , basename , isdir 
 from wrf4g.core  import Experiment , Realization , JobStatus , Environment , Chunk , Job , FrameWork , Proxy , Resource , Host
-from wrf4g.utils import VarEnv , validate_name , pairs2dict 
+from wrf4g.utils import VarEnv , validate_name , pairs2dict , edit_file
 from wrf4g       import WRF4G_LOCATION , WRF4G_DEPLOYMENT_LOCATION , DB4G_CONF , GW_LOCATION , GW_BIN_LOCATION , GW_LIB_LOCATION , MYSQL_LOCATION
 from wrf4g       import vcplib , vdblib
 
@@ -610,7 +610,7 @@ class ManagementUtility( cmdln.Cmdln ) :
         try :        
             if len( args ) is not 1 :
                 raise Exception( "Please provide one file" )
-            os.system( "%s %s" % ( os.environ.get('EDITOR', 'vi') , args[ 0 ] ) )
+            edit_file( args[ 0 ] )
         except Exception, err:
             sys.stderr.write( str( err ) + '\n' ) 
             

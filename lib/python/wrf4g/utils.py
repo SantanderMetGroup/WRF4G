@@ -161,6 +161,9 @@ def validate_name( name ):
         else:
             message = 'use only numbers, letters and underscores'
         raise Exception ("%r is not a valid %s name. Please %s." % (name, message) )
+ 
+def edit( file_name ):
+    os.system( "%s %s" % ( os.environ.get('EDITOR', 'vi') , file_name ) )
     
 def pairs2dict(pairs):
     d={}
