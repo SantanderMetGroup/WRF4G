@@ -292,7 +292,8 @@ class VCPURL(object):
         Return True if self.file exists
         """
         try:
-            out = self.ls(self.file)
+            if not self.ls(self.file):
+                return False
         except Exception :
             return False
         else:
