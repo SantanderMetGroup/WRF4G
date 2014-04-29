@@ -3,7 +3,7 @@ import os
 import sys
 from os.path      import dirname, join , abspath , exists
 
-__version__  = '1.5.1'
+__version__  = '1.5.2'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
