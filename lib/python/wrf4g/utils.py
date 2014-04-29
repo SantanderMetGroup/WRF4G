@@ -163,8 +163,22 @@ def validate_name( name ):
         raise Exception ("%r is not a valid %s name. Please %s." % (name, message) )
  
 def edit( file_name ):
+    """
+    Edit files. vi is used be default. If you want to use another editor,
+    please edit EDITOR shell variable.
+    """
     os.system( "%s %s" % ( os.environ.get('EDITOR', 'vi') , file_name ) )
-    
+
+
+def yes_no_choice( message ,  default = 'y' ) :
+    """
+    To ask for Yes/No questions
+    """
+    choices = 'Y/n' if default.lower() in ('y', 'yes') else 'y/N'
+    choice = raw_input("%s (%s) " % (message, choices))
+    values = ('y', 'yes', '') if default == 'y' else ('y', 'yes')
+    return choice.strip().lower() in values
+
 def pairs2dict(pairs):
     d={}
     for p in pairs.split(','):

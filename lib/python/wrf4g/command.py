@@ -541,7 +541,7 @@ class ManagementUtility( cmdln.Cmdln ) :
                 data_updated = data % { 
                                        'WRF4G_EXPERIMENT_HOME'     : exp_dir , 
                                        'WRF4G_DEPLOYMENT_LOCATION' : WRF4G_DEPLOYMENT_LOCATION ,
-                                       'exp_name' : exp_name ,
+                                       'exp_name'                  : exp_name ,
                                         }
                 with open( dest_path , 'w') as f :
                     f.writelines( data_updated )

@@ -3,7 +3,7 @@ from datetime       import datetime
 from os.path        import join , basename , dirname , exists , expandvars , isdir
 from re             import search , match
 from wrf4g          import vdblib , vcplib , gridwaylib , WRF4G_LOCATION , WRF4G_DEPLOYMENT_LOCATION , DB4G_CONF , GW_LOCATION , GW_BIN_LOCATION , GW_LIB_LOCATION , MYSQL_LOCATION
-from wrf4g.utils    import VarEnv , datetime2datewrf , list2fields , create_hash , edit_file
+from wrf4g.utils    import VarEnv , datetime2datewrf , list2fields , create_hash , edit_file , yes_no_choice
 
 import os
 import sys
@@ -1172,18 +1172,22 @@ class FrameWork( object ):
     
     def clear_drm4g( self ):
         self.stop_drm4g()
-        print "Clearing DRM4G .... "
-        cmd_kill = "%s -k" % join( GW_BIN_LOCATION , "gwd -c" )
-        exec_cmd = subprocess.Popen(  cmd_kill , 
-                                      shell=True , 
-                                      stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE,
-                                      )
-        out , err =  exec_cmd.communicate()
-        if err :
-            print out , err 
+        yes = yes_no_choice( "Do you want to continue clearing DRM4G " )
+        if yes :
+            print "Clearing DRM4G .... "
+            cmd_kill = "%s -k" % join( GW_BIN_LOCATION , "gwd -c" )
+            exec_cmd = subprocess.Popen(  cmd_kill , 
+                                          shell=True , 
+                                          stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE,
+                                          )
+            out , err =  exec_cmd.communicate()
+            if err :
+                print out , err 
+            else :
+                print "OK"
         else :
-            print "OK"
+            self.start_drm4g()
             
     def stop( self ):
         self.stop_drm4g()
