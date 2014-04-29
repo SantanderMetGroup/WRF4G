@@ -162,7 +162,7 @@ def validate_name( name ):
             message = 'use only numbers, letters and underscores'
         raise Exception ("%r is not a valid %s name. Please %s." % (name, message) )
  
-def edit( file_name ):
+def edit_file( file_name ):
     """
     Edit files. vi is used be default. If you want to use another editor,
     please edit EDITOR shell variable.
