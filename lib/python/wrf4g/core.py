@@ -761,16 +761,20 @@ class Realization(Component):
         """
         try :
             remote_realization_path = args[ 0 ]
-            vcp_remote_exp_path = vcplib.VCPURL( dirname( remote_realization_path ) )
-            if not vcp_remote_exp_path.exists( verbose = self.verbose ) :
-                vcp_remote_exp_path.mkdir( verbose = self.verbose )
-            vcp_remote_rea_path = vcplib.VCPURL( remote_realization_path )
-            if not vcp_remote_rea_path.exists( verbose = self.verbose ) :
-                vcp_remote_rea_path.mkdir( verbose = self.verbose )
-            for dir in [ "output" , "restart" , "realout" , "log" ]:
-                vcp_repo = vcplib.VCPURL( "%s/%s/" % ( remote_realization_path , dir ) )
-                if not vcp_repo.exists( verbose = self.verbose ) :
-                    vcp_repo.mkdir( verbose = self.verbose )
+            directories_to_create = [ 
+                                       dirname( dirname( remote_realization_path ) ) ,
+                                       dirname( remote_realization_path ) ,
+                                       remote_realization_path,
+                                       "%s/%s/" % ( remote_realization_path , "output" ) ,
+                                       "%s/%s/" % ( remote_realization_path , "restart" ) ,
+                                       "%s/%s/" % ( remote_realization_path , "reaload" ) ,
+                                       "%s/%s/" % ( remote_realization_path , "log" ) 
+                                     ]
+
+            for dir in  directories_to_create :
+                vcp_dir = vcplib.VCPURL( dir )
+                if not vcp_dir.exists( verbose = self.verbose ) :
+                    vcp_dir.mkdir( verbose = self.verbose )
             return 0
         except Exception, err :
             sys.stderr.write( 'Error creating the remote repository: %s\n' % str( err ) )
