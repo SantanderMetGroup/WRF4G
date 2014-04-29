@@ -1244,12 +1244,12 @@ class Proxy( object ):
                                                                                    REMOTE_VOS_DIR ,
                                                                                    self.resource[ 'myproxy_server' ] ,
                                                                                    self.resource[ 'myproxy_server' ] ,
-                                                                                   self.cred_lifetime
+                                                                                   self.proxy_lifetime
                                                                                    ) 
         else :
             cmd = "X509_USER_PROXY=%s/${MYPROXY_SERVER} myproxy-logon -S --proxy_lifetime %d" % ( 
                                                                                                  REMOTE_VOS_DIR ,
-                                                                                                 self.cred_lifetime
+                                                                                                 self.proxy_lifetime
                                                                                                  )
         print "\tExecuting command ... ", cmd 
         out, err = self.communicator.execCommand( cmd , input = proxy_passwd )
