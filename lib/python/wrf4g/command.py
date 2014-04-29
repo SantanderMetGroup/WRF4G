@@ -277,8 +277,8 @@ class ManagementUtility( cmdln.Cmdln ) :
                     reas=exp.get_run_reas_id()
                     reas.extend(exp.get_wait_reas_id())
                     for id_rea in reas:
-                        Realization(data={'id':'%s'%id_rea},verbose=opts.verbose,dbc = self.dbc)
-                        
+                        rea=Realization(data={'id': id_rea},verbose=opts.verbose,dbc = self.dbc)
+                        rea.change_priority(opts.priority)
             elif opts.rea_name:
                 for rea_name in opts.rea_name.split( ',' ) :
                     rea=Realization(data={'name': rea_name },verbose=opts.verbose,dbc = self.dbc)
@@ -291,7 +291,7 @@ class ManagementUtility( cmdln.Cmdln ) :
                 with open( opts.rea_file , 'r') as f :
                     for realization in f.readlines():
                         realization=realization.rstrip()
-                    rea=Realization(data={'name':'%s'%realization},verbose=opts.verbose,dbc = self.dbc)
+                    rea=Realization(data={'name':realization},verbose=opts.verbose,dbc = self.dbc)
                     id=rea.get_id_from_name()
                     if int(id) < 0:
                         raise Exception( "Realization with name '%s' does not exist" % realization )
