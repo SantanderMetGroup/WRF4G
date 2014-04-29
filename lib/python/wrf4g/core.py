@@ -762,15 +762,14 @@ class Realization(Component):
         try :
             remote_realization_path = args[ 0 ]
             directories_to_create = [ 
-                                       dirname( dirname( remote_realization_path ) ) ,
-                                       dirname( remote_realization_path ) ,
-                                       remote_realization_path,
-                                       "%s/%s/" % ( remote_realization_path , "output" ) ,
-                                       "%s/%s/" % ( remote_realization_path , "restart" ) ,
-                                       "%s/%s/" % ( remote_realization_path , "reaload" ) ,
-                                       "%s/%s/" % ( remote_realization_path , "log" ) 
+                                     dirname( dirname( remote_realization_path ) ) ,
+                                     dirname( remote_realization_path ) ,
+                                     remote_realization_path,
+                                     "%s/%s/" % ( remote_realization_path , "output" ) ,
+                                     "%s/%s/" % ( remote_realization_path , "restart" ) ,
+                                     "%s/%s/" % ( remote_realization_path , "reaload" ) ,
+                                     "%s/%s/" % ( remote_realization_path , "log" ) 
                                      ]
-
             for dir in  directories_to_create :
                 vcp_dir = vcplib.VCPURL( dir )
                 if not vcp_dir.exists( verbose = self.verbose ) :
@@ -809,7 +808,6 @@ class Realization(Component):
             return 0
 
     def stop_running_chunks(self):
-        import gridwaylib
         condition="Chunk.id_rea=%s and Job.id_chunk=Chunk.id AND (Chunk.status=1 OR Chunk.status=2) GROUP BY Chunk.id"%self.data['id']
         output=self.dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
         chunk_id = job_id = []
@@ -825,7 +823,6 @@ class Realization(Component):
         output=self.dbc.update('Chunk',data,'%s'%condition,verbose=self.verbose)
 
     def change_priority(self, priority):
-        import gridwaylib
         condition="Chunk.id_rea=%s and Job.id_chunk=Chunk.id AND (Chunk.status=1 OR Chunk.status=2) GROUP BY Chunk.id"%self.data['id']
         output=self.dbc.select('Chunk,Job','Chunk.id,MAX(Job.id)','%s'%condition,verbose=self.verbose)
         chunk_id = job_id = []
