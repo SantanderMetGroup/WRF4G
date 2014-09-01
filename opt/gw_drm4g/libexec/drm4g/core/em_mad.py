@@ -1,3 +1,4 @@
+from __future__              import with_statement
 import sys
 import re
 import time
@@ -15,7 +16,9 @@ from drm4g.utils.message     import Send
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: em_mad.py 1939 2013-10-23 11:38:46Z carlos $"
+__revision__ = "$Id: em_mad.py 1983 2014-01-26 15:04:29Z carlos $"
+
+logger  = logging.getLogger(__name__)
 
 class GwEmMad (object):
     """
@@ -58,7 +61,6 @@ class GwEmMad (object):
     -INFO: If RESULT is FAILURE, it contains the cause of failure. Otherwise, 
         if OPERATION is POLL or CALLBACK,it contains the state of the job.
     """
-    logger  = logging.getLogger(__name__)
     message = Send()
 
     def __init__(self):
@@ -78,7 +80,7 @@ class GwEmMad (object):
         """
         out = 'INIT - SUCCESS -'
         self.message.stdout( out )
-        self.logger.debug( out )
+        logger.debug( out )
   
     def do_SUBMIT(self, args):
         """
@@ -90,14 +92,23 @@ class GwEmMad (object):
         try:
             HOST, JM = HOST_JM.rsplit('/',1)
             # Init Job class
-            job , communicator   = self._update_resource( HOST )
-            job.Communicator     = communicator
+            job , communicator = self._update_resource( HOST )
+            job.Communicator   = communicator
             # Parse rsl
-            rsl                                  = Rsl2Parser(RSL).parser()
-            rsl['project']                       = job.resfeatures.get( 'project' )
-            rsl['parallel_env']                  = job.resfeatures.get( 'parallel_env' )
-            rsl['environment']['WRF4G_SCRATCH']  = job.resfeatures.get( 'scratch' )
-            rsl['environment']['WRF4G_LOCALSCP'] = job.resfeatures.get( 'local_scratch' ) 
+            rsl                = Rsl2Parser(RSL).parser()
+            
+            if job.resfeatures.has_key( 'project' ) :
+                rsl['project']      = job.resfeatures[ 'project' ]
+            
+            if job.resfeatures.has_key( 'parallel_env' ) :
+                rsl['parallel_env'] = job.resfeatures[ 'parallel_env' ]
+                
+            if job.resfeatures.has_key( 'scratch' ) :
+                rsl['environment']['WRF4G_SCRATCH']  = job.resfeatures[ 'scratch' ]
+            
+            if job.resfeatures.has_key( 'local_scratch' ) :
+                rsl['environment']['WRF4G_LOCALSCP'] = job.resfeatures[ 'local_scratch' ]
+             
             if '_' in HOST :
                 _ , host                    = HOST.split('_')
                 job.resfeatures['host']     = host
@@ -122,7 +133,7 @@ class GwEmMad (object):
         except Exception, err:
             out = 'SUBMIT %s FAILURE %s' % ( JID , str( err ) )
         self.message.stdout(out)
-        self.logger.debug(out , exc_info=1 )
+        logger.debug(out , exc_info=1 )
 
     def do_FINALIZE(self, args):
         """
@@ -132,7 +143,7 @@ class GwEmMad (object):
         """
         out = 'FINALIZE - SUCCESS -'
         self.message.stdout( out )
-        self.logger.debug( out ) 
+        logger.debug( out ) 
         sys.exit( 0 )    
     
     def do_POLL(self, args):
@@ -152,7 +163,7 @@ class GwEmMad (object):
         except Exception, err:
             out = 'POLL %s FAILURE %s' % ( JID , str( err ) )
         self.message.stdout( out )
-        self.logger.debug( out )
+        logger.debug( out )
         
     def do_RECOVER(self, args):
         """
@@ -172,7 +183,7 @@ class GwEmMad (object):
         except Exception, err:
             out = 'RECOVER %s FAILURE %s' % ( JID , str( err ) )    
         self.message.stdout(out)
-        self.logger.debug(out , exc_info=1 )
+        logger.debug(out , exc_info=1 )
             
     def do_CALLBACK(self):
         """
@@ -180,10 +191,10 @@ class GwEmMad (object):
         """
         while True:
             time.sleep( self._callback_interval )
-            self.logger.debug( "CALLBACK new iteration ..." )
+            logger.debug( "CALLBACK new iteration ..." )
             for JID , job  in self._job_list.items( ):
                 try:
-                    self.logger.debug( "CALLBACK checking job '%s'" % JID  )
+                    logger.debug( "CALLBACK checking job '%s'" % JID  )
                     oldStatus = job.getStatus( )
                     job.refreshJobStatus( )
                     newStatus = job.getStatus( )
@@ -193,11 +204,11 @@ class GwEmMad (object):
                             time.sleep ( 0.1 )
                         out = 'CALLBACK %s SUCCESS %s' % ( JID , newStatus )
                         self.message.stdout( out )
-                        self.logger.debug( out )
+                        logger.debug( out )
                 except Exception, err:
                     out = 'CALLBACK %s FAILURE %s' % ( JID , str( err ) )
                     self.message.stdout( out )
-                    self.logger.debug( out, exc_info=1 )
+                    logger.debug( out, exc_info=1 )
         
     def do_CANCEL(self, args):
         """
@@ -215,7 +226,7 @@ class GwEmMad (object):
         except Exception, e:
             out = 'CANCEL %s FAILURE %s' % (JID, str(e))    
         self.message.stdout(out)
-        self.logger.debug(out)
+        logger.debug(out)
         
     methods = {'INIT'    : do_INIT,
                'SUBMIT'  : do_SUBMIT,
@@ -236,7 +247,7 @@ class GwEmMad (object):
             pool = ThreadPool(self._min_thread, self._max_thread)
             while True:
                 input = sys.stdin.readline().split()
-                self.logger.debug(' '.join(input))
+                logger.debug(' '.join(input))
                 OPERATION = input[0].upper()
                 if len(input) == 4 and self.methods.has_key(OPERATION):
                     if OPERATION == 'FINALIZE' or OPERATION == 'INIT' or OPERATION == 'SUBMIT' \
@@ -247,9 +258,9 @@ class GwEmMad (object):
                 else:
                     out = 'WRONG COMMAND'
                     self.message.stdout(out)
-                    self.logger.debug(out)
+                    logger.debug(out)
         except Exception, err:
-            self.logger.warning( str( err ) )
+            logger.warning( str( err ) )
     
     def _update_resource(self, host):
         with self._lock :
@@ -257,7 +268,7 @@ class GwEmMad (object):
                 self._configure.load()
                 errors = self._configure.check()
                 if errors :
-                    self.logger.error ( ' '.join( errors ) )
+                    logger.error ( ' '.join( errors ) )
                     raise Exception ( ' '.join( errors ) )
             for resname, resdict in self._configure.resources.iteritems() :
                 if '_' in host :

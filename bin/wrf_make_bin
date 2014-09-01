@@ -1,0 +1,75 @@
+#!/bin/bash
+
+version="3.1.1"
+thisdir=${WRF4G_LOCATION}/bin
+
+while test -n "$1"; do
+  case $1 in
+    "-basedir")
+      basedir=$2
+      shift
+      ;;
+    "-tag")
+      tag=$2
+      shift
+      ;;
+    "-destdir")
+      destdir=$2
+      shift
+      ;;
+    *)
+      echo "Usage: $(basename $0) -basedir /wrf/bin/base [-tag tag] [-destdir /destination/for/file.tar.gz]" 
+      exit
+      ;;
+  esac
+  shift
+done
+
+if test -z "${basedir}"; then
+  echo "-basedir flag is mandatory"
+  exit 1
+fi
+
+if test -z "${destdir}"; then
+  destdir="${thisdir}"
+fi
+
+echo "      <<<< BASEDIR: $basedir"
+
+revision=`svn info ${basedir}/WRFV3 | grep 'Last Changed Rev:' | awk -F: '{print $2}' | tr -d ' '`
+
+tardir="tarball${RANDOM}"
+
+mkdir ${tardir}
+cd ${tardir}
+  mkdir -p WPS/metgrid
+  mkdir -p WPS/ungrib
+  mkdir -p WRFV3/run
+  mkdir -p openmpi/bin
+  mkdir -p openmpi/lib
+
+  ln -s ${basedir}/WPS/ungrib/Variable_Tables WPS/ungrib/
+
+  ln -s ${basedir}/WPS/metgrid/metgrid.exe WPS/metgrid/metgrid.exe
+  ln -s ${basedir}/WPS/metgrid/METGRID.TBL WPS/metgrid/METGRID.TBL
+  ln -s ${basedir}/WPS/ungrib/ungrib.exe WPS/ungrib/ungrib.exe
+  ln -s ${basedir}/WPS/link_grib.csh WPS/
+  
+  ln -s ${basedir}/WRFV3/configure.wrf WRFV3
+  ln -s ${basedir}/WRFV3/run/*.TBL WRFV3/run
+  ln -s ${basedir}/WRFV3/run/*_DATA* WRFV3/run
+  ln -s ${basedir}/WRFV3/run/*formatted WRFV3/run/
+  ln -s ${basedir}/WRFV3/run/tr* WRFV3/run
+  ln -s ${basedir}/WRFV3/run/real.exe WRFV3/run
+  ln -s ${basedir}/WRFV3/run/wrf.exe WRFV3/run 
+
+  ln -s ${basedir}/openmpi/bin/mpiexec openmpi/bin/
+  ln -s ${basedir}/openmpi/bin/mpirun  openmpi/bin/
+  ln -s ${basedir}/openmpi/bin/orterun openmpi/bin/
+  ln -s ${basedir}/openmpi/bin/orted   openmpi/bin/
+  ln -s ${basedir}/openmpi/lib openmpi/
+
+  tar czhv --exclude=".svn" \
+  -f ${destdir}/WRF4Gbin-${version}_r${revision}${tag}.tar.gz *
+cd ..
+rm -rf ${tardir}

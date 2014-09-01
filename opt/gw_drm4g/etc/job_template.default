@@ -168,6 +168,6 @@ NUMBER_OF_RETRIES     = 3
 # PRE_WRAPPER_ARGUMENTS: Arguments to the pre-wrapper program.
 #-------------------------------------------------------------------------------
 
-WRAPPER               = libexec/gw_drm4g_wrapper.sh
+WRAPPER               = etc/gw_drm4g_wrapper.sh
 PRE_WRAPPER           =
 PRE_WRAPPER_ARGUMENTS =

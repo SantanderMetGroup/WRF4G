@@ -38,6 +38,7 @@ setup(){
     FIRST_RMT_JOB_HOME=`pwd`
     
     if [ "${WRF4G_SCRATCH}" ]; then
+      
         RMT_JOB_HOME="${WRF4G_SCRATCH}/${GW_USER}_${GW_JOB_ID}" 
 
     	printf "`date`: Making ${RMT_JOB_HOME}  directory... "
@@ -47,11 +48,11 @@ setup(){
     	mkdir -p ${RMT_JOB_HOME}
     	
     	if [ $? -ne 0 ]; then
-            echo "failed."
+    	    echo "failed."
             exit 1
-        else
-            echo "done."
-        fi
+    	else
+    	    echo "done."
+    	fi
     	
     	printf "`date`: Moving to ${RMT_JOB_HOME} directory... "
     	
@@ -59,7 +60,7 @@ setup(){
     	
     	if [ $? -ne 0 ]; then
     	    echo "failed."
-            exit 1
+    	    exit 1
         else
             echo "done."
         fi
@@ -83,8 +84,8 @@ setup(){
     source ./job.env
 	
     if [ -z "${GW_RESTARTED}" -o -z "${GW_EXECUTABLE}" ]; then
-         echo "failed."
-         exit 1
+        echo "failed."
+        exit 1
     fi
 
     echo "done."
@@ -98,8 +99,9 @@ execution(){
     #
     
     case ${GW_EXECUTABLE} in
+    
         gsiftp://*)
-	    GW_EXECUTABLE=`basename ${GW_EXECUTABLE}`
+            GW_EXECUTABLE=`basename ${GW_EXECUTABLE}`
             ;;
             
         file:/*)
@@ -234,7 +236,7 @@ transfer_input_files(){
     
     if [ -n "$GW_MONITOR" ];
     then
-    	STG_FILES_SAVED=$STG_FILES
+        STG_FILES_SAVED=$STG_FILES
         STG_FILES="$STG_FILES_SAVED,file://$GW_MONITOR .monitor"    
     fi 
     
@@ -250,6 +252,7 @@ transfer_input_files(){
         DST_FILE=`echo $FILES | awk '{print $2}'`
 
         case ${SRC_FILE} in
+        
         gsiftp://*)
             SERVER=`echo $SRC_FILE | awk -F/ '{print $3}'`
             FILE_NAME=`echo $SRC_FILE | awk -F/ '{print $NF}'`
@@ -273,14 +276,6 @@ transfer_input_files(){
             else
                 echo "done."
             fi
-            ;;
-            
-        file:/*)
-
-            ;;
-        
-        /*)
-
             ;;
         
         *)
@@ -326,6 +321,7 @@ transfer_output_files(){
         fi
 
         case ${DST_FILE} in
+        
         gsiftp://*)
             if [ -z "$SRC_FILE" ]; then
                 SRC_FILE=$DST_FILE
@@ -347,10 +343,9 @@ transfer_output_files(){
         *)
             if [ "${WRF4G_SCRATCH}" ]; then
                 printf "`date`: Copy ${RMT_JOB_HOME}/${FILES} file to ${FIRST_RMT_JOB_HOME} ... "
-	        cp ${RMT_JOB_HOME}/${FILES} ${FIRST_RMT_JOB_HOME}/
-	        if [ $? -ne 0 ]; then
+                cp ${RMT_JOB_HOME}/${FILES} ${FIRST_RMT_JOB_HOME}/
+                if [ $? -ne 0 ]; then
                     echo "failed."
-                    exit 1
                 else
                     echo "done."
                 fi	
@@ -365,12 +360,12 @@ transfer_output_files(){
 
 clean(){
     if [ "${WRF4G_SCRATCH}" ]; then
-        if test -f ${RMT_JOB_HOME}/.lock; then
-	    printf "`date`: Deleting remote SCRATCH directory... "
-	    rm -rf  ${RMT_JOB_HOME}
+        if ! test -f ${RMT_JOB_HOME}/.lock; then
+            printf "`date`: Deleting remote SCRATCH directory... "
+            rm -rf  ${RMT_JOB_HOME}
             if [ $? -ne 0 ]; then
                 echo "failed."
-    	    else
+            else
                 echo "done."
             fi
         fi

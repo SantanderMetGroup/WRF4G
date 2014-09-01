@@ -2,7 +2,7 @@ import xml.dom.minidom
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: rsl2.py 1915 2013-09-05 11:51:19Z carlos $"
+__revision__ = "$Id: rsl2.py 1980 2014-01-26 10:58:25Z carlos $"
 
 class Rsl2Parser(object):
 
@@ -13,7 +13,7 @@ class Rsl2Parser(object):
            stdout = rsl.parse()
   """
   elems_to_parse = ['executable','stdout','stderr','directory','count','jobType',
-                      'queue','maxTime','maxWallTime','maxCpuTime','minMemory','maxMemory','ppn']
+                      'queue','maxTime','maxWallTime','maxCpuTime','minMemory','maxMemory','ppn', 'nodes']
 
   def __init__(self, filename):
     """

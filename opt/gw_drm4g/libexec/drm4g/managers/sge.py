@@ -4,7 +4,7 @@ from string import Template
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: sge.py 1915 2013-09-05 11:51:19Z carlos $"
+__revision__ = "$Id: sge.py 1972 2013-12-17 08:57:30Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
@@ -78,7 +78,7 @@ class Job (drm4g.managers.Job):
     def jobTemplate(self, parameters):
         args  = '#!/bin/bash\n'
         args += '#$ -N JID_%s\n' % (parameters['environment']['GW_JOB_ID'])
-        if parameters['project']: 
+        if parameters.has_key('project'): 
             args += '#$ -P $project\n'
         if parameters['queue'] != 'default':
             args += '#$ -q $queue\n'

@@ -1,6 +1,0 @@
-#!/bin/bash
-
-# Common initialization
-. `dirname $0`/wrf4g_env
-gwhost $*
-

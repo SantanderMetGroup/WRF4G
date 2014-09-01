@@ -4,7 +4,7 @@ from string import Template
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: pbs.py 1955 2013-12-04 12:43:18Z carlos $"
+__revision__ = "$Id: pbs.py 1980 2014-01-26 10:58:25Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
@@ -80,7 +80,7 @@ class Job (drm4g.managers.Job):
     def jobTemplate(self, parameters):
         args  = '#!/bin/bash\n'
         args += '#PBS -N JID_%s\n' % (parameters['environment']['GW_JOB_ID'])
-        if parameters['project']:
+        if parameters.has_key('project'):
             args += '#PBS -P $project\n'
         args += '#PBS -q $queue\n'
         args += '#PBS -o $stdout\n'
@@ -91,7 +91,9 @@ class Job (drm4g.managers.Job):
             args += '#PBS -l cput=$maxCpuTime\n' 
         if parameters.has_key('maxMemory'):
             args += '#PBS -l vmem=$maxMemoryMB\n'
-        if parameters.has_key('ppn'):
+        if parameters.has_key('ppn') and parameters.has_key('nodes') :
+            args += '#PBS -l nodes=$nodes:ppn=$ppn\n'
+        elif parameters.has_key('ppn') :
             node_count = int(parameters['count']) / int(parameters['ppn'])
             if node_count == 0:
                 node_count = 1

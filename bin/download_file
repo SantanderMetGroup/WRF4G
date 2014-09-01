@@ -1,14 +1,12 @@
 #!/usr/bin/env python
-
+import os
+import sys 
 from commands import getstatusoutput
 from optparse import OptionParser
-from os.path import join, dirname, abspath
-import os
-import sys  
+from os.path  import join, dirname, abspath
 try:
-    sys.path.insert(0, join(dirname(dirname(abspath(__file__))),'lib','python'))
-    import vcplib
-    import wrf4g.dateutils
+    from wrf4g       import vcplib
+    from wrf4g.utils import wrffile
 except Exception, e:
     print 'Caught exception: %s' % (str(e))
     sys.exit(-1)
@@ -19,7 +17,7 @@ usage="""%prog type date
 Example:    %prog rst 1990-01-01_00:00:00 
             %prog real 1990-01-01_00:00:00
 
-This command needs that the following environment variables have been established: WRF4G_EXPERIMENT, WRF4G_REALIZATION and RESOURCES_WRF4G.
+This command needs that the following environment variables have been established: WRF4G_EXPERIMENT, WRF4G_REALIZATION and WRF4G_BASEPATH.
 """
 
 # Check the Arguments
@@ -35,18 +33,12 @@ else :
 
 # Check that the environment variables has been established and import their values
 env_var = {}
-for var in [ "WRF4G_EXPERIMENT" , "WRF4G_REALIZATION", "RESOURCES_WRF4G"] :
+for var in [ "WRF4G_EXPERIMENT" , "WRF4G_REALIZATION", "WRF4G_BASEPATH"] :
     var_value = os.getenv(var)
     if not var_value :
         sys.stderr.write( var + " is not defined\n")
         sys.exit(-1)
     env_var[var] = var_value
-
-exec(open(env_var["RESOURCES_WRF4G"]).read())
-# List all the variables in the script and search WRF4G_BASEPATH
-if not 'WRF4G_BASEPATH' in dir():
-    sys.stderr.write("Error: WRF4G_BASEPATH is not defined\n")
-    sys.exit(-1)
 
 sys.stderr.write("WRFGEL(download_file)> START: %s\n" % args)
 
@@ -60,16 +52,15 @@ pattern = {
            "real" : "wrf[lbif]*_d\d\d_" + date + "*"
            } 
 
-orig_folder=join(WRF4G_BASEPATH,env_var["WRF4G_EXPERIMENT"],env_var["WRF4G_REALIZATION"],type_list[type]+"/")
-
+orig_folder = join( env_var[ "WRF4G_BASEPATH"] , env_var["WRF4G_EXPERIMENT"] , env_var["WRF4G_REALIZATION"] , type_list[type] + "/" )
 for file in vcplib.VCPURL(orig_folder).ls(pattern[type]):
     # file will follow the pattern: wrfrst_d01_19900101T000000Z.nc or wrflowinp_d08_19900101T000000Z.nc
-    file_c=wrf4g.dateutils.wrffile(file)
+    file_c = wrffile(file)
     if type == "rst" :
-        dest=file_c.file_name + file_c.date_wrf()
+        dest = file_c.file_name + file_c.date_wrf()
     else: 
         # From wrflowinp_d08_ we remove the _ at the end
-        dest=file_c.file_name[:-1]
+        dest = file_c.file_name[:-1]
     orig_file = join(orig_folder,file)
     try:
         vcplib.copy_file(orig_file,dest,verbose=options.verbose)

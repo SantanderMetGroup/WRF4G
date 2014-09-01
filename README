@@ -3,14 +3,14 @@ WRF4G can be installed in any Linux Computer. It provides the services needed to
 
 Although in the following examples we will use the same computer to manage the experiments and to run them, usually scientists use a computer to prepare and manage the experiments (where WRF4G has to be installed) and different computing resources to run them (PBS or SGE Clusters, HPC infrastructures, stand-alone servers). We call User Interface (UI) to the computer where WRF4G is installed and Computing Resources (CR) to the nodes where a WRF experiment can run. In the following experiments the Computer where the UI role is installed will act as CR.
 
-== Required Software ==
+Required Software
 
 WRF4G needs the following software preinstalled both in the UI and the CR:
 
  * x86_64 Linux
- * Python, version >= 2.4 and < 3.0.
+ * Python, version >= 2.5 and < 3.0.
 
-== Platform Notes ==
+Platform Notes
 
 WRF4G has been run only in 64bits platforms. Currently has been tested under the following O.S.:
 
@@ -18,7 +18,7 @@ WRF4G has been run only in 64bits platforms. Currently has been tested under the
  * Centos 5 and 6: No known issues.
  * Debian 6.0: No known issues.
 
-== Installation ==
+Installation
 
  * Download and unpack the distribution file from http://meteo.macc.unican.es/work/WRF4G.tar.gz to the installation directory, for example your $HOME directory. 
 cd $WRF4G_INSTALL_PATH (i.e cd $HOME)
@@ -27,8 +27,7 @@ tar xzvf WRF4G.tar.gz
 
  * Setup the WRF4G user environment. (To avoid typing the export command every time you want to use WRF4G, it is advisable to copy this line in $HOME/.bashrc)
 
-export WRF4G_LOCATION=$WRF4G_INSTALL_PATH/WRF4G
-export PATH=$WRF4G_LOCATION/bin:$PATH
+export PATH=$WRF4G_INSTALL_PATH/WRF4G/bin:$PATH
 
 The installation process provides the UI with:
 
@@ -38,17 +37,17 @@ The installation process provides the UI with:
     * The Computing Resources where WRF is going to run.
     * The database where the experiment information and status (realization, chunks, jobs) is stored.
 
-== Veryfing installation ==
+Veryfing installation
 
 * Start the WRF4G Framework. This command will start the services needed by WRF4G to run.
 
-wrf4g_framework start
+wrf4g framework -start
 
 * List the CR available.
 
-wrf4g_resources 
-HID PRIO OS              ARCH        NODES(U/F/T) LRMS               HOSTNAME                      
-0   1    GNU/Linux2.6.32 x86_64         0/1/1     FORK               mycomputer 
+wrf4g resources -l 
+HID PRIO  ARCH        CORES(U/F/T)  LRMS       HOSTNAME                      
+0   1     x86_64             0/1/1  FORK       localhost 
               
 == Information ==
 If you want to find more information about WRF4G, please check out https://www.meteo.unican.es/trac/meteo/wiki/WRF4G

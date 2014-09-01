@@ -1,11 +1,12 @@
+from __future__       import with_statement
 import Queue
-from threading import Thread
-from threading import Lock
 import sys
+from threading        import Thread
+from threading        import Lock
 
 __version__ = '0.1'
 __author__  = 'Carlos Blanco'
-__revision__ = "$Id: dynamic.py 1915 2013-09-05 11:51:19Z carlos $"
+__revision__ = "$Id: dynamic.py 1983 2014-01-26 15:04:29Z carlos $"
 
 
 """

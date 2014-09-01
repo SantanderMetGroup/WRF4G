@@ -1,14 +1,16 @@
+from __future__      import with_statement
 import re
+import sys
 import logging
 import drm4g.managers
-from os.path        import basename , dirname , exists
-from string         import Template
-from drm4g          import REMOTE_VOS_DIR
-from drm4g.managers import JobException
+from os.path         import basename , dirname , exists
+from string          import Template
+from drm4g           import REMOTE_VOS_DIR
+from drm4g.managers  import JobException
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: cream.py 1924 2013-09-15 20:26:53Z carlos $"
+__revision__ = "$Id: cream.py 1983 2014-01-26 15:04:29Z carlos $"
 
 logger = logging.getLogger(__name__)
 
@@ -27,16 +29,6 @@ re_output_files    = re.compile( "GW_OUTPUT_FILES\s*=\s*\"(.*)\"" )
 re_executable_file = re.compile( "GW_EXECUTABLE\s*=\s*\"(.*)\"" )
 
 def sandbox_files(env_file):
-
-    def executable_file(env):
-        re_executable = re_executable_file.search(env)
-        executable    = re_executable.groups()[0].split()[0]
-        if executable.startswith( "file:" ) or ( executable.startswith( "/" ) and exists ( executable  ) ) :
-            return basename ( executable )
-        elif not executable.startswith( "gsiftp:" ) :
-            return executable
-        else :
-            return None
 
     def parse_files(env, type, re_exp):
         files_to_copy = []
@@ -58,9 +50,6 @@ def sandbox_files(env_file):
     f.close()
     input_files      = parse_files( line_env , 'input' , re_input_files )
     output_files     = parse_files( line_env , 'output' , re_output_files )
-    executable_file = executable_file(line_env)
-    if executable_file :
-        input_files.append( executable_file )
     return input_files, output_files
 
 class Resource (drm4g.managers.Resource):
@@ -85,7 +74,10 @@ class Job (drm4g.managers.Job):
     def _renew_proxy(self):
         output = "The proxy 'x509up.%s' has probably expired" %  self.resfeatures[ 'vo' ]  
         logger.debug( output )
-        X509_USER_PROXY = "X509_USER_PROXY=%s/proxy" % REMOTE_VOS_DIR
+        if self.resfeatures.has_key( 'myproxy_server' ) :
+            X509_USER_PROXY = "X509_USER_PROXY=%s/%s" % ( REMOTE_VOS_DIR , self.resfeatures[ 'myproxy_server' ] )
+        else :
+            X509_USER_PROXY = "X509_USER_PROXY=%s/${MYPROXY_SERVER}" % ( REMOTE_VOS_DIR )
         cmd = "%s voms-proxy-init -ignorewarn -timeout 30 -valid 24:00 -q -voms %s -noregen -out %s/x509up.%s" % (
                                                                                                          X509_USER_PROXY ,
                                                                                                          self.resfeatures[ 'vo' ] ,

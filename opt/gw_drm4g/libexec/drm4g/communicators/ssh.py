@@ -1,6 +1,6 @@
 import sys
 import platform
-from os.path import dirname, abspath, join, expanduser, exists
+from os.path     import dirname, abspath, join, expanduser, exists
 
 try:
     GW_LOCATION  = dirname( dirname ( abspath( __file__ ) ) )
@@ -22,6 +22,7 @@ except Exception, e:
     print 'Caught exception: %s' % str(e)
     sys.exit(-1)
 
+from __future__             import with_statement
 import socket
 import re
 import logging
@@ -32,7 +33,7 @@ from drm4g.utils.url        import urlparse
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: ssh.py 1951 2013-11-25 13:13:29Z carlos $"
+__revision__ = "$Id: ssh.py 1983 2014-01-26 15:04:29Z carlos $"
 
 class Communicator (drm4g.communicators.Communicator):
     """

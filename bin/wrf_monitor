@@ -1,0 +1,122 @@
+#! /bin/bash
+#
+# wrf4g_monitor
+#
+wrf_pid=$1
+log_file_wrf=$2
+
+file_patterns="wrfout wrfrst wrfrain wrfxtrm wrf24hc"
+wait_s=60
+
+avoid_file="wrfrst_d01_${chunk_restart_date}"
+
+function time_debug(){
+  debugmsg="$1"
+  echo "$(date '+[%Y-%-m-%d %H:%M:%S]') ${debugmsg}"
+}
+
+function all_but_last() {
+  pattern=$1
+  nfiles=$(ls ${pattern}* 2>/dev/null | wc -l)
+  if test ${nfiles} -gt 1; then
+    ls ${pattern}* 2> /dev/null | head -n $((${nfiles} - 1))
+  fi
+}
+
+function filetype(){
+  thefile=$1
+  case ${thefile:3:3} in
+    out) echo "out" ;;
+    rst) echo "rst" ;;
+    rai|xtr|24h) echo "out" ;;
+  esac
+}
+
+function current_date(){
+  tail -100000 ${log_file_wrf} | grep "Timing for main: time" | tail -1 | awk '{print $5}'
+}
+
+function filedate(){
+  thefile=$1
+  echo ${thefile} | sed -e 's/^.*\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]:[0-9][0-9]:[0-9][0-9]\).*$/\1/'
+}
+
+function clean_while_running(){
+  for patt in ${file_patterns}; do
+    domains=$(ls ${patt}* 2> /dev/null| sort | awk -F_ '{print $2}' | grep '^d' | sort -r | uniq)
+    for dom in ${domains}; do
+      for file in $(all_but_last ${patt}_${dom}); do
+        edate=''
+        if test "${file}" == "${avoid_file}"; then
+          time_debug "Skipping initial restart file ${file}"
+          continue
+        else
+          time_debug "Uploading ${file} (start)"
+          if test $(filetype $file) == "out" -a ${wrfout_name_end_date} -eq 1; then
+            edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
+          fi
+          post_and_register --no-bg $(filetype $file) $(filedate $file) $file $edate
+          if test $patt == "wrfrst" -a $dom == "d01"; then
+            output=$(wrf4g shell Realization set_restart id=${WRF4G_REALIZATION_ID} $(filedate $file)) # In the future kill the job if it can't contact the DB
+          fi
+          time_debug "Uploading ${file} (end)"
+        fi
+      done
+    done
+  done
+}
+
+function clean_all(){
+  output=$(wrf4g shell Realization set_cdate id=${WRF4G_REALIZATION_ID} $(current_date))
+  for patt in ${file_patterns}; do
+    domains=$(ls ${patt}* 2>/dev/null | sort | awk -F_ '{print $2}' | grep '^d' | sort | uniq)
+    for dom in ${domains}; do
+      for file in ${patt}_${dom}*; do
+        edate=''
+        if test "${file}" == "${avoid_file}"; then
+          continue
+        else
+          # This time the files cannot be open by any process. We are uploading everything
+          time_debug "Uploading ${file} (start)"
+          if test $(filetype $file) == "out" -a ${wrfout_name_end_date} -eq 1; then
+            edate=$(ncdump -v Times $file |tail -2|head -1| awk -F\" '{print $2}')
+          fi
+          post_and_register --no-bg $(filetype $file) $(filedate $file) $file $edate
+          if test $(filetype $file) == "rst" -a $dom == "d01"; then
+            output=$(wrf4g shell Realization set_restart id=${WRF4G_REALIZATION_ID} $(filedate $file)) # In the future kill the job if it can't contact the DB
+          fi
+          time_debug "Uploading ${file} (end)"
+        fi
+      done
+    done
+  done
+  # Upload the final time series
+  if test -f tslist; then
+    ofile="wrfts_$(date_wrf2iso ${chunk_restart_date}).tar.gz"
+    cd T/
+    tar czf ../${ofile} *.TS
+    cd ..
+    register_file -v ts date_not_used ${ofile}
+  fi
+}
+
+i=0
+while true
+do
+  let i++
+  if test $i -eq 10;then
+    output=$(wrf4g shell Realization set_cdate id=${WRF4G_REALIZATION_ID} $(current_date))
+    i=0
+  fi
+  if ps aux | awk '$2=='${wrf_pid}'' | grep -q wrf.exe
+  then
+    time_debug "WRF seems to be running"
+    clean_while_running
+  else
+    time_debug "WRF is not running anymore"
+    clean_all
+    break
+  fi
+  
+  sleep ${wait_s}
+done

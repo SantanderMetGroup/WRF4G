@@ -1,10 +1,8 @@
 #!/bin/bash
-
-mkdir -p ${WRF4G_LOCALSCP}/WRFV3/run
-cd  ${WRF4G_LOCALSCP}/WRFV3/run
-for file in `ls ${WRF4G_ROOTDIR}/runshared/ | grep -v met_em`
+mkdir -p ${LOCALDIR}/WRFV3/run
+cd  ${LOCALDIR}/WRFV3/run
+for file in `ls ${ROOTDIR}/runshared/`
 do 
-  ln -s ${WRF4G_ROOTDIR}/runshared/$file .
+  ln -s ${ROOTDIR}/runshared/$file .
 done
 cd -
-

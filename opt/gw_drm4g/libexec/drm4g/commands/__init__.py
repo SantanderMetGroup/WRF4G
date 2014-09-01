@@ -103,12 +103,13 @@ class ManagementUtility( cmd.Cmd ):
                 proxy_passwd = getpass.getpass(message)
          
                 if resource.has_key( 'myproxy_server' ) :
-                    cmd = "X509_USER_PROXY=%s/proxy MYPROXY_SERVER=%s myproxy-logon -S" % (
+                    cmd = "X509_USER_PROXY=%s/%s MYPROXY_SERVER=%s myproxy-logon -S" % (
                                                                                            REMOTE_VOS_DIR ,
+                                                                                           resource[ 'myproxy_server' ] ,
                                                                                            resource[ 'myproxy_server' ]
                                                                                            ) 
                 else :
-                    cmd = "X509_USER_PROXY=%s/proxy myproxy-logon -S" % ( REMOTE_VOS_DIR )
+                    cmd = "X509_USER_PROXY=%s/${MYPROXY_SERVER} myproxy-logon -S" % ( REMOTE_VOS_DIR )
                 print "\tExecuting command ... ", cmd 
                 out, err = communicator.execCommand( cmd , input = proxy_passwd )
                 print "\t", out , err
@@ -156,10 +157,10 @@ class ManagementUtility( cmd.Cmd ):
             print "\t--> Resource '%s' ... " % resname
             try :
                 communicator.connect()
+                print "\t\tThe front-end %s is reachable" % communicator.frontend
             except Exception , err :
                 print "\t\tThe front-end %s is not reachable" % communicator.frontend 
                 print "\t\t" , err
-            print "\t\tThe front-end %s is reachable" % communicator.frontend
 
     def do_list_resources(self, line):
         """

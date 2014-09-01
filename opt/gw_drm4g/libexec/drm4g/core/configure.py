@@ -8,7 +8,7 @@ from drm4g                 import DRM4G_CONFIG_FILE, COMMUNICATORS, RESOURCE_MAN
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: configure.py 1953 2013-11-26 12:32:33Z carlos $"
+__revision__ = "$Id: configure.py 1984 2014-01-26 17:35:33Z carlos $"
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class Configuration(object):
     def __init__(self):
         self.resources  = dict()
         if not os.path.exists( DRM4G_CONFIG_FILE ):
-            assert DRM4G_CONFIG_FILE, "drm4g.conf does not exist, please provide one"
+            assert DRM4G_CONFIG_FILE, "%s does not exist, please provide one" % DRM4G_CONFIG_FILE
         self.init_time = os.stat( DRM4G_CONFIG_FILE ).st_mtime
         
     def check_update(self):
@@ -57,14 +57,15 @@ class Configuration(object):
                     raise ConfigureException( output )
                 
                 for sectname in parser.sections():
-                    logger.debug("Reading configuration for resource '%s'." % sectname)
-                    self.resources[sectname] = dict( parser.items( sectname ) )
+                    name                   = sectname
+                    logger.debug(" Reading configuration for resource '%s'." % name )
+                    self.resources[ name ] = dict( parser.items( sectname ) )
                     logger.debug("Resource '%s' defined by: %s.",
-                                 sectname, ', '.join([("%s=%s" % (k,v)) for k,v in sorted(self.resources[sectname].iteritems())]))
+                             sectname, ', '.join([("%s=%s" % (k,v)) for k,v in sorted(self.resources[name].iteritems())]))
             except Exception, err:
                 output = "Error reading '%s' file: %s" % (DRM4G_CONFIG_FILE, str(err)) 
-                logger.error(output , exc_info=1 )
-                raise ConfigureException(output)
+                logger.error( output )
+                raise ConfigureException( output )
         finally:
             file.close()
             
@@ -87,11 +88,15 @@ class Configuration(object):
             if ( not 'ncores' in reslist ) and ( resdict[ 'lrms' ] != 'cream' ) :
                 output = "'ncores' key is mandatory for '%s' resource" % resname
                 logger.error( output )
-                errors.append( output )
+                errors.append( output )           
             if ( not 'queue' in reslist ) and ( resdict[ 'lrms' ] != 'cream' ) :
                 self.resources[resname]['queue'] = "default"
                 output = "'queue' key will be called 'default' for '%s' resource" % resname
                 logger.debug( output )
+            if ( 'ncores' in reslist ) and ( resdict.get( 'ncores' ).count( ',' ) !=  resdict.get( 'queue' ).count( ',' ) ) :
+                output = "The number of elements in 'ncores' are different to the elements of 'queue'"
+                logger.error( output )
+                errors.append( output ) 
             if not COMMUNICATORS.has_key( resdict[ 'communicator' ] ) :
                 output = "'%s' has a wrong communicator: '%s'" % (resname , resdict[ 'communicator' ] )
                 logger.error( output )

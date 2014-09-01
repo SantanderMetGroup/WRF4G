@@ -1,4 +1,6 @@
+from __future__          import with_statement
 import re
+import sys
 import xml.dom.minidom
 import os
 import subprocess
@@ -6,9 +8,12 @@ import logging
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: __init__.py 1951 2013-11-25 13:13:29Z carlos $"
+__revision__ = "$Id: __init__.py 1984 2014-01-26 17:35:33Z carlos $"
 
 logger = logging.getLogger(__name__)
+
+def totalCores( cores ):
+    return sum( [ int( core ) for core in cores.split( ',' ) ] )
 
 def sec_to_H_M_S( sec ):
     """
@@ -170,13 +175,14 @@ class Resource (object):
         """
         host_info       = HostInformation()
         host_info.Name  = host
-        host_info.Nodes = self.features[ 'ncores' ]
+        host_info.Nodes = str( totalCores( self.features[ 'ncores' ] ) )
         host_info.Name, host_info.OsVersion, host_info.Arch, host_info.Os  = self.system_information()
-           
-        for queue_name in [ elem.strip()  for elem in self.features[ 'queue' ].split( ',' ) ] :
+        
+        q_features = [ ( q_elem.strip() , nc_elem.strip() ) for q_elem , nc_elem in zip( self.features[ 'queue' ].split( ',' ) , self.features[ 'ncores' ].split( ',' ) ) ]
+        for queue_name , ncores in q_features  :
             queue              = Queue()
             queue.Name         = queue_name
-            queue.Nodes        = self.features[ 'ncores' ]
+            queue.Nodes        = ncores
             queue.FreeNodes    = self._free_cores( host )
             host_info.addQueue( self.additional_queue_properties( queue ) )
         host_info.LrmsName = self.features[ 'lrms' ]
@@ -200,10 +206,10 @@ class Resource (object):
             return "0"
         out_parser = xml.dom.minidom.parseString(stdout)
         busy_cores = int(out_parser.getElementsByTagName('USED_SLOTS')[0].firstChild.data)
-        if busy_cores > int ( self.features[ 'ncores' ] ) :
+        if busy_cores > totalCores( self.features[ 'ncores' ] ) :
            return "0"
         else:
-           free_cores = str( int( self.features[ 'ncores' ] ) - busy_cores )
+           free_cores = str( totalCores( self.features[ 'ncores' ] ) - busy_cores )
            return free_cores
        
     def system_information(self):
@@ -326,7 +332,7 @@ class HostInformation( object ) :
         self.CpuMhz     = "0"
         self.FreeCpu    = "0"
         self.CpuSmp     = "0"
-        self.Nodes       = "0"
+        self.Nodes      = "0"
         self.SizeMemMB  = "0"
         self.FreeMemMB  = "0"
         self.SizeDiskMB = "0"
@@ -334,7 +340,7 @@ class HostInformation( object ) :
         self.ForkName   = "NULL"
         self.LrmsName   = "NULL"
         self.LrmsType   = "NULL"
-        self._queues     = [] 
+        self._queues    = [] 
  
     def addQueue(self, queue):
         self._queues.append(queue)

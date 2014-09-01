@@ -4,7 +4,7 @@ from string import Template
 
 __version__  = '1.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: loadleveler.py 1955 2013-12-04 12:43:18Z carlos $"
+__revision__ = "$Id: loadleveler.py 1972 2013-12-17 08:57:30Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
@@ -85,7 +85,7 @@ class Job (drm4g.managers.Job):
             args += '#@ resources = ConsumableMemory($maxMemory)\n'
         if parameters.has_key('ppn'):
             args += '#@ tasks_per_node = $ppn'
-        if parameters[ 'project' ] :
+        if parameters.has_key('project') :
             args += '#@ account_no = $project\n'
         args += '#@ queue\n'
         args += ''.join(['export %s=%s\n' % (k, v) for k, v in parameters['environment'].items()])

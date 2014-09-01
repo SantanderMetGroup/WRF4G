@@ -165,6 +165,7 @@ typedef struct gw_job_s
     int max_memory;
     int min_memory;
     int processes_per_node;
+    int nodes;
 } gw_job_t;
 
 

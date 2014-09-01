@@ -21,7 +21,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ------------------------------------------------------------------------
 
-from wrf4g_env import *
 from fortran_namelist import *
 from optparse import OptionParser
 
