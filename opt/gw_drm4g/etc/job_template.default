@@ -108,7 +108,7 @@ CHECKPOINT_URL      =
 #-------------------------------------------------------------------------------
 
 REQUIREMENTS =
-RANK         = QUEUE_FREENODECOUNT
+RANK         = QUEUE_MAXRUNNINGJOBS
 
 #-------------------------------------------------------------------------------
 # Scheduling variables

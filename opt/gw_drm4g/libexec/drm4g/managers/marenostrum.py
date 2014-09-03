@@ -4,9 +4,9 @@ import time
 import drm4g.managers 
 from string import Template
 
-__version__  = '1.0'
+__version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: marenostrum.py 1915 2013-09-05 11:51:19Z carlos $"
+__revision__ = "$Id: marenostrum.py 2250 2014-08-27 09:04:57Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.

@@ -1,12 +1,13 @@
 from __future__       import with_statement
 import Queue
 import sys
+import traceback
 from threading        import Thread
 from threading        import Lock
 
-__version__ = '0.1'
-__author__  = 'Carlos Blanco'
-__revision__ = "$Id: dynamic.py 1983 2014-01-26 15:04:29Z carlos $"
+__version__  = '2.2.0'
+__author__   = 'Carlos Blanco'
+__revision__ = "$Id: dynamic.py 2250 2014-08-27 09:04:57Z carlos $"
 
 
 """
@@ -40,16 +41,19 @@ class Worker(Thread):
                     with lock : 
                         global threads_active, threads_min
                         if threads_active > threads_min:
-			    threads_active -= 1
-			    break
-                        else : continue
-                except Exception: sys.exit(-1)
+                            threads_active -= 1
+                            break
+                        else : 
+                            continue
+                except Exception: 
+                    sys.exit(-1)
                 else:
                     try: 
                         func(*args, **kargs)
-                    except Exception, e: 
-                        print e
-            except Exception: pass
+                    except : 
+                        traceback.print_exc(file=sys.stdout)
+            except Exception: 
+                pass
 
 class ThreadPool:
     """
@@ -76,4 +80,6 @@ class ThreadPool:
                     Worker(self.tasks)
                     threads_active += 1
                 self.tasks.put((func, args, kargs))
-            except Exception, e: print e 
+            except :
+                traceback.print_exc(file=sys.stdout) 
+            

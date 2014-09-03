@@ -6,11 +6,9 @@ from drm4g.core.configure  import Configuration
 from drm4g.managers        import HostInformation
 from drm4g.utils.message   import Send
 
-__version__  = '1.0'
+__version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: im_mad.py 1953 2013-11-26 12:32:33Z carlos $"
-
-logger  = logging.getLogger(__name__)
+__revision__ = "$Id: im_mad.py 2250 2014-08-27 09:04:57Z carlos $"
 
 class GwImMad (object):
     """
@@ -42,6 +40,7 @@ class GwImMad (object):
 		it contains a list of host attributes.
     """
 
+    logger  = logging.getLogger(__name__)
     message = Send()
     
     def __init__(self):
@@ -56,7 +55,7 @@ class GwImMad (object):
         """
         out = 'INIT - SUCCESS -'
         self.message.stdout(out)
-        logger.debug(out)
+        self.logger.debug(out)
         
     def do_DISCOVER(self, args):
         """
@@ -75,19 +74,19 @@ class GwImMad (object):
             communicators    = self._config.make_communicators()
             hosts = ""
             for resname in sorted( self._resources.keys() ) :
-                if self._config.resources[ resname ][ 'enable' ]  == 'False' : 
+                if  self._config.resources[ resname ][ 'enable' ].lower()  == 'false' : 
                     continue
                 try :
                     self._resources[ resname ][ 'Resource' ].Communicator = communicators[ resname ]
                     hosts = hosts + " " + self._resources[ resname ] [ 'Resource' ].hosts()
                     self._resources[ resname ][ 'Resource' ].Communicator.close() 
                 except Exception , err :
-                    logger.error( err , exc_info=1 )
+                    self.logger.error( err , exc_info=1 )
             out = 'DISCOVER %s SUCCESS %s' % ( HID , hosts  )
         except Exception , err :
             out = 'DISCOVER - FAILURE %s' % str( err )
         self.message.stdout( out )
-        logger.debug( out , exc_info=1 )
+        self.logger.debug( out , exc_info=1 )
  
     def do_MONITOR(self, args):
         """
@@ -99,9 +98,7 @@ class GwImMad (object):
         try:
             info = ""
             for resname, resdict in self._resources.iteritems() :
-                if '_' in HOST : 
-                    resname , _ = HOST.split( '_' )
-                if self._config.resources[ resname ][ 'enable' ] == 'False': 
+                if self._config.resources[ resname ][ 'enable' ].lower() == 'false': 
                     raise Exception( "Resource '%s' is not enable" % resname )
                 if HOST in resdict['Resource'].host_list :
                     info = resdict['Resource'].host_properties( HOST )
@@ -112,7 +109,7 @@ class GwImMad (object):
         except Exception , err :
             out = 'MONITOR %s FAILURE %s' % (HID , str( err ) )
         self.message.stdout(out)
-        logger.debug( out , exc_info=1 )
+        self.logger.debug( out , exc_info=1 )
  
     def do_FINALIZE(self, args):
         """
@@ -122,7 +119,7 @@ class GwImMad (object):
         """
         out = 'FINALIZE - SUCCESS -'
         self.message.stdout(out)
-        logger.debug(out)
+        self.logger.debug(out)
         sys.exit(0)
         
     methods = { 'INIT'	  : do_INIT,
@@ -138,14 +135,14 @@ class GwImMad (object):
         try:
             while True:
                 input = sys.stdin.readline().split()
-                logger.debug(' '.join(input))
+                self.logger.debug(' '.join(input))
                 OPERATION = input[0].upper()
                 if len(input) == 4 and self.methods.has_key(OPERATION):
                     self.methods[OPERATION](self, ' '.join(input))
                 else:
                     out = 'WRONG COMMAND'
                     self.message.stdout(out)
-                    logger.debug(out)
+                    self.logger.debug(out)
         except Exception, e:
-            logger.warning(str(e))
+            self.logger.warning(str(e))
             

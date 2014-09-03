@@ -6,9 +6,9 @@ import drm4g.communicators
 from drm4g.communicators import ComException
 from drm4g.utils.url     import urlparse
 
-__version__  = '1.0'
+__version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: local.py 1917 2013-09-08 21:20:43Z carlos $"
+__revision__ = "$Id: local.py 2250 2014-08-27 09:04:57Z carlos $"
 
 logger  = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class Communicator(drm4g.communicators.Communicator):
 
     def execCommand(self, command, input=None ):
         command_proc = subprocess.Popen(command,
-            shell  = True,
+            shell = True,
             stdin  = subprocess.PIPE,
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE,
@@ -30,7 +30,9 @@ class Communicator(drm4g.communicators.Communicator):
             for line in input.split():
                 command_proc.stdin.write("%s\n" % line)
                 command_proc.stdin.flush()
-        stdout, stderr = command_proc.communicate()
+                stdout, stderr = command_proc.communicate("%s\n" % line)
+        else :
+            stdout, stderr = command_proc.communicate()
         return stdout , stderr 
         
     def mkDirectory(self, url):

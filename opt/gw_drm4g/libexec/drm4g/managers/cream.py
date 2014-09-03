@@ -3,52 +3,53 @@ import re
 import sys
 import logging
 import drm4g.managers
-from os.path         import basename , dirname , exists
-from string          import Template
+from os.path         import basename , dirname , exists, join
 from drm4g           import REMOTE_VOS_DIR
 from drm4g.managers  import JobException
 
-__version__  = '1.0'
+__version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: cream.py 1983 2014-01-26 15:04:29Z carlos $"
+__revision__ = "$Id: cream.py 2250 2014-08-27 09:04:57Z carlos $"
 
 logger = logging.getLogger(__name__)
 
-X509_USER_PROXY = 'X509_USER_PROXY=' +  REMOTE_VOS_DIR + '/x509up.%s'
+X509_USER_PROXY = 'X509_USER_PROXY=' +  join( REMOTE_VOS_DIR , 'x509up.%s ' )
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
-CREAM_SUBMIT = '%s glite-ce-job-submit' % X509_USER_PROXY  
-CREAM_STATUS = '%s glite-ce-job-status' % X509_USER_PROXY    
-CREAM_DEL    = '%s glite-ce-job-cancel' % X509_USER_PROXY
-CREAM_PURGE  = '%s glite-ce-job-purge'  % X509_USER_PROXY
+CREAM_SUBMIT = X509_USER_PROXY + 'glite-ce-job-submit'  
+CREAM_STATUS = X509_USER_PROXY + 'glite-ce-job-status'     
+CREAM_DEL    = X509_USER_PROXY + 'glite-ce-job-cancel' 
+CREAM_PURGE  = X509_USER_PROXY + 'glite-ce-job-purge'  
+GLOBUS_CP    = X509_USER_PROXY + 'globus-url-copy'     
 
 # Regular expressions for parsing.
-re_status          = re.compile( "Status\s*=\s*\[(.*)\]" )
+re_status          = re.compile( "Current Status\s*=\s*\[(.*)\]" )
 re_input_files     = re.compile( "GW_INPUT_FILES\s*=\s*\"(.*)\"" )
 re_output_files    = re.compile( "GW_OUTPUT_FILES\s*=\s*\"(.*)\"" )
 re_executable_file = re.compile( "GW_EXECUTABLE\s*=\s*\"(.*)\"" )
+re_obs_url         = re.compile( "CREAM OSB URI\s*=\s*\[(.*)\]" )
+
 
 def sandbox_files(env_file):
 
     def parse_files(env, type, re_exp):
-        files_to_copy = []
-        files         = re_exp.search(env)
-        if files:
-            for file in files.groups()[0].split(','):
+        files = []
+        match = re_exp.search(env)
+        if match :
+            for file in match.group( 1 ).split(','):
                 if file.startswith( "gsiftp://" ) : 
                     continue
                 if " " in file:
-                    file0, file1 = file.split()
                     if type == 'output' :
-                        file = file0
+                        file , _  = file.split()
                     else:
-                        file = file1
-                files_to_copy.append( basename( file ) )
-        return files_to_copy
+                        _  , file = file.split()
+                files.append( basename( file ) )
+        return files
+    
     with open( env_file , "r" ) as f :
         line_env = ' '.join( f.readlines() )
-    f.close()
-    input_files      = parse_files( line_env , 'input' , re_input_files )
+    input_files      = parse_files( line_env , 'input' ,  re_input_files )
     output_files     = parse_files( line_env , 'output' , re_output_files )
     return input_files, output_files
 
@@ -56,7 +57,13 @@ class Resource (drm4g.managers.Resource):
     pass
 
 class Job (drm4g.managers.Job):
-   
+    
+    default_output_files = [
+                            'stdout.execution', 
+                            'stderr.execution', 
+                            'stdout.wrapper',
+                            'stderr.wrapper'
+                            ]
     #cream job status <--> GridWay job status
     cream_states = {
                     "REGISTERED"    : "PENDING",
@@ -75,18 +82,18 @@ class Job (drm4g.managers.Job):
         output = "The proxy 'x509up.%s' has probably expired" %  self.resfeatures[ 'vo' ]  
         logger.debug( output )
         if self.resfeatures.has_key( 'myproxy_server' ) :
-            X509_USER_PROXY = "X509_USER_PROXY=%s/%s" % ( REMOTE_VOS_DIR , self.resfeatures[ 'myproxy_server' ] )
+            LOCAL_X509_USER_PROXY = "X509_USER_PROXY=%s" % join ( REMOTE_VOS_DIR , self.resfeatures[ 'myproxy_server' ] ) 
         else :
-            X509_USER_PROXY = "X509_USER_PROXY=%s/${MYPROXY_SERVER}" % ( REMOTE_VOS_DIR )
-        cmd = "%s voms-proxy-init -ignorewarn -timeout 30 -valid 24:00 -q -voms %s -noregen -out %s/x509up.%s" % (
-                                                                                                         X509_USER_PROXY ,
-                                                                                                         self.resfeatures[ 'vo' ] ,
-                                                                                                         REMOTE_VOS_DIR ,
-                                                                                                         self.resfeatures[ 'vo' ] ,
-                                                                                                         )
+            LOCAL_X509_USER_PROXY = "X509_USER_PROXY=%s/${MYPROXY_SERVER}" % ( REMOTE_VOS_DIR )
+        cmd = "%s voms-proxy-init -ignorewarn -timeout 30 -valid 24:00 -q -voms %s -noregen -out %s" % (
+                                                                                                        LOCAL_X509_USER_PROXY ,
+                                                                                                        self.resfeatures[ 'vo' ] ,
+                                                                                                        join( REMOTE_VOS_DIR , 'x509up.%s ' ) % self.resfeatures[ 'vo' ] 
+                                                                                                        )
+        logger.debug( "Executing command: %s" % cmd )
         out, err = self.Communicator.execCommand( cmd )
         if err :
-            output = "Error renewing the proxy: %s" % err
+            output = "Error renewing the proxy(%s): %s" % (cmd , err )
             logger.error( output )
             raise JobException( output )
 
@@ -116,7 +123,7 @@ class Job (drm4g.managers.Job):
         return out[ out.find("https://"): ].strip() #cream_id
 
     def jobStatus(self):
-        cmd = '%s %s' % ( CREAM_STATUS % self.resfeatures[ 'vo' ] , self.JobId )
+        cmd = '%s %s -L 2' % ( CREAM_STATUS % self.resfeatures[ 'vo' ] , self.JobId )
         out, err = self.Communicator.execCommand( cmd )
         if 'The proxy has EXPIRED' in out :
             self._renew_proxy()
@@ -131,7 +138,11 @@ class Job (drm4g.managers.Job):
             raise JobException( output )
         mo = re_status.search(out)
         if mo:
-            return self.cream_states.setdefault(mo.groups()[0], 'UNKNOWN')
+            job_status = self.cream_states.setdefault(mo.groups()[0], 'UNKNOWN')
+            if job_status == 'DONE' or job_status == 'FAILED' :
+               output_url = self._getOutputURL( out )
+               self._getOutputFiles( output_url )
+            return job_status
         else:
             return 'UNKNOWN'
     
@@ -166,50 +177,89 @@ class Job (drm4g.managers.Job):
             raise JobException( output )
         
     def jobTemplate(self, parameters):
-        dir_temp   = dirname( parameters['executable'] )
+        dir_temp   = self.local_output_directory = dirname( parameters['executable'] )
         executable = basename( parameters['executable'] ) 
         stdout     = basename( parameters['stdout'] ) 
         stderr     = basename( parameters['stderr'] ) 
-        args  = '[\n'
-        args += 'JobType = "Normal";\n'
-        args += 'Executable = "%s";\n' % executable
-        args += 'StdOutput = "%s";\n'  % stdout
-        args += 'StdError = "%s";\n'   % stderr
-        args += 'CpuNumber = $count;\n'
-
+        count      = parameters['count'] 
+  
         input_sandbox, output_sandbox = sandbox_files( self.resfeatures[ 'env_file' ] )
-        if input_sandbox:
-            args += 'InputSandbox = {"job.env", "%s" , %s};\n' % ( executable , 
-                                                                   ','.join(['"%s"' % (f) for f in input_sandbox])
-                                                                    )
+        
+        if input_sandbox :
+            input_files = ' '.join( [ ',"%(dir_temp)s/' + '%s"' % (f) for f in input_sandbox] ) % {'dir_temp':dir_temp } 
         else :
-            args += 'InputSandbox = {"job.env", "%s"};\n' % executable 
-        args += 'InputSandboxBaseURI = "gsiftp://%s/%s";\n' % ( self.resfeatures[ 'frontend' ] , dir_temp )
-        if output_sandbox:
-            args += 'OutputSandbox = {"stdout.execution" , "stderr.execution" , "%s", "%s", %s};\n' % (
-                                                                                                    stdout ,
-                                                                                                    stderr ,
-                                                                                                    ', '.join( [ '"%s"' % (f) for f in output_sandbox ] ) ,
-                                                                                                    )
-        else:
-            args += 'OutputSandbox = {"stdout.execution" , "stderr.execution" , "%s" , "%s"};\n' % ( stdout , stderr )                        
-        args += 'OutputSandboxBaseDestURI = "gsiftp://%s/%s";\n' % ( self.resfeatures[ 'frontend' ] , dir_temp )
+            input_files = ''
+        
+        self.default_output_files.extend( output_sandbox )
+        output_files = ','.join( [ '"%s"' % (f) for f in self.default_output_files ] )
+            
         requirements = ''
         if parameters.has_key('maxWallTime'):  
-            requirements += '(other.GlueCEPolicyMaxWallClockTime <= $maxWallTime)' 
+            requirements += '(other.GlueCEPolicyMaxWallClockTime <= %s)' % parameters['maxWallTime']
         if parameters.has_key('maxCpuTime'):
             if requirements: 
                 requirements += ' && '
-            requirements += '(other.GlueCEPolicyMaxCPUTime <= $maxCpuTime)' 
+            requirements += '(other.GlueCEPolicyMaxCPUTime <= %s)' % parameters['maxCpuTime']
         if parameters.has_key('maxMemory'):
             if requirements: 
                 requirements += ' && '
-            requirements += ' (other.GlueHostMainMemoryRAMSize <= $maxMemory) '
-        if requirements :
-            args += 'Requirements=%s;\n' % (requirements)
-        args += 'Environment={%s};\n' % (','.join(['"%s=%s"' %(k, v) for k, v in parameters['environment'].items()]))
-        args += ']'
-        return Template(args).safe_substitute(parameters)
+            requirements += ' (other.GlueHostMainMemoryRAMSize <= %s)' % parameters['maxMemory'] 
+        Requirements = 'Requirements=%s;' % (requirements) if requirements else ''
+        
+        env = ','.join(['"%s=%s"' %(k, v) for k, v in parameters['environment'].items()])
+        
+        return """
+[
+JobType = "Normal";
+Executable = "%(executable)s";
+StdOutput = "%(stdout)s";
+StdError = "%(stderr)s"; 
+CpuNumber = %(count)s;
+OutputSandboxBaseDestURI = "gsiftp://localhost";
+InputSandbox = { "%(dir_temp)s/job.env", "%(dir_temp)s/%(executable)s"  %(input_files)s };
+OutputSandbox = { %(output_files)s };
+Environment = { %(env)s };
+%(Requirements)s
+]""" % {
+        'executable'   : executable,
+        'stdout'       : stdout,
+        'stderr'       : stderr,
+        'dir_temp'     : dir_temp,
+        'count'        : count,
+        'input_files'  : input_files,
+        'output_files' : output_files,
+        'Requirements' : Requirements,
+        'env'          : env,
+        }
+    
+    def _getOutputURL( self, status_output ):
+        """ 
+        Resolve the URL for the output files
+        """
+        match = re_obs_url.search( status_output )
+        if match :
+            url = match.group( 1 )
+            return url
+        else :
+            output = "Output URL not found in '%s'" % ( status_output )
+            logger.error( output )
+            raise JobException( output )
 
-
+    def _getOutputFiles( self, output_url ):
+        """ 
+        Get output files from the remote output_url
+        """
+        for file in self.default_output_files :
+            cmd = '%s %s file://%s' % ( 
+                                       GLOBUS_CP % self.resfeatures[ 'vo' ],
+                                       join( output_url , file ) ,
+                                       join( self.local_output_directory , file )
+                                       )
+            logger.debug( "Coping file '%s' : %s" % ( file , cmd ) )
+            out, err = self.Communicator.execCommand( cmd )
+            if 'error' in err :
+                output = "Error coping file '%s' : %s" % ( file , err )
+                logger.error( output )
+                raise JobException( output )
+            
  

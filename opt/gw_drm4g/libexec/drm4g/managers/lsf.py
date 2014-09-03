@@ -2,9 +2,9 @@ import re
 import drm4g.managers 
 from string import Template
 
-__version__  = '0.1'
+__version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: lsf.py 1931 2013-09-25 10:46:59Z carlos $"
+__revision__ = "$Id: lsf.py 2250 2014-08-27 09:04:57Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.

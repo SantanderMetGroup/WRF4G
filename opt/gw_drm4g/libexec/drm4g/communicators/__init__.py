@@ -1,9 +1,9 @@
 import logging
 from drm4g import REMOTE_JOBS_DIR, SSH_PORT
 
-__version__  = '1.0'
+__version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: __init__.py 1924 2013-09-15 20:26:53Z carlos $"
+__revision__ = "$Id: __init__.py 2250 2014-08-27 09:04:57Z carlos $"
 
 logger  = logging.getLogger(__name__)
 

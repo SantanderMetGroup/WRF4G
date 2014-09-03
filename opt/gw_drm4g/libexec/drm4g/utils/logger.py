@@ -1,8 +1,8 @@
 import logging
 
-__version__ = '0.1'
-__author__  = 'Carlos Blanco'
-__revision__ = "$Id: logger.py 1023 2011-07-07 15:46:10Z carlos $"
+__version__  = '2.2.0'
+__author__   = 'Carlos Blanco'
+__revision__ = "$Id: logger.py 2250 2014-08-27 09:04:57Z carlos $"
 
 
 DEBUG = logging.DEBUG

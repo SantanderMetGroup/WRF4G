@@ -1,8 +1,8 @@
 import xml.dom.minidom
 
-__version__ = '0.1'
-__author__  = 'Carlos Blanco'
-__revision__ = "$Id: rsl2.py 1980 2014-01-26 10:58:25Z carlos $"
+__version__  = '2.2.0'
+__author__   = 'Carlos Blanco'
+__revision__ = "$Id: rsl2.py 2250 2014-08-27 09:04:57Z carlos $"
 
 class Rsl2Parser(object):
 

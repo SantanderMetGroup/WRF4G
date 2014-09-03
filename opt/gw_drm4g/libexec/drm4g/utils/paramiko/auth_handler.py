@@ -223,11 +223,11 @@ class AuthHandler (object):
         # okay, send result
         m = Message()
         if result == AUTH_SUCCESSFUL:
-            self.transport._log(INFO, 'Auth granted (%s).' % method)
+            self.transport._log(DEBUG, 'Auth granted (%s).' % method)
             m.add_byte(chr(MSG_USERAUTH_SUCCESS))
             self.authenticated = True
         else:
-            self.transport._log(INFO, 'Auth rejected (%s).' % method)
+            self.transport._log(DEBUG, 'Auth rejected (%s).' % method)
             m.add_byte(chr(MSG_USERAUTH_FAILURE))
             m.add_string(self.transport.server_object.get_allowed_auths(username))
             if result == AUTH_PARTIALLY_SUCCESSFUL:
@@ -309,10 +309,10 @@ class AuthHandler (object):
             try:
                 key = self.transport._key_info[keytype](Message(keyblob))
             except SSHException, e:
-                self.transport._log(INFO, 'Auth rejected: public key: %s' % str(e))
+                self.transport._log(DEBUG, 'Auth rejected: public key: %s' % str(e))
                 key = None
             except:
-                self.transport._log(INFO, 'Auth rejected: unsupported or mangled public key')
+                self.transport._log(DEBUG, 'Auth rejected: unsupported or mangled public key')
                 key = None
             if key is None:
                 self._disconnect_no_more_auth()
@@ -333,7 +333,7 @@ class AuthHandler (object):
                 sig = Message(m.get_string())
                 blob = self._get_session_blob(key, service, username)
                 if not key.verify_ssh_sig(blob, sig):
-                    self.transport._log(INFO, 'Auth rejected: invalid signature')
+                    self.transport._log(DEBUG, 'Auth rejected: invalid signature')
                     result = AUTH_FAILED
         elif method == 'keyboard-interactive':
             lang = m.get_string()
@@ -349,7 +349,7 @@ class AuthHandler (object):
         self._send_auth_result(username, method, result)
 
     def _parse_userauth_success(self, m):
-        self.transport._log(INFO, 'Authentication (%s) successful!' % self.auth_method)
+        self.transport._log(DEBUG, 'Authentication (%s) successful!' % self.auth_method)
         self.authenticated = True
         self.transport._auth_trigger()
         if self.auth_event != None:
@@ -359,7 +359,7 @@ class AuthHandler (object):
         authlist = m.get_list()
         partial = m.get_boolean()
         if partial:
-            self.transport._log(INFO, 'Authentication continues...')
+            self.transport._log(DEBUG, 'Authentication continues...')
             self.transport._log(DEBUG, 'Methods: ' + str(authlist))
             self.transport.saved_exception = PartialAuthentication(authlist)
         elif self.auth_method not in authlist:
@@ -367,7 +367,7 @@ class AuthHandler (object):
             self.transport._log(DEBUG, 'Allowed methods: ' + str(authlist))
             self.transport.saved_exception = BadAuthenticationType('Bad authentication type', authlist)
         else:
-            self.transport._log(INFO, 'Authentication (%s) failed.' % self.auth_method)
+            self.transport._log(DEBUG, 'Authentication (%s) failed.' % self.auth_method)
         self.authenticated = False
         self.username = None
         if self.auth_event != None:
@@ -376,7 +376,7 @@ class AuthHandler (object):
     def _parse_userauth_banner(self, m):
         banner = m.get_string()
         lang = m.get_string()
-        self.transport._log(INFO, 'Auth banner: ' + banner)
+        self.transport._log(DEBUG, 'Auth banner: ' + banner)
         # who cares.
     
     def _parse_userauth_info_request(self, m):

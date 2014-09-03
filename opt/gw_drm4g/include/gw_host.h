@@ -102,6 +102,8 @@ typedef struct gw_host_s
 
     char *queue_name[GW_HOST_MAX_QUEUES];
     int   queue_nodecount[GW_HOST_MAX_QUEUES];
+    int   queue_running_jobs[GW_HOST_MAX_QUEUES];
+    int   queue_active_jobs[GW_HOST_MAX_QUEUES];
     int   queue_freenodecount[GW_HOST_MAX_QUEUES];
     int   queue_maxtime[GW_HOST_MAX_QUEUES];
     int   queue_maxcputime[GW_HOST_MAX_QUEUES];
@@ -176,11 +178,11 @@ void gw_host_print(FILE *fd, gw_host_t *host);
 
 /*----------------------------------------------------------------------------*/
 
-void gw_host_dec_rjobs(gw_host_t *host);
+void gw_host_dec_rjobs(gw_host_t *host, char *queue);
 
-void gw_host_dec_uslots(gw_host_t *host, int slots);
+void gw_host_dec_uslots(gw_host_t *host, int slots , char *queue);
 
-void gw_host_dec_slots(gw_host_t *host, int slots);
+void gw_host_dec_slots(gw_host_t *host, int slots , char *queue);
 
 void gw_host_inc_rjobs(gw_host_t *host);
 
@@ -188,9 +190,13 @@ void gw_host_inc_uslots(gw_host_t *host, int slots);
 
 void gw_host_inc_slots(gw_host_t *host, int slots);
 
-void gw_host_inc_slots_nb(gw_host_t *host, int slots);
+void gw_host_inc_slots_nb(gw_host_t *host, int slots, char *queue);
 
-void gw_host_inc_rjobs_nb(gw_host_t *host);
+void gw_host_inc_rjobs_nb(gw_host_t *host, char *queue);
+
+void gw_host_dec_ajobs_nb(gw_host_t *host, char *queue);
+
+void gw_host_inc_ajobs_nb(gw_host_t *host, char *queue);
 
 /* -------------------------------------------------------------------------- */
 

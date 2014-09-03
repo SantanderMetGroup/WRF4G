@@ -1,9 +1,9 @@
 import threading
 import sys
 
-__version__ = '0.1'
-__author__  = 'Carlos Blanco'
-__revision__ = "$Id: message.py 1087 2011-08-03 07:25:48Z carlos $"
+__version__  = '2.2.0'
+__author__   = 'Carlos Blanco'
+__revision__ = "$Id: message.py 2250 2014-08-27 09:04:57Z carlos $"
 
 class Send (object):
     """

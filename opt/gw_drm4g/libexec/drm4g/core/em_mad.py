@@ -14,11 +14,9 @@ from drm4g.core.configure    import Configuration
 from drm4g.utils.dynamic     import ThreadPool
 from drm4g.utils.message     import Send
 
-__version__  = '1.0'
+__version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: em_mad.py 1983 2014-01-26 15:04:29Z carlos $"
-
-logger  = logging.getLogger(__name__)
+__revision__ = "$Id: em_mad.py 2253 2014-08-28 07:51:35Z carlos $"
 
 class GwEmMad (object):
     """
@@ -61,6 +59,7 @@ class GwEmMad (object):
     -INFO: If RESULT is FAILURE, it contains the cause of failure. Otherwise, 
         if OPERATION is POLL or CALLBACK,it contains the state of the job.
     """
+    logger  = logging.getLogger(__name__)
     message = Send()
 
     def __init__(self):
@@ -80,7 +79,7 @@ class GwEmMad (object):
         """
         out = 'INIT - SUCCESS -'
         self.message.stdout( out )
-        logger.debug( out )
+        self.logger.debug( out )
   
     def do_SUBMIT(self, args):
         """
@@ -109,14 +108,12 @@ class GwEmMad (object):
             if job.resfeatures.has_key( 'local_scratch' ) :
                 rsl['environment']['WRF4G_LOCALSCP'] = job.resfeatures[ 'local_scratch' ]
              
-            if '_' in HOST :
-                _ , host                    = HOST.split('_')
+            if job.resfeatures.has_key( 'vo' ) :
+                _ , host                    = HOST.split('::')
                 job.resfeatures['host']     = host
                 job.resfeatures['jm']       = JM
                 job.resfeatures['env_file'] = join( dirname(RSL) , "job.env" )
                 job.resfeatures['queue']    = rsl[ 'queue' ]
-            else :
-                host = HOST
             # Update remote directories
             ABS_REMOTE_JOBS_DIR   = job.get_abs_directory( REMOTE_JOBS_DIR )
             for key in [ "stdout" , "stderr" , "executable" ] :
@@ -133,7 +130,7 @@ class GwEmMad (object):
         except Exception, err:
             out = 'SUBMIT %s FAILURE %s' % ( JID , str( err ) )
         self.message.stdout(out)
-        logger.debug(out , exc_info=1 )
+        self.logger.debug(out , exc_info=1 )
 
     def do_FINALIZE(self, args):
         """
@@ -143,7 +140,7 @@ class GwEmMad (object):
         """
         out = 'FINALIZE - SUCCESS -'
         self.message.stdout( out )
-        logger.debug( out ) 
+        self.logger.debug( out ) 
         sys.exit( 0 )    
     
     def do_POLL(self, args):
@@ -163,7 +160,7 @@ class GwEmMad (object):
         except Exception, err:
             out = 'POLL %s FAILURE %s' % ( JID , str( err ) )
         self.message.stdout( out )
-        logger.debug( out )
+        self.logger.debug( out )
         
     def do_RECOVER(self, args):
         """
@@ -183,7 +180,7 @@ class GwEmMad (object):
         except Exception, err:
             out = 'RECOVER %s FAILURE %s' % ( JID , str( err ) )    
         self.message.stdout(out)
-        logger.debug(out , exc_info=1 )
+        self.logger.debug(out , exc_info=1 )
             
     def do_CALLBACK(self):
         """
@@ -191,10 +188,10 @@ class GwEmMad (object):
         """
         while True:
             time.sleep( self._callback_interval )
-            logger.debug( "CALLBACK new iteration ..." )
+            self.logger.debug( "CALLBACK new iteration ..." )
             for JID , job  in self._job_list.items( ):
                 try:
-                    logger.debug( "CALLBACK checking job '%s'" % JID  )
+                    self.logger.debug( "CALLBACK checking job '%s'" % JID  )
                     oldStatus = job.getStatus( )
                     job.refreshJobStatus( )
                     newStatus = job.getStatus( )
@@ -204,11 +201,11 @@ class GwEmMad (object):
                             time.sleep ( 0.1 )
                         out = 'CALLBACK %s SUCCESS %s' % ( JID , newStatus )
                         self.message.stdout( out )
-                        logger.debug( out )
+                        self.logger.debug( out )
                 except Exception, err:
                     out = 'CALLBACK %s FAILURE %s' % ( JID , str( err ) )
                     self.message.stdout( out )
-                    logger.debug( out, exc_info=1 )
+                    self.logger.debug( out, exc_info=1 )
         
     def do_CANCEL(self, args):
         """
@@ -226,7 +223,7 @@ class GwEmMad (object):
         except Exception, e:
             out = 'CANCEL %s FAILURE %s' % (JID, str(e))    
         self.message.stdout(out)
-        logger.debug(out)
+        self.logger.debug(out)
         
     methods = {'INIT'    : do_INIT,
                'SUBMIT'  : do_SUBMIT,
@@ -247,7 +244,7 @@ class GwEmMad (object):
             pool = ThreadPool(self._min_thread, self._max_thread)
             while True:
                 input = sys.stdin.readline().split()
-                logger.debug(' '.join(input))
+                self.logger.debug(' '.join(input))
                 OPERATION = input[0].upper()
                 if len(input) == 4 and self.methods.has_key(OPERATION):
                     if OPERATION == 'FINALIZE' or OPERATION == 'INIT' or OPERATION == 'SUBMIT' \
@@ -258,9 +255,9 @@ class GwEmMad (object):
                 else:
                     out = 'WRONG COMMAND'
                     self.message.stdout(out)
-                    logger.debug(out)
+                    self.logger.debug(out)
         except Exception, err:
-            logger.warning( str( err ) )
+            self.logger.warning( str( err ) )
     
     def _update_resource(self, host):
         with self._lock :
@@ -268,13 +265,13 @@ class GwEmMad (object):
                 self._configure.load()
                 errors = self._configure.check()
                 if errors :
-                    logger.error ( ' '.join( errors ) )
+                    self.logger.error ( ' '.join( errors ) )
                     raise Exception ( ' '.join( errors ) )
             for resname, resdict in self._configure.resources.iteritems() :
-                if '_' in host :
-                    _resname , _ = host.split( '_' )
+                if '::' in host :
+                    _resname , _ = host.split( '::' )
                     if resname != _resname :
-                         continue
+                        continue
                 elif resname != host : 
                     continue
                 if not self._communicators.has_key( resname ) :

@@ -112,28 +112,16 @@ execution(){
             ;;
     esac
 			
-		printf "`date`: Uncompressing file WRF4G package ... "
-
-    tar xzf WRF4G.tar.gz  
- 
-    if [ $? -eq 0 ]; then
-        
-        echo "done."
-    else
-      
-        echo "failed."
-    fi
-			
     printf "`date`: Executing actual job \"$GW_EXECUTABLE $GW_ARGUMENTS\"... "
 
-    export PATH=.:./bin:$PATH
+    export PATH=.:$PATH
 
     if [ -f stdin.execution ]; then
        STDIN_FILE=stdin.execution
     else
        STDIN_FILE=/dev/null
     fi
-      
+    
     chmod +x ${GW_EXECUTABLE}
 
     ${GW_EXECUTABLE} ${GW_ARGUMENTS} $@ < ${STDIN_FILE} >> stdout.execution 2>> stderr.execution &

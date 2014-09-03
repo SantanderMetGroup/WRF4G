@@ -1,6 +1,6 @@
-__version__ = '0.1'
-__author__  = 'Carlos Blanco'
-__revision__ = "$Id: url.py 1023 2011-07-07 15:46:10Z carlos $"
+__version__  = '2.2.0'
+__author__   = 'Carlos Blanco'
+__revision__ = "$Id: url.py 2250 2014-08-27 09:04:57Z carlos $"
 
 scheme   = None
 netloc   = None

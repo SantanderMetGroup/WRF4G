@@ -1700,7 +1700,7 @@ class Transport (threading.Thread):
         client = segs[2]
         if version != '1.99' and version != '2.0':
             raise SSHException('Incompatible version (%s instead of 2.0)' % (version,))
-        self._log(INFO, 'Connected (version %s, client %s)' % (version, client))
+        self._log(DEBUG, 'Connected (version %s, client %s)' % (version, client))
 
     def _send_kex_init(self):
         """
@@ -1937,7 +1937,7 @@ class Transport (threading.Thread):
     def _parse_disconnect(self, m):
         code = m.get_int()
         desc = m.get_string()
-        self._log(INFO, 'Disconnect (code %d): %s' % (code, desc))
+        self._log(DEBUG, 'Disconnect (code %d): %s' % (code, desc))
 
     def _parse_global_request(self, m):
         kind = m.get_string()
@@ -1996,7 +1996,7 @@ class Transport (threading.Thread):
         self.lock.acquire()
         try:
             chan._set_remote_channel(server_chanid, server_window_size, server_max_packet_size)
-            self._log(INFO, 'Secsh channel %d opened.' % chanid)
+            self._log(DEBUG, 'Secsh channel %d opened.' % chanid)
             if chanid in self.channel_events:
                 self.channel_events[chanid].set()
                 del self.channel_events[chanid]
@@ -2010,7 +2010,7 @@ class Transport (threading.Thread):
         reason_str = m.get_string()
         lang = m.get_string()
         reason_text = CONNECTION_FAILED_CODE.get(reason, '(unknown code)')
-        self._log(INFO, 'Secsh channel %d open FAILED: %s: %s' % (chanid, reason_str, reason_text))
+        self._log(DEBUG, 'Secsh channel %d open FAILED: %s: %s' % (chanid, reason_str, reason_text))
         self.lock.acquire()
         try:
             self.saved_exception = ChannelException(reason, reason_text)
@@ -2107,7 +2107,7 @@ class Transport (threading.Thread):
         m.add_int(self.window_size)
         m.add_int(self.max_packet_size)
         self._send_message(m)
-        self._log(INFO, 'Secsh channel %d (%s) opened.', my_chanid, kind)
+        self._log(DEBUG, 'Secsh channel %d (%s) opened.', my_chanid, kind)
         if kind == 'auth-agent@openssh.com':
             self._forward_agent_handler(chan)
         elif kind == 'x11':

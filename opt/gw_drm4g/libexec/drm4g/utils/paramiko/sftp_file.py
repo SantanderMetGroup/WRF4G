@@ -385,7 +385,7 @@ class SFTPFile (BufferedFile):
         data may be read in a random order (using L{seek}); chunks of the
         buffer that haven't been read will continue to be buffered.
 
-        @since: 1.5.2
+        @since: 1.5.1
         """
         size = self.stat().st_size
         # queue up async reads for the rest of the file
