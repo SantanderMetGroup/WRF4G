@@ -1,0 +1,173 @@
+#*******************************************************************************
+#                 GW Default Values for Job Templates Variables
+#                 ---------------------------------------------
+#*******************************************************************************
+
+#-------------------------------------------------------------------------------
+# Preliminary Notes
+#
+# These variables can be set for each job in its own template.
+#
+# Syntax:
+#   VARIABLE = "VALUE"
+#   '#' Comments
+#
+# GridWay variables can be used in the VALUE string in the form: ${VAR}
+# Check the user or reference guide to know which substitution variables can be
+# used.
+#
+# Files are relative to the experiment directory, i.e. where the job template
+# file is saved. If these files are specified with an absulote path they will
+# not be transferred to the remote host. A note about URLs!!!
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Execution variables
+# 
+# EXECUTABLE: The executable file. Example:
+#   EXECUTABLE = bin.${GW_ARCH}
+#
+# ARGUMENTS: Arguments to the above executable. Example:
+#   ARGUMENTS = "`$GW_TASK_ID`"
+#
+# ENVIRONMENT: User defined, comma-separated, environment variables. Example:
+#   ENVIRONMENT = SCRATCH_DIR /tmp, LD_LIBRARY_PATH=/usr/local/lib
+#-------------------------------------------------------------------------------
+
+EXECUTABLE  =
+ARGUMENTS   =
+ENVIRONMENT =
+
+#-------------------------------------------------------------------------------
+# I/O files
+#
+# INPUT_FILES: A comma-separated pair of "local remote" filenames. If the
+# remote filename is missing, the local filename will be preserved in the
+# execution host. Example:
+#   INPUT_FILES = param.${GW_TASK_ID} param, inputfile
+#
+# OUTPUT_FILES: A comma-separated pair of remote filename local filename. If the
+# local filename is missing, the remote filename will be preserved in the
+# client host. Example:
+#   OUTPUT_FILES = outputfile, binary binary.$GW_ARCH.$GW_TASK_ID
+#-------------------------------------------------------------------------------
+
+INPUT_FILES  =
+OUTPUT_FILES =
+
+#-------------------------------------------------------------------------------
+# Standard streams
+#
+# STDIN_FILE: Standard input file. Example:
+#   STDIN_FILE = /dev/null
+#
+# STDOUT_FILE: Standard output file. Example:
+#   STDOUT_FILE = stdout_file.${JOB_ID}
+#
+# STDERR_FILE: Standard error file. Example:
+#   STDERR_FILE = stderr_file.${JOB_ID}
+#-------------------------------------------------------------------------------
+
+STDIN_FILE  = /dev/null
+STDOUT_FILE = stdout.${JOB_ID}
+STDERR_FILE = stderr.${JOB_ID}
+
+#-------------------------------------------------------------------------------
+# Checkpointing parameters
+#
+# RESTART_FILES: Checkpoint Files. These files are managed by the programmer and
+# should be architecture independant (NO URLS HERE, you can use a
+# checkpoint server in gwd.conf). Example:
+#   RESTART_FILES = checkpoint
+#
+# CHECKPOINT_INTERVAL: How often restart files are transferred from the execution
+# host to the checkpointing server (Default is 300 seconds).
+#
+# CHECKPOINT_URL: GridFTP URL to store/access checkpoint files
+# (Default is job directory in localhost, $GW_LOCATION/var/$JOB_ID). Example:
+#   CHECKPOINT_URL = gsiftp://hydrus.dacya.ucm.es/var/checkpoints/
+#-------------------------------------------------------------------------------
+
+RESTART_FILES       =
+CHECKPOINT_INTERVAL = 300
+CHECKPOINT_URL      = 
+
+#-------------------------------------------------------------------------------
+# Resource selection parameters
+# 
+# REQUIREMENTS: A boolean expression evaluated for each host in the Grid, if it
+# is true the host will be considered to submit the job. Check the user or
+# reference guide to know which variables and operators can be used. Example:
+#   REQUIREMENTS = ARCH = "i686" & CPU_MHZ > 1000;
+#
+# RANK: A mathematical expression evaluated for each candidate host (those for
+# which the REQUIREMENTS expression is TRUE). Those candidates with higher ranks
+# are used first to execute your jobs. Check the user or reference guide to know
+# which variables and operators can be used. Example:
+#   RANK = (CPU_MHZ * 2) + FREE_MEM_MB;
+#-------------------------------------------------------------------------------
+
+REQUIREMENTS =
+RANK         = QUEUE_MAXRUNNINGJOBS
+
+#-------------------------------------------------------------------------------
+# Scheduling variables
+#
+# RESCHEDULING_INTERVAL (seconds): How often GridWay searches the Grid for
+# better resources to run this job. (Default 0 = never).
+#
+# RESCHEDULING_THRESHOLD (seconds): If a better resource is found and the job
+# has been running less than the threshold, it will migrate to the new host.
+#-------------------------------------------------------------------------------
+
+RESCHEDULING_INTERVAL  = 0
+RESCHEDULING_THRESHOLD = 7200
+
+#-------------------------------------------------------------------------------
+# Performance variables
+#
+# SUSPENSION_TIMEOUT (seconds): Maximum suspension time in the local job
+# managenet system. If exceeded the job is migrated to another host. (0= never)
+#
+# CPULOAD_THRESHOLD (%): If the CPU assigned to your job is less than a given
+# percent, the job will be migrated
+#
+# MONITOR: Optional program to monitor job performance
+#-------------------------------------------------------------------------------
+
+SUSPENSION_TIMEOUT = 600
+CPULOAD_THRESHOLD  = 50
+MONITOR            =
+
+#-------------------------------------------------------------------------------
+# Fault tolerance variables
+#
+# RESCHEDULE_ON_FAILURE (yes | no): Behavior in case of failure
+#
+# NUMBER_OF_RETRIES: Number of retries in case of failure
+#-------------------------------------------------------------------------------
+
+RESCHEDULE_ON_FAILURE = yes
+NUMBER_OF_RETRIES     = 3 
+
+#-------------------------------------------------------------------------------
+# Advanced job execution 
+#
+# WRAPPER: Script for wrapper.
+# stdout and stderr streams of this program can be found in
+# $GW_LOCATION/var/$GW_JOB_ID/stdout.wrapper.$GW_RESTARTED and
+# $GW_LOCATION/var/$GW_JOB_ID/stderr.wrapper.$GW_RESTARTED
+#
+# PRE_WRAPPER: Optional program that is executed before the execution of the
+# job, to perform an aditional remote setup (e.g. access a web service). This
+# job is ALWAYS submitted to the FORK job-manager. stdout and stderr streams
+# of this program can be found in
+# $GW_LOCATION/var/$GW_JOB_ID/stdout.pre_wrapper.$GW_RESTARTED and
+# $GW_LOCATION/var/$GW_JOB_ID/stderr.pre_wrapper.$GW_RESTARTED
+#
+# PRE_WRAPPER_ARGUMENTS: Arguments to the pre-wrapper program.
+#-------------------------------------------------------------------------------
+
+WRAPPER               = etc/gw_drm4g_wrapper.sh
+PRE_WRAPPER           =
+PRE_WRAPPER_ARGUMENTS =
