@@ -1,12 +1,12 @@
 """
-Manage computing resources on DRM4G.
+Manage computing resources on WRF4G.
     
 Usage: 
-    drm4g resource [ list | edit | check ] [ --dbg ] 
-    drm4g resource <name> id conf [ --public-key=<file> --grid-cerd=<file> --lifetime=<hours> --dbg ]
-    drm4g resource <name> id init [ --lifetime=<hours> --dbg ]
-    drm4g resource <name> id info [ --dbg ]
-    drm4g resource <name> id delete [ --dbg ]
+    wrf4g resource [ list | edit | check ] [ --dbg ] 
+    wrf4g resource <name> id conf [ --public-key=<file> --grid-cerd=<file> --lifetime=<hours> --dbg ]
+    wrf4g resource <name> id init [ --lifetime=<hours> --dbg ]
+    wrf4g resource <name> id info [ --dbg ]
+    wrf4g resource <name> id delete [ --dbg ]
 
  Options:
     -l --lifetime=<hours>   Duration of the identity's lifetime [default: 168].

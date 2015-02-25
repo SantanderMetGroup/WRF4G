@@ -16,7 +16,7 @@ if sys.version_info < (2,5) and sys.version_info > (3,0):
 # Default values used in DRM4G package.#
 ########################################
 HOME                 = os.environ.get( 'HOME' )
-DRM4G_DIR            = os.environ.get( 'DRM4G_DIR' , join ( HOME , '.drm4g' ) )
+DRM4G_DIR            = os.environ.get( 'DRM4G_DIR' , join ( HOME , '.wrf4g' ) )
 os.environ[ 'GW_LOCATION' ] = DRM4G_DIR
 DRM4G_DEPLOYMENT_DIR = dirname( dirname( dirname( abspath( __file__ ) ) ) )
 DRM4G_BIN            = join( DRM4G_DEPLOYMENT_DIR , 'bin'  ) 
@@ -26,20 +26,9 @@ DRM4G_DAEMON         = join( DRM4G_DIR , 'etc' , 'gwd.conf')
 DRM4G_SCHED          = join( DRM4G_DIR , 'etc' , 'sched.conf')
 
 logging.basicConfig( format='%(message)s', level = logging.INFO , stream = sys.stdout )
-logger = logging.getLogger(__name__) 
-if exists( DRM4G_DIR ) is False  :
-    logger.info( "Creating a DRM4G local configuration in '%s'" %  DRM4G_DIR )
-    abs_dir = join ( DRM4G_DIR , 'var' , 'acct' )
-    logger.info( "Creating '%s' directory" % abs_dir )
-    os.makedirs( abs_dir )
-    from  shutil import copytree
-    src  = join ( DRM4G_DEPLOYMENT_DIR , 'etc' )
-    dest = join ( DRM4G_DIR            , 'etc' )
-    logger.info( "Coping from '%s' to '%s'" % ( src , dest ) )
-    copytree( src , dest )
 
-REMOTE_JOBS_DIR = "~/.drm4g/jobs"
-REMOTE_VOS_DIR  = "~/.drm4g/security"
+REMOTE_JOBS_DIR = "~/.wrf4g/jobs"
+REMOTE_VOS_DIR  = "~/.wrf4g/security"
     
 # ssh communicator
 SSH_PORT            = 22
@@ -66,19 +55,4 @@ RESOURCE_MANAGERS = {
                      "slurm_res"    : "drm4g.managers.slurm_res",
                      "neptuno"      : "drm4g.managers.neptuno",
                      }
-
-# Create a history file for drm4g commands
-try:
-    import readline
-    import atexit
-    # history file
-    histfile = join(  DRM4G_DIR , 'var' , '.drm4g_history' )
-    try:
-        readline.read_history_file( histfile )
-    except IOError:
-        pass
-    atexit.register(readline.write_history_file, histfile)
-    del histfile, readline, atexit
-except Exception:
-    pass
 

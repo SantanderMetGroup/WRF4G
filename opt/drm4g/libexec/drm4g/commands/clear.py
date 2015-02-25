@@ -2,7 +2,7 @@
 Start DRM4G daemon deleting all the jobs available on DRM4G.
     
 Usage: 
-    drm4g clear [ --dbg ] 
+    wrf4g clear [ --dbg ] 
    
 Options:
    --dbg    Debug mode.

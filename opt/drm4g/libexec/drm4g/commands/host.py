@@ -1,8 +1,8 @@
 """
-Print information about the hosts available on DRM4G.
+Print information about the hosts available on WRF4G.
      
 Usage: 
-    drm4g host [ list ] [ --dbg ] [ <hid> ] 
+    wrf4g host [ list ] [ --dbg ] [ <hid> ] 
     
 Arguments:
     <hid>         Host identifier.

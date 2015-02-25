@@ -12,7 +12,7 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id: stop.py 2352 2015-02-24 10:23:57Z carlos $"
 
 import logging
-from drm4g.commands       import Daemon, Agent, logger
+from drm4g.commands    import Daemon, Agent, logger
 
 def run( arg ) :
     try:
@@ -20,5 +20,6 @@ def run( arg ) :
             logger.setLevel(logging.DEBUG)
         Daemon().stop()
         Agent().stop()
+        DataBase().stop()
     except Exception , err :
         logger.error( str( err ) )
