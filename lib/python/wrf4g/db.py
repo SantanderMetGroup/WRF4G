@@ -7,8 +7,19 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
 Base = declarative_base()
-# WRF4G classes to manage the database 
+#  WRF4G database is composed of the following tables:
+#
+#  Experiment
+#  Realization
+#  Job
+#  Jobstatus
+#  Chunk
+#  User
+#  Events
+#  FileType
+#  File
 
+#  WRF4G classes to manage the database
 class User( Base ):
 
     __tablename__ = 'User'
