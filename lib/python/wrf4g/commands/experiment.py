@@ -2,7 +2,7 @@
 Manage experiments. 
     
 Usage: 
-    wrf4g experiment list
+    wrf4g experiment list [ --dbg ] [--long ]
     wrf4g experiment <name> start   [ --dbg ] [ --template=<name> ] [ --dir=<directory> ] 
     wrf4g experiment <name> create  [ --dbg ] [ --reconfigure ] [ --dry-run ]  EXP_CONF_FILE
     wrf4g experiment <name> submit  [ --dbg ] [ --rerun ] [ --dry-run ] 
@@ -13,7 +13,7 @@ Usage:
 Options:
    --dbg                Debug mode.
    -n --dry-run         Dry run.
-   -l --long            Show a detailed status.
+   -l --long            Show a detailed information.
    -t --template=<name> Experiment template, avaible templates are default, single, physics. 
    -d --dir=<directory> Directory to create the experiment [default: ./].
    -r --reconfigure     Change the features of a created experiment.
@@ -32,35 +32,8 @@ from subprocess           import call
 from sqlalchemy           import create_engine
 from sqlalchemy.orm       import sessionmaker
 from sqlalchemy.orm.exc   import NoResultFound
-from os.path              import expanduser, exists, expandvars
-from wrf4g                import logger, WRF4G_DIR, DB4G_CONF
-from wrf4g.utils          import validate_name, VarEnv
-
-
-def start( exp_name, exp_template ):
-    validate_name( exp_name )
-    if not arg[ '--template' ] in [ 'default', 'single', 'physics' ] :
-        raise Exception( "'%s' template does not exist" % exp_template )
-    exp_dir = expandvars( expanduser( arg[ '--dir' ] ) )
-    if not exists( exp_dir ):
-        raise Exception("'%s' does not exist" % exp_dir )
-    exp_dir_config = join( exp_dir, exp_name )
-    if exists( exp_dir_config ):
-        raise Exception("'%s' already exists" % exp_dir_config )
-    logger.debug( "Creating '%s' directory" % exp_dir_config )
-    shutil.copytree( join( WRF4G_DIR , 'etc' , 'templates' , 'experiments',  exp_template ),
-                     exp_dir_config )
-    for file in [ 'resources.wrf4g' , 'experiment.wrf4g' ] :
-        dest_path = join( exp_dir_config , file )
-        with open( dest_path , 'r') as f :
-            data = ''.join( f.readlines( ) )
-        data_updated = data % {
-                               'WRF4G_EXPERIMENT_HOME' : exp_dir_config ,
-                               'WRF4G_DIR_LOCATION'    : WRF4G_DIR_LOCATION ,
-                               'exp_name'              : exp_name ,
-                               }
-        with open( dest_path , 'w') as f :
-            f.writelines( data_updated )
+from wrf4g                import logger, DB4G_CONF
+from wrf4g.utils          import VarEnv
 
 
 def run( arg ) :
@@ -68,7 +41,9 @@ def run( arg ) :
         logger.setLevel( logging.DEBUG )
         logging.getLogger( 'sqlalchemy.engine' ).setLevel( logging.DEBUG )
     if arg[ 'start' ] :
-        start( arg[ '<name>' ], arg[ '--template' ] )
+        Experiment.start( arg[ '<name>' ], arg[ '--template' ], arg[ '--dir' ] )
+    elif arg[ 'create' ] :
+        call(['bash', 'create_exp'] + arg )
     else :
         try :
             db4g_urls = VarEnv( DB4G_CONF ).get_variable( 'URL' )
@@ -78,26 +53,28 @@ def run( arg ) :
             Session = sessionmaker(bind = engine)
             # create a Session
             session = Session()
-            try :
-                q_exp = session.query( Experiment ).\
-                        filter( Experiment.name == arg[ '<name>' ] ).one()
-            except NoResultFound :
-                logger.error( "'%s' experiment does not exist" % arg[ '<name>' ] )
-            exp = q_exp()
-            exp.session = session
-            if arg[ 'submit' ] :
-                exp.run( rerun = arg[ 'rerun' ], dryrun = arg[ '--dry-run' ] )
-            elif arg[ 'create' ] :              
-                call(['bash', 'create_exp'] + arg )
-            elif arg[ 'status' ] :
-                exp.status( )
-            elif arg[ 'stop' ] :
-                exp.stop( dryrun = arg[ '--dry-run' ] )
-            elif arg[ 'delete' ] :
-                exp.delete( )
+            # Options 
+            if arg[ 'list' ] :
+                exp = Experiment()
+                exp.session = session
+                exp.list( arg['--long'] )
             else :
-                for exp in session.query( Experiment ).all() :
-                    logger.info( exp.name )
+                try :
+                    q_exp = session.query( Experiment ).\
+                            filter( Experiment.name == arg[ '<name>' ] ).one()
+                except NoResultFound :
+                    raise Exception( "'%s' experiment does not exist" % arg[ '<name>' ] )
+                else :
+                    exp = q_exp()
+                    exp.session = session
+                    if arg[ 'submit' ] :
+                        exp.run( rerun = arg[ 'rerun' ], dryrun = arg[ '--dry-run' ] )
+                    elif arg[ 'status' ] :
+                        exp.status( )
+                    elif arg[ 'stop' ] :
+                        exp.stop( dryrun = arg[ '--dry-run' ] )
+                    else :
+                        exp.delete( )
             if arg[ '--dry-run' ] :
                 session.rollback()
             else :
