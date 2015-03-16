@@ -20,7 +20,7 @@ Base = declarative_base()
 #  File
 
 #  WRF4G classes to manage the database
-class User( Base ):
+class UserModel( Base ):
 
     __tablename__ = 'User'
 
@@ -28,7 +28,7 @@ class User( Base ):
     name = Column(u'name',VARCHAR(length=30))
     CN   = Column(u'CN',VARCHAR(length=200))
 
-class JobStatus( Base ):
+class JobStatusModel( Base ):
 
     __tablename__ = 'Jobstatus'
 
@@ -36,7 +36,7 @@ class JobStatus( Base ):
     id          = Column(u'id',INTEGER(display_width=11), primary_key=True, nullable=False)
     description = Column(u'description',VARCHAR(length=45))
 
-class Experiment( Base ):
+class ExperimentModel( Base ):
 
     __tablename__ = 'Experiment'
     
@@ -53,9 +53,9 @@ class Experiment( Base ):
     exp_description = Column(u'experiment_description',VARCHAR(length=1024)) 
 
     # Relationships
-    user = relationship(User)
+    user = relationship(UserModel)
 
-class Realization( Base ):
+class RealizationModel( Base ):
 
     __tablename__ = 'Realization'
     
@@ -72,9 +72,9 @@ class Realization( Base ):
     mult_label = Column(u'multiparams_label',VARCHAR(length=100)) 
    
     # Realtionships
-    exp     = relationship(Experiment)
+    exp     = relationship(ExperimentModel)
 
-class Chunk( Base ):
+class ChunkModel( Base ):
   
     __tablename__ = 'Chunk'
 
@@ -88,9 +88,9 @@ class Chunk( Base ):
     chunk_id = Column(u'id_chunk',INTEGER(display_width=11))
 
     # Relationships
-    rea = relationship(Realization)
+    rea = relationship(RealizationModel)
 
-class Job( Base ):
+class JobModel( Base ):
  
     __tablename__ = 'Job'
 
@@ -107,10 +107,10 @@ class Job( Base ):
     exitcode     = Column(u'exitcode',INTEGER(display_width=11))
 
     # Relationships
-    chunk        = relationship(Chunk)
-    jobst        = relationship(JobStatus)
+    chunk        = relationship(ChunkModel)
+    jobst        = relationship(JobStatusModel)
     
-class Events( Base ):
+class EventsModel( Base ):
 
     __tablename__ = 'Events'   
  
@@ -121,11 +121,11 @@ class Events( Base ):
     timestamp    = Column(u'timestamp',DATETIME())
 
     # Relationships
-    job          = relationship(Job)
-    jobst        = relationship(JobStatus)
+    job          = relationship(JobModel)
+    jobst        = relationship(JobStatusModel)
 
 
-class FileType( Base ):
+class FileTypeModel( Base ):
 
     __tablename__ = 'Filetype' 
  
@@ -135,7 +135,7 @@ class FileType( Base ):
     descr  = Column(u'descr',VARCHAR(length=2000))
     format = Column(u'format',VARCHAR(length=20))
 
-class File( Base ):
+class FileModel( Base ):
 
     __tablename__ = 'File'
 
@@ -148,6 +148,6 @@ class File( Base ):
     edate      = Column(u'edate',DATETIME())
 
     # Relationships
-    rea        = relationship(Realization)
-    filet      = relationship(FileType)
+    rea        = relationship(RealizationModel)
+    filet      = relationship(FileTypeModel)
 
