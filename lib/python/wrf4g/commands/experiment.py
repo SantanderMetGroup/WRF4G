@@ -36,34 +36,39 @@ from os.path              import expanduser, exists, expandvars
 from wrf4g                import logger, WRF4G_DIR, DB4G_CONF
 from wrf4g.utils          import validate_name, VarEnv
 
+
+def start( exp_name, exp_template ):
+    validate_name( exp_name )
+    if not arg[ '--template' ] in [ 'default', 'single', 'physics' ] :
+        raise Exception( "'%s' template does not exist" % exp_template )
+    exp_dir = expandvars( expanduser( arg[ '--dir' ] ) )
+    if not exists( exp_dir ):
+        raise Exception("'%s' does not exist" % exp_dir )
+    exp_dir_config = join( exp_dir, exp_name )
+    if exists( exp_dir_config ):
+        raise Exception("'%s' already exists" % exp_dir_config )
+    logger.debug( "Creating '%s' directory" % exp_dir_config )
+    shutil.copytree( join( WRF4G_DIR , 'etc' , 'templates' , 'experiments',  exp_template ),
+                     exp_dir_config )
+    for file in [ 'resources.wrf4g' , 'experiment.wrf4g' ] :
+        dest_path = join( exp_dir_config , file )
+        with open( dest_path , 'r') as f :
+            data = ''.join( f.readlines( ) )
+        data_updated = data % {
+                               'WRF4G_EXPERIMENT_HOME' : exp_dir_config ,
+                               'WRF4G_DIR_LOCATION'    : WRF4G_DIR_LOCATION ,
+                               'exp_name'              : exp_name ,
+                               }
+        with open( dest_path , 'w') as f :
+            f.writelines( data_updated )
+
+
 def run( arg ) :
     if arg[ '--dbg' ] :
         logger.setLevel( logging.DEBUG )
         logging.getLogger( 'sqlalchemy.engine' ).setLevel( logging.DEBUG )
     if arg[ 'start' ] :
-        validate_name( arg[ '<name>' ] )
-        if not arg[ '--template' ] in [ 'default', 'single', 'physics' ] :
-            raise Exception( "'%s' template does not exist" % arg[ '--template' ] )
-        exp_dir = expandvars( expanduser( arg[ '--dir' ] ) )
-        if not exists( exp_dir ):
-            raise Exception("'%s' does not exist" % exp_dir )
-        exp_dir_config = join( exp_dir, arg[ '<name>' ] )    
-        if exists( exp_dir_config ):
-            raise Exception("'%s' already exists" % exp_dir_config )
-        logger.debug( "Creating '%s' directory" % exp_dir_config )
-        shutil.copytree( join( WRF4G_DIR , 'etc' , 'templates' , 'experiments',  arg[ '--template' ] ), 
-                         exp_dir_config )
-        for file in [ 'resources.wrf4g' , 'experiment.wrf4g' ] :
-            dest_path = join( exp_dir_config , file )
-            with open( dest_path , 'r') as f :
-                data = ''.join( f.readlines( ) )
-            data_updated = data % {
-                                   'WRF4G_EXPERIMENT_HOME' : exp_dir_config ,
-                                   'WRF4G_DIR_LOCATION'    : WRF4G_DIR_LOCATION ,
-                                   'exp_name'              : arg[ '<name>' ] ,
-                                   }
-            with open( dest_path , 'w') as f :
-                f.writelines( data_updated )     
+        start( arg[ '<name>' ], arg[ '--template' ] )
     else :
         try :
             db4g_urls = VarEnv( DB4G_CONF ).get_variable( 'URL' )
@@ -88,8 +93,11 @@ def run( arg ) :
                 exp.status( )
             elif arg[ 'stop' ] :
                 exp.stop( dryrun = arg[ '--dry-run' ] )
-            else :
+            elif arg[ 'delete' ] :
                 exp.delete( )
+            else :
+                for exp in session.query( Experiment ).all() :
+                    logger.info( exp.name )
             if arg[ '--dry-run' ] :
                 session.rollback()
             else :
