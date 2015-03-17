@@ -9,6 +9,7 @@ import tarfile
 import shutil
 import wrf4g.gridwaylib
 
+from sqlalchemy         import func
 from sqlalchemy.orm.exc import NoResultFound
 from os.path            import exists, expandvars, expanduser, isdir
 from wrf4g              import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR, logger
@@ -141,7 +142,7 @@ class Experiment( ExperimentModel ):
                         return -1
                     return self.id
     
-    def status(self, rea_pattern=False ):
+    def status(self, long_format=False, rea_pattern=False ):
         """ 
         Show information about realizations of the experiment for example:
         
@@ -166,12 +167,17 @@ class Experiment( ExperimentModel ):
         #Header of the information
         if not ( q_realizations.all() ):
             logger.info( 'There are not realizations to check.' )
-        logger.info( '%-11s %-8s %-10s %-10s %-10s %-13s %2s %3s'% (
+        if long_format :
+            logger.info( '%-21s %-8s %-10s %-10s %-10s %-13s %2s %4s 20% 20% 20%'% (
+                                   'Realization','Status','Chunks','Comp.Res','WN','Run.Sta','ext','%','sdate', 'rdate', 'edate')
+                       )
+        else :
+            logger.info( '%-21s %-8s %-10s %-10s %-10s %-13s %2s %4s'% (
                                    'Realization','Status','Chunks','Comp.Res','WN','Run.Sta','ext','%')
-                    )
+                       )
         for rea in q_realizations :
             #Print information of each realization
-            rea().status()
+            rea().status( long_format )
     
     def list(self, long_format=False, rea_pattern=False):
         """
@@ -294,25 +300,29 @@ class Realization( RealizationModel ):
         elif last_chunk_run > first_chunk_run :
             logger.error( "ERROR: The last chunk to run is greater than the fist one." )
         else :
-            if not first_chunk_run :
+            # search first chunk to run 
+            if rerun and first_chunk_run == 1 :
+                id_first_chunk_run = first_chunk_run
+                ch = self.session.filter( Chunk.chunk_id == first_chunk_run,
+                                          Chunk.rea_id   == self.id )
+                self.restart = ch.sdate
+                self.cdate   = ch.sdate
+            elif rerun and first_chunk_run != 1 :
+                id_first_chunk_run = first_chunk_run
+                self.restart = None
+                self.cdate   = self.sdate
+            else :
                 #search first chunk to run
                 if not self.restart : # run every chunks of the realization
                     id_first_chunk_run = 1
                 else:
-                    if rerun :
-                        self.restart = self.sdate
-                        self.cdate   = self.sdate
                     #search chunk with edate>restart and sdate<restart
                     try:
                         first_chunk_run    = self.session.query( Chunk ).filter( Chunk.rea_id == self.id ).\
                                              filter( and_( Chunk.sdate <= self.restart, Chunk.edate >= self.restart ) ).one()
                         id_first_chunk_run = first_chunk_run.id
                     except :
-                        raise Exception( 'There is an inconsistency on the database.' )
-            elif ( first_chunk_run and rerun ) or ( first_chunk_run == 1 ) :
-                id_first_chunk_run = first_chunk_run
-            else :
-                raise Exception( 'To rerun chunks use --rerun option.' )
+                        raise Exception( 'There are not chunks to run.' )
             #search last chunk to run
             if not last_chunk_run :
                 #run every chunk
@@ -406,9 +416,9 @@ class Realization( RealizationModel ):
                 #Check if there is a realization with the same no reconfigurable fields:
                 #id,id_exp,sdate,multiple_parameters
                 try:
-                    rea2=self.session.filter( Realization.name  == self.name,
-                                              Realization.sdate == self.sdate,
-                                              Realization.multiparams_labels == self.multiparams_labels).one()
+                    rea2 = self.session.filter( Realization.name  == self.name,
+                                                Realization.sdate == self.sdate,
+                                                Realization.multiparams_labels == self.multiparams_labels).one()
                 except Exception:
                     #if rea2 does not exist (no realization with the same no reconfigurable fields)
                     logger.error("ERROR: Realization with the same name and no reconfigurable fields already exists") 
@@ -424,7 +434,7 @@ class Realization( RealizationModel ):
                             return -1
                     return self.id
     
-    def status(self):
+    def status(self, long_format=False):
         """ 
         Show information about the realization for example:
             Realization Status   Chunks     Comp.Res   WN         Run.Sta       ext   %
@@ -447,92 +457,108 @@ class Realization( RealizationModel ):
         #Look for: job_status,rea_status,wn,resource,exitcode,nchunks.
         #These parameters depend on the status of the first chunk:
         #Status of the first chunk 
-        status_first_ch = q_chunks.filter( Chunk.chunk_id == 1).one().status
+        status_first_ch = q_chunks.\
+                          filter( Chunk.chunk_id == 1).one().status
+       
         if status_first_ch == CHUNK_STATUS[ 'PREPARED' ] or status_first_ch == CHUNK_STATUS[ 'SUBMITTED' ] :
             #Parameters are:
-            job_status = 1
+            job_status = 0 if status_first_ch == CHUNK_STATUS[ 'PREPARED' ] else 1
             rea_status = job_status
             wn         = '-'
             resource   = '-'
             exitcode   = None
-            nchunks    ='0/%d'% number_chunks
+            nchunks    ='0/%d' % number_chunks
         else:
             #Status of the first chunk is different of 0 or 1
             #Select status of the realization (rea_status) and the current chunk(ch_current)
-            #Check if there are any chunk with status 3 (failed)
-            ch_status_3=Chunkstatus.objects.get(id=3)
+            #Check if there are any chunk with failed status 
             #Look for id_chunk of the first chunk failed
-            id_chunk_min_failed=list_chunks.get(status=ch_status_3).aggregate(Min('id_chunk'))['id_chunk__min']
-            if not id_chunk_min_failed :
-                #There are not any chunk failed
-                #Search last chunk finished(status=4)
-                ch_status_4=Chunkstatus.objects.get(id=4)
-                #Check if there are any chunk.status=4 and select the last one
-                id_chunk_max_finished=list_chunks.filter(status=ch_status_4).aggregate(Max('id_chunk'))['id_chunk__max']
-                if (id_chunk_max_finished==None):
+            try :
+                id_chunk_min_failed = q_chunks.\
+                                      filter( Chunk.status == CHUNK_STATUS[ 'FAILED' ] ).\
+                                      order_by( Chunk.chunk_id )[ 0 ].id
+            except :
+                try : 
+                    #There are not any chunk failed
+                    #Check if there are any chunk.status=4 and select the last one
+                    id_chunk_max_finished = q_chunks.\
+                                            filter( Chunk.status == CHUNK_STATUS[ 'FINISHED' ]).\
+                                            order_by( Chunk.chunk_id )[ -1 ].id 
+                except :
                     #If there are not any chunk with status = finished => is the first chunk of the realization
-                    ch_current=list_chunks.get(id_chunk=1)
-                    rea_status=2
+                    ch_current = q_chunks.\
+                                 filter( Chunk.chunk_id == 1 )
+                    rea_status = 2
                 else:
                     #There are any chunk whose status is finished
                     #check if the realization is finished
-                    if id_chunk_max_finished==number_chunks:
-                        rea_status=4 
-                        ch_current=list_chunks.get(id_chunk=id_chunk_max_finished)
+                    if id_chunk_max_finished == number_chunks:
+                        rea_status = 4 
+                        ch_current = q_chunks.\
+                                     filter( Chunk.chunk_id == id_chunk_max_finished)
                     else:
                         #Realization has not finished yet
-                        rea_status=2
-                        ch_current=list_chunks.get(id_chunk=id_chunk_max_finished+1)
+                        rea_status = 2
+                        ch_current = q_chunks.\
+                                     filter( Chunk.chunk_id == id_chunk_max_finished + 1 )
             else:
                 #First chunk with status = failed
-                ch_current=list_chunks.get(id_chunk=id_chunk_min_failed)
-                rea_status=3
+                ch_current = q_chunks.\
+                             filter( Chunk.chunk_id == id_chunk_min_failed )
+                rea_status = 3
                 
             #Select parameters:job_status, rea_status,wn,resource,exitcode,nchunks
             #Last job of current chunk
-            id_last_job=Job.objects.filter(id_chunk=ch_current.id).aggregate(Max('id'))['id__max']
-            last_job=Job.objects.get(id=id_last_job)
+            id_last_job = self.session.query( Job ).\
+                          filter( Job.chunk_id == ch_current.id).\
+                          order_by( Job.id )[ -1 ].id
+            last_job    = self.session.query( Job ).\
+                          filter( Job.id == id_last_job )
             #Parameters if last_job.status is prepared(0) or submitted(1)
-            job_st_0=Jobstatus.objects.get(id=0)
-            job_st_1=Jobstatus.objects.get(id=1)
-            if last_job.status==job_st_0 or last_job.status==job_st_1:
+            job_st_0 = self.session.query( JobStatusModel ).get( 0 )
+            job_st_1 = self.session.query( JobStatusModel ).get( 1 )
+            if last_job.status == job_st_0 or last_job.status == job_st_1 :
                 #Parameters
-                job_status=last_job.status.id
-                rea_status=job_status
-                wn='-'
-                resource='-'
-                exitcode=None
-                nchunks='0/%d'%number_chunks
+                job_status = last_job.status.id
+                rea_status = job_status
+                wn         = '-'
+                resource   = '-'
+                exitcode   = None
+                nchunks    = '0/%d' % number_chunks
             else:
                 #Last job does not have status prepared or submitted
-                job_status=last_job.status.id
-                wn=last_job.wn
-                resource=last_job.resource
-                exitcode=last_job.exitcode
-                nchunks='%d/%d' % (last_job.id_chunk.id_chunk, number_chunks)
+                job_status = last_job.status.id
+                wn         = last_job.wn
+                resource   = last_job.resource
+                exitcode   = last_job.exitcode
+                nchunks    = '%d/%d' % (last_job.id_chunk.id_chunk, number_chunks)
                 
         #FORMAT OUTPUT
         dreastatus={0:'Prepared',1:'Submit',2:'Running',3: 'Failed',4:'Done',5:'Pending'}
         #Format exitcode
-        if not exitcode :
-            exitcode='-'
+        if exitcode :
+            exitcode = str(exitcode)
         else:
-            exitcode=str(exitcode)
+            exitcode = '-'
         #Format chunks run / chunks total
-        runt=(int(self.cdate.strftime("%s"))-int(self.sdate.strftime("%s")))*100.
-        totalt=int(self.edate.strftime("%s"))-int(self.sdate.strftime("%s"))
+        runt   =  int( self.cdate.strftime("%s") ) - int( self.sdate.strftime("%s") ) 
+        totalt =  int( self.edate.strftime("%s") ) - int( self.sdate.strftime("%s") )
         #Percentage
-        per=runt/totalt
+        per = runt * 100.0/ totalt
         #Rea_status
-        if job_status < 10:
-            rea_status=5
+        if job_status < 10 :
+            rea_status = 5
         #Job status
-        job_status_description=Jobstatus.objects.get(id=job_status).description
+        job_status_description = self.session.query( JobStatusModel).get( job_status ).description
         #Print output
-        print '%-11s %-8s %-10s %-10s %-10s %-13s %2s %2.2f'%(self.name[0:10],dreastatus[rea_status],nchunks,resource[0:10],'wn'[0:10],job_status_description,exitcode,per)
-        ext=False
-        if ext:
-            print "%10s %10s %10s"%(self.sdate,self.restart,self.edate)
+        if long_format :
+            logger.info( "%-21s %-8s %-10s %-10s %-10s %-13s %2s %4.2f %20s %20s %20s" % (
+                    self.name[0:20],dreastatus[rea_status],nchunks,resource[0:10],'wn'[0:10],job_status_description,exitcode,per,
+                    self.sdate, self.restart, self.edate )
+                    )
+        else :
+            logger.info( "%-21s %-8s %-10s %-10s %-10s %-13s %2s %4.2f" % (
+                    self.name[0:20],dreastatus[rea_status],nchunks,resource[0:10],'wn'[0:10],job_status_description,exitcode,per)
   
     def stop(self, dryrun=False):
         """
@@ -639,10 +665,10 @@ class Chunk( ChunkModel ):
         """
         Delete jobs
         """
-        logger.info('\tDeleting Chunk %d:\t%s\t%s' % ( self.chunk_id,
-                                                       datetime2datewrf(self.sdate),
-                                                       datetime2datewrf(self.edate) 
-                                                     )
+        logger.info('\t\tDeleting Chunk %d:\t%s\t%s' % ( self.chunk_id,
+                                                         datetime2datewrf(self.sdate),
+                                                         datetime2datewrf(self.edate) 
+                                                       )
         q_jobs = self.session.query( Job ).\
                  filter( Job.chunk_id.id == self.id ).\
                  filter( and_( Job.jobst_status <= JobStatusModel.get(1) , Job.jobst_status >= JobStatusModel.get(13) ) )
@@ -725,6 +751,7 @@ class Job( JobModel ):
                             inputsandbox = sandbox
                             )
         #submit job
+        # if the first chunk of the realization
         if first_chunk_rea == 1 :
             self.gw_job = job.submit()
         else:
