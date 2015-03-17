@@ -172,48 +172,23 @@ class Experiment( ExperimentModel ):
     
     def list(self, long_format=False):
         """
-        List realizations's status of an experiment
-        Example:
-        
-        NAME_exp   N/TOTAL_rea     Prepared        Submit          Running         Failed          Done            Pending
-        teste      0/3             0               0               0               0               0               1               
-        teste      1/3             0               0               0               1               0               0               
-        teste      2/3             0               0               0               1               0               0
+        List the the experiment avaible
         """
         tab='\t\t'
-        #List of realizations of this experiment
-        list_realizations=self.realization_set.all()#list of Realizations
-        #Total of realizations
-        total_realizations=len(list_realizations)
-        #Dictionary for states
-        dstatus={'Pr':'Prepared', 'S':'Submit', 'R':'Running','F':'Failed','D':'Done','Pd':'Pending'}
-        #Header of information
-        header="NAME_exp\tN/TOTAL_rea"
-        for st in list_status:
-            header= header + '    \t'+ dstatus[st]
-            print header
-            #Number of realization
-            n_realization=0
-            for rea in list_realizations:
-                #Status
-                #Dictionary for count states of realizations
-                dreastatus={'Prepared':0,'Submit':0,'Running':0, 'Failed':0,'Done':0,'Pending':0}
-                rea_status=rea.status()
-                dreastatus[rea_status]+=1
-                #Format status
-                info_status=''
-                for st in list_status:
-                    info_status+=str(dreastatus[dstatus[st]])+ tab
-                    #number of realization/total realization
-                    com='%s/%s'%(n_realization,total_realizations)
-                    n_realization=n_realization +1
-                    #Template
-                    t=get_template('status_template')
-                    c=Context({'tab':tab,
-                               'exp_name':self.name ,
-                               'com':com,
-                               'info_status':info_status})
-                    print t.render(c)    
+        #List of experiments
+        q_experiments = self.session.query( Experiment ).all()
+        if not long_format :
+            # Header
+            logger.info( "Name" )
+            for e in q_experiment :
+                logger.info( e.name )
+        else :
+            # Header
+            logger.info( "%20s %20s %20s %12s %10s %-30s" % ( 
+                         "Name", "Start Date" , "End Date", "Mult Paramts", "Mult Dates", "Mult Labels")  )
+            for e in q_experiment :
+                logger.info("%20.20s %20.20s %20.20s %12.12s %10.10s %-30.30s" ( 
+                         e.name, str(e.sdate), str(e.edate), e.mult_parameters, e.mult_dates, e.mult_labels  )
 
     @staticmethod 
     def start( name, template, dir ):
