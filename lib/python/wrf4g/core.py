@@ -88,9 +88,9 @@ class Experiment( ExperimentModel ):
             
         If it exist and  it is the same configuration that the one found in the database, return -1
         If it exists and  parameters of configuration do not match , check if it is a reconfigure run.
-        If reconfigure is False=> err exit(9)
+        If reconfigure is False=> err retunr -1
         If reconfigure is True, Check if there is an experiment with the same no reconfigurable field. 
-        If there is not an experiment with the same no reconfigurable fields => error, exit(9)
+        If there is not an experiment with the same no reconfigurable fields => error, return -1
         If there is an experiment with the same reconfigurable fields, update data and return id
         """
         #check if the experiment exists in database
@@ -141,7 +141,7 @@ class Experiment( ExperimentModel ):
                         return -1
                     return self.id
     
-    def status(self):
+    def status(self, rea_pattern=False ):
         """ 
         Show information about realizations of the experiment for example:
         
@@ -160,6 +160,9 @@ class Experiment( ExperimentModel ):
         #list of realization of the experiment
         q_realizations = self.session.query( Realization ).\
                          filter( Realization.exp_id == self.id )
+        if rea_pattern :
+            q_realizations  = q_realizations.\
+                              filter( Realization.name.like( rea_pattern.replace('*','%') ) )
         #Header of the information
         if not ( q_realizations.all() ):
             logger.info( 'There are not realizations to check.' )
@@ -170,12 +173,15 @@ class Experiment( ExperimentModel ):
             #Print information of each realization
             rea().status()
     
-    def list(self, long_format=False):
+    def list(self, long_format=False, rea_pattern=False):
         """
         List the the experiment avaible
         """
         #List of experiments
-        q_experiments = self.session.query( Experiment ).all()
+        q_experiments = self.session.query( Experiment )
+        if rea_pattern :
+            q_experiments  = q_experiments.\
+                             filter( Experiment.name.like( rea_pattern.replace('*','%') ) )
         if not long_format :
             # Header
             logger.info( "Name" )
@@ -359,9 +365,9 @@ class Realization( RealizationModel ):
         
         If it exist and  it is the same configuration that the one found in the database, return -1
         If it exists and  parameters of configuration do not match , check if it is a reconfigure run.
-        If reconfigure is False=> err exit(9)
+        If reconfigure is False=> err return -1
         If reconfigure is True, Check if there is a realization with the same no reconfigurable field. 
-        If there is not a realization with the same no reconfigurable fields => error, exit(9)
+        If there is not a realization with the same no reconfigurable fields => error, return -1
         If there is a realization with the same reconfigurable fields, update data and return id
         """
         #check if the realization exists in database
@@ -403,7 +409,6 @@ class Realization( RealizationModel ):
                     #if exp2 exits,it means a realization with the same no reconfigurable fields
                     self.id = rea2.id
                     logger.debug('Updating realization')
-                    self.session.add(self)
                     if not dryrun :
                         try :
                             self.prepare_storage()
@@ -555,56 +560,55 @@ class Chunk( ChunkModel ):
             job.run(first_chunk_rea=self.chunk_id) #run job
             self.session.add(job)
         
-    def prepare(self,verbose=False,reconfigure=False,dryrun=False):
+    def prepare(self,reconfigure=False,dryrun=False):
         """ 
         Prepare chunk
         Check if chunk exists in database, If it not exists, insert it and return id
         
         If it exist and  it is the same configuration that the one found in the database, return -1
         If it exists and  parameters of configuration do not match , check if it is a reconfigure run.
-        If reconfigure is False=> err exit(9)
+        If reconfigure is False=> err return -1
         If reconfigure is True, Check if there is a chunk with the same no reconfigurable field. 
-        If there is not a chunk with the same no reconfigurable fields => error, exit(9)
+        If there is not a chunk with the same no reconfigurable fields => error, return -1
         If there is a chunk with the same reconfigurable fields, update data and return id
         """
         #check if the chunk exists in database
         #It means if there are a chunk with the same distinct fields
         # id_rea,id_chunk
         try:
-            ch1=Chunk.objects.get(id=self.id,
-                                  id_rea=self.id_rea,
-                                  id_chunk=self.id_chunk)
+            ch = self.session.query( Chunk.id       == self.id,
+                                     Chunk.rea_id   == self.rea_id,
+                                     Chunk.chunk_id == self.chunk_id
+                                    ).one()
         except Exception:
             #If the chunk does not exist, insert it
-            if verbose:
-                sys.stderr.write('Creating chunk.\n')
+            logger.debug('Creating chunk.')
             #Insert chunk
-            self.save()
+            self.session.add(self)
             return self.id # return id
         else:
             #If the chunk exists
             #Check reconfigure: if reconfigure is False =>err,exitif reconfigure == False:if reconfigure == False:
-            if reconfigure == False:
-                sys.stderr.write("Error: Chunk with the same name and different parameters already exists.\nIf you want to overwrite some paramenters, try the reconfigure option.\n") 
-                sys.exit(9)
+            if not reconfigure :
+                logger.error( "ERROR Chunk with the same name and different parameters already exists.")
+                logger.error( "If you want to overwrite some paramenters, try the reconfigure option.") 
+                return -1
             else:
                 #Check if there is a chunk with the same no reconfigurable fields:
                 #id,id_rea,id_chunk,sdate
                 try:
-                    ch2=Chunk.objects.get(id=self.id,
-                                          id_rea=self.id_rea,
-                                          id_chunk=self.id_chunk,
-                                          sdate=self.sdate)
+                    ch = self.session.( Chunk.id       == self.id,
+                                        Chunk.rea_id   == self.rea_id,
+                                        Chunk.chunk_id == self.chunk_id,
+                                        Chunk.sdate    == self.sdate).one()
                 except Exception:
                     #if ch2 does not exist (no chunk with the same no reconfigurable fields)
-                    sys.stderr.write("Error: Chunk with the same name and no reconfigurable fields already exists\n")
-                    sys.exit(9)
+                    logger.error("ERROR: Chunk with the same name and no reconfigurable fields already exists")
+                    return -1
                 else:
                     #if ch2 exits,it means a chunk with the same no reconfigurable fields
-                    self.id=ch2.id
-                    if verbose:
-                        sys.stderr.write('Updating chunk.\n')
-                    self.save()
+                    self.id = ch.id
+                    logger.debug('Updating chunk.')
                     return self.id
         
 class Job( JobModel ):
@@ -615,6 +619,7 @@ class Job( JobModel ):
                 set_exitcode(exitcode)
                 load_wn_conf(wn_gwres)
     """
+    # Sqlalchemy session
     session = None
     
     def set_status(self, status):

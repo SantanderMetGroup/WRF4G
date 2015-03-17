@@ -2,11 +2,11 @@
 Manage experiments. 
     
 Usage: 
-    wrf4g experiment list [ --dbg ] [--long ]
+    wrf4g experiment list [ --dbg ] [--long ] [ --pattern=<name> ]
     wrf4g experiment <name> start   [ --dbg ] [ --template=<name> ] [ --dir=<directory> ] 
     wrf4g experiment <name> create  [ --dbg ] [ --reconfigure ] [ --dry-run ]  EXP_CONF_FILE
     wrf4g experiment <name> submit  [ --dbg ] [ --rerun ] [ --dry-run ] 
-    wrf4g experiment <name> status  [ --dbg ] [ --long ]
+    wrf4g experiment <name> status  [ --dbg ] [ --long ] [ --pattern=<name> ] 
     wrf4g experiment <name> stop    [ --dbg ] [ --dry-run ] 
     wrf4g experiment <name> delete  [ --dbg ] [ --dry-run ]
    
@@ -14,6 +14,7 @@ Options:
    --dbg                Debug mode.
    -n --dry-run         Dry run.
    -l --long            Show a detailed information.
+   -p --pattern=<name>  Pattern to find experiments and realizations. 
    -t --template=<name> Experiment template, avaible templates are default, single, physics. 
    -d --dir=<directory> Directory to create the experiment [default: ./].
    -r --reconfigure     Change the features of a created experiment.
@@ -57,7 +58,7 @@ def run( arg ) :
             if arg[ 'list' ] :
                 exp = Experiment()
                 exp.session = session
-                exp.list( arg['--long'] )
+                exp.list( long_format = arg[ '--long' ] , pattern = arg[ '--pattern' ] )
             else :
                 try :
                     q_exp = session.query( Experiment ).\
@@ -70,11 +71,11 @@ def run( arg ) :
                     if arg[ 'submit' ] :
                         exp.run( rerun = arg[ 'rerun' ], dryrun = arg[ '--dry-run' ] )
                     elif arg[ 'status' ] :
-                        exp.status( )
+                        exp.status( pattern = arg[ '--pattern' ]  )
                     elif arg[ 'stop' ] :
                         exp.stop( dryrun = arg[ '--dry-run' ] )
                     else :
-                        exp.delete( )
+                        exp.delete( dryrun = arg[ '--dry-run' ]  )
             if arg[ '--dry-run' ] :
                 session.rollback()
             else :
