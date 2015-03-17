@@ -29,7 +29,7 @@ CHUNK_STATUS = {
 class Experiment( ExperimentModel ):
     """ Experiment 
         Methods:
-                run (n_chunk)
+                run 
                 delete
                 prepare_storage
                 prepare
@@ -174,7 +174,6 @@ class Experiment( ExperimentModel ):
         """
         List the the experiment avaible
         """
-        tab='\t\t'
         #List of experiments
         q_experiments = self.session.query( Experiment ).all()
         if not long_format :
@@ -216,13 +215,17 @@ class Experiment( ExperimentModel ):
             with open( dest_path , 'w') as f :
                 f.writelines( data_updated ) 
 
-    def delete(self):
+    def delete(self, dryrun=False):
         """
         Delete the experiment ,its realizations and chunks 
         """
         exp_name = self.name 
+        if not dryrun :
+            local_exp_dir = join( WRF4G_DIR , 'var' , 'submission' , exp_name )
+            logger.debug( "Deleting '%s' directory" % local_exp_dir )
+            shutil.rmtree( local_exp_dir )
         self.session.delete( self )
-        logger.info( "'%s' experiment has been deleted" % exp_name )
+        logger.info( "'%s' experiment has been deleted from the database" % exp_name )
     
 class Realization( RealizationModel ):
     """A class to mange WRF4G realizations
