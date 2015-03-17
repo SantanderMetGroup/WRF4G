@@ -193,7 +193,7 @@ class Experiment( ExperimentModel ):
                          "Name", "Start Date" , "End Date", "Mult Paramts", "Mult Dates", "Mult Labels")  )
             for e in q_experiment :
                 logger.info("%20.20s %20.20s %20.20s %12.12s %10.10s %-30.30s" ( 
-                         e.name, str(e.sdate), str(e.edate), e.mult_parameters, e.mult_dates, e.mult_labels  )
+                         e.name, datetime2datewrf(e.sdate), datetime2datewrf(e.edate), e.mult_parameters, e.mult_dates, e.mult_labels  )
 
     @staticmethod 
     def start( name, template, dir ):
@@ -221,10 +221,26 @@ class Experiment( ExperimentModel ):
             with open( dest_path , 'w') as f :
                 f.writelines( data_updated ) 
 
+    def stop(self, dryrun=False):
+        """
+        Delete jobs which status is running or submitted 
+        """
+        #list of realization of the experiment
+        q_realizations = self.session.query( Realization ).\
+                         filter( Realization.exp_id == self.id ) 
+        if not ( q_realizations.all() ):
+            logger.info( 'There are not realizations to stop.' )
+        else :
+            logger.info( 'Stopping Experiment %s' % self.name )
+            for rea in q_realizations :  
+                rea.session = self.session
+                rea().stop( dryrun )
+
     def delete(self, dryrun=False):
         """
         Delete the experiment ,its realizations and chunks 
         """
+        # save the name to use it later
         exp_name = self.name 
         if not dryrun :
             local_exp_dir = join( WRF4G_DIR , 'var' , 'submission' , exp_name )
@@ -327,15 +343,7 @@ class Realization( RealizationModel ):
                          "experiment.wrf4g" ,
                          "namelist.input" ,
                          ]
-
-        def _file_exist( file ) :
-            if not exists ( file ) :
-                raise Exception( "'%s' is not available" % file_path )
-        [  _file_exist( file ) for file in files_to_copy ]
-
-        rea_name           = self.attr.name
-        exp_name           = self.attr.exp_id.name
-        rea_submission_dir = join( WRF4G_DIR , 'var' , 'submission' , exp_name , rea_name )
+        rea_submission_dir = join( WRF4G_DIR , 'var' , 'submission' , self.exp_id.name , self.name )
         if not isdir( rea_submission_dir ) :
             try :
                 os.makedirs( rea_submission_dir )
@@ -352,11 +360,11 @@ class Realization( RealizationModel ):
             if exists( dst_file ):
                 os.remove( dst_file )
             shutil.move( 'wrf4g_files.tar.gz' , dst_file )
-
-        def _copy( file ):
-            shutil.copy( expandvars( file ) , rea_submission_dir )
-        [ _copy( file ) for file in files_to_copy ]
-
+        for file in files_to_copy :
+            if not exists ( expandvars( file ) ) :
+                raise Exception( "'%s' is not available" % file )
+            else :
+                shutil.copy( expandvars( file ) , rea_submission_dir )
         
     def prepare(self, reconfigure=False, dryrun=False):
         """ 
@@ -506,7 +514,7 @@ class Realization( RealizationModel ):
         #FORMAT OUTPUT
         dreastatus={0:'Prepared',1:'Submit',2:'Running',3: 'Failed',4:'Done',5:'Pending'}
         #Format exitcode
-        if exitcode==None:
+        if not exitcode :
             exitcode='-'
         else:
             exitcode=str(exitcode)
@@ -523,8 +531,24 @@ class Realization( RealizationModel ):
         #Print output
         print '%-11s %-8s %-10s %-10s %-10s %-13s %2s %2.2f'%(self.name[0:10],dreastatus[rea_status],nchunks,resource[0:10],'wn'[0:10],job_status_description,exitcode,per)
         ext=False
-        if ext==True:
+        if ext:
             print "%10s %10s %10s"%(self.sdate,self.restart,self.edate)
+  
+    def stop(self, dryrun=False):
+        """
+        Delete chunks which status is running or submitted 
+        """
+        q_chunks = self.session( Chunk ).\
+                   filter( Chunk.rea_id == self.id ).\
+                   filter( or_( Chunk.status == CHUNK_STATUS['SUBMITTED'], Chunk.status == CHUNK_STATUS['RUNNING'] ) )        
+        if not ( q_chunks.all() ):
+            logger.info( 'There are not chunks to stop.' )
+        else :
+            logger.info('\tStopping Realization %s' % self.name )
+            for chunk in q_chunks :
+                ch         = chunk()
+                ch.session = self.session
+                ch.stop( dryrun )
     
 class Chunk( ChunkModel ):
     """ 
@@ -548,9 +572,9 @@ class Chunk( ChunkModel ):
         if self.chunk_id == 1 :
             logger.info('Submitting Realization: "%s" with restart %s' % (self.rea_id.name, self.rea_id.restart ) )
         #print data of chunks
-        logger.info('\tSubmitting Chunk %d:\t%s\t%s' % ( self.chunk_id, 
-                                                         datetime2datewrf(self.sdate), 
-                                                         datetime2datewrf(self.edate) ) 
+        logger.info('\t\tSubmitting Chunk %d:\t%s\t%s' % ( self.chunk_id, 
+                                                          datetime2datewrf(self.sdate), 
+                                                          datetime2datewrf(self.edate) ) 
                    )
         if not dryrun :
             #Send a gridway's job and save data in table Job
@@ -610,6 +634,25 @@ class Chunk( ChunkModel ):
                     self.id = ch.id
                     logger.debug('Updating chunk.')
                     return self.id
+
+    def stop(self, dryrun=False):
+        """
+        Delete jobs
+        """
+        logger.info('\tDeleting Chunk %d:\t%s\t%s' % ( self.chunk_id,
+                                                       datetime2datewrf(self.sdate),
+                                                       datetime2datewrf(self.edate) 
+                                                     )
+        q_jobs = self.session.query( Job ).\
+                 filter( Job.chunk_id.id == self.id ).\
+                 filter( and_( Job.jobst_status <= JobStatusModel.get(1) , Job.jobst_status >= JobStatusModel.get(13) ) )
+        if not ( q_jobs.all() ):
+            logger.info( 'There are not jobs to stop.' )
+        else :
+            for job in q_jobs :
+                job.session = self.session
+                job().stop( dryrun )
+
         
 class Job( JobModel ):
     """ Job
@@ -694,7 +737,16 @@ class Job( JobModel ):
             self.gw_job     = job.submit( dep = gw_job_before )
         #Insert values (gw_job, id_chunk, status) into table Job
         self.set_status( self.session.query( JobStatusModel ).get( 1 ) ) #status = submitted
-            
+   
+    def stop(self, dryrun=False):
+        """
+        Delete a job
+        """
+        logger.info('\t\t\tDeleting Job %d' % self.gw_job ) 
+        if not dryrun :
+            gridwaylib.Job().kill( self.gw_job )
+            self.set_status( self.session.query( JobStatusModel ).get( 0 ) ) #status = prepared
+         
     def load_wn_conf(self,wn_gwres,wn,resource):
         """
         Load configuration
