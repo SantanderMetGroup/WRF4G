@@ -5,6 +5,7 @@ __revision__ = "$Id$"
 
 import logging
 import os
+import re
 import tarfile
 import shutil
 import wrf4g.tools.gridwaylib
@@ -816,89 +817,74 @@ class Job( JobModel ):
         return self.id
     
     @staticmethod
-    def create_remote_storage(self):
+    def create_rea_storage(self):
         """
-        Create a remote tree directory of a Realization
+        Create a remote tree directory for the realization
+        and copy configure files.
         
-        Realization/
-           |
-           *--  output/                    
-           *--  restart/
-           *--  realout/
-           *--  log/          
+        realization/
+           * experiment.wrf4g
+           * resources.wrf4g
+           * db.conf
+           * namelist.input
+           * -- output/                    
+           * -- restart/
+           * -- realout/
+           * -- log/         
         """
-        try :
-            remote_realization_path = args[ 0 ]
-            directories_to_create = [ 
-                                     dirname( dirname( remote_realization_path ) ) ,
-                                     dirname( remote_realization_path ) ,
-                                     remote_realization_path,
-                                     "%s/%s/" % ( remote_realization_path , "output" ) ,
-                                     "%s/%s/" % ( remote_realization_path , "restart" ) ,
-                                     "%s/%s/" % ( remote_realization_path , "reaload" ) ,
-                                     "%s/%s/" % ( remote_realization_path , "log" ) 
-                                     ]
-            for dir in  directories_to_create :
-                vcp_dir = VCPURL( dir )
-                if not vcp_dir.exists( verbose = self.verbose ) :
-                    vcp_dir.mkdir( verbose = self.verbose )
-            return 0
-        except Exception, err :
-            sys.stderr.write( 'Error creating the remote repository: %s\n' % str( err ) )
-            return 1
-        
-    def copy_configuration_files(self , args ):
-        """
-        Copy configuration files from the WN to the out path such as :
-            * experiment.wrf4g
-            * resources.wrf4g
-            * db.conf
-            * namelist.input
-        """
-        # We have to add an overwriting option 
-        try :
-            remote_realization_path = args[ 0 ]
-            for configuration_file in [ "db.conf" , "experiment.wrf4g" ,  "resources.wrf4g" ]:
-                vcplib.copy_file( configuration_file, join( remote_realization_path , configuration_file  ) , verbose = self.verbose )
-            vcplib.copy_file( "namelist.input" , join ( remote_realization_path , "namelist.input" ) , verbose = self.verbose )
-            return 0
-        except Exception, err :
-            sys.stderr.write( 'Error coping configurations files: %s\n' % str( err ) )
-            return 1  
-                              
+        rea_dir = join( 
+                       os.getenv("WRF4G_BASEPATH" ),
+                       os.getenv("WRF4G_EXPERIMENT" ),
+                       os.getenv("WRF4G_REALIZATION" )
+                       )
+                                            
+        dir_to_create = [ 
+                       dirname( dirname( re_dir ) ) ,
+                       dirname( rea_dir ) ,
+                       rea_dir,
+                       "%s/%s/" % ( rea_dir, "output" ) ,
+                       "%s/%s/" % ( rea_dir, "restart" ) ,
+                       "%s/%s/" % ( rea_dir, "reaload" ) ,
+                       "%s/%s/" % ( rea_dir, "log" ) 
+                       ]
+        # create directories
+        for dir in  dir_to_create :
+            vcp_dir = VCPURL( dir )
+            if not vcp_dir.exists( ) :
+                vcp_dir.mkdir( )
 
-    def expvar(self,args):
+        # copy experiment files
+        for conf_file in [ "db.conf", "experiment.wrf4g", "resources.wrf4g", "namelist.input" ] :
+            vcplib.copy_file( conf_file, join( rea_dir , conf_file  ) )
+
+    @staticmethod
+    def export_varibles(self):
         """
-        Exports the environment variables of a resource file.
+        Exports the environment variables of experiment.wrfg and resources.wrf4g files.
         """
-        try:
-            list_files = args[0:]
-            resource_name  = os.environ.get('GW_HOSTNAME')
-            for file in list_files :
-                resource_env   = VarEnv( file )
-                section_to_use = 'DEFAULT' 
-                for section in resource_env.sections() :
-                    if ':' in section :
-                        _section = section.split( ':' , 1 )[ 1 ]
-                    else :
-                        _section = section
-                    if resource_name.startswith( _section ) : 
-                        section_to_use = section
-                        break
-                list_values = resource_env.items( section_to_use  )
-                dict_values = dict( ( key , val ) for key, val in list_values ) 
-                _KEYCRE = re.compile(r"\$\{([^}]+)\}")
-                def update_list():
-                    for key , val in  list_values  :
-                        if "${" in val :
-                            vars =_KEYCRE.findall( val )
-                            for var in vars :
-                                if var in dict_values :
-                                    dict_values[ key ] = _KEYCRE.sub( dict_values[ var ] , val , count = 1 )
-                [ update_list() for key , val in dict_values.items() if "${" in val ]
-                with open( file , 'w' ) as f :
-                    [ f.write( "export %s=%s\n" % ( key , val ) ) for key, val in dict_values.items() ]
-            return 0
-        except Exception, err:
-            sys.stderr.write( str( err ) + '\n' )
-            sys.exit( -1 )
+        list_files = [ 'experiment.wrfg', 'resources.wrf4g' ]  
+        resource_name  = os.environ.get('GW_HOSTNAME')
+        for file in list_files :
+            resource_env   = VarEnv( file )
+            section_to_use = 'DEFAULT' 
+            for section in resource_env.sections() :
+                if ':' in section :
+                    _section = section.split( ':' , 1 )[ 1 ]
+                else :
+                    _section = section
+                if resource_name.startswith( _section ) : 
+                    section_to_use = section
+                    break
+            list_values = resource_env.items( section_to_use  )
+            dict_values = dict( ( key , val ) for key, val in list_values ) 
+            _KEYCRE = re.compile(r"\$\{([^}]+)\}")
+            def update_list():
+                for key , val in  list_values  :
+                    if "${" in val :
+                        vars =_KEYCRE.findall( val )
+                        for var in vars :
+                            if var in dict_values :
+                                dict_values[ key ] = _KEYCRE.sub( dict_values[ var ] , val , count = 1 )
+            [ update_list() for key , val in dict_values.items() if "${" in val ]
+            with open( file , 'w' ) as f :
+                [ f.write( "export %s=%s\n" % ( key , val ) ) for key, val in dict_values.items() ]
