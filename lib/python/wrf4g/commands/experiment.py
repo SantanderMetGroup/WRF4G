@@ -71,7 +71,7 @@ def run( arg ) :
                     if arg[ 'submit' ] :
                         exp.run( rerun = arg[ 'rerun' ], dryrun = arg[ '--dry-run' ] )
                     elif arg[ 'status' ] :
-                        exp.status( pattern = arg[ '--pattern' ]  )
+                        exp.status( long_format = arg[ '--long' ], pattern = arg[ '--pattern' ]  )
                     elif arg[ 'stop' ] :
                         exp.stop( dryrun = arg[ '--dry-run' ] )
                     else :

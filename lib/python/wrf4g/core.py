@@ -15,9 +15,9 @@ from os.path            import exists, expandvars, expanduser, isdir
 from wrf4g              import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR, logger
 from wrf4g.db           import ExperimentModel, RealizationModel, ChunkModel, JobModel, JobStatusModel
 from wrf4g.utils        import datetime2datewrf
+from wrf4g.tools.vcplib import VCPURL
 
-
-# Chunks status
+# Chunk and job status
 CHUNK_STATUS = {
                  'PREPARED'  : 0,
                  'SUBMITTED' : 1,
@@ -26,6 +26,25 @@ CHUNK_STATUS = {
                  'FINISHED'  : 4,
                  'PENDING'   : 5,
                }
+
+JOB_STATUS  =   {
+                 'PREPARED'     : 0,
+                 'SUBMITTED'    : 1,
+                 'RUNNING'      : 2,
+                 'PREPARING_WN' : 10,
+                 'DOWN_BIN'     : 11,
+                 'DOWN_RESTART' : 12,
+                 'DOWN_WPS'     : 20,
+                 'DOWN_BOUND'   : 21,
+                 'UNGRIB'       : 22,
+                 'METGRID'      : 23,
+                 'REAL'         : 24,
+                 'UPLIAD_WPS'   : 25,
+                 'ICBCPROCESOR' : 26,
+                 'WRF'          : 29,
+                 'FINISHED'     : 40,
+                 'FAILED'       : 41,
+                }
              
 class Experiment( ExperimentModel ):
     """ Experiment 
@@ -146,14 +165,13 @@ class Experiment( ExperimentModel ):
         """ 
         Show information about realizations of the experiment for example:
         
-        Realization Status   Chunks     Comp.Res   WN         Run.Sta       ext   %
-        testc       Done     3/3        mycomputer sipc18     Finished       0 100.00
+        Realization Status   Chunks     Comp.Res      Run.Sta     ext      %
+        testc       Done     3/3        mycomputer   Finished       0 100.00
         
         * Realization: Realization name. It is taken from the field experiment_name in experiment.wrf4g.
         * Status: It can be take the following values: Prepared, Submitted, Running, Failed and Done).
         * Chunks [Chunk running/Total Chunks]: A realization is split into chunks. Each chunk is sent as a job.
         * Computer resource: Resource (cluster) where the job is running.
-        * WN: Computing node where the job is running.
         * Run.Sta: Job status in the WN (Downloading data, running ungrib, real, wrf, ...)
         * ext: Exit Code. If exit code is different from 0, there has been an error. 
         * % : percentage of simulation finished.
@@ -168,12 +186,12 @@ class Experiment( ExperimentModel ):
         if not ( q_realizations.all() ):
             logger.info( 'There are not realizations to check.' )
         if long_format :
-            logger.info( '%-21s %-8s %-10s %-10s %-10s %-13s %2s %4s 20% 20% 20%'% (
-                                   'Realization','Status','Chunks','Comp.Res','WN','Run.Sta','ext','%','sdate', 'rdate', 'edate')
+            logger.info( '%-21s %-8s %-10s %-10s %-13s %2s %4s 20% 20% 20%'% (
+                                   'Realization','Status','Chunks','Comp.Res','Run.Sta','ext','%','sdate', 'rdate', 'edate')
                        )
         else :
-            logger.info( '%-21s %-8s %-10s %-10s %-10s %-13s %2s %4s'% (
-                                   'Realization','Status','Chunks','Comp.Res','WN','Run.Sta','ext','%')
+            logger.info( '%-21s %-8s %-10s %-10s %-13s %2s %4s'% (
+                                   'Realization','Status','Chunks','Comp.Res','Run.Sta','ext','%')
                        )
         for rea in q_realizations :
             #Print information of each realization
@@ -444,7 +462,6 @@ class Realization( RealizationModel ):
         * Status: It can be take the following values: Prepared, Submitted, Running, Failed and Done).
         * Chunks [Chunk running/Total Chunks]: A realization is split into chunks. Each chunk is sent as a job.
         * Computer resource: Resource (cluster) where the job is running.
-        * WN: Computing node where the job is running.
         * Run.Sta: Job status in the WN (Downloading data, running ungrib, real, wrf, ...)
         * ext: Exit Code. If exit code is different from 0, there has been an error.
         * % : percentage of simulation finished.
@@ -464,7 +481,6 @@ class Realization( RealizationModel ):
             #Parameters are:
             job_status = 0 if status_first_ch == CHUNK_STATUS[ 'PREPARED' ] else 1
             rea_status = job_status
-            wn         = '-'
             resource   = '-'
             exitcode   = None
             nchunks    ='0/%d' % number_chunks
@@ -521,14 +537,12 @@ class Realization( RealizationModel ):
                 #Parameters
                 job_status = last_job.status.id
                 rea_status = job_status
-                wn         = '-'
                 resource   = '-'
                 exitcode   = None
                 nchunks    = '0/%d' % number_chunks
             else:
                 #Last job does not have status prepared or submitted
                 job_status = last_job.status.id
-                wn         = last_job.wn
                 resource   = last_job.resource
                 exitcode   = last_job.exitcode
                 nchunks    = '%d/%d' % (last_job.id_chunk.id_chunk, number_chunks)
@@ -552,13 +566,13 @@ class Realization( RealizationModel ):
         job_status_description = self.session.query( JobStatusModel).get( job_status ).description
         #Print output
         if long_format :
-            logger.info( "%-21s %-8s %-10s %-10s %-10s %-13s %2s %4.2f %20s %20s %20s" % (
-                    self.name[0:20],dreastatus[rea_status],nchunks,resource[0:10],'wn'[0:10],job_status_description,exitcode,per,
+            logger.info( "%-21s %-8s %-10s %-10s %-13s %2s %4.2f %20s %20s %20s" % (
+                    self.name[0:20],dreastatus[rea_status],nchunks,resource[0:10],job_status_description,exitcode,per,
                     self.sdate, self.restart, self.edate )
                     )
         else :
-            logger.info( "%-21s %-8s %-10s %-10s %-10s %-13s %2s %4.2f" % (
-                    self.name[0:20],dreastatus[rea_status],nchunks,resource[0:10],'wn'[0:10],job_status_description,exitcode,per)
+            logger.info( "%-21s %-8s %-10s %-10s %-13s %2s %4.2f" % (
+                    self.name[0:20],dreastatus[rea_status],nchunks,resource[0:10],job_status_description,exitcode,per)
   
     def stop(self, dryrun=False):
         """
@@ -763,7 +777,8 @@ class Job( JobModel ):
             gw_job_before   = self.session.query( Job ).get( id_job_before ).gw_job
             self.gw_job     = job.submit( dep = gw_job_before )
         #Insert values (gw_job, id_chunk, status) into table Job
-        self.set_status( self.session.query( JobStatusModel ).get( 1 ) ) #status = submitted
+        self.set_status( self.session.query( JobStatusModel ).\
+             get( JOB_STATUS[ 'SUBMITTED' ] ) ) 
    
     def stop(self, dryrun=False):
         """
@@ -772,46 +787,45 @@ class Job( JobModel ):
         logger.info('\t\t\tDeleting Job %d' % self.gw_job ) 
         if not dryrun :
             gridwaylib.Job().kill( self.gw_job )
-            self.set_status( self.session.query( JobStatusModel ).get( 0 ) ) #status = prepared
+            self.set_status( self.session.query( JobStatusModel ).\
+                 get( JOB_STATUS[ 'PREPARED' ] ) ) 
          
-    def load_wn_conf(self,wn_gwres,wn,resource):
+    def load_wn_conf(self,wn_gwres):
         """
         Load configuration
         """
         wn_gwres=int(wn_gwres)
         #Last job with the same distinct fields  (gw_job and id_chunk)
-        id_last_job=Job.objects.filter(gw_job=self.gw_job,id_chunk=self.id_chunk.id).aggregate(Max('id'))['id__max']
-        last_job=Job.objects.get(id=id_last_job) 
-        if last_job.gw_restarted<wn_gwres:
-            self.wn=wn
-            self.resource=resource
-            self.gw_restarted=wn_gwres
-            self.save()
-        elif last_job.gw_restarted==wn_gwres:
-            self.wn=wn
-            self.resource=resource
-            self.id=last_job.id
-            self.save()
+        try :
+            last_job = self.session.query( Job.gw_job   == self.gw_job, 
+                                           Job.id_chunk == self.chunk_id.id).\
+                                           group_by( Job.id ).all()[-1]
+        except :
+            logger.error('ERROR: Could not find a the last job')
+            return -1
+        if last_job.gw_restarted < wn_gwres:
+            self.gw_restarted = wn_gwres
+        elif last_job.gw_restarted == wn_gwres:
+            self.id = last_job.id
         else:
             #if last_job.gw_restarted>wn_gwres
-            sys.stderr.write('Error: This job should not be running this Chunk')
-            sys.exit(9)
-        st_job=Jobstatus.objects.get(id=10)
-        self.set_status(st_job)
+            logger.error('ERROR: This job should not be running this Chunk')
+            return -1
+        self.set_status( self.session.query( JobStatusModel ).\
+            get( JOB_STATUS[ 'PREPARING_WN' ] ) ) 
         return self.id
     
-
-####################################################################3
-                
-    def prepare_remote_storage(self , args ):
+    @staticmethod
+    def create_remote_storage(self):
         """
         Create a remote tree directory of a Realization
         
-        Realization
-           *  output                    
-           *  restart
-           *  realout
-           *  log          
+        Realization/
+           |
+           *--  output/                    
+           *--  restart/
+           *--  realout/
+           *--  log/          
         """
         try :
             remote_realization_path = args[ 0 ]
@@ -825,7 +839,7 @@ class Job( JobModel ):
                                      "%s/%s/" % ( remote_realization_path , "log" ) 
                                      ]
             for dir in  directories_to_create :
-                vcp_dir = vcplib.VCPURL( dir )
+                vcp_dir = VCPURL( dir )
                 if not vcp_dir.exists( verbose = self.verbose ) :
                     vcp_dir.mkdir( verbose = self.verbose )
             return 0

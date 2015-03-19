@@ -7,15 +7,11 @@ import commands
 from re        import match, search
 from sys       import stderr
 from os.path   import abspath, isdir, isfile, basename, dirname, join
+from wrf4g     import logger
 
-__version__  = '1.5.2'
+__version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
-
-try :
-    logger = logging.getLogger(__name__)
-except :
-    pass
 
 def http_ftp_protocol(protocol):
     if protocol == 'http' or protocol == 'https' or protocol == 'ftp':
@@ -175,7 +171,7 @@ class VCPURL(object):
         url = protocol + user + computer + port + file 
         return url
     
-    def ls(self, file="*", verbose=False):
+    def ls(self, file="*"):
         """ 
         List all the files under the directory. If no arguments are given it list the whole directory. 
         It has the argument file that is the pattern we want to search inside this directory. Examples
@@ -188,8 +184,7 @@ class VCPURL(object):
             raise Exception(out)
         
         command = eval(self.command[self.protocol]['ls'])
-        if verbose:
-            stderr.write(command + "\n")
+        logger.debug( command )
         (err, out) = commands.getstatusoutput(command)
         if err != 0 :
             out = "Error reading dir: " + str(out)
@@ -218,7 +213,7 @@ class VCPURL(object):
         file_list.sort()
         return file_list
     
-    def mkdir(self, verbose=False):
+    def mkdir(self):
         """
         Create the directory pointed by self
         """
@@ -228,8 +223,7 @@ class VCPURL(object):
             raise Exception(out)
         
         command = eval(self.command[self.protocol]['mkdir'])
-        if verbose:
-            stderr.write(command + "\n")
+        logger.debug( command )
         (err, out) = commands.getstatusoutput(command)
         
         if err != 0 :
@@ -237,7 +231,7 @@ class VCPURL(object):
             logger.error(out)
             raise Exception(out)
     
-    def rm(self, verbose=False):
+    def rm(self):
         """
         Delete a file or folder
         """
@@ -245,8 +239,7 @@ class VCPURL(object):
             raise Exception("This method is not available for " + self.protocol + " protocol")
         
         command = eval(self.command[self.protocol]['rm'])
-        if verbose: 
-            stderr.write(command + "\n")
+        logger.debug( command )
         (err, out) = commands.getstatusoutput(command)
         
         if err != 0 : 
@@ -254,7 +247,7 @@ class VCPURL(object):
             logger.error(out)
             raise Exception(out)
     
-    def rename(self, newname, verbose=False):
+    def rename(self, newname):
         """
         Rename self.file into newname
         """
@@ -267,15 +260,14 @@ class VCPURL(object):
         dest_folder = dirname(orig)
         dest = join(dest_folder,newname)
         command = eval(self.command[self.protocol]['rename'])
-        if verbose: 
-            stderr.write(command + "\n")
+        logger.debug( command )
         (err, out) = commands.getstatusoutput(command)
         if err != 0 :
             out="Error listing file: " + str(out)
             logger.error(out)
             raise Exception(out)
 
-    def isfile(self, verbose=False):
+    def isfile(self):
         """
         Return True if self.file is a file
         """
@@ -288,7 +280,7 @@ class VCPURL(object):
            else:
               return False
     
-    def exists(self, verbose=False):
+    def exists(self):
         """
         Return True if self.file exists
         """
@@ -300,17 +292,17 @@ class VCPURL(object):
         else:
             return True
 
-def copy(origin, destination, overwrite=True, verbose=False):
+def copy(origin, destination, overwrite=True):
     """
     Copy orig to dest.
     """
     if VCPURL(origin).isfile():
-        copy_file(origin, destination, overwrite, verbose)
+        copy_file(origin, destination, overwrite)
     else:
-        copy_tree(origin, destination, overwrite, verbose)
+        copy_tree(origin, destination, overwrite)
 
 
-def copy_tree(origin, destination, overwrite=True, verbose=False):
+def copy_tree(origin, destination, overwrite=True):
     """
     Recursively copy orig to dest.
     """
@@ -324,14 +316,14 @@ def copy_tree(origin, destination, overwrite=True, verbose=False):
         dest_name = join(dest.__str__(), name)
         try:
             if VCPURL(orig_name).isfile():
-                copy_file(orig_name, dest_name, overwrite, verbose)
+                copy_file(orig_name, dest_name, overwrite)
             else:
-                copy_tree(orig_name, dest_name, overwrite, verbose)
+                copy_tree(orig_name, dest_name, overwrite)
         except Exception, err:
             stderr.write(str(err) + "\n")
             logger.warning(str(err))
 
-def copy_file(origin, destination, overwrite=True, verbose=False):
+def copy_file(origin, destination, overwrite=True):
     """
     Copy orig to dest file.
     """
@@ -398,8 +390,6 @@ def copy_file(origin, destination, overwrite=True, verbose=False):
         dest = VCPURL(destination)
     out="Starting to copy ..."
     logger.debug(out)
-    if verbose :
-        stderr.write(out + "\n")
     if http_ftp_protocol(dest.protocol):
         out="Unable to copy if the destination protocol is " + dest.protocol
         logger.error(out)
@@ -420,8 +410,6 @@ def copy_file(origin, destination, overwrite=True, verbose=False):
             dest.protocol = "file"
     out = "Copying from " + orig.__str__() + " to " + dest.__str__()
     logger.debug(out)   
-    if verbose :
-        stderr.write(out + "\n")        
     param = vcp_matrix[orig.protocol][dest.protocol]
     #orig customization 
     orig_file = eval(param['orig'])
@@ -432,28 +420,22 @@ def copy_file(origin, destination, overwrite=True, verbose=False):
     else:
         dest_file = eval(param['dest'])
     param['dest'] = dest_file
-    if not verbose: 
+    if logger.level != logging.DEBUG : 
         param['verbose'] = ""
     #Overwrite the destination if necessary
     if overwrite:
         if dest.exists() and dest.isfile():
             out = "Overwriting " + dest.__str__()
             logger.debug(out)
-            if verbose :
-                stderr.write(out + "\n")
-            dest.rm(verbose)
+            dest.rm()
     start = time.time()
     command = eval(param['command'])
     out="Command to copy " + command
     logger.debug(out)
-    if verbose :  
-        stderr.write(out + "\n")
     (err, out) = commands.getstatusoutput(command)
     if err != 0 :
         raise Exception("Error copying file: " + out)
     elapsed = time.time()- start
     out = "The copy lasted %.2f seconds" %(elapsed)
     logger.debug(out)
-    if verbose :    
-        stderr.write(out + "\n")
 

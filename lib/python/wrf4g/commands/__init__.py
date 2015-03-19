@@ -6,40 +6,87 @@ import cmdln
 import errno
 import shutil
 
-from os.path     import exists , expandvars , join , abspath , dirname , expanduser , basename , isdir 
-from wrf4g.core  import Experiment , Realization , JobStatus , Environment , Chunk , Job , FrameWork , Proxy , Resource , Host
-from wrf4g.utils import VarEnv , validate_name , pairs2dict , edit_file
-from wrf4g       import WRF4G_LOCATION , WRF4G_DEPLOYMENT_LOCATION , DB4G_CONF , GW_LOCATION , GW_BIN_LOCATION , GW_LIB_LOCATION , MYSQL_LOCATION
-from wrf4g       import vcplib , vdblib
 
-try :
-    sys.path.insert( 0 , GW_LIB_LOCATION  )
-    from drm4g.core.configure import Configuration
-except :
-    pass 
+from drm4g.commands  import exec_cmd, process_is_runnig
+from os.path         import exists , expandvars , join , abspath , dirname , expanduser , basename , isdir 
+from wrf4g.core      import Experiment , Realization , JobStatus , Environment , Chunk , Job
+from wrf4g.utils     import VarEnv , validate_name , pairs2dict , edit_file
 
-__version__  = '1.5.2'
+__version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
             
-class ManagementUtility( cmdln.Cmdln ) :
-    """Usage:
-        wrf4g COMMAND [ARGS...]
-        wrf4g help COMMAND
+class DataBase( object ):
 
-    ${command_list}
-    ${help_list}
-    WRF4G is a framework for managing WRF experiments.
-    For additional information, see http://www.meteo.unican.es/software/wrf4g
-    """
-    
-    prompt = "wrf4g > "
-    try :
-        config = Configuration()
-    except :
-        config = None
-    
-    #Configure WRF4G_DB
+    def __init__( self ):
+        self.port       = VarEnv( DB4G_CONF ).get_variable( 'WRF4G_DB_PORT'  , 'Database' )
+
+        self.file_pid   = join( WRF4G_DIR , 'var' , 'mysql.pid' )
+        self.mysql_sock = join( WRF4G_DIR , 'var' , 'mysql.sock' )
+        self.mysql_log  = join( WRF4G_DIR , 'var' , 'log'   , 'mysql.log' )
+
+    def _port_is_free( self , port ):
+        import socket
+        sock = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
+        if sock.connect_ex( ( '127.0.0.1', int( port ) ) ) is 0 :
+            return False
+        else :
+            return True
+
+    def status( self ):
+        if not exists( self.mysql_pid ) :
+            logger.info( "WRF4G_DB (MySQL) is stopped" )
+        elif process_is_runnig( self.mysql_pid ) :
+            logger.info( "WRF4G_DB (MySQL) is running" )
+        else :
+            logger.info( "WRF4G_DB (MySQL) is stopped" )
+
+    def start( self ):
+        logger.info( "Starting WRF4G_DB (MySQL) ... " )
+        if not self._port_is_free( self.mysql_port ) and not process_is_runnig( self.mysql_pid ):
+            raise Exception( "WARNING: Another process is listening on port %s."
+              "Change WRF4G_DB_PORT in '%s' file to start MySQL on a different port." % ( self.mysql_port , DB4G_CONF )
+              "By executing the command 'wrf4g conf database'."
+              )
+        elif not exists( self.mysql_pid ) or ( exists( self.mysql_pid ) and not process_is_runnig( self.mysql_pid ) ) :
+            mysql_options = "--no-defaults --port=%s --socket=%s --log-error=%s --pid-file=%s" % ( self.mysql_port ,
+                                                                                                     self.mysql_sock ,
+                                                                                                     self.mysql_log ,
+                                                                                                     self.mysql_pid
+                                                                                                     )
+            cmd =  "cd %s ; nohup ./bin/mysqld_safe %s &>/dev/null &" % ( MYSQL_DIR , mysql_options )
+            exec_cmd( cmd )
+            time.sleep( 1.0 )
+            if not exists( self.mysql_pid ) or self._port_is_free( self.mysql_port ) :
+                logger.error( "ERROR: MySQL did not start, check '%s' for more information " % self.mysql_log )
+            else :
+                logger.info( "OK" )
+        else :
+            logger.warn( "WARNING: MySQL is already running" )
+
+    def stop( self ):
+        if self.local_db == '1' :
+            logger.info( "Stopping WRF4G_DB (MySQL) ..." )
+            if not exists( self.mysql_pid ) or ( exists( self.mysql_pid ) and not process_is_runnig( self.mysql_pid ) ) :
+                logger.warn( "WARNING: MySQL is already stopped." )
+            elif exists( self.mysql_pid ) and process_is_runnig( self.mysql_pid ) :
+                with open( self.mysql_pid , 'r') as f:
+                    pid = f.readline().strip()
+                mysql_ppid , err = exec_cmd( "ps h -p %s -o ppid" % pid )
+                if err :
+                    raise Exception( err )
+                try :
+                    os.kill( int( mysql_ppid ), signal.SIGKILL )
+                    os.kill( int( pid ) , signal.SIGKILL )
+                    logger.info( "OK" )
+                except Exception , err :
+                    logger.error( "ERROR: stopping MySQL: %s" % err )
+            else :
+                logger.warn( "WARNING: MySQL is already stopped." )
+        else :
+             logger.warn( "You are using a remote WRF4G_DB (MySQL)" )
+
+
     try:
         db4g_vars = VarEnv( DB4G_CONF )
         database_section =  'Database'
@@ -239,66 +286,6 @@ class ManagementUtility( cmdln.Cmdln ) :
                         Experiment( data = { 'id' : id_exp } , dbc = self.dbc ).summarized_status( opts.number_of_characters )
         except Exception, err :
             sys.stderr.write( str( err ) + '\n' )
-        finally:
-            if self.dbc.is_open() :
-                self.dbc.close()
-
-    @cmdln.option("-e", "--exp",metavar="name",dest="exp_name", 
-                  help="Experiment Name")
-    @cmdln.option("-r", "--rea",metavar="name",dest="rea_name", 
-                  help="Realization Name")
-    @cmdln.option("-F", "--frea",metavar="FILE",dest="rea_file",
-                  help="File containing the Realization Names to change of the priority")
-    @cmdln.option("-v", "--verbose",action="store_true",default=False, dest="verbose",
-                  help="Verbose mode. Explain what is being done")
-    @cmdln.option("-p", "--priority",type="int",dest="priority",
-                  help="The priority must be in range [0,20].")
-
-    def do_priority(self, subcmd, opts, *args):
-        """Change the priority of an experiment or realization. The priority must be in range [0,20] 
-            and default value is 0. When a chunk gets a priority of 20, it becomes an urgent. 
-            This chunk is dispatched as soon as possible, bypassing all the scheduling policies. 
-        
-        usage:
-            wrf4g priority options
-        
-        ${cmd_option_list}
-        """
-        try:
-            self.dbc.connect()
-            if not ( opts.priority or opts.exp_name or opts.rea_name or opts.rea_file ):
-                raise Exception( "Use '--help' option " )
-            if opts.exp_name:
-                exp=Experiment(data={'name':'%s'%opts.exp_name}, verbose=opts.verbose , dbc = self.dbc)
-                id=exp.get_id_from_name()
-                if int(id) < 0:
-                    raise Exception( "Experiment '%s' does not exists" % opts.exp_name )
-                else:
-                    reas=exp.get_run_reas_id()
-                    reas.extend(exp.get_wait_reas_id())
-                    for id_rea in reas:
-                        rea=Realization(data={'id': id_rea},verbose=opts.verbose,dbc = self.dbc)
-                        rea.change_priority(opts.priority)
-            elif opts.rea_name:
-                for rea_name in opts.rea_name.split( ',' ) :
-                    rea=Realization(data={'name': rea_name },verbose=opts.verbose,dbc = self.dbc)
-                    id=rea.get_id_from_name()   
-                    if int(id) < 0:
-                        raise Exception( "Realization '%s' does not exists" % rea_name )
-                    else:
-                        rea.change_priority(opts.priority)
-            elif opts.rea_file:
-                with open( opts.rea_file , 'r') as f :
-                    for realization in f.readlines():
-                        realization=realization.rstrip()
-                    rea=Realization(data={'name':realization},verbose=opts.verbose,dbc = self.dbc)
-                    id=rea.get_id_from_name()
-                    if int(id) < 0:
-                        raise Exception( "Realization with name '%s' does not exist" % realization )
-                    else:
-                        rea.change_priority(opts.priority)
-        except Exception, err :
-            sys.stderr.write( str( err ) + '\n' )    
         finally:
             if self.dbc.is_open() :
                 self.dbc.close()
@@ -548,71 +535,6 @@ class ManagementUtility( cmdln.Cmdln ) :
         except Exception , err :
             sys.stderr.write( str( err ) + '\n' )
         
-    @cmdln.option("-c", "--check",action="store_true",
-                  help="Check if the Grid proxy certificate is valid. You have to indicate the resource.")
-    @cmdln.option("-d", "--download",action="store_true",
-                  help="It  retrieves  a  proxy  credential  from  the myproxy-server. You have to indicate the resource.")
-    @cmdln.option("-u", "--upload", action="store_true",
-                  help="It uploads the credential to a myproxy-server. You have to indicate the resource")
-    @cmdln.option("-C", "--create",action="store_true",
-                  help=" It creates a proxy for 1 week. You only have to indicate the resource.")
-    @cmdln.option("-D", "--destroy", action="store_true",
-                  help="It destroys the proxy on the myproxy-server. You have to indicate the resource.")
-    @cmdln.option("-l", "--cred-lifetime", metavar = "hours" , type = "int" , default = 168 , dest = "cred_lifetime" ,
-                  help="Lifetime of delegated proxy on server (default 1 week).")
-    @cmdln.option("-p", "--proxy-lifetime", metavar = "hours" , type = "int", default = 12 ,  dest = "proxy_lifetime" ,
-                  help="Lifetime of proxies delegated by server (default 12 hours).")
-
-    def do_proxy(self, subcmd, opts, *args):
-        """Command for managing X.509 Public Key Infrastructure (PKI) security credentials
-        
-        usage:
-            wrf4g proxy [options] RESOURCE
-                    
-        ${cmd_option_list}
-        """
-        try :
-            if len( args ) is not 1 :
-                raise Exception( "Please, provide a resource" )
-            res_name  = args[ 0 ]
-            self.config.load()
-            if not self.config.resources.has_key( res_name ) :
-                raise Exception( "\t'%s' is not a resource." % res_name )
-            resource  = self.config.resources[ res_name ]
-            communicator = self.config.make_communicators()[ res_name ]
-            communicator.connect()
-            proxy = Proxy( resource , communicator , opts.cred_lifetime , opts.proxy_lifetime )
-            if opts.download:
-                proxy.download( )
-            elif opts.check :
-                proxy.check( )
-            elif opts.destroy :
-                proxy.destroy( )
-            elif opts.upload :
-                proxy.upload( )
-            elif opts.create:
-                proxy.upload( )
-                proxy.download( )
-            else :
-                proxy.check( )
-        except Exception, err:
-            sys.stderr.write( str( err ) + '\n' )    
-
-    def do_edit(self, subcmd, opts, *args):
-        """Edit a file. vi will be set by default. In order to modify that, 
-        configure EDITOR shell variable.
-        
-        usage:
-            wrf4g edit FILE
-                    
-        ${cmd_option_list}
-        """
-        try :        
-            if len( args ) is not 1 :
-                raise Exception( "Please provide one file" )
-            edit_file( args[ 0 ] )
-        except Exception, err:
-            sys.stderr.write( str( err ) + '\n' ) 
             
     @cmdln.option("-v", "--verbose",action="store_true", dest="verbose", default=False,
                   help="Verbose mode. Explain what is being done")
@@ -658,116 +580,3 @@ class ManagementUtility( cmdln.Cmdln ) :
             sys.stderr.write( str( err ) + '\n' )
             sys.exit(-1)            
             
-    @cmdln.option("-l", "--list",action="store_true",
-                  help="List the resources available.")
-    @cmdln.option("-c", "--check", action="store_true",
-                  help="Check if the resources.conf file has been configured well.")
-    @cmdln.option("-f", "--features", action="store_true",
-                  help="List the features of each resource.")
-    @cmdln.option("-e", "--edit",action="store_true",
-                  help="Edit resource file configuration.")
-    @cmdln.option("-C", "--check-frontends",dest="checkfrontends",action="store_true",
-                  help="Check if all front-ends are reachable.")
-    
-
-    def do_resources(self, subcmd, opts, *args):
-        """Prints information about the resources in WRF4G 
-        
-        usage:
-            wrf4g resources [options] 
-                    
-        ${cmd_option_list}
-        """
-        try :
-            res = Resource( self.config )
-            if opts.list :
-                res.list_resources()
-            elif opts.checkfrontends :
-                res.check_frontends()
-            elif opts.features :
-                res.resource_features()
-            elif opts.edit :
-                res.edit_resources()
-            elif opts.check :
-                res.check_resources()
-                print "The check has passed with flying colors"
-            else :
-                res.list_resources()
-        except Exception , err :
-            sys.stderr.write( str( err ) + '\n' )
-
-    @cmdln.option("-l", "--list",dest="list",action="store_true",
-                  help="List the hosts and their features."
-                  "In order to see all the information them, you have to specify the HID.")
-            
-    def do_host(self, subcmd, opts, *args):
-        """Prints information about the hosts available
-        
-        usage:
-            wrf4g hosts [options] [HID] 
-                    
-        ${cmd_option_list}
-        """
-        try :
-            host = Host( )
-            if opts.list and len( args ) is not 0 :
-                for hid in args[ 0: ] :
-                    host.list( hid )
-            else :
-                host.list( None )
-        except Exception , err :
-            sys.stderr.write( str( err ) + '\n' )
-
-    @cmdln.option("-v", "--verbose", action="store_true", dest="verbose", default=False, 
-                      help="Verbose mode. Explain what is being done")
-    @cmdln.option("-o", "--overwrite", action="store_true", dest="overwrite", default=True, 
-                      help="If the destination already exists but is not a directory, it will be overwritten")
-    
-    def do_vcp(self, subcmd, opts, *args):
-        """Virtual copy.
-        
-        usage:
-            wrf4g vcp [options] SOURCE DEST
-            
-        LFN              lfn:///grid/VO/file file://home/user/file 
-        GRIDFTP          gridftp://computer:2812/grid/VO/user/file
-        RSYNC            rsync://user@computer:34/grid/VO/user/file
-        SIMBOLIC LINK    ln:/home/user/file or ln:file
-        FILE             file:/home/user/file file:/home/user/file2
-        HTTPS            https://www.meteo.unican.es/work/WRF4G.tar.gz
-        HTTP             http://www.meteo.unican.es/work/WRF4G.tar.gz
-        FTP              ftp://www.meteo.unican.es/work/WRF4G.tar.gz
-                        
-        ${cmd_option_list}
-        """
-        try:
-            if len(args) is not 2 :
-                raise Exception("Incorrect number of arguments")
-            orig = args[0]
-            dest = args[1]
-            orig_file = basename(orig)
-            if '*' in orig_file :
-                orig_dir = dirname(orig)
-                for file in vcplib.VCPURL(orig_dir).ls(orig_file):
-                    vcplib.copy(join(orig_dir, file), dest, overwrite = opts.overwrite, verbose=opts.verbose)
-            else:
-                vcplib.copy(orig, dest, overwrite = opts.overwrite, verbose=opts.verbose)
-        except Exception, err :
-            sys.stderr.write( str( err ) + '\n' )
-            sys.exit(-1)
-
-    def do_quit( self, subcmd, opts, *args ):
-        """
-        Quits the console.
-        """
-        sys.exit( 0 )
-           
-                
-def execute_from_command_line( argv ):
-    """
-    A method that runs a ManagementUtility.
-    """
-    if len( argv ) > 1:
-        ManagementUtility().main( argv )
-    else:
-        ManagementUtility().cmdloop()
