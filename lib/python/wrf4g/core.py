@@ -7,7 +7,7 @@ import logging
 import os
 import tarfile
 import shutil
-import wrf4g.gridwaylib
+import wrf4g.tools.gridwaylib
 
 from sqlalchemy         import func
 from sqlalchemy.orm.exc import NoResultFound
@@ -731,7 +731,7 @@ class Job( JobModel ):
         if not self.gw_restarted :
             self.gw_restarted = 0
         # create gridway's job
-        job      = wrf4g.gridwaylib.Job()
+        job      = wrf4g.tools.gridwaylib.Job()
         rea_id   = self.chunk_id.rea_id.id
         rea_name = self.chunk_id.rea_id.name
         exp_name = self.chunk_id.rea_id.exp_id.name
@@ -786,7 +786,7 @@ class Job( JobModel ):
         """
         logger.info('\t\t\tDeleting Job %d' % self.gw_job ) 
         if not dryrun :
-            gridwaylib.Job().kill( self.gw_job )
+            wrf4g.tools.gridwaylib.Job().kill( self.gw_job )
             self.set_status( self.session.query( JobStatusModel ).\
                  get( JOB_STATUS[ 'PREPARED' ] ) ) 
          
