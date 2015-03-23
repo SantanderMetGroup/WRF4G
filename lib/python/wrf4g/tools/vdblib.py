@@ -1,17 +1,15 @@
 import os
-from sys import stderr, exit, path, version_info
-from re  import search
+from sys   import stderr, exit, path, version_info
+from re    import search
+from wrf4g import logger
+
 
 __version__  = '1.5.2'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-try:
-    import pymysql as MySQLdb
-    MySQLdb.install_as_MySQLdb() 
-except Exception, e:
-    print 'Caught exception: %s: %s' % (e.__class__, str(e))
-    exit(-1)
+import pymysql as MySQLdb
+MySQLdb.install_as_MySQLdb() 
         
 def parse_one_field(dict):
     return dict[0].values()[0]
@@ -74,7 +72,7 @@ class vdb:
     def rollback(self):
         self.con.rollback()
         
-    def insert(self, table, data, verbose=False):
+    def insert(self, table, data):
         """
         INSERT INTO table (data(keys)) VALUES(data(values))
         Insert in "table" the values from the "data" dictionary
@@ -88,8 +86,7 @@ class vdb:
         try:
             v = str(data.values())[1:-1]
             query = "INSERT INTO %s (%s) VALUES (%s)" % (table, ','.join(data.keys()), v)
-            if verbose:
-                stderr.write(query + "\n")
+            logger.debug( query )
             cursor.execute(query)
             cursor.execute("SELECT LAST_INSERT_ID()")
             result = cursor.fetchall()
@@ -98,7 +95,7 @@ class vdb:
         id = list_query().one_field(result)
         return id
     
-    def select(self, table, data, condition='1=1', verbose=False):
+    def select(self, table, data, condition='1=1'):
         """ 
         SELECT fields FROM table WHERE condition
         Returns a dictionary with the name of the fields and their contents.
@@ -113,8 +110,7 @@ class vdb:
         # execute SQL INSERT statement
         try:
             query = "SELECT %s FROM %s WHERE %s" % (data, table, condition)
-            if verbose:
-                stderr.write(query + "\n")
+            logger.debug( query )
             cursor.execute(query)
             result = cursor.fetchall()
         except MySQLdb.Error, e:
@@ -122,7 +118,7 @@ class vdb:
         # return an array with a dictionary for each entry
         return result
     
-    def update(self, table, data, condition='1=1', verbose=False):
+    def update(self, table, data, condition='1=1'):
         """
         UPDATE table SET data WHERE condition
         UPDATE "table" with the values of the "data" dictionary
@@ -146,14 +142,13 @@ class vdb:
         # execute SQL INSERT statement
         try:
             query = "UPDATE %s SET %s WHERE %s" % (table, val[:-1], condition)
-            if verbose:
-                stderr.write(query + "\n")
+            logger.debug( query )
             cursor.execute(query)
         except MySQLdb.Error, e:
             raise Exception("Error %d: %s" % (e.args[0], e.args[1]))
         return 0
     
-    def delete_row(self,table,condition,verbose=False):
+    def delete_row(self,table,condition):
         """
         DELETE FROM table WHERE condition
         DELETE FROM WRF4GDB.Experiment WHERE `id`='16';
@@ -162,20 +157,18 @@ class vdb:
         cursor = self.con.cursor (MySQLdb.cursors.DictCursor)
         try:
             query = "DELETE FROM %s WHERE %s" % (table, condition)
-            if verbose:
-                stderr.write(query + "\n")
+            logger.debug( query )
             cursor.execute(query)
         except MySQLdb.Error, e:
             raise Exception("Error %d: %s" % (e.args[0], e.args[1]))
         return 0
     
-    def describe(self,table,verbose=False):
+    def describe(self,table):
         cursor = self.con.cursor (MySQLdb.cursors.DictCursor)
         # execute SQL INSERT statement
         try:
             query = "DESCRIBE %s" % table
-            if verbose:
-                stderr.write(query + "\n")
+            logger.debug( query )
             cursor.execute(query)
             result = cursor.fetchall()
         except MySQLdb.Error, e:
@@ -185,13 +178,12 @@ class vdb:
             fields.append(i['Field'])
         return fields
     
-    def remove_entry(self,table,entry,verbose=False):
+    def remove_entry(self,table,entry):
         cursor = self.con.cursor (MySQLdb.cursors.DictCursor)
         # execute SQL INSERT statement
         try:
             query = "DESCRIBE %s" % table
-            if verbose:
-                stderr.write(query + "\n")
+            logger.debug( query )
             cursor.execute(query)
             result = cursor.fetchall()
         except MySQLdb.Error, e:
