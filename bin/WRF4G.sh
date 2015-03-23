@@ -40,18 +40,19 @@ function transfer_output_log (){
   
   test -f namelist.input && cp namelist.input ${logdir}/
   
-  echo 
+  echo "" 
   echo "*********************************
   echo "WRF4G was deployed in ... "
   echo "    $ROOTDIR"
   echo "and it ran in ..."
   echo "    $LOCALDIR"
   echo "*********************************
-  echo
+  echo ""
   
-  logfile="log_${WRF4G_NCHUNK}_${WRF4G_JOB_ID}.tar.gz"
+  logfile="log_${WRF4G_NCHUNK}_${GW_JOB_ID}_${GW_RESTARTED}.tar.gz"
   cd ${logdir}
   tar czf ${logfile} * && wrf4g vcp ${logfile} ${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}/log/
+  cp ${logfile} ${ROOTDIR}/ 
   cd -
 }
 
@@ -289,8 +290,6 @@ export clean_after_run=1
 export timestep_dxfactor=6
 export real_parallel=0
 export wrf_parallel=1
-export WRF4G_LOCATION="NONE"
-export WRF4G_SHELL="Yes"
 export DEBUG="-v"
 export VERBOSE=1
 export default_preprocessor="default"
@@ -325,20 +324,14 @@ source ${ROOTDIR}/lib/bash/wrf4g_job_status_code.sh
 #
 
 #   If there are additional files, expand them
-if test -f input_files.tar.gz; then
-  verbose_print "* `date`: There is a input_files.tar.gz package available ... "
-  tar xzf input_files.tar.gz && rm -rf input_files.tat.gz || exit ${ERROR_UNCOMPRESS_INPUTFILES}
+if test -f wrf4g_files.tar.gz; then
+  verbose_print "* `date`: There is a wrf4g_files.tar.gz package available ... "
+  tar xzf wrf4g_files.tar.gz && rm -rf wrf4g_files.tat.gz || exit ${ERROR_UNCOMPRESS_INPUTFILES}
 fi
 chmod +x ${ROOTDIR}/bin/*
 
-sed --in-place 's/\ *=\ */=/' resources.wrf4g  && cp resources.wrf4g  new_resources.wrf4g
-sed --in-place 's/\ *=\ */=/' experiment.wrf4g && cp experiment.wrf4g new_experiment.wrf4g
-
-wrf4g shell Job expvar id=None new_experiment.wrf4g new_resources.wrf4g
+wrf4g shell Job expvar 
 [ $? != 0 ] && exit ${ERROR_CUSTOMIZATION_CONFIGURATIONFILES}
-
-source new_resources.wrf4g
-source new_experiment.wrf4g
 
 #
 #   Should we unpack here or there is a local filesystem for us to run?
@@ -358,31 +351,14 @@ mkdir -p ${logdir}
 #   Redirect output and error file descriptors
 exec &>log/WRF4G.log
 
-#
-#   Update Job Status in DB
-#
-
-job_conf="gw_job=${GW_JOB_ID},id_chunk=${WRF4G_CHUNK_ID},resource=${GW_HOSTNAME},wn=$(hostname)"
-WRF4G_JOB_ID=$(wrf4g shell --verbose Job load_wn_conf $job_conf $GW_RESTARTED) 
-exit_code=$?
-[ $exit_code != 0 ] && wrf4g_exit ${exit_code} 
-
-WRF4G_RM_REALIZATION="${WRF4G_BASEPATH}/${WRF4G_EXPERIMENT}/${WRF4G_REALIZATION}"
-
 #   Making remote directories for this job
 verbose_print "* `date`: Creating remote output structure ... "
 
 out=$(wrf4g shell --verbose  Realization prepare_remote_storage id=${WRF4G_REALIZATION_ID} ${WRF4G_RM_REALIZATION})
 [ $out != 0 ] && wrf4g_exit ${ERROR_CANNOT_CREATE_REMOTE_DIR} 
 
-#   Coping Making remote directories for this job
-echo "* `date`: Coping configuration files to remote out structure ... "
-
-out=$(wrf4g shell --verbose Realization copy_configuration_files id=${WRF4G_REALIZATION_ID} ${WRF4G_RM_REALIZATION})
-[ $out != 0 ] && wrf4g_exit ${ERROR_CANNOT_COPY_CONFIGURATION_FILES}
-
 #
-# GridWay won't remove ROOTDIR directory if clean_after_run is 0
+# DRM4G won't remove ROOTDIR directory if clean_after_run is 0
 #
 [ ${clean_after_run} == 0 ] && touch ${ROOTDIR}/.lock
 

@@ -18,20 +18,31 @@ from wrf4g.db           import ExperimentModel, RealizationModel, ChunkModel, Jo
 from wrf4g.utils        import datetime2datewrf
 from wrf4g.tools.vcplib import VCPURL
 
-# Chunk and job status
+# Realization, Chunk and Job status
+REA_STATUS = {
+                 'PREPARED'     : 0,
+                 'SUBMITTED'    : 1,
+                 'RUNNING'      : 2,
+                 'FAILED'       : 3,
+                 'FINISHED'     : 4,
+                 'PENDING'      : 5,
+               }
+
 CHUNK_STATUS = {
-                 'PREPARED'  : 0,
-                 'SUBMITTED' : 1,
-                 'RUNNING'   : 2,
-                 'FAILED'    : 3,
-                 'FINISHED'  : 4,
-                 'PENDING'   : 5,
+                 'PREPARED'     : 0,
+                 'SUBMITTED'    : 1,
+                 'RUNNING'      : 2,
+                 'FAILED'       : 3,
+                 'FINISHED'     : 4,
+                 'PENDING'      : 5,
                }
 
 JOB_STATUS  =   {
                  'PREPARED'     : 0,
                  'SUBMITTED'    : 1,
                  'RUNNING'      : 2,
+                 'FINISHED'     : 4,
+                 'PENDING'      : 5,
                  'PREPARING_WN' : 10,
                  'DOWN_BIN'     : 11,
                  'DOWN_RESTART' : 12,
@@ -43,8 +54,6 @@ JOB_STATUS  =   {
                  'UPLIAD_WPS'   : 25,
                  'ICBCPROCESOR' : 26,
                  'WRF'          : 29,
-                 'FINISHED'     : 40,
-                 'FAILED'       : 41,
                 }
              
 class Experiment( ExperimentModel ):
@@ -480,7 +489,7 @@ class Realization( RealizationModel ):
        
         if status_first_ch == CHUNK_STATUS[ 'PREPARED' ] or status_first_ch == CHUNK_STATUS[ 'SUBMITTED' ] :
             #Parameters are:
-            job_status = 0 if status_first_ch == CHUNK_STATUS[ 'PREPARED' ] else 1
+            job_status = REA_STATUS[ 'PREPARED' ] if status_first_ch == CHUNK_STATUS[ 'PREPARED' ] else REA_STATUS[ 'SUBMITTED' ]
             rea_status = job_status
             resource   = '-'
             exitcode   = None
@@ -493,7 +502,7 @@ class Realization( RealizationModel ):
             try :
                 id_chunk_min_failed = q_chunks.\
                                       filter( Chunk.status == CHUNK_STATUS[ 'FAILED' ] ).\
-                                      order_by( Chunk.chunk_id )[ 0 ].id
+                                      order_by( Chunk.chunk_id ).one().id
             except :
                 try : 
                     #There are not any chunk failed
@@ -505,24 +514,25 @@ class Realization( RealizationModel ):
                     #If there are not any chunk with status = finished => is the first chunk of the realization
                     ch_current = q_chunks.\
                                  filter( Chunk.chunk_id == 1 )
-                    rea_status = 2
+                    rea_status = REA_STATUS[ 'RUNNING' ]
+
                 else:
                     #There are any chunk whose status is finished
                     #check if the realization is finished
                     if id_chunk_max_finished == number_chunks:
-                        rea_status = 4 
+                        rea_status = REA_STATUS[ 'FINISHED' ] 
                         ch_current = q_chunks.\
                                      filter( Chunk.chunk_id == id_chunk_max_finished)
                     else:
                         #Realization has not finished yet
-                        rea_status = 2
+                        rea_status = REA_STATUS[ 'RUNNING' ]
                         ch_current = q_chunks.\
                                      filter( Chunk.chunk_id == id_chunk_max_finished + 1 )
             else:
                 #First chunk with status = failed
                 ch_current = q_chunks.\
                              filter( Chunk.chunk_id == id_chunk_min_failed )
-                rea_status = 3
+                rea_status =  REA_STATUS[ 'FALIED' ]
                 
             #Select parameters:job_status, rea_status,wn,resource,exitcode,nchunks
             #Last job of current chunk
@@ -531,10 +541,7 @@ class Realization( RealizationModel ):
                           order_by( Job.id )[ -1 ].id
             last_job    = self.session.query( Job ).\
                           filter( Job.id == id_last_job )
-            #Parameters if last_job.status is prepared(0) or submitted(1)
-            job_st_0 = self.session.query( JobStatusModel ).get( 0 )
-            job_st_1 = self.session.query( JobStatusModel ).get( 1 )
-            if last_job.status == job_st_0 or last_job.status == job_st_1 :
+            if last_job.status == JOB_STATUS[ 'PREPARED' ] or last_job.status == JOB_STATUS[ 'SUBMITTED'] :
                 #Parameters
                 job_status = last_job.status.id
                 rea_status = job_status
@@ -544,6 +551,7 @@ class Realization( RealizationModel ):
             else:
                 #Last job does not have status prepared or submitted
                 job_status = last_job.status.id
+                rea_status = job_status
                 resource   = last_job.resource
                 exitcode   = last_job.exitcode
                 nchunks    = '%d/%d' % (last_job.id_chunk.id_chunk, number_chunks)
@@ -560,9 +568,6 @@ class Realization( RealizationModel ):
         totalt =  int( self.edate.strftime("%s") ) - int( self.sdate.strftime("%s") )
         #Percentage
         per = runt * 100.0/ totalt
-        #Rea_status
-        if job_status < 10 :
-            rea_status = 5
         #Job status
         job_status_description = self.session.query( JobStatusModel).get( job_status ).description
         #Print output
@@ -737,33 +742,38 @@ class Job( JobModel ):
         rea_name = self.chunk_id.rea_id.name
         exp_name = self.chunk_id.rea_id.exp_id.name
         # create template
-        rea_dir = join( WRF4G_DIR , 'var' , 'submission' , exp_name, rea_name )
-        wrf4g_package = join( WRF4G_DIR , 'var' , 'submission' , exp_name, 'WRF4G.tar.gz' )
-        if not exists(  wrf4g_package ) :
-            raise Exception( "'%s' file does not exist" % wrf4g_package )
-        sandbox  = "file://%(rea_dir)s/%(wrf4g_package)s,"                 
-        sandbox += "file://%(rea_dir)s/db.conf,"          
-        sandbox += "file://%(re_dir)s/resources.wrf4g,"  
-        sandbox += "file://%(rea_dir)s/experiment.wrf4g," 
-        sandbox += "file://%(rea_dir)s/namelist.input"  
-        sandbox % { "rea_dir" : rea_dir , "wrf4g_package" : wrf4g_package } 
+        rea_dir  = join( WRF4G_DIR , 'var' , 'submission' , exp_name, rea_name )
+        if not exists(  wrf4g_package ) : raise Exception( "'%s' file does not exist" % wrf4g_package )
+        # files to add for the inputsandbox 
+        inputsandbox  = "file://%(rea_dir)s/%(wrf4g_package)s,"                 
+        inputsandbox += "file://%(rea_dir)s/db.conf,"          
+        inputsandbox += "file://%(re_dir)s/resources.wrf4g,"  
+        inputsandbox += "file://%(rea_dir)s/experiment.wrf4g," 
+        inputsandbox += "file://%(rea_dir)s/namelist.input"  
+        inputsandbox % { "rea_dir"       : rea_dir , 
+                         "wrf4g_package" : join( WRF4G_DIR , 'var' , 'submission' , exp_name, 'WRF4G.tar.gz' ) } 
         input_files = join( rea_dir , 'wrf4g_files.tar.gz' )
         if exists( input_files ) :
-            sandbox += ",file://%s" % ( input_files )
+            inputsandbox += ",file://%s" % ( input_files )
+        # files to add for the outputsandbox
+        outputsandbox = "log_%s_$GW_JOB_ID_$GW_RESTARTED_.tar.gz" % ( self.chunk_id.chunk_id )
         var_resources = VarEnv( join( rea_dir , 'resources.wrf4g' )  )
-        arguments='%s %s %d %d %s %s'%(rea_name,
-                                       rea_id,
-                                       self.chunk_id.chunk_id,
-                                       self.chunk_id.id,
-                                       datetime2datewrf(self.chunk_id.sdate),
-                                       datetime2datewrf(self.chunk_id.edate)
-                                      )
-        job.create_template( join( rea_dir,  rea_name + '__' + str( self.chunk_id.chunk_id ) ),
-                            arguments,
-                            np           = int( var_resources.get_variable( 'NP', default = '1') ),
-                            req          = var_resources.get_variable( 'REQUIREMENTS' ) ,
-                            environ      = var_resources.get_variable( 'ENVIRONMENT' ) ,
-                            inputsandbox = sandbox
+        arguments = '%s %s %d %d %s %s' % (
+                                         rea_name,
+                                         rea_id,
+                                         self.chunk_id.chunk_id,
+                                         self.chunk_id.id,
+                                         datetime2datewrf(self.chunk_id.sdate),
+                                         datetime2datewrf(self.chunk_id.edate)
+                                        )
+        job.create_template( 
+                            name          = join(rea_dir, rea_name + '__' + str( self.chunk_id.chunk_id ) ),
+                            arguments     = arguments,
+                            np            = int( var_resources.get_variable( 'NP', default = '1') ),
+                            req           = var_resources.get_variable( 'REQUIREMENTS' ),
+                            environ       = var_resources.get_variable( 'ENVIRONMENT' ),
+                            inputsandbox  = inputsandbox,
+                            outputsandbox = outputsandbox
                             )
         #submit job
         # if the first chunk of the realization
@@ -802,7 +812,7 @@ class Job( JobModel ):
                                            Job.id_chunk == self.chunk_id.id).\
                                            group_by( Job.id ).all()[-1]
         except :
-            logger.error('ERROR: Could not find a the last job')
+            logger.error('ERROR: Could not find the last job')
             return -1
         if last_job.gw_restarted < wn_gwres:
             self.gw_restarted = wn_gwres
@@ -812,12 +822,10 @@ class Job( JobModel ):
             #if last_job.gw_restarted>wn_gwres
             logger.error('ERROR: This job should not be running this Chunk')
             return -1
-        self.set_status( self.session.query( JobStatusModel ).\
-            get( JOB_STATUS[ 'PREPARING_WN' ] ) ) 
         return self.id
     
     @staticmethod
-    def create_rea_storage(self):
+    def create_rea_storage(self, rea_dir):
         """
         Create a remote tree directory for the realization
         and copy configure files.
@@ -832,12 +840,6 @@ class Job( JobModel ):
            * -- realout/
            * -- log/         
         """
-        rea_dir = join( 
-                       os.getenv("WRF4G_BASEPATH" ),
-                       os.getenv("WRF4G_EXPERIMENT" ),
-                       os.getenv("WRF4G_REALIZATION" )
-                       )
-                                            
         dir_to_create = [ 
                        dirname( dirname( re_dir ) ) ,
                        dirname( rea_dir ) ,
@@ -886,5 +888,7 @@ class Job( JobModel ):
                             if var in dict_values :
                                 dict_values[ key ] = _KEYCRE.sub( dict_values[ var ] , val , count = 1 )
             [ update_list() for key , val in dict_values.items() if "${" in val ]
-            with open( file , 'w' ) as f :
-                [ f.write( "export %s=%s\n" % ( key , val ) ) for key, val in dict_values.items() ]
+            for key, val in dict_values.items() :
+               os.environ[ key ] = val
+         os.system( 'bash' ) 
+            
