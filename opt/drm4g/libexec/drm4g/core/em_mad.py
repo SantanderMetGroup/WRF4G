@@ -4,6 +4,7 @@ import re
 import time
 import threading
 import logging
+
 from os.path                 import join, dirname
 from string                  import Template
 from Queue                   import Queue
@@ -13,6 +14,9 @@ from drm4g.utils.list        import List
 from drm4g.core.configure    import Configuration
 from drm4g.utils.dynamic     import ThreadPool
 from drm4g.utils.message     import Send
+
+from wrf4g.core              import JOB_STATUS
+from wrf4g.db                import get_session, Job
 
 __version__  = '2.3.1'
 __author__   = 'Carlos Blanco'
@@ -119,13 +123,26 @@ class GwEmMad (object):
             for key in [ "stdout" , "stderr" , "executable" ] :
                 rsl[key] = join( ABS_REMOTE_JOBS_DIR , rsl[key] )
             # Create and copy wrapper_drm4g file 
-            local_file    = join ( dirname ( RSL ) , "wrapper_drm4g.%s" % RSL.split( '.' )[ -1 ] )
+            gw_restarted  = RSL.split( '.' )[ -1 ]
+            local_file    = join ( dirname ( RSL ) , "wrapper_drm4g.%s" % gw_restarted )
             remote_file   = join ( dirname ( rsl[ 'executable' ] ) , 'wrapper_drm4g' )
             job.createWrapper( local_file , job.jobTemplate( rsl ) )
             job.copyWrapper( local_file , remote_file )
             # Execute wrapper_drm4g 
             job.JobId = job.jobSubmit( remote_file )
             self._job_list.put( JID , job )
+            # Connect with the database to update resource and gw_restarted
+            try :
+                session                = get_session()
+                query_job              = session.query( Job.gw_job == JID ).order_by( Job.id ).all()[-1]
+                query_job.resource     = HOST
+                query_job.gw_restarted = gw_restarted
+                session.commit()
+            except Exception , err :
+                session.rollback()
+                logger.error( str( err ) )
+            finally:
+                session.close()
             out = 'SUBMIT %s SUCCESS %s:%s' % ( JID , HOST , job.JobId )
         except Exception, err:
             out = 'SUBMIT %s FAILURE %s' % ( JID , str( err ) )
@@ -186,6 +203,12 @@ class GwEmMad (object):
         """
         Show the state of the job
         """
+        states = {
+                  "PENDING"  : JOB_STATUS[ "PENDING" ],
+                  "ACTIVE"   : JOB_STATUS[ "RUNNING" ],
+                  "DONE"     : JOB_STATUS[ "FINISHED" ],
+                  "FAILED"   : JOB_STATUS[ "FAILED" ],
+                 } 
         while True:
             time.sleep( self._callback_interval )
             self.logger.debug( "CALLBACK new iteration ..." )
@@ -199,6 +222,18 @@ class GwEmMad (object):
                         if newStatus == 'DONE' or newStatus == 'FAILED':
                             self._job_list.delete(JID)
                             time.sleep ( 0.1 )
+                        # Connect with the database to update the status of the job
+                        try :
+                            session   = get_session()
+                            q_job = session.query( Job.gw_job == JID ).order_by( Job.id ).all()[-1]
+                            if q_job.status <= JOB_STATUS[ "PENDING" ] :
+                                q_job.set_status( states[ newStatus ] )
+                                session.commit()                                
+                        except Exception , err :
+                            session.rollback()
+                            logger.error( str( err ) )
+                        finally:
+                            session.close()
                         out = 'CALLBACK %s SUCCESS %s' % ( JID , newStatus )
                         self.message.stdout( out )
                         self.logger.debug( out )
