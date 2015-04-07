@@ -1,14 +1,14 @@
 """
-Manage experiments. 
+Manage WRF4G experiments. 
     
 Usage: 
-    wrf4g experiment list [ --dbg ] [--long ] [ --pattern=<name> ]
-    wrf4g experiment <name> start   [ --dbg ] [ --template=<name> ] [ --dir=<directory> ] 
-    wrf4g experiment <name> create  [ --dbg ] [ --reconfigure ] [ --dry-run ]  EXP_CONF_FILE
-    wrf4g experiment <name> submit  [ --dbg ] [ --rerun ] [ --dry-run ] 
-    wrf4g experiment <name> status  [ --dbg ] [ --long ] [ --pattern=<name> ] 
-    wrf4g experiment <name> stop    [ --dbg ] [ --dry-run ] 
-    wrf4g experiment <name> delete  [ --dbg ] [ --dry-run ]
+    wrf4g exp list           [ --dbg ] [ --long ] [ --pattern=<name> ]
+    wrf4g exp <name> start   [ --dbg ] [ --template=<name> ] [ --dir=<directory> ] 
+    wrf4g exp <name> create  [ --dbg ] [ --reconfigure ] [ --dry-run ] [ --dir=<directory> ]
+    wrf4g exp <name> submit  [ --dbg ] [ --rerun ] [ --dry-run ] 
+    wrf4g exp <name> status  [ --dbg ] [ --long ] [ --pattern=<name> ] 
+    wrf4g exp <name> stop    [ --dbg ] [ --dry-run ] 
+    wrf4g exp <name> delete  [ --dbg ] [ --dry-run ]
    
 Options:
    --dbg                Debug mode.
@@ -16,11 +16,19 @@ Options:
    -l --long            Show a detailed information.
    -p --pattern=<name>  Pattern to find experiments and realizations. 
    -t --template=<name> Experiment template, avaible templates are default, single, physics. 
-   -d --dir=<directory> Directory to create the experiment [default: ./].
+   -d --dir=<directory> Directory to create or start an experiment [default: ./].
    -r --reconfigure     Change the features of a created experiment.
    --rerun              Force to run although this realization or experiment has finished.
-   
-
+  
+Commands:
+   list                 Show all the experiments available.
+   start                Create the files needed to define a WRF4G experiment.
+   create               Given experiment.wrf4g and resources.wrf4g files, prepare the 
+                        experiment creating the realization and chunks needed to perform it.
+   submit               Submit the experiment.        
+   status               Check the status of the experiment realizations.
+   stop                 Stop the active realizations by killing their jobs.
+   delete               Remove the experiment from the database.
 """
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
@@ -28,32 +36,23 @@ __revision__ = "$Id$"
 
 import logging
 import shutil
-import wrf4g.core         import Experiment
 from subprocess           import call
-from sqlalchemy           import create_engine
-from sqlalchemy.orm       import sessionmaker
 from sqlalchemy.orm.exc   import NoResultFound
-from wrf4g                import logger, DB4G_CONF
-from wrf4g.utils          import VarEnv
-
+from wrf4g                import logger
+from wrf4g.db             import get_session
+from wrf4g.core           import Experiment
 
 def run( arg ) :
     if arg[ '--dbg' ] :
         logger.setLevel( logging.DEBUG )
-        logging.getLogger( 'sqlalchemy.engine' ).setLevel( logging.DEBUG )
     if arg[ 'start' ] :
-        Experiment.start( arg[ '<name>' ], arg[ '--template' ], arg[ '--dir' ] )
+        Experiment.create_files( arg[ '<name>' ], arg[ '--template' ], arg[ '--dir' ] )
     elif arg[ 'create' ] :
         call(['bash', 'create_exp'] + arg )
     else :
+        # create a session to connect with the database
+        session = get_session()
         try :
-            db4g_urls = VarEnv( DB4G_CONF ).get_variable( 'URL' )
-            # an Engine, which the Session will use for connection
-            engine = create_engine( db4g_url )
-            # create a configured "Session" class
-            Session = sessionmaker(bind = engine)
-            # create a Session
-            session = Session()
             # Options 
             if arg[ 'list' ] :
                 exp = Experiment()
@@ -81,7 +80,7 @@ def run( arg ) :
             else :
                 session.commit()
         except Exception , err :
-             session.rollback()
-             logger.error( str( err ) )
+            session.rollback()
+            logger.error( str( err ) )
         finally:
-             session.close()
+            session.close()
