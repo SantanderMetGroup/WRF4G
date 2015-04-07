@@ -1,21 +1,21 @@
 """
-Manage realizations. 
+Manage WRF4G realizations. 
     
 Usage: 
-    wrf4g rea <name> submit [ <fist_ch> <last_ch> ] [ --dbg ] [ --rerun ] [ --dry-run ]
+    wrf4g rea <name> submit [ <fist_ch> [ <last_ch> ] ] [ --dbg ] [ --rerun ] [ --dry-run ]
     wrf4g rea <name> status [ --dbg ] [ --long ] 
     wrf4g rea <name> stop   [ --dbg ] [ --dry-run ] 
    
 Options:
-   --dbg                Debug mode.
-   -n --dry-run         Dry run.
-   -l --long            Show a detailed information.
-   --rerun              Force to run although this realization or experiment has finished.
+   --dbg         Debug mode.
+   -n --dry-run  Dry run.
+   -l --long     Show a detailed information.
+   --rerun       Force to run although the realization has finished.
   
 Commands:
-   submit
-   status
-   stop
+   submit        Submit the realization.        
+   status        Check the status of the realization.
+   stop          Stop the realization by killing its jobs.
 """
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
