@@ -1,12 +1,13 @@
 from __future__     import with_statement
 from datetime       import datetime
-from os.path        import join , basename , dirname , exists , expandvars , isdir
-from re             import search , match
+from os.path        import join, basename, dirname, exists, expandvars, isdir
+from re             import search, match
+from wrf4g          import WRF4G_DIR
 
 import os
 import sys
-import shutil
-import tarfile
+import time
+import socket
 import ConfigParser
 
 __version__  = '1.5.2'
@@ -141,7 +142,6 @@ def datetime2datewrf (date_object):
 def datetime2dateiso (date_object):
     return date_object.strftime("%Y%m%dT%H%M%SZ")
 
-
 def make_writeable( filename ):
     """
     Make sure that the file is writeable.
@@ -198,3 +198,102 @@ def create_hash():
     rand=random.randint(1,60000000)
     text=str(rand)
     return text
+
+def process_is_runnig( pid ):
+    """
+    Check is a process is running given a file
+    """
+    try:
+        with open( pid , 'r' ) as f:
+            lines = f.readlines()
+        os.kill( int( lines[0].strip() ) , 0 )
+    except :
+        return False
+    else:
+        return True
+
+def exec_cmd( cmd , stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+              stderr=subprocess.STDOUT, env=os.environ ):
+    """
+    Execute shell commands
+    """
+    logger.debug( "Executing command ... " + cmd )
+    cmd_to_exec = subprocess.Popen(  cmd ,
+                                  shell=True ,
+                                  stdin=subprocess.PIPE,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE,
+                                  env=env
+                                  )
+    out , err =  cmd_to_exec.communicate()
+    return out , err
+
+class DataBase( object ):
+    """
+    Class to manage MySQL database
+    """
+
+    def __init__( self, port=25000 ):
+        self.port       = port
+        self.file_pid   = join( WRF4G_DIR, 'var', 'mysql.pid' )
+        self.mysql_sock = join( WRF4G_DIR, 'var', 'mysql.sock' )
+        self.mysql_log  = join( WRF4G_DIR, 'var', 'log', 'mysql.log' )
+
+    def _port_is_free( self ):
+        sock = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
+        if sock.connect_ex( ( '127.0.0.1', int( self.port ) ) ) is 0 :
+            return False
+        else :
+            return True
+
+    def status( self ):
+        if not exists( self.mysql_pid ) :
+            logger.info( "WRF4G_DB (MySQL) has not started" )
+        elif process_is_runnig( self.mysql_pid ) :
+            logger.info( "WRF4G_DB (MySQL) is running" )
+        else :
+            logger.info( "WRF4G_DB (MySQL) is stopped" )
+
+    def start( self ):
+        logger.info( "Starting WRF4G_DB (MySQL) ... " )
+        if not self._port_is_free() and not process_is_runnig( self.mysql_pid ):
+            raise Exception( "WARNING: Another process is listening on port %s."
+              "Change the port by executing 'wrf4g start --db-port=new_port'." % self.mysql_port  
+              )
+        elif not exists( self.mysql_pid ) or ( exists( self.mysql_pid ) and not process_is_runnig( self.mysql_pid ) ) :
+            mysql_options = "--no-defaults --port=%s --socket=%s --log-error=%s --pid-file=%s" % ( self.mysql_port ,
+                                                                                                     self.mysql_sock ,
+                                                                                                     self.mysql_log ,
+                                                                                                     self.mysql_pid
+                                                                                                     )
+            cmd =  "cd %s ; nohup ./bin/mysqld_safe %s &>/dev/null &" % ( MYSQL_DIR , mysql_options )
+            exec_cmd( cmd )
+            time.sleep( 1.0 )
+            if not exists( self.mysql_pid ) or self._port_is_free() :
+                logger.error( "ERROR: MySQL did not start, check '%s' for more information " % self.mysql_log )
+            else :
+                logger.info( "OK" )
+        else :
+            logger.warn( "WARNING: MySQL is already running" )
+
+    def stop( self ):
+        if not exists( self.mysql_pid ) :
+            logger.info( "WRF4G_DB (MySQL) has not started" )
+        else :
+            logger.info( "Stopping WRF4G_DB (MySQL) ..." )
+            if not exists( self.mysql_pid ) and not process_is_runnig( self.mysql_pid ) ) :
+                logger.warn( "WARNING: MySQL is already stopped." )
+            elif exists( self.mysql_pid ) and process_is_runnig( self.mysql_pid ) :
+                with open( self.mysql_pid , 'r') as f:
+                    pid = f.readline().strip()
+                mysql_ppid, err = exec_cmd( "ps h -p %s -o ppid" % pid )
+                if err :
+                    raise Exception( err )
+                try :
+                    os.kill( int( mysql_ppid ), signal.SIGKILL )
+                    os.kill( int( pid ), signal.SIGKILL )
+                    logger.info( "OK" )
+                except Exception , err :
+                    logger.error( "ERROR: stopping MySQL: %s" % err )
+            else :
+                logger.warn( "WARNING: MySQL is already stopped." )

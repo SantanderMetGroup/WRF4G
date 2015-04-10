@@ -8,14 +8,17 @@ import os
 import re
 import tarfile
 import shutil
+import datetime
 import wrf4g.tools.gridwaylib
 
 from sqlalchemy         import func
 from sqlalchemy.orm.exc import NoResultFound
 from os.path            import exists, expandvars, expanduser, isdir
+from datetime           import datetime 
 from wrf4g              import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR, logger
 from wrf4g.db           import ExperimentModel, RealizationModel, ChunkModel, JobModel, JobStatusModel
-from wrf4g.utils        import datetime2datewrf
+from wrf4g.utils        import datetime2datewrf, exec_cmd
+
 from wrf4g.tools.vcplib import VCPURL
 
 # Realization, Chunk and Job status
@@ -23,26 +26,27 @@ REA_STATUS = {
                  'PREPARED'     : 0,
                  'SUBMITTED'    : 1,
                  'RUNNING'      : 2,
-                 'FAILED'       : 3,
-                 'FINISHED'     : 4,
-                 'PENDING'      : 5,
+                 'PENDING'      : 3,
+                 'FAILED'       : 4,
+                 'FINISHED'     : 5,
                }
 
 CHUNK_STATUS = {
                  'PREPARED'     : 0,
                  'SUBMITTED'    : 1,
                  'RUNNING'      : 2,
-                 'FAILED'       : 3,
-                 'FINISHED'     : 4,
-                 'PENDING'      : 5,
+                 'PENDING'      : 3,
+                 'FAILED'       : 4,
+                 'FINISHED'     : 5,
                }
 
 JOB_STATUS  =   {
                  'PREPARED'     : 0,
                  'SUBMITTED'    : 1,
                  'RUNNING'      : 2,
-                 'FINISHED'     : 4,
-                 'PENDING'      : 5,
+                 'PENDING'      : 3,
+                 'FAILED'       : 4,
+                 'FINISHED'     : 5,
                  'PREPARING_WN' : 10,
                  'DOWN_BIN'     : 11,
                  'DOWN_RESTART' : 12,
@@ -57,13 +61,8 @@ JOB_STATUS  =   {
                 }
              
 class Experiment( ExperimentModel ):
-    """ Experiment 
-        Methods:
-                run 
-                delete
-                prepare_storage
-                prepare
-                status
+    """ 
+    Manage WRF4G experiments
     """
     # Sqlalchemy session
     session = None
@@ -84,13 +83,12 @@ class Experiment( ExperimentModel ):
             #if there are realizations to run
             for rea in q_realizations :
                 #Run every realization
-                rea()
                 rea.session = self.session
-                rea.run( rerun, dryrun )
-        
-    def prepare_storage(self):
+                rea().run( rerun, dryrun )
+
+    def _create_bundle(self):
         """
-        Prepare storage
+        Create a bundle with the necessary software to run WRF on WNs
         """
         exp_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
         if not isdir( exp_dir ) :
@@ -99,11 +97,11 @@ class Experiment( ExperimentModel ):
                 os.makedirs( exp_dir )
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % exp_dir )
-        current_path = os.getcwd()
         wrf4g_package = join ( exp_dir , "WRF4G.tar.gz" )
         if exists( wrf4g_package  ):
             logger.debug( "Removing '%s' package" % wrf4g_package ) 
             os.remove( wrf4g_package )
+        current_path = os.getcwd()
         tar = tarfile.open( wrf4g_package , "w:gz" )
         os.chdir( WRF4G_DEPLOYMENT_DIR )
         logger.debug( "Creating '%s' package" % wrf4g_package )
@@ -111,42 +109,35 @@ class Experiment( ExperimentModel ):
             tar.add( dir )
         os.chdir( current_path )
         
-    def prepare(self, reconfigure=False, dryrun=False):
+    def insert_db(self, reconfigure=False, dryrun=False):
         """ 
-        Prepare experiment
-        Check if experiment exists in database, If it not exists, insert it and return id
+        Check if experiment exists in database, If it not exists, insert it.
             
-        If it exist and  it is the same configuration that the one found in the database, return -1
+        If it exist and  it is the same configuration that the one found in the database.
         If it exists and  parameters of configuration do not match , check if it is a reconfigure run.
-        If reconfigure is False=> err retunr -1
+        If reconfigure is False=> err
         If reconfigure is True, Check if there is an experiment with the same no reconfigurable field. 
-        If there is not an experiment with the same no reconfigurable fields => error, return -1
-        If there is an experiment with the same reconfigurable fields, update data and return id
+        If there is not an experiment with the same no reconfigurable fields => error.
+        If there is an experiment with the same reconfigurable fields, update data.
         """
         #check if the experiment exists in database
         #It means if there are a realization with the same distinct field: name
         try :
             exp = self.session.query( Experiment ).\
                   filter( Experiment.name == self.name ).one()
-            return exp.id
         except Exception:
             #If the experiment does not exist, insert it
-            logger.debug( 'Creating experiment' )
+            logger.debug( 'Creating experiment on the database...' )
             #Insert experiment
             self.session.add(self)
             #Check storage
             if not dryrun :
-                try :
-                    self.prepare_storage( )
-                except :
-                    return -1
-            return self.id # return id
+                self.create_bundle()
         else:
             #If the experiment exists
             if not reconfigure :
-                logger.error("ERROR: Experiment with the same name already exists.")
-                logger.error("If you want to overwrite some paramenters, try the --reconfigure option.")
-                return -1 
+                raise Exception("ERROR: Experiment with the same name already exists."
+                                "If you want to overwrite some paramenters, try the --reconfigure option.")
             else:
                 #If reconfigure is True
                 #Check if there is an experiment with the same no reconfigurable fields:
@@ -154,22 +145,151 @@ class Experiment( ExperimentModel ):
                 try:
                     exp2=self.session.query.filter( Experiment.name  == self.name,
                                                     Experiment.sdate == self.sdate,
-                                                    Experiment.multiple_dates == self.multiple_dates,
-                                                    Experiment.multiple_parameters == self.multiple_parameters
+                                                    Experiment.mult_dates == self.mult_dates,
+                                                    Experiment.mult_parameters == self.mult_parameters
                                                   ).one()
                 except Exception:
                     #if exp2 does not exist (no experiment with the same no reconfigurable fields)
-                    logger.error("ERROR: Experiment with the same name and no reconfigurable fields already exists.")
-                    return -1 
+                    raise Exception("ERROR: Experiment with the same name and no reconfigurable fields already exists.")
                 else:
                     #if exp2 exits,it means an experiment with the same no reconfigurable fields
                     self.id = exp2.id
-                    logger.debug('Updating experiment')
-                    try :
-                        self.prepare_storage()
-                    except :
-                        return -1
-                    return self.id
+                    logger.debug('Updating experiment on the database...')
+                    self._create_bundle()
+
+    def create(self, reconfigure=False, dryrun=False,  directory='./' )
+        """
+        Create and prepare all realizations and chunks needed to submit a WRF4G experiment 
+        """
+        # Sanity check 
+        exp_dir = expandvars( expanduser( directory ) )
+        if not exists( exp_dir ):
+            raise Exception("'%s' does not exist" % exp_dir )
+        exp_file = join( exp_dir, 'experiment.wrf4g' )
+        if not exists( exp_file ):
+            raise Exception("'%s' does not exist" % exp_fileg ) 
+        exp_features = VarEnv( exp_file )
+        # Defining experiment variables
+        self.name     = exp_features.get_variable( 'experiment_name' )
+        self.basepath = directory
+        self.sdate    = datetime.strptime(exp_features.get_variable( 'start_date' ), "%Y-%m-%d_%H:%M:%S")
+        self.edate    = datetime.strptime(exp_features.get_variable( 'end_date' ), "%Y-%m-%d_%H:%M:%S"),
+        self.csize    = exp_features.get_variable( 'chunk_size_h' , ( sdate - edate ).total_seconds()/3600 ) 
+        self.mult_parameters = 1 if exp_features.has_section( 'multiple_parameters' ) else 0
+        self.mult_dates      = 1 if exp_features.has_section( 'multiple_dates' ) else 0
+        if self.mult_parameters :
+            self.mult_labels = exp_features.get_variable( 'combinations', 'parameters' ).\
+                          replace(' ', '').replace('\n', '/')
+        else :
+            self.mult_labels = ''
+        if self.mult_dates :
+            self.smul_length_h = exp_features.get_variable( 'simulation_length_h', 'multiple_dates' ) 
+            if not self.smul_length_h :
+                raise Exception("'simulation_length_h' variable is madatory for 'multiple_dates' section" % var)
+            self.smul_interval_h = exp_features.get_variable( 'simulation_interval_h', 'multiple_dates' )
+            if not self.smul_interval_h :
+                raise Exception( "'simulation_interval_h' variable is madatory for 'multiple_dates' section" )
+        # Insert the experiment on the database
+        self.insert_db( reconfigure = reconfigure, dryrun = dryrun)
+        if not dryrun :
+            # Modify the namelist with the parameters available in experiment.wrf4g
+            logger.info( "Preparing namelist..." )
+            if exp_features.has_section( 'NI' ) :
+                restart_interval = exp_features.get_variable( 'restart_interval' , 'NI', chunk_size_h * 60 )
+            else :
+                restart_interval = chunk_size_h * 60
+            namelist_template = join( WRF4G_DIR , 'etc', 'templates', 'namelist', 'namelist.input-%s' % 
+                                     exp_features.get_variable( 'namelist_version' ) )
+            namelist_input    = join( directory, 'namelist.input')
+            try :
+                logger.debug("Copying '%s' to '%s'" % (namelist_template, namelist_input) )
+                shutil.copyfile(namelist_template, namelist_input )
+            except :
+                raise Exception( "There is not a namelist template for WRF %s (File namelist.input does not exist)" % namelist_template )
+            logger.debug( "Updating parameter 'max_dom' in the namelist" )
+            exec_cmd( "fortnml -wof %s -s max_dom %s" % ( namelist_input, exp_features.get_variable( 'max_dom' ) ) )
+            if exp_features.has_section( 'NI' ) :  
+                for key, val in exp_features.items( 'NI' ) :
+                    logger.debug( "Updating parameter '%s' in the namelist" % key )
+                    exec_cmd( "fortnml -wof %s -s %s -- %s" % (namelist_input, key, val) )
+            if exp_features.has_section( 'NIM' ) :
+                for key, val in exp_features.items( 'NI' ) :
+                    logger.debug( "Updating parameter '%s' in the namelist" % key )
+                    exec_cmd( "fortnml -wof %s -s %s -- %s" % (namelist_input, key, ' '.join( val.split(',')) ) )
+            if exp_features.has_section( 'NIN' ) :
+                for key, val in exp_features.items( 'NIN' ) :
+                    logger.debug( "Updating parameter '%s' in the namelist" % key )
+                    exec_cmd( "fortnml -wof %s -m %s -- %s" % (namelist_input, key, val) )
+        if exp_features.has_section( 'multiple_parameters' ) :
+           # If there is a multiple_parameter
+           for rea_label in mult_labels.split('/') :
+               rea_tag, combinations = rea_label.split('|')
+               logger.info( "--->Realization: multiparams=%s %s %s" % (rea_label, sdate, edate) )
+               if not dryrun :
+                   l_variables    = exp_features.get_variable('variables', 'multiple_parameters' ).replare(' ', '').split(',')
+                   l_combinations = combinations.split(',')
+                   l_nitems       = exp_features.get_variable('nitems', 'multiple_parameters' ).replare(' ', '').split(',')
+                   for var, comb, nitem in zip( l_variables, l_combinations, l_nitems ) :
+                       # Update the namelist per each combination
+                       logger.debug( "Updating parameter '%s' in the namelist" % var )
+                       if ':' in comb :
+                           exec_cmd( "fortnml -wof %s -s %s -- %s" % (namelist_input, var, ' '.join( comb.split(':') ) ) )
+                       else :
+                           exec_cmd( "fortnml -wof %s -s %s -n %s -- %s" % (namelist_input, var, nitem, comb ) )
+               self.cycle_time( "%s__%s " % ( name, rea_tag ), reconfigure, dryrun)
+        else :
+           logger.info( "---> Single params run" )
+           self.cycle_time( name, reconfigure, dryrun )
+    
+    def cycle_time(self, rea_name, reconfigure=False, dryrun=False ) :
+        """
+        Check if the experiment has multiple_dates 
+        """
+        if self.mult_dates :
+            self.cycle_hindcasts( rea_name, reconfigure, dryrun )
+        else :
+            logger.info( "---> Continuous run" )
+            # Create realization
+            rea = Realization( name       = rea_name,
+                               exp_id     = self.id,
+                               sdate      = self.sdate,
+                               edate      = self.edate 
+                               cdate      = self.sdate,
+                               status     = REA_STATUS[ 'PREPARED' ]
+                               mult_label = self.mult_label )
+            rea.session = self.session
+            # Insert data on the database
+            rea.insert( reconfigure )
+            # Check storage
+            if not dryrun :
+                rea.prepare_sub_files()
+            rea.cycle_chunks( reconfigure )
+ 
+    def cycle_hindcasts(self, rea_name, reconfigure=False, dryrun=False ) :
+        """
+        Create chunks the needed for a realization 
+        """
+        logger.info( "\n---> cycle_hindcasts: %s %s %s %s %s" % ( 
+                      rea_name, self.id, self.sdate , self.edate, self.mult_label ) )
+        rea_sdate = self.sdate
+        while chunk_sdate <= ( self.edate - timedelta( hours = self.smul_interval_h ) ) :
+            rea_edate = rea_sdate + timedelta( hours = self.smul_interval_h )
+            # Create realization
+            rea = Realization( name       = "%s__%s_%s" % ( rea_name, rea_sdate, rea_edate),
+                               exp_id     = self.id,
+                               sdate      = rea_sdate,
+                               edate      = rea_edate,
+                               cdate      = rea_sdate,
+                               status     = REA_STATUS[ 'PREPARED' ]
+                               mult_label = self.mult_label )
+            rea.session = self.session
+            # Insert data on the database
+            rea.insert( reconfigure )
+            # Check storage
+            if not dryrun :
+                rea.prepare_sub_files()
+            rea.cycle_chunks( reconfigure )
+            rea_sdate = rea_edate
     
     def status(self, long_format=False, rea_pattern=False ):
         """ 
@@ -205,6 +325,7 @@ class Experiment( ExperimentModel ):
                        )
         for rea in q_realizations :
             #Print information of each realization
+            rea.session = self.session
             rea().status( long_format )
     
     def list(self, long_format=False, rea_pattern=False):
@@ -227,14 +348,17 @@ class Experiment( ExperimentModel ):
                          "Name", "Start Date" , "End Date", "Mult Paramts", "Mult Dates", "Mult Labels")  )
             for e in q_experiment :
                 logger.info("%20.20s %20.20s %20.20s %12.12s %10.10s %-30.30s" ( 
-                         e.name, datetime2datewrf(e.sdate), datetime2datewrf(e.edate), e.mult_parameters, e.mult_dates, e.mult_labels  )
+                         e.name, datetime2datewrf(e.sdate), datetime2datewrf(e.edate), e.mult_parameters, e.mult_dates, e.mult_labels )
 
     @staticmethod 
-    def start( name, template, dir ):
+    def create_files(name, template, directory):
+        """
+        Create the files needed to establish a WRF4G experiment
+        """
         validate_name( name )
         if not template in [ 'default', 'single', 'physics' ] :
             raise Exception( "'%s' template does not exist" % template )
-        exp_dir = expandvars( expanduser( dir ) )
+        exp_dir = expandvars( expanduser( directory ) )
         if not exists( exp_dir ):
             raise Exception("'%s' does not exist" % exp_dir )
         exp_dir_config = join( exp_dir, name )
@@ -243,17 +367,16 @@ class Experiment( ExperimentModel ):
         logger.debug( "Creating '%s' directory" % exp_dir_config )
         shutil.copytree( join( WRF4G_DIR , 'etc' , 'templates' , 'experiments',  template ),
                          exp_dir_config )
-        for file in [ 'resources.wrf4g' , 'experiment.wrf4g' ] :
-            dest_path = join( exp_dir_config , file )
-            with open( dest_path , 'r') as f :
-                data = ''.join( f.readlines( ) )
-            data_updated = data % {
-                                   'WRF4G_EXPERIMENT_HOME' : exp_dir_config ,
-                                   'WRF4G_DIR_LOCATION'    : WRF4G_DEPLOYMENT_DIR ,
-                                   'exp_name'              : name ,
+        dest_path = join( exp_dir_config , 'experiment.wrf4g' )
+        with open( dest_path , 'r') as f :
+            data = ''.join( f.readlines( ) )
+        data_updated = data % {
+                               'WRF4G_EXPERIMENT_HOME' : exp_dir_config ,
+                               'WRF4G_DIR_LOCATION'    : WRF4G_DEPLOYMENT_DIR ,
+                               'exp_name'              : name ,
                                }
-            with open( dest_path , 'w') as f :
-                f.writelines( data_updated ) 
+        with open(dest_path, 'w') as f :
+            f.writelines( data_updated ) 
 
     def stop(self, dryrun=False):
         """
@@ -284,16 +407,8 @@ class Experiment( ExperimentModel ):
         logger.info( "'%s' experiment has been deleted from the database" % exp_name )
     
 class Realization( RealizationModel ):
-    """A class to mange WRF4G realizations
-        Methods:
-                has_finished
-                run (n_chunk)
-                set_restart(restart)
-                set_cdate(cdate)
-                prepare_storage
-                prepare
-                ps
-                status
+    """
+    A class to mange WRF4G realizations
     """
     # Sqlalchemy session
     session = None
@@ -309,7 +424,7 @@ class Realization( RealizationModel ):
         return self.session.query( Chunk ).\
                         get( id_last_chunk ).status
     
-    def run (self, first_chunk_run=0, last_chunk_run=0, rerun=False, dryrun=False):
+    def run (self, first_chunk_run=1, last_chunk_run=1, rerun=False, dryrun=False):
         """ 
         Run n_chunk of the realization.
         If n_chunk=0 run every chunk of the realization which haven't finished yet
@@ -371,16 +486,10 @@ class Realization( RealizationModel ):
                 ch.session = self.session
                 ch.run( dryrun )
             
-    def prepare_storage(self):
+    def prepare_sub_files(self):
         """
         Prepare the files needed to submit the realization 
         """
-        files_to_copy = [
-                         join( WRF4G_DIR , 'etc' , 'db.conf' ) ,
-                         "resources.wrf4g" ,
-                         "experiment.wrf4g" ,
-                         "namelist.input" ,
-                         ]
         rea_submission_dir = join( WRF4G_DIR , 'var' , 'submission' , self.exp_id.name , self.name )
         if not isdir( rea_submission_dir ) :
             try :
@@ -398,23 +507,22 @@ class Realization( RealizationModel ):
             if exists( dst_file ):
                 os.remove( dst_file )
             shutil.move( 'wrf4g_files.tar.gz' , dst_file )
-        for file in files_to_copy :
+        for file in [ join( WRF4G_DIR, 'etc', 'db.conf' ), "experiment.wrf4g", "namelist.input" ] :
             if not exists ( expandvars( file ) ) :
                 raise Exception( "'%s' is not available" % file )
             else :
                 shutil.copy( expandvars( file ) , rea_submission_dir )
         
-    def prepare(self, reconfigure=False, dryrun=False):
+    def insert(self, reconfigure=False ):
         """ 
-        Prepare realization
-        Check if realization exists in database, If it not exists, insert it and return id
+        Check if realization exists in database, If it not exists, insert it 
         
-        If it exist and  it is the same configuration that the one found in the database, return -1
+        If it exist and  it is the same configuration that the one found in the database
         If it exists and  parameters of configuration do not match , check if it is a reconfigure run.
-        If reconfigure is False=> err return -1
+        If reconfigure is False=> err 
         If reconfigure is True, Check if there is a realization with the same no reconfigurable field. 
-        If there is not a realization with the same no reconfigurable fields => error, return -1
-        If there is a realization with the same reconfigurable fields, update data and return id
+        If there is not a realization with the same no reconfigurable fields => error
+        If there is a realization with the same reconfigurable fields, update data
         """
         #check if the realization exists in database
         #It means if there are a realization with the same distinct fields id_exp, sdate,multiparams_labels
@@ -423,45 +531,53 @@ class Realization( RealizationModel ):
                   filter.(Realization.name == self.name).one()
         except Exception:
             #If the realization does not exist, insert it
-            logger.debug('Creating Realization')
+            logger.debug('Creating realization on the database...')
             #Insert realization
             self.session.add(self)
-            #Check storage
-            if not dryrun :
-                try :
-                    self.prepare_storage( )
-                except :
-                    return -1
-            return self.id # return id
         else:
             #If the realization exists
             #Check reconfigure
             if not reconfigure :
-                logger.error("Error: Realization with the same name already exists." )
-                logger.error("If you want to overwrite some paramenters, try the reconfigure option." ) 
-                return -1
+                raise Exception("Error: Realization with the same name already exists."
+                      "If you want to overwrite some paramenters, try the reconfigure option." )
             else:
                 #Check if there is a realization with the same no reconfigurable fields:
                 #id,id_exp,sdate,multiple_parameters
                 try:
                     rea2 = self.session.filter( Realization.name  == self.name,
                                                 Realization.sdate == self.sdate,
-                                                Realization.multiparams_labels == self.multiparams_labels).one()
+                                                Realization.mult_labels == self.mult_labels).one()
                 except Exception:
                     #if rea2 does not exist (no realization with the same no reconfigurable fields)
-                    logger.error("ERROR: Realization with the same name and no reconfigurable fields already exists") 
-                    return -1
+                    raise Exception("ERROR: Realization with the same name and no reconfigurable fields already exists") 
                 else: 
                     #if exp2 exits,it means a realization with the same no reconfigurable fields
+                    logger.debug('Updating realization on the database...')
                     self.id = rea2.id
-                    logger.debug('Updating realization')
-                    if not dryrun :
-                        try :
-                            self.prepare_storage()
-                        except :
-                            return -1
-                    return self.id
-    
+   
+    def cycle_chunks(self, reconfigure= False ):
+        """
+        Create chunks the needed for a realization 
+        """
+        logger.info( "\t---> cycle_chunks: %s %s %s" % ( self.name, self.sdate , self.edate ) )
+        chunk_id = 1
+        chunk_sdate = self.sdate
+        while chunk_sdate <= ( self.edate - timedelta( hours = self.csize ) ) :
+            chunk_edate = chunk_sdate + timedelta( hours = self.csize )
+            logger.info( "\t\t---> chunk %d: %s %s %s" %( chunk_id, self.name, chunk_sdate, chunk_edate ) )
+            # Create Chunk
+            ch = Chunk( rea_id   = self.id, 
+                        chunk_id = chunk_id, 
+                        sdate    = chunk_sdate, 
+                        edate    = chunk_edate,
+                        wps      = 0 ,
+                        status   = CHUNK_STATUS[ 'PREPARED' ])
+            ch.session = self.session
+            # Insert on the database
+            ch.insert( reconfigure )
+            chunk_sdate = chunk_edate 
+            chunk_id    = chunk_id + 1
+ 
     def status(self, long_format=False):
         """ 
         Show information about the realization for example:
@@ -598,13 +714,7 @@ class Realization( RealizationModel ):
     
 class Chunk( ChunkModel ):
     """ 
-    Chunk
-        Methods:
-                get_wps
-                set_wps
-                set_status
-                run
-                prepare
+    A class to manage WRF4G chunks
     """
     # Sqlalchemy session
     session = None
@@ -630,17 +740,16 @@ class Chunk( ChunkModel ):
             job.run(first_chunk_rea=self.chunk_id) #run job
             self.session.add(job)
         
-    def prepare(self,reconfigure=False,dryrun=False):
+    def insert(self, reconfigure=False ):
         """ 
-        Prepare chunk
-        Check if chunk exists in database, If it not exists, insert it and return id
+        Check if chunk exists in database, If it not exists, insert it.
         
-        If it exist and  it is the same configuration that the one found in the database, return -1
+        If it exist and  it is the same configuration that the one found in the database.
         If it exists and  parameters of configuration do not match , check if it is a reconfigure run.
-        If reconfigure is False=> err return -1
+        If reconfigure is False=> err.
         If reconfigure is True, Check if there is a chunk with the same no reconfigurable field. 
-        If there is not a chunk with the same no reconfigurable fields => error, return -1
-        If there is a chunk with the same reconfigurable fields, update data and return id
+        If there is not a chunk with the same no reconfigurable fields => error,.
+        If there is a chunk with the same reconfigurable fields, update data.
         """
         #check if the chunk exists in database
         #It means if there are a chunk with the same distinct fields
@@ -652,17 +761,15 @@ class Chunk( ChunkModel ):
                                     ).one()
         except Exception:
             #If the chunk does not exist, insert it
-            logger.debug('Creating chunk.')
+            logger.debug('Creating chunk on the database')
             #Insert chunk
             self.session.add(self)
-            return self.id # return id
         else:
             #If the chunk exists
             #Check reconfigure: if reconfigure is False =>err,exitif reconfigure == False:if reconfigure == False:
             if not reconfigure :
-                logger.error( "ERROR Chunk with the same name and different parameters already exists.")
-                logger.error( "If you want to overwrite some paramenters, try the reconfigure option.") 
-                return -1
+                raise Exception( "ERROR Chunk with the same name and different parameters already exists."
+                                 "If you want to overwrite some paramenters, try the reconfigure option.") 
             else:
                 #Check if there is a chunk with the same no reconfigurable fields:
                 #id,id_rea,id_chunk,sdate
@@ -673,13 +780,11 @@ class Chunk( ChunkModel ):
                                         Chunk.sdate    == self.sdate).one()
                 except Exception:
                     #if ch2 does not exist (no chunk with the same no reconfigurable fields)
-                    logger.error("ERROR: Chunk with the same name and no reconfigurable fields already exists")
-                    return -1
+                    raise Exception("ERROR: Chunk with the same name and no reconfigurable fields already exists")
                 else:
                     #if ch2 exits,it means a chunk with the same no reconfigurable fields
+                    logger.debug('Updating chunk on the database')
                     self.id = ch.id
-                    logger.debug('Updating chunk.')
-                    return self.id
 
     def stop(self, dryrun=False):
         """
@@ -747,7 +852,7 @@ class Job( JobModel ):
         # files to add for the inputsandbox 
         inputsandbox  = "file://%(rea_dir)s/%(wrf4g_package)s,"                 
         inputsandbox += "file://%(rea_dir)s/db.conf,"          
-        inputsandbox += "file://%(re_dir)s/resources.wrf4g,"  
+        inputsandbox += "file://%(rea_dir)s/resources.wrf4g,"  
         inputsandbox += "file://%(rea_dir)s/experiment.wrf4g," 
         inputsandbox += "file://%(rea_dir)s/namelist.input"  
         inputsandbox % { "rea_dir"       : rea_dir , 
@@ -801,28 +906,26 @@ class Job( JobModel ):
             self.set_status( self.session.query( JobStatusModel ).\
                  get( JOB_STATUS[ 'PREPARED' ] ) ) 
          
-    def load_wn_conf(self,wn_gwres):
+    def should_run(self, gwres):
         """
-        Load configuration
+        Check if the job should run
         """
-        wn_gwres=int(wn_gwres)
-        #Last job with the same distinct fields  (gw_job and id_chunk)
+        #Last job with the same distinct field gw_job 
         try :
-            last_job = self.session.query( Job.gw_job   == self.gw_job, 
-                                           Job.id_chunk == self.chunk_id.id).\
-                                           group_by( Job.id ).all()[-1]
+            last_job = self.session.query( Job.gw_job == self.gw_job).\  
+                                           order_by( Job.id ).all()[-1]
         except :
-            logger.error('ERROR: Could not find the last job')
-            return -1
-        if last_job.gw_restarted < wn_gwres:
-            self.gw_restarted = wn_gwres
-        elif last_job.gw_restarted == wn_gwres:
+            logger.debug('ERROR: Could not find the last job')
+            return False
+        if last_job.gw_restarted < gwres:
+            self.gw_restarted = gwres
+        elif last_job.gw_restarted == gwres:
             self.id = last_job.id
         else:
-            #if last_job.gw_restarted>wn_gwres
-            logger.error('ERROR: This job should not be running this Chunk')
-            return -1
-        return self.id
+            #if last_job.gw_restarted>gwres
+            logger.debug('ERROR: This job should not be running this Chunk')
+            return False
+        return True
     
     @staticmethod
     def create_rea_storage(self, rea_dir):
@@ -856,7 +959,7 @@ class Job( JobModel ):
                 vcp_dir.mkdir( )
 
         # copy experiment files
-        for conf_file in [ "db.conf", "experiment.wrf4g", "resources.wrf4g", "namelist.input" ] :
+        for conf_file in [ "db.conf", "experiment.wrf4g", "namelist.input" ] :
             vcplib.copy_file( conf_file, join( rea_dir , conf_file  ) )
 
     @staticmethod

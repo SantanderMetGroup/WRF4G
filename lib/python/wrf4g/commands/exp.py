@@ -36,7 +36,6 @@ __revision__ = "$Id$"
 
 import logging
 import shutil
-from subprocess           import call
 from sqlalchemy.orm.exc   import NoResultFound
 from wrf4g                import logger
 from wrf4g.db             import get_session
@@ -47,17 +46,19 @@ def run( arg ) :
         logger.setLevel( logging.DEBUG )
     if arg[ 'start' ] :
         Experiment.create_files( arg[ '<name>' ], arg[ '--template' ], arg[ '--dir' ] )
-    elif arg[ 'create' ] :
-        call(['bash', 'create_exp'] + arg )
     else :
         # create a session to connect with the database
         session = get_session()
         try :
             # Options 
-            if arg[ 'list' ] :
+            if arg[ 'create' ] :
                 exp = Experiment()
                 exp.session = session
-                exp.list( long_format = arg[ '--long' ] , pattern = arg[ '--pattern' ] )
+                exp.create( arg[ '--reconfigure' ] , arg[ '--dry-run' ],  arg[ '--dir' ] )
+            elif arg[ 'list' ] :
+                exp = Experiment()
+                exp.session = session
+                exp.list( arg[ '--long' ] , arg[ '--pattern' ] )
             else :
                 try :
                     q_exp = session.query( Experiment ).\
@@ -68,13 +69,13 @@ def run( arg ) :
                     exp = q_exp()
                     exp.session = session
                     if arg[ 'submit' ] :
-                        exp.run( rerun = arg[ 'rerun' ], dryrun = arg[ '--dry-run' ] )
+                        exp.run( arg[ 'rerun' ], arg[ '--dry-run' ] )
                     elif arg[ 'status' ] :
-                        exp.status( long_format = arg[ '--long' ], pattern = arg[ '--pattern' ]  )
+                        exp.status( arg[ '--long' ], arg[ '--pattern' ]  )
                     elif arg[ 'stop' ] :
-                        exp.stop( dryrun = arg[ '--dry-run' ] )
+                        exp.stop( arg[ '--dry-run' ] )
                     else :
-                        exp.delete( dryrun = arg[ '--dry-run' ]  )
+                        exp.delete( arg[ '--dry-run' ]  )
             if arg[ '--dry-run' ] :
                 session.rollback()
             else :
