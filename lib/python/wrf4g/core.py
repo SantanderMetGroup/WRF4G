@@ -14,11 +14,10 @@ import wrf4g.tools.gridwaylib
 from sqlalchemy         import func
 from sqlalchemy.orm.exc import NoResultFound
 from os.path            import exists, expandvars, expanduser, isdir
-from datetime           import datetime 
+from datetime           import datetime, timedelta 
 from wrf4g              import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR, logger
 from wrf4g.db           import ExperimentModel, RealizationModel, ChunkModel, JobModel, JobStatusModel
 from wrf4g.utils        import datetime2datewrf, exec_cmd
-
 from wrf4g.tools.vcplib import VCPURL
 
 # Realization, Chunk and Job status
@@ -86,10 +85,11 @@ class Experiment( ExperimentModel ):
                 rea.session = self.session
                 rea().run( rerun, dryrun )
 
-    def _create_bundle(self):
+    def create_wrf4g_bundle(self):
         """
         Create a bundle with the necessary software to run WRF on WNs
         """
+        looger.debug( "Create a WRF4G software bundle to use on the WN..." )
         exp_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
         if not isdir( exp_dir ) :
             try:
@@ -130,9 +130,6 @@ class Experiment( ExperimentModel ):
             logger.debug( 'Creating experiment on the database...' )
             #Insert experiment
             self.session.add(self)
-            #Check storage
-            if not dryrun :
-                self.create_bundle()
         else:
             #If the experiment exists
             if not reconfigure :
@@ -153,9 +150,8 @@ class Experiment( ExperimentModel ):
                     raise Exception("ERROR: Experiment with the same name and no reconfigurable fields already exists.")
                 else:
                     #if exp2 exits,it means an experiment with the same no reconfigurable fields
-                    self.id = exp2.id
                     logger.debug('Updating experiment on the database...')
-                    self._create_bundle()
+                    self.id = exp2.id
 
     def create(self, reconfigure=False, dryrun=False,  directory='./' )
         """
@@ -171,7 +167,7 @@ class Experiment( ExperimentModel ):
         exp_features = VarEnv( exp_file )
         # Defining experiment variables
         self.name     = exp_features.get_variable( 'experiment_name' )
-        self.basepath = directory
+        self.dir      = directory
         self.sdate    = datetime.strptime(exp_features.get_variable( 'start_date' ), "%Y-%m-%d_%H:%M:%S")
         self.edate    = datetime.strptime(exp_features.get_variable( 'end_date' ), "%Y-%m-%d_%H:%M:%S"),
         self.csize    = exp_features.get_variable( 'chunk_size_h' , ( sdate - edate ).total_seconds()/3600 ) 
@@ -190,8 +186,10 @@ class Experiment( ExperimentModel ):
             if not self.smul_interval_h :
                 raise Exception( "'simulation_interval_h' variable is madatory for 'multiple_dates' section" )
         # Insert the experiment on the database
-        self.insert_db( reconfigure = reconfigure, dryrun = dryrun)
+        self.insert_db( reconfigure, dryrun )
         if not dryrun :
+            # Create a WRF4G software bundle to use on the WN
+            self.create_wrf4g_bundle()
             # Modify the namelist with the parameters available in experiment.wrf4g
             logger.info( "Preparing namelist..." )
             if exp_features.has_section( 'NI' ) :
@@ -222,9 +220,9 @@ class Experiment( ExperimentModel ):
                     exec_cmd( "fortnml -wof %s -m %s -- %s" % (namelist_input, key, val) )
         if exp_features.has_section( 'multiple_parameters' ) :
            # If there is a multiple_parameter
-           for rea_label in mult_labels.split('/') :
+           for rea_label in self.mult_labels.split('/') :
                rea_tag, combinations = rea_label.split('|')
-               logger.info( "--->Realization: multiparams=%s %s %s" % (rea_label, sdate, edate) )
+               logger.info( "---> Realization: multiparams=%s %s %s" % (rea_tag, sdate, edate) )
                if not dryrun :
                    l_variables    = exp_features.get_variable('variables', 'multiple_parameters' ).replare(' ', '').split(',')
                    l_combinations = combinations.split(',')
@@ -236,17 +234,17 @@ class Experiment( ExperimentModel ):
                            exec_cmd( "fortnml -wof %s -s %s -- %s" % (namelist_input, var, ' '.join( comb.split(':') ) ) )
                        else :
                            exec_cmd( "fortnml -wof %s -s %s -n %s -- %s" % (namelist_input, var, nitem, comb ) )
-               self.cycle_time( "%s__%s " % ( name, rea_tag ), reconfigure, dryrun)
+               self.cycle_time( "%s__%s " % ( name, rea_tag ), rea_tag, reconfigure, dryrun)
         else :
            logger.info( "---> Single params run" )
-           self.cycle_time( name, reconfigure, dryrun )
+           self.cycle_time( name, self.mult_labels, reconfigure, dryrun )
     
-    def cycle_time(self, rea_name, reconfigure=False, dryrun=False ) :
+    def cycle_time(self, rea_name, label, reconfigure=False, dryrun=False ) :
         """
         Check if the experiment has multiple_dates 
         """
         if self.mult_dates :
-            self.cycle_hindcasts( rea_name, reconfigure, dryrun )
+            self.cycle_hindcasts( rea_name, label, reconfigure, dryrun )
         else :
             logger.info( "---> Continuous run" )
             # Create realization
@@ -255,24 +253,24 @@ class Experiment( ExperimentModel ):
                                sdate      = self.sdate,
                                edate      = self.edate 
                                cdate      = self.sdate,
-                               status     = REA_STATUS[ 'PREPARED' ]
-                               mult_label = self.mult_label )
+                               status     = REA_STATUS[ 'PREPARED' ],
+                               mult_label = label )
             rea.session = self.session
             # Insert data on the database
-            rea.insert( reconfigure )
+            rea.insert_db( reconfigure )
             # Check storage
             if not dryrun :
                 rea.prepare_sub_files()
             rea.cycle_chunks( reconfigure )
  
-    def cycle_hindcasts(self, rea_name, reconfigure=False, dryrun=False ) :
+    def cycle_hindcasts(self, rea_name, label, reconfigure=False, dryrun=False ) :
         """
         Create chunks the needed for a realization 
         """
         logger.info( "\n---> cycle_hindcasts: %s %s %s %s %s" % ( 
                       rea_name, self.id, self.sdate , self.edate, self.mult_label ) )
         rea_sdate = self.sdate
-        while chunk_sdate <= ( self.edate - timedelta( hours = self.smul_interval_h ) ) :
+        while rea_sdate <= ( self.edate - timedelta( hours = self.smul_interval_h ) ) :
             rea_edate = rea_sdate + timedelta( hours = self.smul_interval_h )
             # Create realization
             rea = Realization( name       = "%s__%s_%s" % ( rea_name, rea_sdate, rea_edate),
@@ -280,11 +278,11 @@ class Experiment( ExperimentModel ):
                                sdate      = rea_sdate,
                                edate      = rea_edate,
                                cdate      = rea_sdate,
-                               status     = REA_STATUS[ 'PREPARED' ]
-                               mult_label = self.mult_label )
+                               status     = REA_STATUS[ 'PREPARED' ],
+                               mult_label = label )
             rea.session = self.session
             # Insert data on the database
-            rea.insert( reconfigure )
+            rea.insert_db( reconfigure )
             # Check storage
             if not dryrun :
                 rea.prepare_sub_files()
@@ -513,7 +511,7 @@ class Realization( RealizationModel ):
             else :
                 shutil.copy( expandvars( file ) , rea_submission_dir )
         
-    def insert(self, reconfigure=False ):
+    def insert_db(self, reconfigure=False ):
         """ 
         Check if realization exists in database, If it not exists, insert it 
         
@@ -574,7 +572,7 @@ class Realization( RealizationModel ):
                         status   = CHUNK_STATUS[ 'PREPARED' ])
             ch.session = self.session
             # Insert on the database
-            ch.insert( reconfigure )
+            ch.insert_db( reconfigure )
             chunk_sdate = chunk_edate 
             chunk_id    = chunk_id + 1
  
@@ -740,7 +738,7 @@ class Chunk( ChunkModel ):
             job.run(first_chunk_rea=self.chunk_id) #run job
             self.session.add(job)
         
-    def insert(self, reconfigure=False ):
+    def insert_db(self, reconfigure=False ):
         """ 
         Check if chunk exists in database, If it not exists, insert it.
         
