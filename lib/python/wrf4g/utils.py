@@ -1,5 +1,5 @@
 from __future__     import with_statement
-from datetime       import datetime
+from datetime       import datetime, timedelta
 from os.path        import join, basename, dirname, exists, expandvars, isdir
 from re             import search, match
 from wrf4g          import WRF4G_DIR
@@ -7,6 +7,7 @@ from wrf4g          import WRF4G_DIR
 import os
 import sys
 import time
+import calendar
 import socket
 import ConfigParser
 
@@ -297,3 +298,71 @@ class DataBase( object ):
                     logger.error( "ERROR: stopping MySQL: %s" % err )
             else :
                 logger.warn( "WARNING: MySQL is already stopped." )
+
+class Calendar( object ):
+    """
+    Class to manage calendars such as 'standard' and '365_day' 
+    """
+    def __init__( self, type = 'standard' ):
+        if not type in [ 'standard', '365_day' ] :
+            raise Exception( "Calendar type not available" )
+        else :
+            self.type = type
+
+    def sub(self, date1, date2 ):
+        """
+        Subtract two dates returning a timedelta object
+        """
+        if self.type == '365_day' :
+            diff_days = self._no_leap_day( date1 ) - self._no_leap_day( date2 )
+            return timedelta( days=diff_days )
+        else :
+            return date1 - date2
+
+    def add_hours(self, date, hours):
+        """
+        Add hours to a date returning a datetime object
+        """
+        if self.type == '365_day' and calendar.isleap( date.year ) :
+            date_add = date + timedelta(hours=hours)
+            day_29   = datetime( date.year, 2 , 29 )
+            if ( date < day_29 ) and ( day_29 < date_add ) :
+               hours_to_add = 24
+            else :
+               hours_to_add = 0
+            return date + timedelta(hours=hours+hours_to_add)
+        else :
+            return date + timedelta(hours=hours)
+
+    def sub_hours(self, date, hours):
+        """
+        Subtract hours to a date returning a datetime object
+        """
+        if self.type == '365_day' and calendar.isleap( date.year ) :
+            date_sub = date - timedelta(hours=hours)
+            day_29   = datetime( date.year, 2 , 29 )
+            if ( date > day_29 ) and ( day_29 > date_sub ) :
+               hours_to_add = 24
+            else :
+               hours_to_add = 0
+            return date + timedelta(hours=hours-hours_to_add)
+        else :
+            return date + timedelta(hours=hours)
+
+    def _no_leap_day(self, date):
+        year        = date.year
+        month       = date.month
+        day         = date.day
+        hour        = date.hour
+        minute      = date.minute
+        second      = date.second
+        microsecond = date.microsecond
+        # Convert time to fractions of a day
+        day = day + hour / 24.0 + minute / 1440.0 + (second + microsecond/1.e6) / 86400.0
+        # Start Meeus algorithm 
+        if month < 3 :
+            month = month + 12
+            year = year - 1
+        day = int(365.0 * (year + 4716)) + int(30.6001 * (month + 1)) + day - 1524.5
+        return day
+

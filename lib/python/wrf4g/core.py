@@ -17,7 +17,7 @@ from os.path            import exists, expandvars, expanduser, isdir
 from datetime           import datetime, timedelta 
 from wrf4g              import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR, logger
 from wrf4g.db           import ExperimentModel, RealizationModel, ChunkModel, JobModel, JobStatusModel
-from wrf4g.utils        import datetime2datewrf, exec_cmd
+from wrf4g.utils        import datetime2datewrf, exec_cmd, Calendar
 from wrf4g.tools.vcplib import VCPURL
 
 # Realization, Chunk and Job status
@@ -168,6 +168,7 @@ class Experiment( ExperimentModel ):
         # Defining experiment variables
         self.name     = exp_features.get_variable( 'experiment_name' )
         self.dir      = directory
+        self.calendar = exp_features.get_variable( 'calendar' , 'standard' )
         self.sdate    = datetime.strptime(exp_features.get_variable( 'start_date' ), "%Y-%m-%d_%H:%M:%S")
         self.edate    = datetime.strptime(exp_features.get_variable( 'end_date' ), "%Y-%m-%d_%H:%M:%S"),
         self.csize    = exp_features.get_variable( 'chunk_size_h' , ( sdate - edate ).total_seconds()/3600 ) 
@@ -269,9 +270,11 @@ class Experiment( ExperimentModel ):
         """
         logger.info( "\n---> cycle_hindcasts: %s %s %s %s %s" % ( 
                       rea_name, self.id, self.sdate , self.edate, self.mult_label ) )
-        rea_sdate = self.sdate
-        while rea_sdate <= ( self.edate - timedelta( hours = self.smul_interval_h ) ) :
-            rea_edate = rea_sdate + timedelta( hours = self.smul_interval_h )
+        # Define which calendar is going to be used
+        exp_calendar = Calendar(self.calendar)
+        rea_sdate    = self.sdate
+        while rea_sdate <= ( exp_calendar.sub_hours(self.edate,  self.smul_interval_h ) ) :
+            rea_edate = exp_calendar.add_hours(rea_sdate, self.smul_interval_h )
             # Create realization
             rea = Realization( name       = "%s__%s_%s" % ( rea_name, rea_sdate, rea_edate),
                                exp_id     = self.id,
@@ -558,10 +561,12 @@ class Realization( RealizationModel ):
         Create chunks the needed for a realization 
         """
         logger.info( "\t---> cycle_chunks: %s %s %s" % ( self.name, self.sdate , self.edate ) )
+        # Define which calendar is going to be used
+        exp_calendar = Calendar(self.calendar)
         chunk_id = 1
         chunk_sdate = self.sdate
-        while chunk_sdate <= ( self.edate - timedelta( hours = self.csize ) ) :
-            chunk_edate = chunk_sdate + timedelta( hours = self.csize )
+        while chunk_sdate <= ( exp_calendar.sub_hours(self.edate, self.csize ) ) :
+            chunk_edate = exp_calendar.add_hours( chunk_sdate, hours = self.csize )
             logger.info( "\t\t---> chunk %d: %s %s %s" %( chunk_id, self.name, chunk_sdate, chunk_edate ) )
             # Create Chunk
             ch = Chunk( rea_id   = self.id, 
