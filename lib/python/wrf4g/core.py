@@ -425,7 +425,7 @@ class Realization( RealizationModel ):
         return self.session.query( Chunk ).\
                         get( id_last_chunk ).status
     
-    def run (self, first_chunk_run=1, last_chunk_run=1, rerun=False, dryrun=False):
+    def run(self, first_chunk_run=1, last_chunk_run=1, rerun=False, dryrun=False):
         """ 
         Run n_chunk of the realization.
         If n_chunk=0 run every chunk of the realization which haven't finished yet
@@ -739,7 +739,7 @@ class Chunk( ChunkModel ):
             #Send a gridway's job and save data in table Job
             job               = Job()  #create an object "job"
             job.session       = self.session
-            job.chunk_id      = self
+            job.chunk_id      = self.id
             job.run(first_chunk_rea=self.chunk_id) #run job
             self.session.add(job)
         
@@ -855,7 +855,6 @@ class Job( JobModel ):
         # files to add for the inputsandbox 
         inputsandbox  = "file://%(rea_dir)s/%(wrf4g_package)s,"                 
         inputsandbox += "file://%(rea_dir)s/db.conf,"          
-        inputsandbox += "file://%(rea_dir)s/resources.wrf4g,"  
         inputsandbox += "file://%(rea_dir)s/experiment.wrf4g," 
         inputsandbox += "file://%(rea_dir)s/namelist.input"  
         inputsandbox % { "rea_dir"       : rea_dir , 
@@ -864,8 +863,8 @@ class Job( JobModel ):
         if exists( input_files ) :
             inputsandbox += ",file://%s" % ( input_files )
         # files to add for the outputsandbox
-        outputsandbox = "log_%s_$GW_JOB_ID_$GW_RESTARTED_.tar.gz" % ( self.chunk_id.chunk_id )
-        var_resources = VarEnv( join( rea_dir , 'resources.wrf4g' )  )
+        outputsandbox = "log_%s_$GW_JOB_ID_$GW_RESTARTED.tar.gz" % ( self.chunk_id.chunk_id )
+        exp_conf  = VarEnv( join( rea_dir , 'experiment.wrf4g' )  )
         arguments = '%s %s %d %d %s %s' % (
                                          rea_name,
                                          rea_id,
@@ -877,9 +876,9 @@ class Job( JobModel ):
         job.create_template( 
                             name          = join(rea_dir, rea_name + '__' + str( self.chunk_id.chunk_id ) ),
                             arguments     = arguments,
-                            np            = int( var_resources.get_variable( 'NP', default = '1') ),
-                            req           = var_resources.get_variable( 'REQUIREMENTS' ),
-                            environ       = var_resources.get_variable( 'ENVIRONMENT' ),
+                            np            = int( exp_conf.get_variable( 'np', 'resources', default = '1') ),
+                            req           = exp_conf.get_variable( 'requirements', 'resources' ),
+                            environ       = exp_conf.get_variable( 'environment', 'resources' ),
                             inputsandbox  = inputsandbox,
                             outputsandbox = outputsandbox
                             )
@@ -938,7 +937,6 @@ class Job( JobModel ):
         
         realization/
            * experiment.wrf4g
-           * resources.wrf4g
            * db.conf
            * namelist.input
            * -- output/                    

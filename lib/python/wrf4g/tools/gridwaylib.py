@@ -9,7 +9,7 @@ __version__  = '1.5.2'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
     
-class Job( object ):
+class Job( object )
     """
     Class to use DRM4G 
     """
@@ -17,21 +17,16 @@ class Job( object ):
         """
         Create template
         """
-        if verbose:
-            debug='-x'
-        else:
-            debug=''
         ftemplate=name + ".gw"
         try:
             f = open (ftemplate,'w')
             template="""NAME = %s
-EXECUTABLE   = /bin/bash 
-ARGUMENTS    = "%s ./bin/WRF4G.sh %s"
+EXECUTABLE   = /usr/bin/env python 
+ARGUMENTS    = ./bin/pilot_wrf.py %s"
 INPUT_FILES  = %s
-RANK         = QUEUE_FREENODECOUNT
 REQUIREMENTS = %s
 ENVIRONMENT  = %s
-NP           = %d""" % (name,debug,arguments,inputsandbox,req,environ,np)
+NP           = %d""" % (name,arguments,inputsandbox,req,environ,np)
             f.write(template)
         finally:
             f.close()
