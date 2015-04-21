@@ -53,10 +53,13 @@ class ExperimentModel( Base ):
     mult_parameters = Column(u'multiple_parameters', INTEGER)
     mult_dates      = Column(u'multiple_dates', INTEGER) 
     home_dir        = Column(u'home_directory', VARCHAR(length=300))
+    np              = Column(u'np', INTEGER)
+    requirements    = Column(u'requirements', VARCHAR(length=1024)) 
+    environment     = Column(u'environment', VARCHAR(length=1024)) 
     smul_length_h   = Column(u'simulation_length_h', INTEGER)
     smul_interval_h = Column(u'simulation_interval_h', INTEGER)
     mult_labels     = Column(u'multiparams_labels', VARCHAR(length=1024)) 
-    exp_description = Column(u'experiment_description', VARCHAR(length=1024)) 
+    description     = Column(u'description', VARCHAR(length=1024)) 
 
     # Realtionships
     realization     = relationship("RealizationModel", back_populates="experiment")
@@ -74,7 +77,9 @@ class RealizationModel( Base ):
     restart         = Column(u'restart',DATETIME()) 
     status          = Column(u'status',VARCHAR(length=20))
     cdate           = Column(u'cdate',DATETIME())
-    ctime           = Column(u'ctime',DATETIME()) 
+    ctime           = Column(u'ctime',DATETIME())
+    current_chunk   = Column(u'current_chunk',INTEGER)
+    nchunks         = Column(u'nchunks',INTEGER)
     mult_label      = Column(u'multiparams_label',VARCHAR(length=100)) 
    
     # Realtionships
