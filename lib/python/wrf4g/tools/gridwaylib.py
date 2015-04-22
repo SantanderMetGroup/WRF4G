@@ -3,17 +3,17 @@ import os
 import sys
 
 from os.path import dirname, abspath, join 
-from drm4g   import DRM4G_BIN_LOCATION
+from drm4g   import DRM4G_BIN
 
 __version__  = '1.5.2'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
     
-class Job( object )
+class Job( object ):
     """
     Class to use DRM4G 
     """
-    def create_template(self,name,arguments,np=1,req='',environ='',inputsandbox='',verbose=False):
+    def create_template(self,name,arguments,np=1,req='',environ='',inputsandbox=''):
         """
         Create template
         """
@@ -37,7 +37,7 @@ NP           = %d""" % (name,arguments,inputsandbox,req,environ,np)
             depend="-d %s -r %s" % (dep, type_dep)
         else:
             depend=''
-        command="%s/gwsubmit -p %d -v %s -t %s"%(DRM4G_BIN_LOCATION,priority,depend,self.template)
+        command="%s/gwsubmit -p %d -v %s -t %s"%(DRM4G_BIN,priority,depend,self.template)
         (err,out)=commands.getstatusoutput(command)
         os.unlink(self.template)
         if err != 0:
@@ -47,14 +47,14 @@ NP           = %d""" % (name,arguments,inputsandbox,req,environ,np)
         
     def kill(self,job_array):
         for i in job_array:
-            command="%s/gwkill -9 %s"%(DRM4G_BIN_LOCATION,i)
+            command="%s/gwkill -9 %s"%(DRM4G_BIN,i)
             (err,out)=commands.getstatusoutput(command)
             if out:
                 raise Exception(out)
                 
     def change_priority(self,priority,job_array):
         for i in job_array:
-            command="%s/gwkill -9 -p %d %s"%(DRM4G_BIN_LOCATION,priority,i)
+            command="%s/gwkill -9 -p %d %s"%(DRM4G_BIN,priority,i)
             (err,out)=commands.getstatusoutput(command)
             if out:
                 raise Exception(out)
