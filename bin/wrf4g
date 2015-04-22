@@ -1,17 +1,43 @@
 #!/usr/bin/env python
+"""
+WRF4G is a framework for the execution and monitoring of the WRF Modelling System 
+in distributed computing resources. For additional information, 
+see http://meteo.unican.es/trac/wiki/WRF4G .
 
-import sys
+Usage: wrf4g [ --version ] [ -h | --help ] [ --dbg ]
+             <command> [ <args>... ]
 
-from os.path         import dirname, join , abspath
-sys.path.insert( 0 , join( dirname( dirname( abspath( __file__ ) ) ) , 'lib', 'python' ) ) 
-from wrf4g.command  import execute_from_command_line
-
-__version__  = '1.5.2'
+Options:
+    -h --help  Show help.
+    --version  Show version.
+    --dbg      Debug mode.
+    
+wrf4g commands are:
+   start       Start DRM4G daemon, database and ssh-agent
+   stop        Stop  DRM4G daemon, database and ssh-agent
+   status      Check DRM4G daemon, database and ssh-agent
+   conf        Configure DRM4G daemon, scheduler, database and logger parameters
+   exp         Manage WRF4G experiments
+   rea         Manage WRF4G realizations
+   resource    Manage computing resources
+   host        Print information about the hosts
+   job         Submit, get status and history and cancel jobs
+ 
+See 'wrf4g <command> --help' for more information on a specific command.
+"""
+__version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
+from docopt import docopt
+
 if __name__ == "__main__":
-    try:
-        execute_from_command_line( sys.argv )
-    except Exception , err :
-        sys.stderr.write( str( err ) + '\n' )
+    args = docopt( __doc__, version = __version__ , options_first = True )
+    argv = [ args[ '<command>' ] ] + args[ '<args>' ]
+    if args['<command>'] in "start stop status conf resource host job rea exp vcp".split() :
+        command = getattr( __import__( "wrf4g.commands.%s" %  args['<command>'] ).commands, args['<command>'] )
+        arg = docopt( command.__doc__ , argv = argv )
+        command.run( arg )
+    else:
+        exit( "%r is not a wrf4g command. See 'wrf4g --help'." % args[ '<command>' ] )
+
