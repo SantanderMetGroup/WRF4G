@@ -1,5 +1,5 @@
 """
-Virtual copy.
+Virtual copy a command to copy files using different protocols.
         
 Usage:
     wrf4g vcp [ --dbg ] [ --overwrite  ] <source> <dest>
