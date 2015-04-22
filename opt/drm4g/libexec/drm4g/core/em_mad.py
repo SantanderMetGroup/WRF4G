@@ -15,7 +15,6 @@ from drm4g.core.configure    import Configuration
 from drm4g.utils.dynamic     import ThreadPool
 from drm4g.utils.message     import Send
 
-from wrf4g.core              import JOB_STATUS
 from wrf4g.db                import get_session, Job
 
 __version__  = '2.3.1'
@@ -204,10 +203,10 @@ class GwEmMad (object):
         Show the state of the job
         """
         states = {
-                  "PENDING"  : JOB_STATUS[ "PENDING" ],
-                  "ACTIVE"   : JOB_STATUS[ "RUNNING" ],
-                  "DONE"     : JOB_STATUS[ "FINISHED" ],
-                  "FAILED"   : JOB_STATUS[ "FAILED" ],
+                  "PENDING"  : "PENDING" ,
+                  "ACTIVE"   : "RUNNING" ,
+                  "DONE"     : "FINISHED" ,
+                  "FAILED"   : "FAILED" ,
                  } 
         while True:
             time.sleep( self._callback_interval )
@@ -224,9 +223,19 @@ class GwEmMad (object):
                             time.sleep ( 0.1 )
                         # Connect with the database to update the status of the job
                         try :
-                            session   = get_session()
+                            session  = get_session()
                             q_job = session.query( Job.gw_job == JID ).order_by( Job.id ).all()[-1]
-                            if q_job.status <= JOB_STATUS[ "PENDING" ] :
+                            if not q_job.status in ('PREPARING_WN',
+                                                    'DOWN_BIN',
+                                                    'DOWN_RESTART',
+                                                    'DOWN_WPS',
+                                                    'DOWN_BOUND',
+                                                    'UNGRIB',
+                                                    'METGRID',
+                                                    'REAL',
+                                                    'UPLOAD_WPS',
+                                                    'ICBCPROCESOR',
+                                                    'WRF') :
                                 q_job.set_status( states[ newStatus ] )
                                 session.commit()                                
                         except Exception , err :

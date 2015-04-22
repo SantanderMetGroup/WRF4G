@@ -2,11 +2,11 @@
 Submit, get status and history and cancel jobs.
 
 Usage: 
-    drm4g job submit [ --dbg ] [ --dep <job_id> ... ] <template> 
-    drm4g job list [ --dbg ] [ <job_id> ] 
-    drm4g job cancel [ --dbg ]  <job_id> ... 
-    drm4g job get-log [ --dbg ] <job_id>
-    drm4g job get-history [ --dbg ] <job_id> 
+    wrf4g job submit [ --dbg ] [ --dep <job_id> ... ] <template> 
+    wrf4g job list [ --dbg ] [ <job_id> ] 
+    wrf4g job cancel [ --dbg ]  <job_id> ... 
+    wrf4g job get-log [ --dbg ] <job_id>
+    wrf4g job get-history [ --dbg ] <job_id> 
    
 Arguments:
    <job_id>               Job identifier.
@@ -48,8 +48,9 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id: job.py 2352 2015-02-24 10:23:57Z carlos $"
 
 import logging
+from wrf4g                import logger
 from drm4g                import DRM4G_BIN
-from drm4g.commands       import exec_cmd, Daemon, logger 
+from drm4g.commands       import exec_cmd, Daemon
 
 def run( arg ) :
     if arg[ '--dbg' ] :

@@ -16,7 +16,7 @@ Usage:
     
 Commands:
     list                    Show resources available.    
-    edit                    Configure resouces.
+    edit                    Configure resources.
     check                   Check out if configured resources are accessible.
     id                      Manage identities for resources. That involves 
                             managing private/public keys and grid credentials, 
@@ -51,8 +51,9 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id: resource.py 2352 2015-02-24 10:23:57Z carlos $"
 
 import logging
+from wrf4g                import logger
 from drm4g.core.configure import Configuration
-from drm4g.commands       import exec_cmd, Daemon, Resource, Proxy, logger 
+from drm4g.commands       import exec_cmd, Daemon, Resource, Proxy
 
 def run( arg ) :
     if arg[ '--dbg' ] :
