@@ -1,46 +1,46 @@
 [DEFAULT]
-#   Experiment configuration
-#
-experiment_name      = "%(exp_name)s"
-
-#   Simulation domain
-max_dom              = 1
-domain_name          = "domain"
-
-#   Input data
-extdata_vtable       = "GFS"    # Vtables must exist as Vtable.[input_extdata]
-extdata_path         = "PATH"
-extdata_interval     = SS       # Seconds between global analysis input times
-extdata_preprocessor = "preprocessor_name"
-
-#   Output data
-postprocessor        = "postprocessor_name"
+# Experiment configuration
+experiment_name = "%(exp_name)s"
+# Simulation domain
+max_dom = 1
+# Experimten time-specification
+start_date = "Year-Month-Day_HH:MM:SS"
+end_date = "Year-Month-Day_HH:MM:SS"
+chunk_size_h = 12
+# Namelist
+namelist_version = "x.x.x"
+# Running options 
+np = 1
+requirements = 'ARCH="x86_64"'
+clean_after_run = 1
+save_wps = 0
+real_parallel = 0
+wrf_parallel = 1
+# Input data
+domain_path =
+extdata_vtable = 
+extdata_path =
+extdata_interval = 
+extdata_preprocessor = 
+# Output
+output_path = 
+postprocessor = 
 wrfout_name_end_date = 0
+# apps
+app_bundles =
+app_source_script =
 
-#   Experiment time-specification
-rerun                = 0
-start_date           = "Year-Month-Day_HH:MM:SS"
-end_date             = "Year-Month-Day_HH:MM:SS"
-chunk_size_h         = HH
+[multiple_parameters]
+variables = 
+nitems = 
+combinations = 
+# WRF-namelist parameters. Override namelist.input variables here
+[NI]
+#   Single valued:
 
-multiple_dates       = 0
-simulation_interval_h    = 0
-simulation_length_h      = 0
+[NIM]
+#   One value per domain:
 
-multiple_parameters  = 0
-multiparams_variables    = ""
-multiparams_nitems       = ""
-multiparams_combinations = ""
-multiparams_labels       = ""
+[NIM]
+#   One value per domain; but all equal (provide a single value here):
 
-#   Debugging
-clean_after_run      = 1
-save_wps             = 0
-
-#   Parallel configuration  
-real_parallel        = 0
-wrf_parallel         = 1
-
-#   WRF-namelist parameters. Override namelist.input variables 
-
-namelist_version       = "x.x.x"
