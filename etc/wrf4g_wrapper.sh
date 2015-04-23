@@ -135,6 +135,10 @@ execution(){
 
     export PATH=.:./bin:$PATH
 
+    python ./bin/easy_source.py 
+
+    source ./bin/easy_source.conf
+
     if [ -f stdin.execution ]; then
        STDIN_FILE=stdin.execution
     else
