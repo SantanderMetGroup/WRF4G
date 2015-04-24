@@ -7,6 +7,7 @@ max_dom = 1
 start_date = "Year-Month-Day_HH:MM:SS"
 end_date = "Year-Month-Day_HH:MM:SS"
 chunk_size_h = 12
+calendar = "standard"
 # Namelist
 namelist_version = "x.x.x"
 # Running options 

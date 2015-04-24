@@ -6,6 +6,7 @@ max_dom = 1
 # Experimten time-specification
 start_date = "2011-08-28_12:00:00"
 end_date = "2011-08-30_00:00:00"
+calendar = "standard"
 chunk_size_h = 12
 # Namelist
 namelist_version = "3.3.1"
