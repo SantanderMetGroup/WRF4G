@@ -30,7 +30,7 @@ CHUNK_STATUS = ( 'PREPARED' , 'SUBMITTED', 'RUNNING',
                  'PENDING', 'FAILED', 'FINISHED'
                 )
 
-JOB_STATUS   = ( 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING',
+JOB_STATUS   = ( 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 'CANCEL',
                  'FAILED', 'FINISHED', 'PREPARING_WN', 'DOWN_BIN',
                  'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB',
                  'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF'
@@ -631,7 +631,7 @@ class Job( JobModel ):
             if status == 'FINISHED' and self.chunk_id == self.chunk.realization.nchunks :
                 self.chunk.realization.status == 'FINISHED'
             else :
-                self.chunk.status = status
+                self.chunk.realization.status = status
                 self.chunk.realization.current_chunk = self.chunk_id + 1
         #Add event
         events            = Events()
@@ -708,7 +708,7 @@ class Job( JobModel ):
         logger.info('\t\t\tDeleting Job %d' % self.gw_job ) 
         if not dryrun :
             GWJob().kill( self.gw_job )
-            self.set_status( 'PREPARED' )
+            self.set_status( 'CANCEL' )
          
     def should_run(self, gwres):
         """
