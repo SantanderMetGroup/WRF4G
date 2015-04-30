@@ -42,6 +42,6 @@ combinations =
 [NIM]
 #   One value per domain:
 
-[NIM]
+[NIN]
 #   One value per domain; but all equal (provide a single value here):
 

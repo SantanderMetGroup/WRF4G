@@ -54,7 +54,7 @@ feedback            = 0
 history_interval   = 180,60,60,60 # minutes
 frames_per_outfile = 3,12,12,12
 
-[NIM]
+[NIN]
 #   One value per domain; but all equal (provide a single value here):
 e_vert             = 28
 mp_physics         = 4   # 1: Kessler, 2: Lin, 3: WRF S-M 3, 4: WRF S-M 5, 5: Eta, 6: WRF S-M 6, 7: Goddard, 8: Thompson, 10: Morrison
