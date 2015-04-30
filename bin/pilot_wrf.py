@@ -388,12 +388,7 @@ def main():
                                                     join( local_path, 'lib64' ),
                                                     os.environ.get( 'LD_LIBRARY_PATH' ) )
     if mpi_config :
-        opal_prefix_path = join( root_path, 'openmpi' )
-        os.environ[ 'OPAL_PREFIX' ] = opal_prefix_path
-        os.environ[ 'PATH' ] = '%s:%s' % ( join( opal_prefix_path, 'bin' ), 
-                                            os.environ.get( 'PATH' ) )
-        os.environ[ 'LD_LIBRARY_PATH' ] = '%s:%s' % ( join( opal_prefix_path, 'lib' ), 
-                                                    os.environ.get( 'LD_LIBRARY_PATH' ) )
+        os.environ[ 'OPAL_PREFIX' ] = root_path
 
     ##
     # This is is a little bit tricky prepare the pallalel environment.
