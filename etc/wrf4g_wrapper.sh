@@ -124,7 +124,9 @@ execution(){
         echo "failed."
         exit 1
     fi
-
+   
+    ulimit -s unlimited
+ 
     printf "`date`: Setting the LD_LIBRARY_PATH and PATH ... "
 
     export PATH=.:./bin:$PATH
