@@ -37,7 +37,10 @@ if __name__ == "__main__":
     if args['<command>'] in "start stop status conf resource host job rea exp vcp".split() :
         command = getattr( __import__( "wrf4g.commands.%s" %  args['<command>'] ).commands, args['<command>'] )
         arg = docopt( command.__doc__ , argv = argv )
-        command.run( arg )
+        try :
+            command.run( arg )
+        except err :
+	    exit( err )
     else:
         exit( "%r is not a wrf4g command. See 'wrf4g --help'." % args[ '<command>' ] )
 
