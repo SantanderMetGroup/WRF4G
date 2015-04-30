@@ -7,6 +7,7 @@ max_dom = 1
 start_date = "2011-08-28_12:00:00"
 end_date = "2011-08-30_00:00:00"
 chunk_size_h = 12
+timestep_dxfactor = 6
 calendar = "standard"
 # Namelist
 namelist_version = "3.3.1"
@@ -37,10 +38,10 @@ app_bundles = netcdf | %(WRF4G_DEPLOYMENT_LOCATION)s/repository/apps/netcdf/netc
 [multiple_parameters]
 variables = mp_physics,cu_physics,ra_lw_physics,ra_sw_physics,sf_sfclay_physics,bl_pbl_physics,sf_surface_physics
 nitems = %(max_dom)s,%(max_dom)s,%(max_dom)s,%(max_dom)s,%(max_dom)s,%(max_dom)s,%(max_dom)s
-combinations =  phys1 | 5,1:1:0,1,1,2,2,2
-                phys2 | 4,1:1:0,1,1,1,1,2
-                phys3 | 4,1:1:0,1,1,2,2,2
-                phys4 | 4,1:1:0,1,1,7,7,2
+combinations =  phys1 | 5,1,1,1,2,2,2
+                phys2 | 4,1,1,1,1,1,2
+                phys3 | 4,1,1,1,2,2,2
+                phys4 | 4,1,1,1,7,7,2
 # WRF-namelist parameters. Override namelist.input variables here
 [NI]
 #   Single valued:

@@ -236,6 +236,7 @@ def main():
     postprocessor    = exp_conf.get_variable( 'postprocessor' , resource_section )
     clean_after_run  = exp_conf.get_variable( 'clean_after_run' , resource_section )
     max_dom          = int( exp_conf.get_variable( 'max_dom' ) )
+    timestep_dxfactor= int( exp_conf.get_variable( 'timestep_dxfactor' ) )
     extdata_vtable   = exp_conf.get_variable( 'extdata_vtable' , resource_section )
     extdata_interval = exp_conf.get_variable( 'extdata_interval' , resource_section )
     real_parallel    = int( exp_conf.get_variable( 'real_parallel' , resource_section ) )
@@ -244,8 +245,6 @@ def main():
     np               = os.environ( 'GW_NP' )
     job_id           = int( os.environ( 'GW_JOB_ID' ) )
     restarted_id     = int( os.environ( 'GW_RESTARTED' ) )
-     # Default value
-    timestep_dxfactor= 6
 
     # Find if there is a specific section for this resource
     for section in experiment_conf.sections() :
