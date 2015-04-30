@@ -349,7 +349,7 @@ class Experiment( ExperimentModel ):
             rea().status( long_format )
     
     @staticmethod 
-    def create_files(name, template, directory):
+    def create_files(name, template, force, directory):
         """
         Create the files needed to establish a WRF4G experiment
         """
@@ -360,8 +360,10 @@ class Experiment( ExperimentModel ):
         if not exists( exp_dir ):
             raise Exception("'%s' does not exist" % exp_dir )
         exp_dir_config = join( exp_dir, name )
-        if exists( exp_dir_config ):
+        if exists( exp_dir_config ) and not force :
             raise Exception("'%s' already exists" % exp_dir_config )
+        else :
+            shutil.rmtree( exp_dir_config )
         logger.debug( "Creating '%s' directory" % exp_dir_config )
         shutil.copytree( join( WRF4G_DIR , 'etc' , 'templates' , 'experiments',  template ),
                          exp_dir_config )
@@ -370,7 +372,7 @@ class Experiment( ExperimentModel ):
             data = ''.join( f.readlines( ) )
         data_updated = data % {
                                'WRF4G_EXPERIMENT_HOME' : exp_dir_config ,
-                               'WRF4G_DIR_LOCATION'    : WRF4G_DEPLOYMENT_DIR ,
+                               'WRF4G_DEPLOYMENT_DIR'  : WRF4G_DEPLOYMENT_DIR ,
                                'exp_name'              : name ,
                                }
         with open(dest_path, 'w') as f :
