@@ -1,7 +1,0 @@
-#! /bin/bash
-exe=$1
-ulimit -s unlimited
-$* &
-prefix=${exe/.exe}
-test -f ${prefix}.pid || echo "$!" > ${prefix}.pid
-wait

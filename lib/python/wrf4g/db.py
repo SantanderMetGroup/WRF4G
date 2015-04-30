@@ -4,7 +4,7 @@ from sqlalchemy                 import ( Column, INTEGER,
                                          create_engine )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm             import relationship, sessionmaker
-from wrf4g                      import DB4G_CONF
+from wrf4g                      import DB4G_CONF, logger
 from wrf4g.utils                import VarEnv
 
 
@@ -13,15 +13,15 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
 
-DEFAULT_DB_CONF = """
-[DEFAULT]
-mysql+pymysql://wrf4guser:Meteo2011@%(hostname)s:%(port)s/WRF4GDB
+DEFAULT_DB_CONF = """[DEFAULT]
+URL = mysql+pymysql://wrf4guser:Meteo2011@%(hostname)s:%(port)s/WRF4GDB
 """
 
 def get_session():
     """
     Create a sqlalchemy session to connect with WRF4G database
     """
+    logger.debug( "Reading database configuration from '%s' file" % DB4G_CONF  )
     db4g_urls = VarEnv( DB4G_CONF ).get_variable( 'URL' )
     # an Engine, which the Session will use for connection
     engine = create_engine( db4g_urls )
@@ -50,15 +50,20 @@ class ExperimentModel( Base ):
     sdate           = Column(u'sdate', DATETIME())
     edate           = Column(u'edate', DATETIME())
     csize           = Column(u'csize', INTEGER)
-    mult_parameters = Column(u'multiple_parameters', INTEGER)
-    mult_dates      = Column(u'multiple_dates', INTEGER) 
     home_dir        = Column(u'home_directory', VARCHAR(length=300))
     np              = Column(u'np', INTEGER)
     requirements    = Column(u'requirements', VARCHAR(length=1024)) 
     environment     = Column(u'environment', VARCHAR(length=1024)) 
+    namelist_version= Column(u'namelist_versiont', VARCHAR(length=1024)) 
+    restart_interval= Column(u'restart_interval', INTEGER) 
+    max_dom         = Column(u'max_dom', INTEGER)
+    mult_dates      = Column(u'multiple_dates', INTEGER) 
     smul_length_h   = Column(u'simulation_length_h', INTEGER)
     smul_interval_h = Column(u'simulation_interval_h', INTEGER)
+    mult_parameters = Column(u'multiple_parameters', INTEGER)
     mult_labels     = Column(u'multiparams_labels', VARCHAR(length=1024)) 
+    mult_vars       = Column(u'multiparams_variables', VARCHAR(length=1024)) 
+    mult_nitems     = Column(u'multiparams_nitems', VARCHAR(length=1024)) 
     description     = Column(u'description', VARCHAR(length=1024)) 
 
     # Realtionships

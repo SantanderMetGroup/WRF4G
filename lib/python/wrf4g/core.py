@@ -35,6 +35,27 @@ JOB_STATUS   = ( 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 'CANCEL',
                  'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB',
                  'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF'
                 )
+
+JOB_ERROR = { 
+              'EXPERIMENT_FILE' : 1,
+              'LOCAL_PATH' : 2,
+              'LOG_PATH' : 3,
+              'JOB_SHOULD_NOT_RUN' : 4,
+              'COPY_RST_FILE' : 5,
+              'RESTART_MISMATCH' : 6,
+              'COPY_NAMELIST_WPS' : 7,
+              'COPY_REAL_FILE' : 8,
+              'COPY_WPS' : 9,
+              'PREPROCESSOR_FAILED' : 10,
+              'UNGRIB_FAILED' : 11,
+              'METGRID_FAILED' : 12,
+              'REAL_FAILED' : 13,
+              'COPY_UPLOAD_WPS' : 14,
+              'WRF_FAILED' : 15,
+              'POSTPROCESSOR_FAILED' : 16,
+              'COPY_OUTPUT_FILE' : 17,
+              'COPY_NODES':18,
+              }
              
 class Experiment( ExperimentModel ):
     """ 
@@ -201,13 +222,13 @@ class Experiment( ExperimentModel ):
             exec_cmd( "fortnml -wof %s -s max_dom %d" % ( namelist_input, self.max_dom ) )
             for key, val in NI :
                 logger.debug( "Updating parameter '%s' in the namelist" % key )
-                exec_cmd( "fortnml -wof %s -s %s -- %s" % (namelist_input, key, val) )
+                exec_cmd( "fortnml -wof %s -s %s %s" % (namelist_input, key, val) )
             for key, val in NIM :
                 logger.debug( "Updating parameter '%s' in the namelist" % key )
-                exec_cmd( "fortnml -wof %s -s %s -- %s" % (namelist_input, key, ' '.join( val.split(',')) ) )
+                exec_cmd( "fortnml -wof %s -s %s %s" % (namelist_input, key, val ) )
             for key, val in NIN :
                 logger.debug( "Updating parameter '%s' in the namelist" % key )
-                exec_cmd( "fortnml -wof %s -m %s -- %s" % (namelist_input, key, val) )
+                exec_cmd( "fortnml -wof %s -m %s %s" % (namelist_input, key, val) )
         if self.mult_dates :
            # If there is a multiple_parameter
            for rea_label in self.mult_labels.split('/') :
@@ -444,7 +465,7 @@ class Realization( RealizationModel ):
                                                           datetime2datewrf(self.chunk.sdate), 
                                                           datetime2datewrf(self.chunk.edate) ) )
                 if not dryrun :
-                    chunk().run()
+                    chunk().run( rerun )
             
     def _prepare_sub_files(self):
         """
@@ -523,6 +544,8 @@ class Realization( RealizationModel ):
                 self.chunk.append( ch )
             chunk_sdate = chunk_edate 
             chunk_id    = chunk_id + 1
+        # Set the number of chunks of a relaization    
+        self.realization.nchunks = chunk_id
  
     def status(self, long_format=False):
         """ 
@@ -584,13 +607,13 @@ class Chunk( ChunkModel ):
     """
  
     #METHODS
-    def run (self):
+    def run (self, rerun = False):
         """ 
         Run a chunk is run a drm4g job
         """
         #Send a gridway's job and save data in table Job
         job = Job()  #create an object "job"
-        job.run() #run job
+        job.run( rerun ) #run job
         self.job.append( job )
 
     def stop(self, dryrun = False ):
@@ -639,7 +662,7 @@ class Job( JobModel ):
         events.timestamp  = datetime.utcnow()
         self.events.append( events ) 
         
-    def run(self):
+    def run(self, rerun = False):
         """ 
         Send a gridway's job and save data in table Job
         id_chunk is an instance of Chunk
@@ -665,14 +688,14 @@ class Job( JobModel ):
         if exists( input_files ) :
             inputsandbox += ",file://%s" % ( input_files )
         # files to add for the outputsandbox
-        outputsandbox = "log_%s_$GW_JOB_ID_$GW_RESTARTED.tar.gz" % ( self.chunk_id )
-        arguments = '%s %s %d %d %s %s' % (
-                                         rea_name,
-                                         self.chunk.realization.id,
-                                         self.chunk.chunk_id,
-                                         self.chunk.id,
-                                         datetime2datewrf(self.chunk.sdate),
-                                         datetime2datewrf(self.chunk.edate)
+        outputsandbox = "log_%d_$GW_JOB_ID_$GW_RESTARTED.tar.gz" % ( self.chunk_id )
+        arguments = '%s %s %d %s %s %s' % (
+                                        exp_name,
+                                        rea_name,                                     
+                                        self.chunk.chunk_id,
+                                        self.chunk.sdate,
+                                        self.chunk.edate,
+                                        if rerun '1' else '0'
                                         )
         job.create_template( 
                             name          = join(rea_dir, rea_name + '__' + str( self.chunk_id ) ),
@@ -709,24 +732,3 @@ class Job( JobModel ):
         if not dryrun :
             GWJob().kill( self.gw_job )
             self.set_status( 'CANCEL' )
-         
-    def should_run(self, gwres):
-        """
-        Check if the job should run
-        """
-        #Last job with the same distinct field gw_job 
-        try :
-            last_job = self.chunk.query( Job.gw_job == self.gw_job).\
-                                           order_by( Job.id ).all()[-1]
-        except :
-            logger.debug('ERROR: Could not find the last job')
-            return False
-        if last_job.gw_restarted < gwres:
-            self.gw_restarted = gwres
-        elif last_job.gw_restarted == gwres:
-            self.id = last_job.id
-        else:
-            #if last_job.gw_restarted>gwres
-            logger.debug('ERROR: This job should not be running this Chunk')
-            return False
-        return True

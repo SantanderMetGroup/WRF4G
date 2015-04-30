@@ -1,15 +1,17 @@
-from __future__     import with_statement
 from datetime       import datetime, timedelta
 from os.path        import join, basename, dirname, exists, expandvars, isdir
 from re             import search, match
-from wrf4g          import WRF4G_DIR
+from wrf4g          import WRF4G_DIR, MYSQL_DIR, logger
 
 import os
 import sys
 import time
+import signal
 import calendar
 import socket
+import subprocess
 import ConfigParser
+import fortran_namelist as fn
 
 __version__  = '1.5.2'
 __author__   = 'Carlos Blanco'
@@ -213,7 +215,7 @@ def process_is_runnig( pid ):
     else:
         return True
 
-def exec_cmd( cmd , stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+def exec_cmd( cmd, nohup=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
               stderr=subprocess.STDOUT, env=os.environ ):
     """
     Execute shell commands
@@ -226,7 +228,10 @@ def exec_cmd( cmd , stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE,
                                   env=env
                                   )
-    out , err =  cmd_to_exec.communicate()
+    if not nohup :
+    	out , err =  cmd_to_exec.communicate()
+    else :
+        out = err = ''
     return out , err
 
 class DataBase( object ):
@@ -235,14 +240,14 @@ class DataBase( object ):
     """
 
     def __init__( self, port=25000 ):
-        self.port       = port
-        self.file_pid   = join( WRF4G_DIR, 'var', 'mysql.pid' )
+        self.mysql_port = port
+        self.mysql_pid  = join( WRF4G_DIR, 'var', 'mysql.pid' )
         self.mysql_sock = join( WRF4G_DIR, 'var', 'mysql.sock' )
         self.mysql_log  = join( WRF4G_DIR, 'var', 'log', 'mysql.log' )
 
     def _port_is_free( self ):
         sock = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-        if sock.connect_ex( ( '127.0.0.1', int( self.port ) ) ) is 0 :
+        if sock.connect_ex( ( '127.0.0.1', int( self.mysql_port ) ) ) is 0 :
             return False
         else :
             return True
@@ -258,7 +263,7 @@ class DataBase( object ):
     def start( self ):
         logger.info( "Starting WRF4G_DB (MySQL) ... " )
         if not self._port_is_free() and not process_is_runnig( self.mysql_pid ):
-            raise Exception( "WARNING: Another process is listening on port %s."
+            raise Exception( "WARNING: Another process is listening on port %s.\n"
               "Change the port by executing 'wrf4g start --db-port=new_port'." % self.mysql_port  
               )
         elif not exists( self.mysql_pid ) or ( exists( self.mysql_pid ) and not process_is_runnig( self.mysql_pid ) ) :
@@ -268,7 +273,7 @@ class DataBase( object ):
                                                                                                      self.mysql_pid
                                                                                                      )
             cmd =  "cd %s ; nohup ./bin/mysqld_safe %s &>/dev/null &" % ( MYSQL_DIR , mysql_options )
-            exec_cmd( cmd )
+            exec_cmd( cmd , nohup = True, stdin = False )
             time.sleep( 1.0 )
             if not exists( self.mysql_pid ) or self._port_is_free() :
                 logger.error( "ERROR: MySQL did not start, check '%s' for more information " % self.mysql_log )
@@ -282,7 +287,7 @@ class DataBase( object ):
             logger.info( "WRF4G_DB (MySQL) has not started" )
         else :
             logger.info( "Stopping WRF4G_DB (MySQL) ..." )
-            if not exists( self.mysql_pid ) and not process_is_runnig( self.mysql_pid ) ) :
+            if not exists( self.mysql_pid ) and not process_is_runnig( self.mysql_pid ) :
                 logger.warn( "WARNING: MySQL is already stopped." )
             elif exists( self.mysql_pid ) and process_is_runnig( self.mysql_pid ) :
                 with open( self.mysql_pid , 'r') as f:
@@ -366,3 +371,98 @@ class Calendar( object ):
         day = int(365.0 * (year + 4716)) + int(30.6001 * (month + 1)) + day - 1524.5
         return day
 
+def get_num_metgrid_levels():
+  shcmd = "ncdump -h $(\ls -1 met_em*.nc | head -1) | grep 'num_metgrid_levels =' | sed -e 's/^\t//' | tr '=;' '  ' | awk '{print $2}'"
+  return int(os.popen(shcmd).read().strip())
+
+def get_num_metgrid_soil_levels():
+  shcmd = "ncdump -h $(\ls -1 met_em*.nc | head -1) | grep 'NUM_METGRID_SOIL_LEVELS' | sed -e 's/^\t//' | tr '=:;' '   ' | awk '{print $2}'"
+  return int(os.popen(shcmd).read().strip())
+
+def get_time_step(coarse_dx, factor):
+  HOUR_DIVISORS = [
+    1,2,3,4,5,6,8,9,10,12,15,16,18,20,24,25,30,36,40,45,48,50,60,
+    72,75,80,90,100,120,144,150,180,200,225,240,300,360,400,450,600,
+    720,900,1200
+  ]
+  tstep = int(factor*coarse_dx/1000)
+  ival = map(lambda x: x<=tstep, HOUR_DIVISORS).index(0) - 1
+  return HOUR_DIVISORS[ival]
+
+def get_latlon_dx(start_date, dom):
+  #  Try to get dx from the met_em or wrfinput files. Only
+  #  required for lat-lon grids, otherwise it is available
+  #  in the namelist.wps file
+  dxfile = ""
+  if os.path.exists("met_em.%s.%s.nc" % (dom, start_date)):
+    dxfile = "met_em.%s.%s.nc" % (dom, start_date)
+  elif os.path.exists("wrfinput_%s" % dom):
+    dxfile = "wrfinput_%s" % dom
+  if dxfile:
+    shcmd = "ncdump -h %s | grep 'DX =' | sed -e 's/^\t//' | tr '=;' ' ' | awk '{printf \"%%f\", $2}'" % dxfile
+    rval = round(float(os.popen(shcmd).read().strip()), 4)
+  else:
+    raise Exception('get_latlon_dx: no met_em or wrfinput file found')
+  return rval
+
+def namelist_wps2wrf( namelistwps, namelistinput, sdate, edate, maxdom, chunk_is_restart, timestep_dxfactor=6) :
+    nmlw = fn.FortranNamelist(namelistwps)
+    nmli = fn.WrfNamelist(namelistinput)
+
+    nmli.setValue("max_dom", maxdom)
+    for var in ["run_days", "run_hours", "run_minutes", "run_seconds"]:
+        nmli.setValue(var, 0)
+    nmli.setMaxDomValue("start_year",  sdate.year)
+    nmli.setMaxDomValue("start_month", sdate.month)
+    nmli.setMaxDomValue("start_day",   sdate.day)
+    nmli.setMaxDomValue("start_hour",  sdate.hour)
+    nmli.setMaxDomValue("end_year",    edate.year)
+    nmli.setMaxDomValue("end_month",   edate.month)
+    nmli.setMaxDomValue("end_day",     edate.day)
+    nmli.setMaxDomValue("end_hour",    edate.hour)
+    for var in [ "parent_grid_ratio", "i_parent_start", "j_parent_start", "e_we", "e_sn"]:
+        nmli.setValue(var, nmlw.getValue(var))
+    nmli.setValue("parent_time_step_ratio", nmlw.getValue("parent_grid_ratio"))
+    if exists("met_em.d01.%s.nc" % sdate):
+        # If there are met_em files, we need to run real.exe. Otherwise, we
+        # cannot get enough info (num_metgrid_*levels) to run real.exe
+        nmli.setValue("num_metgrid_levels", get_num_metgrid_levels())
+        nmli.setValue("num_metgrid_soil_levels", get_num_metgrid_soil_levels())
+    #
+    #  Compute the grid spacings. Read them from met_em files if the projection is lat-lon.
+    #
+    nmli.setValue("grid_id", range(1, maxdom+1))
+    pid = nmlw.getValue("parent_id")
+    pgr = nmlw.getValue("parent_grid_ratio")
+    proj = nmlw.getValue("map_proj")[0]
+
+    alldx = []
+    for idom in range(1,maxdom + 1):
+        thisdx = get_latlon_dx(start_date, "d0%i" % idom)
+        alldx.append(thisdx)
+
+    nmli.setValue("dx", alldx)
+    nmli.setValue("dy", alldx) # May be an issue for global WRF
+    #
+    # Compute the time step. 
+    #
+    if timestep_dxfactor.startswith("manual:"):
+        nmli.setValue("time_step", int(timestep_dxfactor[7:]))
+    elif timestep_dxfactor.startswith("adaptive:"):
+        nmli.setValue("use_adaptive_time_step", ".true.", "domains")
+    else:
+        nmli.setValue("time_step",
+            get_time_step(nmli.getValue("dx")[0], eval(timestep_dxfactor))
+            )
+    nmli.setValue("restart", chunk_is_restart)
+    #
+    #  Currently, sibling domains only work with this on (?)
+    #
+    nmli.setValue("debug_level", 300)
+    #
+    #  Trim, check, overwrite the file and ... we are done!
+    #
+    nmli.trimMaxDom()
+    nmli.wrfCheck()
+    nmli.extendMaxDomVariables()
+    nmli.overWriteNamelist()

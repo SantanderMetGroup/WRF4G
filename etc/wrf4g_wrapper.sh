@@ -125,19 +125,34 @@ execution(){
         exit 1
     fi
 
+    printf "`date`: Setting the LD_LIBRARY_PATH and PATH ... "
+
     export PATH=.:./bin:$PATH
 
     export PYTHONPATH=./lib/python:$PYTHONPATH
+
+    export LD_LIBRARY_PATH:./lib:./lib64:$LD_LIBRARY_PATH
+
+    echo "done."
  
     chmod +x ./bin/*
-			
-    printf "`date`: Executing actual job \"$GW_EXECUTABLE $GW_ARGUMENTS\"... "
 
-    export PATH=.:./bin:$PATH
+    printf "`date`: Configuring software sources ... "
 
     python ./bin/easy_source.py 
 
-    source ./bin/easy_source.conf
+    if [ $? -eq 0 ]; then    
+        echo "done."
+    else
+        echo "failed."
+        exit 1
+    fi
+
+	source ./bin/easy_source.conf		
+
+    export DB4G_CONF=$PWD/db.conf
+
+    printf "`date`: Executing actual job \"$GW_EXECUTABLE $GW_ARGUMENTS\"... "
 
     if [ -f stdin.execution ]; then
        STDIN_FILE=stdin.execution

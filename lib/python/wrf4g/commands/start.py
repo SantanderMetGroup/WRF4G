@@ -15,7 +15,7 @@ Options:
 """
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: start.py 2352 2015-02-24 10:23:57Z carlos $"
+__revision__ = "$Id$"
 
 import logging
 import os

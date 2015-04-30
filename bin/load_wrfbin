@@ -1,8 +1,0 @@
-#!/bin/bash
-mkdir -p ${LOCALDIR}/WRFV3/run
-cd  ${LOCALDIR}/WRFV3/run
-for file in `ls ${ROOTDIR}/runshared/`
-do 
-  ln -s ${ROOTDIR}/runshared/$file .
-done
-cd -
