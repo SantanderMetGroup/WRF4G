@@ -695,7 +695,7 @@ class Job( JobModel ):
                                         self.chunk.chunk_id,
                                         self.chunk.sdate,
                                         self.chunk.edate,
-                                        if rerun '1' else '0'
+                                        '1' if rerun else '0'
                                         )
         job.create_template( 
                             name          = join(rea_dir, rea_name + '__' + str( self.chunk_id ) ),
