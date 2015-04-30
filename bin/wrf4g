@@ -40,7 +40,7 @@ if __name__ == "__main__":
         try :
             command.run( arg )
         except Exception, err :
-	    exit( err )
+            exit( err )
     else:
         exit( "%r is not a wrf4g command. See 'wrf4g --help'." % args[ '<command>' ] )
 
