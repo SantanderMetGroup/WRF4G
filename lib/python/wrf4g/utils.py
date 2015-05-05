@@ -60,7 +60,7 @@ class VarEnv( object ):
         """
         self._cp.set(section, option, value)
     
-    def get_variable( self , var_name , section = 'DEFAULT' , default = '') :
+    def get_variable( self, var_name, default = '', section = 'DEFAULT') :
         """
         Get a value for given section. The default section will be 'DEFAULT'. 
         """

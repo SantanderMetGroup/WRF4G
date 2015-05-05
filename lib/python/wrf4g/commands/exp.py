@@ -3,7 +3,7 @@ Manage WRF4G experiments.
     
 Usage: 
     wrf4g exp list           [ --dbg ] [ --long ] [ --pattern=<name> ]
-    wrf4g exp <name> start   [ --dbg ] [ --template=<name> ] [ --dir=<directory> ] 
+    wrf4g exp <name> start   [ --dbg ] [ --force ] [ --template=<name> ] [ --dir=<directory> ] 
     wrf4g exp <name> create  [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
     wrf4g exp <name> update  [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
     wrf4g exp <name> submit  [ --dbg ] [ --rerun ] [ --dry-run ] 
@@ -15,6 +15,7 @@ Options:
     --dbg                 Debug mode.
     -n --dry-run          Dry run.
     -l --long             Show a detailed information.
+    -f --force            Force to remove if it exists.
     -p --pattern=<name>   Pattern to find experiments and realizations. 
     -t --template=<name>  Experiment template, avaible templates are default, single, physics [default: default]. 
     -d --dir=<directory>  Directory to create or start an experiment [default: ./].
@@ -41,53 +42,54 @@ from sqlalchemy.orm.exc   import NoResultFound
 from wrf4g                import logger
 from wrf4g.db             import get_session
 from wrf4g.core           import Experiment
+from wrf4g.utils          import datetime2datewrf
 
 def run( arg ) :
     if arg[ '--dbg' ] :
         logger.setLevel( logging.DEBUG )
     if arg[ 'start' ] :
-        Experiment.create_files( arg[ '<name>' ], arg[ '--template' ], arg[ '--dir' ] )
+        Experiment.create_files( arg[ '<name>' ], arg[ '--template' ], arg[ '--force' ], arg[ '--dir' ] )
     else :
         # create a session to connect with the database
         session = get_session()
         try :
             if arg[ 'list' ] :
-                q_exps = session.query( Experiment )
+                l_exps = session.query( Experiment )
                 if arg[ '--pattern' ] :
-                    q_exps  = q_exps.filter( Experiment.name.like( arg[ '--pattern' ].replace('*','%') ) )
-                if not arg[ '--long' ] and q_exps.all() :
+                    l_exps  = l_exps.filter( Experiment.name.like( arg[ '--pattern' ].replace('*','%') ) )
+                if not arg[ '--long' ] and l_exps.all() :
                     # Header
                     logger.info( "Name" )
-                    for e in q_exps :
+                    for e in l_exps :
                         logger.info( e.name )
-                elif q_exps.all() :
+                elif l_exps.all() :
                     # Header
-                    logger.info( "%20s %20s %20s %12s %10s %-30s" % ( 
-                           "Name", "Start Date" , "End Date", "Mult Paramts", "Mult Dates", "Mult Labels")  )
-                    for e in q_exps :
-                        logger.info("%20.20s %20.20s %20.20s %12.12s %10.10s %-30.30s" % ( 
+                    logger.info( "%-20s %-20s %-20s %-12s %-10s" % ( 
+                           "Name", "Start Date" , "End Date", "Mult Paramts", "Mult Dates" ) )
+                    for e in l_exps :
+                        logger.info("%-20.20s %-20.20s %-20.20s %-12.12s %-10.10s" % ( 
                                  e.name, datetime2datewrf(e.sdate), datetime2datewrf(e.edate), 
-                                 e.mult_parameters, e.mult_dates, e.mult_labels ) )
+                                 e.mult_parameters, e.mult_dates ) )
             else :
                 try :
-                    q_exp = session.query( Experiment ).\
+                    exp = session.query( Experiment ).\
                             filter( Experiment.name == arg[ '<name>' ] ).one()
                 except NoResultFound :
-                    if arg[ 'update' ] :
-                        exp = Experiment()
-                        exp.create( True, arg[ '--dry-run' ],  arg[ '--dir' ] )
-                        session.add( exp )
+                    if arg[ 'create' ] :
+                        exp2 = Experiment()
+                        exp2.name = arg[ '<name>' ]
+                        exp2.create( False, arg[ '--dry-run' ],  arg[ '--dir' ] )
+                        session.add( exp2 )
                     else :
                         raise Exception( "'%s' experiment does not exist" % arg[ '<name>' ] )
                 else :
-                    exp = q_exp()
                     # Options 
-                    if arg[ 'create' ] :
-                        exp.create( False, arg[ '--dry-run' ],  arg[ '--dir' ] )
+                    if arg[ 'update' ] :
+                        exp.create( True, arg[ '--dry-run' ],  arg[ '--dir' ] )
                     elif arg[ 'submit' ] :
-                        exp.run( arg[ 'rerun' ], arg[ '--dry-run' ] )
+                        exp.run( arg[ '--rerun' ], arg[ '--dry-run' ] )
                     elif arg[ 'status' ] :
-                        exp.status( arg[ '--long' ], arg[ '--pattern' ]  )
+                        exp.get_status( arg[ '--long' ], arg[ '--pattern' ]  )
                     elif arg[ 'stop' ] :
                         exp.stop( arg[ '--dry-run' ] )
                     else :

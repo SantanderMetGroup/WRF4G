@@ -3,7 +3,6 @@ Manage WRF4G realizations.
     
 Usage: 
     wrf4g rea <name> submit [ <fist_ch> [ <last_ch> ] ] [ --dbg ] [ --rerun ] [ --dry-run ]
-    wrf4g rea <name> status [ --dbg ] [ --long ] 
     wrf4g rea <name> stop   [ --dbg ] [ --dry-run ] 
    
 Options:
@@ -34,20 +33,16 @@ def run( arg ) :
     session = get_session()
     try :
         try : 
-            q_rea = session.query( Realization ).\
-                    filter( Realization.name == arg[ '<name>' ] ).one()
+            rea = session.query( Realization ).\
+                    filter( Realization.name == arg[ '<name>' ], Realization.exp_id != None ).one()
         except NoResultFound :
             raise Exception( "'%s' realization does not exist" % arg[ '<name>' ] )
         else :
-            rea = q_rea()
-            rea.session = session
             if arg[ 'submit' ] :
                 rea.run( first_chunk_run = arg[ '<first_ch>' ], 
                          last_chunk_run  = arg[ '<last_ch>' ] , 
                          rerun           = arg[ 'rerun' ], 
                          dryrun          = arg[ '--dry-run' ] )
-            elif arg[ 'status' ] :
-                rea.status( long_format = arg[ '--long' ] )
             else :
                 rea.stop( dryrun = arg[ '--dry-run' ] )
             if arg[ '--dry-run' ] :

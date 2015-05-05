@@ -13,7 +13,7 @@ class Job( object ):
     """
     Class to use DRM4G 
     """
-    def create_template(self,name,arguments,np=1,req='',environ='',inputsandbox=''):
+    def create_template(self,name,arguments,np=1,req='',environ='',inputsandbox='',outputsandbox=''):
         """
         Create template
         """
@@ -22,11 +22,12 @@ class Job( object ):
             f = open (ftemplate,'w')
             template="""NAME = %s
 EXECUTABLE   = /usr/bin/env python 
-ARGUMENTS    = ./bin/pilot_wrf.py %s"
+ARGUMENTS    = ./bin/pilot_wrf.py %s
 INPUT_FILES  = %s
+OUTPUT_FILES = %s
 REQUIREMENTS = %s
 ENVIRONMENT  = %s
-NP           = %d""" % (name,arguments,inputsandbox,req,environ,np)
+NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np)
             f.write(template)
         finally:
             f.close()
@@ -45,17 +46,15 @@ NP           = %d""" % (name,arguments,inputsandbox,req,environ,np)
         else:
             return out[8:]
         
-    def kill(self,job_array):
-        for i in job_array:
-            command="%s/gwkill -9 %s"%(DRM4G_BIN,i)
-            (err,out)=commands.getstatusoutput(command)
-            if out:
-                raise Exception(out)
+    def kill(self,job):
+        command="%s/gwkill -9 %s"%(DRM4G_BIN,job)
+        (err,out)=commands.getstatusoutput(command)
+        if out:
+            raise Exception(out)
                 
-    def change_priority(self,priority,job_array):
-        for i in job_array:
-            command="%s/gwkill -9 -p %d %s"%(DRM4G_BIN,priority,i)
-            (err,out)=commands.getstatusoutput(command)
-            if out:
-                raise Exception(out)
+    def change_priority(self,priority,job):
+        command="%s/gwkill -9 -p %d %s"%(DRM4G_BIN,priority,job)
+        (err,out)=commands.getstatusoutput(command)
+        if out:
+            raise Exception(out)
                                                 

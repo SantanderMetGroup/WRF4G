@@ -6,23 +6,45 @@ import shutil
 import logging
 import tarfile
 import glob
-import theading
+import threading
 
 from distutils            import spawn
 from os.path              import exists, join, dirname, isfile, basename
-from wrf4g.db             import get_session, Job
-from wrf4g.core           import JOB_ERROR
+from wrf4g.db             import get_session
+from wrf4g.core           import Job
 from wrf4g.utils          import ( 
                                     VarEnv, datetime2dateiso, 
                                     dateiso2datetime, datewrf2datetime, 
                                     namelist_wps2wrf 
                                     )
-from wrf4g.tools.vcp      import VCPURL, copy_file
+from wrf4g.tools.vcplib   import VCPURL, copy_file
 from wrf4g.tools.archive  import extract
 
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
+
+
+JOB_ERROR = { 
+              'EXPERIMENT_FILE'      : 1,
+              'LOCAL_PATH'           : 2,
+              'LOG_PATH'             : 3,
+              'JOB_SHOULD_NOT_RUN'   : 4,
+              'COPY_RST_FILE'        : 5,
+              'RESTART_MISMATCH'     : 6,
+              'COPY_NAMELIST_WPS'    : 7,
+              'COPY_REAL_FILE'       : 8,
+              'COPY_WPS'             : 9,
+              'PREPROCESSOR_FAILED'  : 10,
+              'UNGRIB_FAILED'        : 11,
+              'METGRID_FAILED'       : 12,
+              'REAL_FAILED'          : 13,
+              'COPY_UPLOAD_WPS'      : 14,
+              'WRF_FAILED'           : 15,
+              'POSTPROCESSOR_FAILED' : 16,
+              'COPY_OUTPUT_FILE'     : 17,
+              'COPY_NODES'           : 18,
+              }
 
 class JobError( Exception ):
     """Raised when job fails.
@@ -49,7 +71,7 @@ class JobDB( object ) :
             logging.warn( "Error creating database session" )
         else :
             try :
-                self.job = session.query( Job.gw_job == job_id ).order_by( Job.id ).all()[-1]
+                self.job = session.query.filter( Job.gw_job == job_id ).order_by( Job.id ).all()[-1]
             except :
                 self.job = None
                 logging.warn( "Error finding job '%s' on the database" % job_id )
@@ -111,12 +133,12 @@ class JobDB( object ) :
             self.session.close()
 
 
-def clean_wrf_files( job_db, wrf_run_path, out_rea_output_path, rst_rea_output_path, clean="all" , chunk_rdate ):
+def clean_wrf_files( job_db, wrf_run_path, out_rea_output_path, rst_rea_output_path, chunk_rdate, clean="all" ):
     """
     Postprocess wrfout files and copy files to the output path 
     """
     for patt in [ "wrfout", "wrfrst", "wrfrain", "wrfxtrm", "wrf24hc" ] :
-        all_files = glob.glob( join( wrf_run_path, patt + '*' )
+        all_files = glob.glob( join( wrf_run_path, patt + '*' ) )
         if clean != 'all' :
             if len( files ) >= 2 :
                 files = all_files[ :-1 ]
@@ -128,7 +150,7 @@ def clean_wrf_files( job_db, wrf_run_path, out_rea_output_path, rst_rea_output_p
             if file_name == "wrfrst_d01_" + datetime2dateiso( chunk_rdate ) :
                 logging.info( "Skipping initial restart file %s" % file_name )
                 continue
-            else
+            else :
                 if "wrfout" in file_name :
                     ##
                     # Execute postprocessor
@@ -136,7 +158,7 @@ def clean_wrf_files( job_db, wrf_run_path, out_rea_output_path, rst_rea_output_p
                     logging.info( "Running postprocessor.%s" % postprocessor )
 
                     code, output = exec_cmd( "postprocessor.%s %s" % (
-                                                preprocessor, file_name )
+                                                preprocessor, file_name ) )
                     logging.info( output )
                     if code :
                         raise JobError( "%s' has not copied" % file_name,
@@ -178,14 +200,13 @@ def wrf_monitor( job_db, wrf_run_path, out_rea_output_path, rst_rea_output_path,
             log = f.readlines()
         finally :
             f.close()
-        else :
-            for line in log[ -1: ] :
-                if line.find( 'Timing for main: time' ) == 0:
-                    cdate = datewrf2datetime( line.split()[4] )
-            if not cdate :
-                cdate = chunk_rdate
+        for line in log[ -1: ] :
+            if line.find( 'Timing for main: time' ) == 0:
+                cdate = datewrf2datetime( line.split()[4] )
+        if not cdate :
+            cdate = chunk_rdate
         job_db.set_cdate( cdate )
-        clean_wrf_files( job_db, wrf_run_path, out_rea_output_path, rst_rea_output_path, 'closed_files' , chunk_rdate )
+        clean_wrf_files( job_db, wrf_run_path, out_rea_output_path, rst_rea_output_path, chunk_rdate, 'closed_files' )
         time.sleep( 60 ) # 1 minute
 
 def exe_cmd( cmd ):
@@ -229,18 +250,18 @@ def main():
         if ':' in section and section.split( ':' , 1 )[ 1 ].strip() == resource_name :
             resource_section = section
 
-    output_path      = exp_conf.get_variable( 'output_path' , resource_section )
-    domain_path      = exp_conf.get_variable( 'domain_path' , resource_section )
-    app_bundles      = exp_conf.get_variable( 'app_bundles' , resource_section )
-    preprocessor     = exp_conf.get_variable( 'preprocessor' , resource_section )
-    postprocessor    = exp_conf.get_variable( 'postprocessor' , resource_section )
-    clean_after_run  = exp_conf.get_variable( 'clean_after_run' , resource_section )
+    output_path      = exp_conf.get_variable( 'output_path' , section = resource_section )
+    domain_path      = exp_conf.get_variable( 'domain_path' , section = resource_section )
+    app_bundles      = exp_conf.get_variable( 'app_bundles' , section =  resource_section )
+    preprocessor     = exp_conf.get_variable( 'preprocessor' , section = resource_section )
+    postprocessor    = exp_conf.get_variable( 'postprocessor' , section = resource_section )
+    clean_after_run  = exp_conf.get_variable( 'clean_after_run' , section = resource_section )
     max_dom          = int( exp_conf.get_variable( 'max_dom' ) )
     timestep_dxfactor= int( exp_conf.get_variable( 'timestep_dxfactor' ) )
-    extdata_vtable   = exp_conf.get_variable( 'extdata_vtable' , resource_section )
-    extdata_interval = exp_conf.get_variable( 'extdata_interval' , resource_section )
-    real_parallel    = int( exp_conf.get_variable( 'real_parallel' , resource_section ) )
-    wrf_parallel     = int( exp_conf.get_variable( 'wrf_parallel' , resource_section ))
+    extdata_vtable   = exp_conf.get_variable( 'extdata_vtable' , section = resource_section )
+    extdata_interval = exp_conf.get_variable( 'extdata_interval' , section = resource_section )
+    real_parallel    = int( exp_conf.get_variable( 'real_parallel' , default = 0, section = resource_section ) )
+    wrf_parallel     = int( exp_conf.get_variable( 'wrf_parallel' , default = 1, section = resource_section ))
     ppn              = os.environ( 'PPN' )
     np               = os.environ( 'GW_NP' )
     job_id           = int( os.environ( 'GW_JOB_ID' ) )
@@ -592,7 +613,7 @@ def main():
             if not ungrib_exe :
                 ungrib_exe = join( wps_path, 'ungrib', 'ungrib.exe' )
             code, output = exec_cmd( "%s >& %s" % ( ungrib_exe, log_ungrib ) )
-            if code or not 'Successful completion of ungrib' in open( log_ungrib, 'r' ).read() 
+            if code or not 'Successful completion of ungrib' in open( log_ungrib, 'r' ).read() : 
                 raise JobError( "'%s' has failed" % ungrib_exe,
                             JOB_ERROR[ 'UNGRIB_FAILED' ] )
             shutil.rmtree( grb_data_path )
@@ -603,7 +624,7 @@ def main():
         ##
         #  Update namelist.wps 
         ##
-        log_file.info( "Update namelist for metgrid" ))
+        log_file.info( "Update namelist for metgrid" )
 
         exe_cmd( "fortnml -of %s -s fg_name@metgrid %s" % ( namelist_wps, extdata_vtable ) )
         for var_to_del in [ 'opt_output_from_metgrid_path',
@@ -643,7 +664,7 @@ def main():
         real_exe = spawn.find_executable( 'real.exe' )
         if real_parallel :
             log_real = join( log_path, 'rsl.out.0000' )
-            npernode = "-npernode %s" ppn if ppn else '' 
+            npernode = "-npernode %s" % ppn if ppn else '' 
             cmd =  "mpirun -np %s %s --preload-files namelist.input --preload-files-dest-dir %s %s" % (
                     np, npernode, wrf_run_path ,real_exe ) 
             code, output = exec_cmd( cmd ) 
@@ -704,7 +725,7 @@ def main():
 
     wrf_exe = spawn.find_executable( 'wrf.exe' )
     if wrf_parallel :
-        npernode = "-npernode %s" ppn if ppn else '' 
+        npernode = "-npernode %s" % ppn if ppn else '' 
         cmd =  "mpirun -np %s %s --preload-files namelist.input --preload-files-dest-dir %s %s" % (
                     np, npernode, wrf_run_path ,wrf_exe )
         code, output = exec_cmd( cmd )
@@ -722,7 +743,7 @@ def main():
     ##
     # Save all files
     ##    
-    clean_wrf_files( job_db, wrf_run_path, out_rea_output_path, rst_rea_output_path, "all" , chunk_rdate   )
+    clean_wrf_files( job_db, wrf_run_path, out_rea_output_path, rst_rea_output_path, chunk_rdate, 'all' )
 
     ##
     # Close the connection with the database
@@ -733,7 +754,6 @@ def main():
     # Create a log bundle 
     ##
     os.chdir( local_path )
-    log_file_name = 
     tar = tarfile.open( "log_%d_%d_%s.tar.gz " % ( nchunk, job_id, restarted_id )  , "w:gz" )
     tar.add( 'log' )
     # Local copy that will use as outsandbox 
@@ -755,6 +775,6 @@ if __name__ == '__main__':
         msg = "Unexpected error:", sys.exc_info()[0]
         try :
             logging.error( msg )
-         except :
+        except :
             sys.stderr.write( msg )
         sys.exit( 1 )

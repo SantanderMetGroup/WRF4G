@@ -133,7 +133,7 @@ execution(){
 
     export PYTHONPATH=./lib/python:$PYTHONPATH
 
-    export LD_LIBRARY_PATH:./lib:./lib64:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=./lib:./lib64:$LD_LIBRARY_PATH
 
     echo "done."
  
@@ -150,7 +150,7 @@ execution(){
         exit 1
     fi
 
-	source ./bin/easy_source.conf		
+	source ./easy_source.conf		
 
     export DB4G_CONF=$PWD/db.conf
 
