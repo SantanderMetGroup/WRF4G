@@ -13,7 +13,6 @@ Options:
   
 Commands:
    submit        Submit the realization.        
-   status        Check the status of the realization.
    stop          Stop the realization by killing its jobs.
 """
 __version__  = '2.0.0'
