@@ -2,35 +2,34 @@
 Manage WRF4G experiments. 
     
 Usage: 
-    wrf4g exp list           [ --dbg ] [ --long ] [ --pattern=<name> ]
-    wrf4g exp <name> start   [ --dbg ] [ --force ] [ --template=<name> ] [ --dir=<directory> ] 
-    wrf4g exp <name> create  [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
-    wrf4g exp <name> update  [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
-    wrf4g exp <name> submit  [ --dbg ] [ --rerun ] [ --dry-run ] 
-    wrf4g exp <name> status  [ --dbg ] [ --long ] [ --pattern=<name> ] 
-    wrf4g exp <name> stop    [ --dbg ] [ --dry-run ] 
-    wrf4g exp <name> delete  [ --dbg ] [ --dry-run ]
+    wrf4g exp list          [ options ] [ --long ] [ --pattern=<name> ]
+    wrf4g exp <name> define [ options ] [ --force ] [ --exp-template=<name> ] [ --dir=<directory> ] 
+    wrf4g exp <name> create [ options ] [ --dir=<directory> ]
+    wrf4g exp <name> update [ options ] [ --dir=<directory> ]
+    wrf4g exp <name> submit [ options ] [ --rerun ] 
+    wrf4g exp <name> status [ options ] [ --long ] [ --pattern=<name> ] 
+    wrf4g exp <name> stop   [ options ]  
+    wrf4g exp <name> delete [ options ]
    
 Options:
-    --dbg                 Debug mode.
-    -n --dry-run          Dry run.
-    -l --long             Show a detailed information.
-    -f --force            Force to remove if it exists.
-    -p --pattern=<name>   Pattern to find experiments and realizations. 
-    -t --template=<name>  Experiment template, avaible templates are default, single, physics [default: default]. 
-    -d --dir=<directory>  Directory to create or start an experiment [default: ./].
-    --rerun               Force to run although this realization or experiment has finished.
+    --dbg                    Debug mode.
+    -n --dry-run             Dry run.
+    -l --long                Show a detailed information.
+    -f --force               Force to remove if it exists.
+    -p --pattern=<name>      Pattern to find experiments and realizations. 
+    -t --exp-template=<name> Experiment template, avaible templates are default, single, physics [default: default]. 
+    -d --dir=<directory>     Directory to create or start an experiment [default: ./].
+    --rerun                  Force to run although this realization or experiment has finished.
   
 Commands:
-    list                  Show all the experiments available.
-    start                 Create the files needed to define a WRF4G experiment.
-    create                Given experiment.wrf4g file, prepare the 
-                          experiment creating the realizations and chunks needed.
-    update                Update the experiment configuration.
-    submit                Submit the experiment.
-    status                Check the status of the experiment realizations.
-    stop                  Stop the active realizations by killing their jobs.
-    delete                Remove the experiment from the database.
+    list                     Show all the experiments available.
+    define                   Create the files needed to define a WRF4G experiment.
+    create                   Given experiment.wrf4g file, prepare the experiment creating the realizations and chunks needed.
+    update                   Update the experiment configuration.
+    submit                   Submit the experiment.
+    status                   Check the status of the experiment realizations.
+    stop                     Stop the active realizations by killing their jobs.
+    delete                   Remove the experiment from the database.
 """
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
@@ -47,7 +46,7 @@ from wrf4g.utils          import datetime2datewrf
 def run( arg ) :
     if arg[ '--dbg' ] :
         logger.setLevel( logging.DEBUG )
-    if arg[ 'start' ] :
+    if arg[ 'define' ] :
         Experiment.create_files( arg[ '<name>' ], arg[ '--template' ], arg[ '--force' ], arg[ '--dir' ] )
     else :
         # create a session to connect with the database
