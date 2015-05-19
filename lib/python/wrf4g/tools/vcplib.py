@@ -65,7 +65,6 @@ class VCPURL(object):
         
         if not url:
             out = "Not an url"
-            logger.error(out)
             raise Exception(out)
         else:
             # Split the url if the begging is protocol:
@@ -94,7 +93,6 @@ class VCPURL(object):
                             (self.user, self.computer) = self.computer.split("@")
                     else :
                         out="Url is not well formed"
-                        logger.error(out)
                         raise Exception(out)
                     
             self.command = {'file'  : {'ls'    : "'ls -1 %s'    %self.file" ,
@@ -180,7 +178,6 @@ class VCPURL(object):
         """
         if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
-            logger.error(out)
             raise Exception(out)
         
         command = eval(self.command[self.protocol]['ls'])
@@ -188,7 +185,6 @@ class VCPURL(object):
         (err, out) = commands.getstatusoutput(command)
         if err != 0 :
             out = "Error reading dir: " + str(out)
-            logger.error(out)
             raise Exception(out)
             
         out_list = out.split("\n")
@@ -219,7 +215,6 @@ class VCPURL(object):
         """
         if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
-            logger.error(out)
             raise Exception(out)
         
         command = eval(self.command[self.protocol]['mkdir'])
@@ -228,7 +223,6 @@ class VCPURL(object):
         
         if err != 0 :
             out = "Error creating dir: " + str(out)
-            logger.error(out)
             raise Exception(out)
     
     def rm(self):
@@ -244,7 +238,6 @@ class VCPURL(object):
         
         if err != 0 : 
             out="Error deleting file: " + str(out)
-            logger.error(out)
             raise Exception(out)
     
     def rename(self, newname):
@@ -253,7 +246,6 @@ class VCPURL(object):
         """
         if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
-            logger.error(out)
             raise Exception(out)
         
         orig = eval(self.command[self.protocol]['name'])
@@ -264,7 +256,6 @@ class VCPURL(object):
         (err, out) = commands.getstatusoutput(command)
         if err != 0 :
             out="Error listing file: " + str(out)
-            logger.error(out)
             raise Exception(out)
 
     def isfile(self):
@@ -392,11 +383,9 @@ def copy_file(origin, destination, overwrite=True):
     logger.debug(out)
     if http_ftp_protocol(dest.protocol):
         out="Unable to copy if the destination protocol is " + dest.protocol
-        logger.error(out)
         raise Exception(out)
     if http_ftp_protocol(orig.protocol) and dest.protocol != 'file':
         out="Unable to copy if the destination protocol is not file://"
-        logger.error(out)
         raise Exception(out)
     if dest.protocol == 'ln' and orig.protocol != 'file':
         dest.protocol = 'file'
