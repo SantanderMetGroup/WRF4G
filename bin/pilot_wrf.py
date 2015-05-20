@@ -14,6 +14,7 @@ from wrf4g.core           import Job
 from wrf4g.utils.os       import ( get_hostname, os_release, 
                                    cpu_info, mem_info, 
                                    disk_space_check, which )
+from wrf4g.utils.command  import exec_cmd_popen as exec_cmd
 from wrf4g.utils          import ( VarEnv, datetime2dateiso, wrffile, 
                                     dateiso2datetime, datewrf2datetime, 
                                     datetime2datewrf, namelist_wps2wrf 
@@ -219,15 +220,6 @@ def wrf_monitor( job_db,postprocessor, wrfout_name_end_date,wrf_run_path, out_re
         job_db.set_cdate( cdate )
         clean_wrf_files( job_db, postprocessor, wrfout_name_end_date, wrf_run_path, out_rea_output_path, rst_rea_output_path, chunk_rdate, 'closed_files' )
         time.sleep( 60 ) # 1 minute
-
-def exec_cmd( cmd ):
-    import popen2
-    logger.debug("Executing command '%s'" % cmd )
-    p3     = popen2.Popen3( "%s" % cmd )
-    output = p3.fromchild.read().strip()
-    code   = p3.wait()
-    return ( code, output )
-
 
 def main():  
     ##
@@ -443,7 +435,7 @@ def main():
     ####
     # Obtain information about the WN
     ####
-    logger.info( 'Obtaining information about the WN' )
+    logger.info( 'Obtaining information about the worker node' )
 
     # Host info 
     logger.info( 'Host Name = %s' % get_hostname() )
