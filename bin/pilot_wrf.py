@@ -8,12 +8,13 @@ import tarfile
 import glob
 import threading
 
-from distutils            import spawn
 from os.path              import exists, join, dirname, isfile, basename
 from wrf4g.db             import get_session
 from wrf4g.core           import Job
-from wrf4g.utils          import ( 
-                                    VarEnv, datetime2dateiso, wrffile, 
+from wrf4g.utils.os       import ( get_hostname, os_release, 
+                                   cpu_info, mem_info, 
+                                   disk_space_check, which )
+from wrf4g.utils          import ( VarEnv, datetime2dateiso, wrffile, 
                                     dateiso2datetime, datewrf2datetime, 
                                     datetime2datewrf, namelist_wps2wrf 
                                     )
@@ -445,46 +446,21 @@ def main():
     logger.info( 'Obtaining information about the WN' )
 
     # Host info 
-    logger.info( 'Host Name = %s' % socket.gethostname() )
+    logger.info( 'Host Name = %s' % get_hostname() )
 
     # OS info
-    for file in [ 'debian_version' , 'lsb-release' , 'redhat-release' ] :
-        file_name = join( '/etc', file ) 
-        if isfile( file_name ):
-            f = open( file_name, 'r' )
-            logger.info( 'Linux release: %s' % f.read().strip() )
-            f.close()
+    logger.info( 'Linux release: %s' % os_release() )
             
     # CPU info
-    file_name = '/proc/cpuinfo'
-    if exists( file_name ) :
-        f = open( file_name, 'r' )
-        cpu = f.readlines()
-        f.close()
-        number_of_cpus = 0
-        for line in cpu :
-            if line.startswith( 'model name' ): 
-                model_name = line.rstrip('\n').split(':')[1]
-            elif line.find( 'processor' ) == 0:
-                number_of_cpus = number_of_cpus + 1
-        logger.info( 'CPU (model) = %s' % model_name )
-        logger.info( 'CPU (MHz)   = %s' % number_of_cpus )
+    model_name, number_of_cpus = cpu_info()
+    logger.info( 'CPU (model) = %s' % model_name )
+    logger.info( 'CPU (MHz)   = %d' % number_of_cpus )
 
     # Memory info
-    file_name = '/proc/meminfo' 
-    if exists( file_name ):
-        f = open( file_name, 'r' )
-        mem = f.readlines()
-        f.close()
-        for line in mem :
-            if line.find( 'MemTotal:' ) == 0:
-                total_mem = int( line.split()[1] )
-        logger.info( 'Memory (kB)  = %s' % total_mem )
+    logger.info( 'Memory (kB)  = %s' % mem_info() )
 
     # Disk space check
-    fs = os.statvfs( root_path )
-    disk_space = fs[4] * fs[0] / 1024 / 1024
-    logger.info( 'DiskSpace (MB) = %s' % disk_space )
+    logger.info( 'DiskSpace (MB) = %d' % disk_space_check() )
 
     ##
     # Check the restart date
@@ -624,7 +600,7 @@ def main():
             job_db.set_job_status( 'UNGRIB' )
 
             ungrib_log   = join( log_path, 'ungrib_%s.log' % vt )
-            ungrib_exe   = spawn.find_executable( 'ungrib.exe' )
+            ungrib_exe   = which( 'ungrib.exe' )
             if not ungrib_exe :
                 ungrib_exe = join( wps_path, 'ungrib', 'ungrib.exe' )
                 os.chmod( ungrib_exe, 0777 )      
@@ -655,7 +631,7 @@ def main():
         logger.info( "Run metgrid" )
 
         metgrid_log = join( log_path, 'metgrid.log' )
-        metgrid_exe = spawn.find_executable( 'metgrid.exe' )
+        metgrid_exe = which( 'metgrid.exe' )
         if not metgrid_exe :
             metgrid_exe = join( wps_path, 'metgrid', 'metgrid.exe' )
             os.chmod( metgrid_exe, 0777 )
@@ -680,7 +656,7 @@ def main():
         namelist_wps2wrf( namelist_wps, namelist_input, chunk_rdate,
                               chunk_edate, max_dom, chunk_rerun, timestep_dxfactor)
 
-        real_exe       = spawn.find_executable( 'real.exe' )
+        real_exe       = which( 'real.exe' )
         local_real_exe = join( wrf_run_path, 'real.exe' )
         if real_exe == 'real.exe' :
             os.chmod( real_exe, 0777 )
@@ -750,7 +726,7 @@ def main():
     logger.info( "Run wrf" )
     job_db.set_job_status( 'WRF' )
 
-    wrf_exe = spawn.find_executable( 'wrf.exe' )
+    wrf_exe = which( 'wrf.exe' )
     if wrf_exe == 'wrf.exe' :
         os.chmod( wrf_exe, 0777 )
     if wrf_parallel :
