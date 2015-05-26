@@ -1,64 +1,55 @@
 [DEFAULT]
 # Experiment configuration
-experiment_name = "%(exp_name)s"
+experiment_name      = %(exp_name)s
 # Simulation domain
-max_dom = 1
-# Experimten time-specification
-start_date = "2011-08-28_12:00:00"
-end_date = "2011-08-30_00:00:00"
-chunk_size_h = 12
-timestep_dxfactor = 6
-calendar = "standard"
+max_dom              = 1
+# Experiment time-specification
+start_date           = 2011-08-28_12:00:00
+end_date             = 2011-08-30_00:00:00
+calendar             = standard
+chunk_size_h         = 12
+timestep_dxfactor    = 6
 # Namelist
-namelist_version = "3.3.1"
+namelist_version     = 3.3.1
 # Running options 
-np = 1
-requirements = 'ARCH="x86_64"'
-clean_after_run = 1
-save_wps = 0
-real_parallel = 0
-wrf_parallel = 1
+np                   = 1
+requirements         = ARCH = "x86_64"
+clean_after_run      = yes
+save_wps             = no
+real_parallel        = no
+wrf_parallel         = yes
 # Input data
-domain_path = %(WRF4G_DEPLOYMENT_DIR)s/repository/domains/wrfuc
-extdata_vtable = "GFS"      # Vtables must exist as Vtable.[input_extdata]
-extdata_path = %(WRF4G_DEPLOYMENT_DIR)s/repository/input/NCEP/GFS
-extdata_interval  = 21600      # Seconds between global analysis input times
-extdata_preprocessor = "default"  
+domain_path          = %(WRF4G_DEPLOYMENT_DIR)s/repository/domains/Santander_50km
+# Vtables must exist as Vtable.[input_extdata]
+extdata_vtable       = GFS 
+extdata_path         = %(WRF4G_DEPLOYMENT_DIR)s/repository/input/NCEP/GFS
+# Seconds between global analysis input times
+extdata_interval     = 21600     
+preprocessor         = default
 # Output
-output_path = %(WRF4G_EXPERIMENT_HOME)s/output
-postprocessor = "SFC"      
-wrfout_name_end_date = 0
+output_path          = %(WRF4G_EXPERIMENT_HOME)s/output
+postprocessor        = SFC
+wrfout_name_end_date = no
 # apps
-app_bundles = netcdf | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/netcdf/netcdf-4.1.1.tar.gz
-              nco    | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/nco/nco-4.0.9.tar.gz
-              cdo    | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/cdo/cdo-1.3.0.tar.gz
-              wrf    | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/WRF/WRFbin-3.3.1_r1184INTEL_OMPI.tar.gz
-              mpi    | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/openmpi/openmpi-1.4.tar.gz
-
-[multiple_parameters]
-variables = mp_physics,cu_physics,ra_lw_physics,ra_sw_physics,sf_sfclay_physics,bl_pbl_physics,sf_surface_physics
-nitems = %(max_dom)s,%(max_dom)s,%(max_dom)s,%(max_dom)s,%(max_dom)s,%(max_dom)s,%(max_dom)s
-combinations =  phys1 | 5,1,1,1,2,2,2
-                phys2 | 4,1,1,1,1,1,2
-                phys3 | 4,1,1,1,2,2,2
-                phys4 | 4,1,1,1,7,7,2
+app_bundles          = netcdf | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/netcdf/netcdf-4.1.1.tar.gz
+                       nco    | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/nco/nco-4.0.9.tar.gz
+                       cdo    | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/cdo/cdo-1.3.0.tar.gz
+                       wrf    | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/WRF/WRFbin-3.3.1_r1184INTEL_OMPI.tar.gz
+                       mpi    | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/openmpi/openmpi-1.4.tar.gz
 # WRF-namelist parameters. Override namelist.input variables here
-[NI]
-#   Single valued:
-spec_bdy_width      = 10
-spec_zone           = 1
-relax_zone          = 9
-feedback            = 0
-
-[NIM]
-#   One value per domain:
-history_interval   = 180,60,60,60 # minutes
-frames_per_outfile = 3,12,12,12
-
-[NIN]
-#   One value per domain; but all equal (provide a single value here):
-e_vert             = 28
-mp_physics         = 4   # 1: Kessler, 2: Lin, 3: WRF S-M 3, 4: WRF S-M 5, 5: Eta, 6: WRF S-M 6, 7: Goddard, 8: Thompson, 10: Morrison
-radt               = 15
-ra_lw_physics      = 3
-ra_sw_physics      = 3
+namelist             = lable_combination  | phys1 | phys2 | phys3 | phys4 
+                       spec_bdy_width     | 10    | 10    | 10    | 10
+                       spec_zone          | 1     | 1     | 1     | 1     
+                       relax_zone         | 9     | 9     | 9     | 9     
+                       feedback           | 0     | 0     | 0     | 0
+                       history_interval   | 180   | 0     | 0     | 0
+                       frames_per_outfile | 3     | 0     | 0     | 0
+                       e_vert             | 28    | 28    | 28    | 28    
+                       radt               | 15    | 15    | 15    | 15    
+                       mp_physics         | 5     | 4     | 4     | 4  
+                       cu_physics         | 1     | 1     | 1     | 1  
+                       ra_lw_physics      | 1     | 1     | 1     | 1
+                       ra_sw_physics      | 1     | 1     | 1     | 1
+                       sf_sfclay_physics  | 2     | 1     | 2     | 7
+                       bl_pbl_physics     | 2     | 1     | 2     | 7
+                       sf_surface_physics | 2     | 2     | 2     | 2

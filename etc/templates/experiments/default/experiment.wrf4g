@@ -1,48 +1,36 @@
 [DEFAULT]
 # Experiment configuration
-experiment_name = "%(exp_name)s"
+experiment_name      = %(exp_name)s
 # Simulation domain
-max_dom = 1
+max_dom              = 1
 # Experimten time-specification
-start_date = "Year-Month-Day_HH:MM:SS"
-end_date = "Year-Month-Day_HH:MM:SS"
-chunk_size_h = 12
-timestep_dxfactor = 6
-calendar = "standard"
+start_date           = Year-Month-Day_HH:MM:SS
+end_date             = Year-Month-Day_HH:MM:SS
+chunk_size_h         = 12
+timestep_dxfactor    = 6
+calendar             = standard
 # Namelist
-namelist_version = "x.x.x"
+namelist_version     = x.x.x
 # Running options 
 np = 1
-requirements = 'ARCH="x86_64"'
-clean_after_run = 1
-save_wps = 0
-real_parallel = 0
-wrf_parallel = 1
+requirements         = ARCH="x86_64"
+clean_after_run      = yes
+save_wps             = no
+real_parallel        = yes
+wrf_parallel         = yes
 # Input data
-domain_path =
-extdata_vtable = 
-extdata_path =
-extdata_interval = 
-extdata_preprocessor = 
+domain_path          =
+extdata_vtable       = 
+extdata_path         =
+extdata_interval     = 
+preprocessor         = 
 # Output
-output_path = 
-postprocessor = 
-wrfout_name_end_date = 0
+output_path          = 
+postprocessor        = 
+wrfout_name_end_date = no
 # apps
-app_bundles =
-app_source_script =
-
-[multiple_parameters]
-variables = 
-nitems = 
-combinations = 
+app_bundles          =
+app_source_script    =
 # WRF-namelist parameters. Override namelist.input variables here
-[NI]
-#   Single valued:
-
-[NIM]
-#   One value per domain:
-
-[NIN]
-#   One value per domain; but all equal (provide a single value here):
+namelist             =
 
