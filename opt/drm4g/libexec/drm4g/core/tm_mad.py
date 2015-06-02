@@ -10,7 +10,8 @@ from drm4g.utils.dynamic   import ThreadPool
 from drm4g.core.configure  import Configuration
 from drm4g.utils.message   import Send
 
-from wrf4g.db              import get_session, Job
+from wrf4g.db              import get_session
+from wrf4g.core            import Job
 
 __version__  = '2.3.1'
 __author__   = 'Carlos Blanco'
@@ -175,27 +176,34 @@ class GwTmMad (object):
                 out = 'CP %s %s SUCCESS -' % (JID, TID)
             except Exception, err :
                 out = 'CP %s %s FAILURE %s' % ( JID , TID , str( err ) ) 
-        
-        if 'stdout.wrapper' in DST_URL : 
-            # Connect with the database to update the exitcode
-            with open( DST_URL, 'r') as file :
-                lines = file.readlines()  
-            all_lines = ''.join( lines )
-            re_exit_status = re.compile( "EXIT_STATUS=(-?\d*)" )
-            mo = re_exit_status.search(all_lines)
-            if mo :
-                try :
-                    session = get_session()
-                    q_job   = session.query( Job.gw_job == JID ).\
-                                             order_by( Job.id ).all()[-1]
-                    if not query_job.exitcode : 
-                        query_job.exitcode = int( mo.group( 1 ) )
-                        session.commit()
-                except Exception , err :
-                    session.rollback()
-                    logger.error( str( err ) )
-                finally:
-                    session.close()  
+        else:
+            try:
+                if 'stdout.wrapper' in DST_URL : 
+                    # Connect with the database to update the exitcode
+                    with open( DST_URL[7:], 'r') as file :
+                        lines = file.readlines()  
+                    all_lines = ''.join( lines )
+                    re_exit_status = re.compile( "EXIT_STATUS=(-?\d*)" )
+                    mo = re_exit_status.search(all_lines)
+                    if mo :
+                        try :
+                            session   = get_session()
+                            query_job = session.query(Job).\
+                                        filter( Job.gw_job == JID ).\
+                                        order_by( Job.id ).all()[-1] 
+                            if query_job.exitcode == '-' :
+                                exit_code = mo.group( 1 ) 
+                                query_job.exitcode = exit_code
+                                if exit_code == '0' :
+                                    query_job.chunk.realization.current_date = query_job.chunk.realization.end_date
+                                session.commit()
+                        except Exception , err :
+                            session.rollback()
+                            self.logger.error( str( err ) )
+                        finally:
+                            session.close()  
+            except Exception, err :
+                self.logger.warning( err )
         self.message.stdout( out )
         self.logger.debug(out , exc_info=1 )
         

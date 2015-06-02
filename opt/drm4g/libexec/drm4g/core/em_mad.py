@@ -15,7 +15,8 @@ from drm4g.core.configure    import Configuration
 from drm4g.utils.dynamic     import ThreadPool
 from drm4g.utils.message     import Send
 
-from wrf4g.db                import get_session, Job
+from wrf4g.db                import get_session
+from wrf4g.core              import Job
 
 __version__  = '2.3.1'
 __author__   = 'Carlos Blanco'
@@ -133,7 +134,7 @@ class GwEmMad (object):
             # Connect with the database to update resource and gw_restarted
             try :
                 session                = get_session()
-                query_job              = session.query( Job.gw_job == JID ).order_by( Job.id ).all()[-1]
+                query_job              = session.query(Job).filter( Job.gw_job == JID ).order_by( Job.id ).all()[-1]
                 query_job.resource     = HOST
                 query_job.gw_restarted = gw_restarted
                 session.commit()
@@ -208,6 +209,9 @@ class GwEmMad (object):
                   "DONE"     : "FINISHED" ,
                   "FAILED"   : "FAILED" ,
                  } 
+        avoid_states = ( 'CREATE_OUTPUT_PATH', 'DOWN_BUNDLES',
+                         'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB', 'METGRID', 
+                         'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF', 'FINISHED', 'FAILED' ) 
         while True:
             time.sleep( self._callback_interval )
             self.logger.debug( "CALLBACK new iteration ..." )
@@ -223,27 +227,19 @@ class GwEmMad (object):
                             time.sleep ( 0.1 )
                         # Connect with the database to update the status of the job
                         try :
-                            session  = get_session()
-                            q_job = session.query( Job.gw_job == JID ).order_by( Job.id ).all()[-1]
-                            if not q_job.status in ('PREPARING_WN',
-                                                    'DOWN_BIN',
-                                                    'DOWN_RESTART',
-                                                    'DOWN_WPS',
-                                                    'DOWN_BOUND',
-                                                    'UNGRIB',
-                                                    'METGRID',
-                                                    'REAL',
-                                                    'UPLOAD_WPS',
-                                                    'ICBCPROCESOR',
-                                                    'WRF') :
+                            session = get_session()
+                            q_job   = session.query( Job ).\
+                                      filter( Job.gw_job == JID ).\
+                                      order_by( Job.id ).all()[-1]
+                            if not q_job.status in avoid_states : 
                                 q_job.set_status( states[ newStatus ] )
                                 session.commit()                                
                         except Exception , err :
                             session.rollback()
-                            logger.error( str( err ) )
-                        finally:
+                            self.logger.error( str( err ) )
+                        finally :
                             session.close()
-                        out = 'CALLBACK %s SUCCESS %s' % ( JID , newStatus )
+                        out = 'CALLBACK %s SUCCESS %s' % ( JID, newStatus )
                         self.message.stdout( out )
                         self.logger.debug( out )
                 except Exception, err:

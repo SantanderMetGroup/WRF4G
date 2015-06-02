@@ -51,6 +51,7 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id: resource.py 2352 2015-02-24 10:23:57Z carlos $"
 
 import logging
+from os.path              import exists
 from wrf4g                import logger
 from drm4g.core.configure import Configuration
 from drm4g.commands       import exec_cmd, Daemon, Resource, Proxy

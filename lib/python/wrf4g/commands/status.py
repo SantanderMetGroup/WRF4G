@@ -12,17 +12,18 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
 import logging
-from wrf4g                import logger
-from wrf4g.utils          import DataBase 
+import sys
+from wrf4g.db             import MySQLDB
 from drm4g.commands       import Daemon, Agent
 
 def run( arg ) :
     try:
-        if arg[ '--dbg' ] :
-            logger.setLevel(logging.DEBUG)
+        logging.basicConfig( format = '%(message)s',
+                         level  = logging.DEBUG if arg[ '--dbg' ] else logging.INFO,
+                         stream = sys.stdout )
         Daemon().status()
         Agent().status()
-        DataBase().status()
+        MySQLDB().status()
     except Exception , err :
-        logger.error( str( err ) )
+        logging.error( str( err ) )
 

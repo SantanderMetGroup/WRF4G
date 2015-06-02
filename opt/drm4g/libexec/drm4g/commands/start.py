@@ -12,6 +12,8 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id: start.py 2352 2015-02-24 10:23:57Z carlos $"
 
 import logging
+import os
+from os.path              import exists, join
 from drm4g                import DRM4G_DIR, DRM4G_DEPLOYMENT_DIR 
 from drm4g.commands       import Daemon, Agent, logger
 

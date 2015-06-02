@@ -1,6 +1,6 @@
 [DEFAULT]
 # Experiment configuration
-experiment_name      = %(exp_name)s
+name                 = %(exp_name)s
 # Simulation domain
 max_dom              = 1
 # Experimten time-specification

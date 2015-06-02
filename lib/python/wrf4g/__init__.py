@@ -1,7 +1,6 @@
 import os
 import sys
-import logging
-from os.path      import dirname, join , abspath , exists
+from os.path      import dirname, join, abspath, exists
 
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
@@ -13,7 +12,3 @@ WRF4G_DEPLOYMENT_DIR = dirname( dirname( dirname( dirname( abspath( __file__ ) )
 MYSQL_DIR            = join( WRF4G_DEPLOYMENT_DIR , 'opt' , 'mysql-5.5' )
 DB4G_CONF            = os.environ.get( 'DB4G_CONF' ,  join( WRF4G_DIR , 'etc' , 'db.conf' ) )
 WRF4G_LOGGER         = join( WRF4G_DIR , 'etc' , 'logger.conf')
-
-logging.basicConfig( format='%(message)s', level = logging.INFO , stream = sys.stderr )
-logger = logging.getLogger(__name__)
-

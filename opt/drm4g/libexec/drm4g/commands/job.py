@@ -48,7 +48,7 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id: job.py 2352 2015-02-24 10:23:57Z carlos $"
 
 import logging
-from wrf4g                import logger
+from wrf4g                import logger, join
 from drm4g                import DRM4G_BIN
 from drm4g.commands       import exec_cmd, Daemon
 

@@ -24,17 +24,17 @@ __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-import logging
+import logging, sys
 from os.path              import join, basename, dirname
 from wrf4g.tools.vcplib   import VCPURL, copy
-from wrf4g                import logger
 
 def run( arg ):
-    if arg[ '--dbg' ] :
-        logger.setLevel(logging.DEBUG)
+    logging.basicConfig( format = '%(message)s',
+                         level  = logging.DEBUG if arg[ '--dbg' ] else logging.INFO,
+                         stream = sys.stdout )
     try :
         if '*' in basename( arg[ '<source>' ] ) :
-            for file_to_copy in VCPURL( dirname( arg[ '<source>' ] ).ls( basename( arg[ '<source>' ] ) ):
+            for file_to_copy in VCPURL( dirname( arg[ '<source>' ] ) ).ls( basename( arg[ '<source>' ] ) ):
                 copy( join(  dirname( arg[ '<source>' ] ), file_to_copy ), 
                       arg[ '<dest>' ], 
                       overwrite = arg[ '--overwrite' ], 
@@ -42,4 +42,4 @@ def run( arg ):
         else:
             copy( arg[ '<source>' ] , arg[ '<dest>' ], overwrite = arg[ '--overwrite' ] )        
     except Exception , err :
-        logger.error( str( err ) )
+        logging.error( str( err ) )

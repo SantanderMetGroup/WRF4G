@@ -1,10 +1,8 @@
 import os
 from sys   import stderr, exit, path, version_info
 from re    import search
-from wrf4g import logger
 
-
-__version__  = '1.5.2'
+__version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
@@ -86,7 +84,7 @@ class vdb:
         try:
             v = str(data.values())[1:-1]
             query = "INSERT INTO %s (%s) VALUES (%s)" % (table, ','.join(data.keys()), v)
-            logger.debug( query )
+            logging.debug( query )
             cursor.execute(query)
             cursor.execute("SELECT LAST_INSERT_ID()")
             result = cursor.fetchall()
@@ -110,7 +108,7 @@ class vdb:
         # execute SQL INSERT statement
         try:
             query = "SELECT %s FROM %s WHERE %s" % (data, table, condition)
-            logger.debug( query )
+            logging.debug( query )
             cursor.execute(query)
             result = cursor.fetchall()
         except MySQLdb.Error, e:
@@ -142,7 +140,7 @@ class vdb:
         # execute SQL INSERT statement
         try:
             query = "UPDATE %s SET %s WHERE %s" % (table, val[:-1], condition)
-            logger.debug( query )
+            logging.debug( query )
             cursor.execute(query)
         except MySQLdb.Error, e:
             raise Exception("Error %d: %s" % (e.args[0], e.args[1]))
@@ -157,7 +155,7 @@ class vdb:
         cursor = self.con.cursor (MySQLdb.cursors.DictCursor)
         try:
             query = "DELETE FROM %s WHERE %s" % (table, condition)
-            logger.debug( query )
+            logging.debug( query )
             cursor.execute(query)
         except MySQLdb.Error, e:
             raise Exception("Error %d: %s" % (e.args[0], e.args[1]))
@@ -168,7 +166,7 @@ class vdb:
         # execute SQL INSERT statement
         try:
             query = "DESCRIBE %s" % table
-            logger.debug( query )
+            logging.debug( query )
             cursor.execute(query)
             result = cursor.fetchall()
         except MySQLdb.Error, e:
@@ -183,7 +181,7 @@ class vdb:
         # execute SQL INSERT statement
         try:
             query = "DESCRIBE %s" % table
-            logger.debug( query )
+            logging.debug( query )
             cursor.execute(query)
             result = cursor.fetchall()
         except MySQLdb.Error, e:

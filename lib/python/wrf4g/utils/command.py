@@ -1,4 +1,10 @@
 import os
+import logging
+import popen2
+try :
+    import subprocess
+except :
+    pass
 
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
@@ -9,11 +15,8 @@ def exec_cmd_subprocess( cmd, nohup=False, stdin=subprocess.PIPE, stdout=subproc
     """
     Execute shell commands
     """
-    import subprocess
-    try :
-        logger.debug( "Executing command ... " + cmd )
-    except :
-        pass
+    try :    logging.debug( "Executing command ... " + cmd )
+    except : pass
     cmd_to_exec = subprocess.Popen(  cmd ,
                                   shell=True ,
                                   stdin=subprocess.PIPE,
@@ -29,11 +32,8 @@ def exec_cmd_subprocess( cmd, nohup=False, stdin=subprocess.PIPE, stdout=subproc
 
 
 def exec_cmd_popen( cmd ):
-    import popen2
-    try :
-        logger.debug( "Executing command ... " + cmd )
-    except :
-        pass
+    try :     logging.debug( "Executing command ... " + cmd )
+    except :  pass
     p3     = popen2.Popen3( "%s" % cmd )
     output = p3.fromchild.read().strip()
     code   = p3.wait()

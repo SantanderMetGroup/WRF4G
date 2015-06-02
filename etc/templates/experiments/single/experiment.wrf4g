@@ -1,6 +1,6 @@
 [DEFAULT]
 # Experiment configuration
-experiment_name      = %(exp_name)s
+name                 = %(exp_name)s
 # Simulation domain
 max_dom              = 1
 # Experiment time-specification
@@ -38,13 +38,13 @@ app_bundles          = netcdf | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/netcdf/
                        mpi    | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/openmpi/openmpi-1.4.tar.gz
 # WRF-namelist parameters. Override namelist.input variables here
 namelist            = spec_bdy_width     | 10
-					  spec_zone          | 1
-					  relax_zone         | 9
-					  feedback           | 0
-					  history_interval   | 180
-					  frames_per_outfile | 3
-					  e_vert             | 28
-					  mp_physics         | 4   
-					  radt               | 15
-					  ra_lw_physics      | 3
-					  ra_sw_physics      | 3
+                      spec_zone          | 1
+	              relax_zone         | 9
+		      feedback           | 0
+		      history_interval   | 180
+		      frames_per_outfile | 3
+		      e_vert             | 28
+		      mp_physics         | 4   
+		      radt               | 15
+		      ra_lw_physics      | 3
+		      ra_sw_physics      | 3

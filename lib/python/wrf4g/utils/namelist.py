@@ -38,6 +38,8 @@ def get_latlon_dx(start_date, dom):
         dxfile = file_name
     if dxfile:
         shcmd = "ncdump -h %s | grep 'DX =' | sed -e 's/^\t//' | tr '=;' ' ' | awk '{printf \"%%f\", $2}'" % dxfile
+        rval = round(float(os.popen(shcmd).read().strip()), 4)
+    else:
         raise Exception('get_latlon_dx: no met_em or wrfinput file found')
     return rval
 
@@ -94,4 +96,5 @@ def wps2wrf( namelistwps, namelistinput, sdate, edate, maxdom, chunk_is_restart,
     #
     nmli.trimMaxDom()
     nmli.wrfCheck()
-    nmli.extendMaxDomVariable
+    nmli.extendMaxDomVariables()
+    nmli.overWriteNamelist()

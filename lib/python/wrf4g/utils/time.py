@@ -33,8 +33,10 @@ class Calendar( object ):
     """
     Class to manage calendars like 'standard' and 'leap' 
     """
+    available_types = ( 'standard', 'leap' )
+
     def __init__( self, type = 'standard' ):
-        if not type in [ 'standard', 'leap' ] :
+        if not type in self.available_types :
             raise Exception( "Calendar type not available" )
         else :
             self.type = type

@@ -51,13 +51,14 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
 import logging
-from wrf4g                import logger
+import sys
 from drm4g.core.configure import Configuration
 from drm4g.commands       import exec_cmd, Daemon, Resource, Proxy
 
 def run( arg ) :
-    if arg[ '--dbg' ] :
-        logger.setLevel(logging.DEBUG)
+    logging.basicConfig( format = '%(message)s',
+                         level  = logging.DEBUG if arg[ '--dbg' ] else logging.INFO,
+                         stream = sys.stdout )
     try :
         config = Configuration()
         daemon = Daemon()
@@ -92,28 +93,28 @@ def run( arg ) :
                 agent = Agent()
             if arg[ 'conf' ] or arg[ 'init' ] :
                 if communicator == 'ssh' :
-                    logger.info( "--> Starting ssh-agent ... " )
+                    logging.info( "--> Starting ssh-agent ... " )
                     agent.start( )
-                    logger.info( "--> Adding private key to ssh-agent ... " )
+                    logging.info( "--> Adding private key to ssh-agent ... " )
                     agent.add_key( private_key, arg[ '--lifetime' ] )
                     if arg[ 'conf' ] :
                         identity = arg[ '--public-key' ] if arg[ '--public-key' ] else private_key
                         if not exists( expandvars( expanduser( identity ) ) ) :
                             raise Exception( "'%s' does not exist." % ( identity ) )
-                        logger.info( "--> Copying public key on the remote frontend ... " )
+                        logging.info( "--> Copying public key on the remote frontend ... " )
                         agent.copy_key( identity , config.resources.get( arg[ '<name>' ] )[ 'username' ] ,
                                         config.resources.get( arg[ '<name>' ] )[ 'frontend' ] )
                 if lrms == 'cream' :
                     if arg[ 'conf' ] :
-                        logger.info( "--> Configuring grid certifitate ... " )
+                        logging.info( "--> Configuring grid certifitate ... " )
                         if arg[ '--grid-cerd' ] :
                             grid_cerd = expandvars( expanduser( arg[ '--grid-cerd' ] ) )
                             if not exists( grid_cerd ) :
                                 raise Exception( "'%s' does not exist." % ( arg[ '--grid-cerd' ] ) )
                             proxy.configure( grid_cerd )
                         if not arg[ '--grid-cerd' ] :
-                            logger.info( "\nWARNING: It is assumed that the grid certificate has been already configured\n" )
-                    logger.info( "--> Creating a proxy ... " )
+                            logging.info( "\nWARNING: It is assumed that the grid certificate has been already configured\n" )
+                    logging.info( "--> Creating a proxy ... " )
                     proxy.create( arg[ '--lifetime' ] )
             elif arg[ 'delete' ] :
                 if communicator == 'ssh' :
@@ -122,11 +123,11 @@ def run( arg ) :
                     proxy.destroy( )
             else :
                 if communicator == 'ssh' :
-                    logger.info( "--> Private key available on the ssh-agent" )
+                    logging.info( "--> Private key available on the ssh-agent" )
                     agent.list_key( private_key )
                 if lrms == 'cream' :
-                    logger.info( "--> Grid credentials" )
+                    logging.info( "--> Grid credentials" )
                     proxy.check( )
     except Exception , err :
-        logger.error( str( err ) )
+        logging.error( str( err ) )
 

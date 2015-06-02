@@ -1,3 +1,5 @@
+import os
+import ConfigParser
 from os.path           import basename, dirname   
 from wrf4g.utils.time  import ( datewrf2datetime, 
                                 dateiso2datetime,
@@ -9,7 +11,97 @@ __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-class WrfFile( object ) :
+class VarEnv( object ):
+    """
+    Allow to load the available variables in a file 
+    """
+    
+    def __init__(self, file):
+        """
+        'file' to read
+        """
+        self._cp = ConfigParser.ConfigParser()
+        self._cp.optionxform=str
+        self._cp.read( file )
+
+    def defaults( self ):
+        """
+        Return a dictionary containing the instance-wide defaults.
+        """
+        return self._cp.defaults()       
+  
+    def has_section( self , section ):
+        """
+        Indicate whether the named section is present in the configuration.
+        """
+        return self._cp.has_section( section  )
+
+    def items( self , section):
+        """
+        Return a list of tuples with (name, value) for each option in the section.
+        """
+        return self._cp.items( section )
+
+    def sections( self ):
+        """
+        Return a list of section names, excluding [DEFAULT] section.
+        """
+        return self._cp.sections()
+    
+    def write( self , dest_file ):
+        """
+        Write an ini-format representation of the configuration
+        """
+        self._cp.write( dest_file )
+        
+    def set_var( self , section , name , value ) :
+        """
+        Set an option
+        """
+        self._cp.set(section, option, value)
+    
+    def get_var( self, var_name, default = '', section = 'DEFAULT' ) :
+        """
+        Get a value for given section. The default section will be 'DEFAULT'. 
+        """        
+        try :
+            value = dict( self._cp.items( section ) )[ var_name ]
+            if value.startswith( '"' ) and value.endswith( '"' ) :
+                value = value[ 1 : -1 ]
+            elif value.startswith( "'" ) and value.endswith( "'" ) :
+                value = value[ 1 : -1 ]
+            return value
+        except ( KeyError , IOError ):
+            return default
+
+def make_writeable( file_name ):
+    """
+    Make sure that the file is writeable.
+    Useful if our source is read-only.
+    """
+    if not os.access(file_name, os.W_OK):
+        st = os.stat(file_name)
+        new_permissions = stat.S_IMODE(st.st_mode) | stat.S_IWUSR
+        os.chmod(file_name, new_permissions)
+
+def validate_name( name ):
+    # If it's not a valid directory name.
+    if not re.search(r'^[_a-zA-Z]\w*$', name):
+        # Provide a smart error message, depending on the error.
+        if not search(r'^[_a-zA-Z]', name):
+            message = 'make sure the name begins with a letter or underscore'
+        else:
+            message = 'use only numbers, letters and underscores'
+        raise Exception ("%s is not a valid %s name. Please %s." % (name, message) )
+
+def edit_file( file_name ):
+    """
+    Edit files. vi is used be default. If you want to use another editor,
+    please edit EDITOR shell variable.
+    """
+    os.system( "%s %s" % ( os.environ.get('EDITOR', 'vi') , file_name ) )
+
+class WRFFile( object ) :
     """
     This class manage the restart and output files and the dates they represent.
     It recieves a file name with one of the following shapes: wrfrst_d01_1991-01-01_12:00:00 or

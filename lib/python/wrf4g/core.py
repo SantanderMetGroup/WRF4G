@@ -4,11 +4,10 @@ __revision__ = "$Id$"
 
 import os
 import re
-import logging
 import tarfile
 import shutil
 import datetime
-
+import logging
 from sqlalchemy             import ( Column, INTEGER, 
                                      VARCHAR, SMALLINT, 
                                      DATETIME, ForeignKey,
@@ -20,14 +19,14 @@ from os.path                import ( exists, expandvars,
                                      expanduser, isdir, 
                                      join )
 from datetime               import datetime, timedelta 
-from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR, logger
+from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
+from wrf4g.config           import get_conf, save_exp_pkl
 from wrf4g.db               import Base
-from wrf4g.utils            import ( datetime2datewrf, exec_cmd, 
-                                     Calendar, validate_name, 
-                                     VarEnv )
+from wrf4g.utils.time       import datetime2datewrf, Calendar
+from wrf4g.utils.file       import validate_name, edit_file
+from wrf4g.utils.command    import exec_cmd_subprocess as exec_cmd
 from wrf4g.tools.vcplib     import VCPURL
 from wrf4g.tools.gridwaylib import Job as GWJob
-
 
 # Realization, Chunk and Job status
 REA_STATUS   = ( 'PREPARED', 'SUBMITTED', 'RUNNING',
@@ -48,35 +47,31 @@ class Experiment( Base ):
     """ 
     Manage WRF4G experiments
     """
-    __tablename__   = 'experiment'
+    __tablename__         = 'experiment'
     
     # Columns
-    id              = Column(u'id', INTEGER, primary_key=True, nullable=False)
-    name            = Column(u'name', VARCHAR(length=512), nullable=False)
-    sdate           = Column(u'sdate', DATETIME())
-    edate           = Column(u'edate', DATETIME())
-    csize           = Column(u'csize', INTEGER)
-    calendar        = Column(u'calendar', VARCHAR(length=300))
-    home_dir        = Column(u'home_directory', VARCHAR(length=300))
-    np              = Column(u'np', INTEGER)
-    requirements    = Column(u'requirements', VARCHAR(length=1024)) 
-    environment     = Column(u'environment', VARCHAR(length=1024)) 
-    namelist_version= Column(u'namelist_versiont', VARCHAR(length=1024)) 
-    restart_interval= Column(u'restart_interval', INTEGER) 
-    max_dom         = Column(u'max_dom', INTEGER)
-    mult_dates      = Column(u'multiple_dates', INTEGER) 
-    smul_length_h   = Column(u'simulation_length_h', INTEGER)
-    smul_interval_h = Column(u'simulation_interval_h', INTEGER)
-    mult_parameters = Column(u'multiple_parameters', INTEGER)
-    mult_labels     = Column(u'multiparams_labels', VARCHAR(length=1024)) 
-    mult_vars       = Column(u'multiparams_variables', VARCHAR(length=1024)) 
-    mult_nitems     = Column(u'multiparams_nitems', VARCHAR(length=1024)) 
-    description     = Column(u'description', VARCHAR(length=1024)) 
+    id                    = Column(u'id', INTEGER, primary_key=True, nullable=False)
+    name                  = Column(u'name', VARCHAR(length=512), nullable=False)
+    start_date            = Column(u'start_date', DATETIME())
+    end_date              = Column(u'end_date', DATETIME())
+    chunk_size_h          = Column(u'chunk_size_h', INTEGER)
+    calendar              = Column(u'calendar', VARCHAR(length=300))
+    home_dir              = Column(u'home_directory', VARCHAR(length=300))
+    np                    = Column(u'np', INTEGER)
+    requirements          = Column(u'requirements', VARCHAR(length=1024)) 
+    environment           = Column(u'environment', VARCHAR(length=1024)) 
+    namelist_version      = Column(u'namelist_version', VARCHAR(length=1024)) 
+    max_dom               = Column(u'max_dom', INTEGER)
+    simulation_length_h   = Column(u'simulation_length_h', INTEGER)
+    simulation_interval_h = Column(u'simulation_interval_h', INTEGER)
+    namelist              = Column(u'namelist', VARCHAR(length=1024))
 
     # Realtionships
-    realization     = relationship("Realization", back_populates="experiment", lazy='dynamic')
+    realization           = relationship("Realization", back_populates="experiment", lazy='dynamic')
 
-    def run(self, rerun = False, dryrun = False ):
+    dryrun                = False
+    
+    def run(self, rerun = False ):
         """
         Run the realizations of this experiment
         n_chunk is the number of chunks to run. 
@@ -86,253 +81,197 @@ class Experiment( Base ):
         #list of realizations of the experiment
         l_realizations = self.realization.all()
         if not ( l_realizations ):
-            logger.warn( 'There are not realizations to run.' )
+            logging.warning( 'There are not realizations to run.' )
         else:
             #if there are realizations to run
             for rea in l_realizations :
-                logger.info("---> Submitting Realization: '%s'" % rea.name )
+                logging.info("---> Submitting Realization: %s" % rea.name )
                 #Run every realization
-                rea.run( rerun = rerun, dryrun = dryrun )
+                rea.dryrun = self.dryrun
+                rea.run( rerun = rerun )
 
-    def check_db(self, new_realization ):
+    def edit(self):
+        """
+        Edit experiment.wrf4g file.
+        """
+        edit_file( ( self.home_directory, 'experiment.wrf4g' )  )
+
+    def check_db(self, rea_name, start_date, label ):
         """ 
         Check if there is a realization with the same no reconfigurable field. 
         If there is not a realization with the same no reconfigurable fields => error
         If there is a realization with the same reconfigurable fields, update data
         """
         #Check if there is a realization with the same no reconfigurable fields:
-        #id,id_exp,sdate,multiple_parameters
+        #rea_name, start_date, label
         try:
-            rea = self.realization.filter_by( Realization.name        == new_realization.name,
-                                              Realization.sdate       == new_realization.sdate,
-                                              Realization.mult_labels == new_realization.mult_labels
-                                            ).one()
-        except Exception:
+            rea = self.realization.filter( Realization.name        == rea_name,
+                                           Realization.start_date  == start_date,
+                                           Realization.label       == label
+                                         ).one()
+        except Exception :
             #if rea does not exist (no realization with the same no reconfigurable fields)
             raise Exception("ERROR: Realization with the same name and no reconfigurable fields already exists") 
         else: 
-            #if rea exits,it means a realization with the same no reconfigurable fields
-            logger.debug('Updating realization on the database...')
-            rea = new_realization 
+            #if rea exit,it means a realization with the same no reconfigurable fields
+            logging.debug('Updating realization on the database...')
+            return rea
 
     def _create_wrf4g_bundle(self):
         """
-        Create a bundle with the necessary software to run WRF on WNs
+        Create a bundle with the necessary software to run WRF on WNs.
         """
-        logger.debug( "Create a WRF4G software bundle to use on the WN..." )
+        logging.debug( "Create a WRF4G software bundle to use on the WN..." )
         exp_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
         if not isdir( exp_dir ) :
             try:
-                logger.debug( "Creating '%s' directory" % exp_dir ) 
+                logging.debug( "Creating '%s' directory" % exp_dir ) 
                 os.makedirs( exp_dir )
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % exp_dir )
         wrf4g_package = join ( exp_dir , "WRF4G.tar.gz" )
         if exists( wrf4g_package  ):
-            logger.debug( "Removing '%s' package" % wrf4g_package ) 
+            logging.debug( "Removing '%s' package" % wrf4g_package ) 
             os.remove( wrf4g_package )
         current_path = os.getcwd()
         tar = tarfile.open( wrf4g_package , "w:gz" )
         os.chdir( WRF4G_DEPLOYMENT_DIR )
-        logger.debug( "Creating '%s' package" % wrf4g_package )
+        logging.debug( "Creating '%s' package" % wrf4g_package )
         for dir in [ "bin", "lib" ]:
             tar.add( dir )
+        tar.close()
         os.chdir( current_path )
 
-    def read_exp_file(self, directory = './' ):
+    def create(self, update = False, directory = './' ):
         """
-        Read the experiment configuration from experiment.wrf4g file.
+        Create and prepare all realizations and chunks needed to submit a WRF4G experiment.
         """
-        # Sanity check 
-        exp_dir = expandvars( expanduser( directory ) )
-        if not exists( exp_dir ):
-            raise Exception("'%s' does not exist" % exp_dir )
-        exp_file = join( exp_dir, 'experiment.wrf4g' )
-        if not exists( exp_file ):
-            raise Exception("'%s' does not exist" % exp_file ) 
-        logger.debug( "Reading '%s' file" % exp_file )
-        exp_features  = VarEnv( exp_file )
-        # Defining experiment variables
-        name            = exp_features.get_variable( 'experiment_name' )
-        home_dir        = os.getcwd() if directory == './' else directory
-        calendar        = exp_features.get_variable( 'calendar', 'standard' )
-        sdate           = datetime.strptime(exp_features.get_variable( 'start_date' ), "%Y-%m-%d_%H:%M:%S") 
-        edate           = datetime.strptime(exp_features.get_variable( 'end_date' ), "%Y-%m-%d_%H:%M:%S")
-        csize           = int( exp_features.get_variable( 'chunk_size_h' , ( sdate - edate ).total_seconds()/3600 ) )
-        np              = int( exp_features.get_variable('np', '1') )
-        environment     = exp_features.get_variable( 'environment' )
-        description     = exp_features.get_variable( 'description' )
-        requirements    = exp_features.get_variable( 'requirements' )
-        mult_parameters = 1 if exp_features.has_section( 'multiple_parameters' ) else 0
-        mult_dates      = 1 if exp_features.has_section( 'multiple_dates' )      else 0
-        if mult_parameters :
-            mult_labels = exp_features.get_variable( 'combinations', 'multiple_parameters' ).\
-                                replace(' ', '').replace('\n', '/')
-            mult_vars   = exp_features.get_variable( 'variables', 'multiple_parameters', '' ).\
-                                replare(' ', '')
-            mult_nitems = exp_features.get_variable( 'nitems', 'multiple_parameters', '' ).\
-                                replare(' ', '')
-        else :
-            mult_labels = ''
-            mult_vars   = ''
-            mult_nitems = ''
-        if mult_dates :
-            smul_length_h = int( exp_features.get_variable( 'simulation_length_h', 'multiple_dates' ) )
-            if not smul_length_h :
-                raise Exception( "'simulation_length_h' variable is madatory for 'multiple_dates' section." )
-            smul_interval_h = int( exp_features.get_variable( 'simulation_interval_h', 'multiple_dates' ) )
-            if not smul_interval_h :
-                raise Exception( "'simulation_interval_h' variable is madatory for 'multiple_dates' section." )
-        else :
-            smul_length_h   = 0
-            smul_interval_h = 0
-        namelist_version = exp_features.get_variable( 'namelist_version' )
-        if not namelist_version :
-            raise Exception( "'namelist_version' variable is madatory." )
-        if exp_features.has_section( 'NI' ) :
-            restart_interval = int( exp_features.get_variable( 'restart_interval', csize * 60, 'NI' ) )
-        else :
-            restart_interval = csize * 60
-        max_dom = int( exp_features.get_variable( 'max_dom' ) )
-        if not max_dom :
-            raise Exception( "'max_dom' variable is madatory." )
-        NI  = exp_features.items( 'NI' )  if exp_features.has_section( 'NI'  ) else []
-        NIN = exp_features.items( 'NIN' ) if exp_features.has_section( 'NIN' ) else []
-        NIM = exp_features.items( 'NIM' ) if exp_features.has_section( 'NIM' ) else []
-        # Return all variables  
-        return ( name, home_dir, calendar, sdate, edate, csize, np, environment, description, requirements,
-                 mult_parameters, mult_labels, mult_vars, mult_nitems, mult_dates, smul_length_h, 
-                 smul_interval_h, namelist_version, restart_interval, max_dom, NI, NIM, NIN )
+        exp_conf = get_conf( directory )
+        save_exp_pkl( exp_conf, directory )
 
-    def create(self, update = False, dryrun = False,  directory = './' ):
-        """
-        Create and prepare all realizations and chunks needed to submit a WRF4G experiment 
-        """
-        ( name, home_dir, calendar, sdate, edate, csize, np, environment, description, requirements,
-          mult_parameters, mult_labels, mult_vars, mult_nitems, mult_dates, smul_length_h, 
-          smul_interval_h, namelist_version, restart_interval, max_dom, NI, NIM, NIN  )  = self.read_exp_file( directory )
-        if update and ( name == self.name and sdate == self.sdate and \
-                mult_dates == self.mult_dates and mult_parameters == self.mult_parameters ) :
-            raise Exception("ERROR: Experiment with the same name and no reconfigurable fields already exists.")
-        if not update and name != self.name :
-            raise Exception("ERROR: experiment.wrf4g files has a different experiment name.")
+        if update and ( exp_conf.default.name                  == self.name and \
+                        exp_conf.default.start_date            != self.start_date and \
+                        exp_conf.default.simulation_length_h   != self.simulation_length_h and \
+                        exp_conf.default.simulation_interval_h != self.simulation_interval_h and \
+                        exp_conf.default.namelist              != self.namelist ) :
+            raise Exception( "ERROR: Experiment with the same name "
+                             "and no reconfigurable fields already exists." )
+        if not update and self.name != exp_conf.default.name :
+            raise Exception( "ERROR: experiment.wrf4g files has a different experiment name." )
         # Update experiment variables
-        self.name = name; self.home_dir = home_dir; self.calendar = calendar
-        self.sdate = sdate; self.edate = edate; self.csize = csize; self.np = np
-        self.environment = environment; self.description = description; self.requirements = requirements
-        self.namelist_version = namelist_version; self.restart_interval = restart_interval
-        self.max_dom = max_dom; self.mult_parameters = mult_parameters
-        self.mult_labels = mult_labels; self.mult_vars = mult_vars; self.mult_nitems = mult_nitems
-        self.mult_dates = mult_dates; self.smul_length_h = smul_length_h; self.smul_interval_h = smul_interval_h
-        if not dryrun :
+        self.name                  = exp_conf.default.name
+        self.start_date            = exp_conf.default.start_date
+        self.end_date              = exp_conf.default.end_date
+        self.chunk_size_h          = exp_conf.default.chunk_size_h
+        self.calendar              = exp_conf.default.calendar
+        self.home_dir              = exp_conf.default.home_dir
+        self.np                    = exp_conf.default.np
+        self.requirements          = exp_conf.default.requirements
+        self.environment           = exp_conf.default.environment 
+        self.namelist_version      = exp_conf.default.namelist_version
+        self.max_dom               = exp_conf.default.max_dom
+        self.simulation_length_h   = exp_conf.default.simulation_length_h
+        self.simulation_interval_h = exp_conf.default.simulation_interval_h
+        self.namelist              = exp_conf.default.namelist
+        if not self.dryrun :
             # Create a WRF4G software bundle to use on the WN
             self._create_wrf4g_bundle()
             # Modify the namelist with the parameters available in experiment.wrf4g
-            logger.info( "Preparing namelist..." )
-            namelist_template = join( WRF4G_DIR , 'etc', 'templates', 'namelist', 'namelist.input-%s' % 
-                                     self.namelist_version )
+            logging.info( "Preparing namelist..." )
+            namelist_template = join( WRF4G_DIR , 'etc', 'templates', 'namelist', 
+                                     'namelist.input-%s' % self.namelist_version )
             namelist_input    = join( directory, 'namelist.input' )
             try :
-                logger.debug("Copying '%s' to '%s'" % (namelist_template, namelist_input) )
+                logging.debug( "Copying '%s' to '%s'" % (namelist_template, namelist_input) )
                 shutil.copyfile(namelist_template, namelist_input )
             except :
                 raise Exception( "There is not a namelist template for WRF '%s'"
-                                 " (File namelist.input does not exist)" % namelist_template )
-            logger.debug( "Updating parameter 'max_dom' in the namelist" )
-            exec_cmd( "fortnml -wof %s -s max_dom %d" % ( namelist_input, self.max_dom ) )
-            for key, val in NI :
-                logger.debug( "Updating parameter '%s' in the namelist" % key )
-                exec_cmd( "fortnml -wof %s -s %s %s" % (namelist_input, key, val) )
-            for key, val in NIM :
-                logger.debug( "Updating parameter '%s' in the namelist" % key )
-                exec_cmd( "fortnml -wof %s -s %s %s" % (namelist_input, key, val ) )
-            for key, val in NIN :
-                logger.debug( "Updating parameter '%s' in the namelist" % key )
-                exec_cmd( "fortnml -wof %s -m %s %s" % (namelist_input, key, val) )
-        if self.mult_dates :
-           # If there is a multiple_parameter
-           for rea_label in self.mult_labels.split('/') :
-               rea_tag, combinations = rea_label.split('|')
-               logger.info( "---> Realization: multiparams=%s %s %s" % (rea_tag, sdate, edate) )
-               if not dryrun :
-                   l_variables    = self.mult_vars.split(',')
-                   l_combinations = combinations.split(',')
-                   l_nitems       = self.mult_nitems.split(',')
-                   for var, comb, nitem in zip( l_variables, l_combinations, l_nitems ) :
-                       # Update the namelist per each combination
-                       logger.debug( "Updating parameter '%s' in the namelist" % var )
-                       if ':' in comb :
-                           exec_cmd( "fortnml -wof %s -s %s %s" % (namelist_input, var, ' '.join( comb.split(':') ) ) )
-                       else :
-                           exec_cmd( "fortnml -wof %s -s %s -n %s %s" % (namelist_input, var, nitem, comb ) )
-               self.cycle_time( "%s__%s" % ( name, rea_tag ), rea_tag, update, dryrun)
-        else :
-           logger.info( "---> Single params run" )
-           self.cycle_time( name, self.mult_labels, update, dryrun )
-    
-    def cycle_time(self, rea_name, label, update = False, dryrun = False ) :
+                                 "(File namelist.input does not exist)" % namelist_template )
+            
+            logging.debug( "Updating parameter 'max_dom' in the namelist" )
+            exec_cmd( "fortnml -wof %s -s max_dom %d" % ( namelist_input, self.max_dom ) )            
+        for comb, label in enumerate( exp_conf.default.label_combination ) :
+            if label :
+                logging.info( "---> Realization: multiparams=%s %s %s" % ( label, self.start_date, self.end_date) )
+            else :
+                logging.info( "---> Single params run" )
+            for mnl_variable, mnl_values in exp_conf.default.namelist_dict.items() :
+                # Update the namelist per each combination
+                if not self.dryrun :
+                    logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
+                    if '.' in mnl_variable :
+                       section, val = mnl_variable.split( '.' )
+                       cmd = "fortnml -wof %s -s %s@%s %s" % ( namelist_input, val, section, str( mnl_values[ comb ] ) )
+                    else :
+                       cmd = "fortnml -wof %s -s %s %s"    % ( namelist_input, mnl_variable, str( mnl_values[ comb ] ) ) 
+                    exec_cmd( cmd )
+            self.cycle_time( "%s__%s" % ( self.name, label ) if label else self.name, label, update )
+     
+    def cycle_time(self, rea_name, label, update = False) :
         """
         Check if the experiment has multiple_dates 
         """
-        if self.mult_dates :
-            self.cycle_hindcasts( rea_name, label, update, dryrun )
+        if self.simulation_length_h and self.simulation_interval_h :
+            self.cycle_hindcasts( rea_name, label, update )
         else :
-            logger.info( "---> Continuous run" )
-            # Create realization
-            rea = Realization( 
-                            name          = rea_name,
-                            sdate         = self.sdate,
-                            edate         = self.edate, 
-                            cdate         = self.sdate,
-                            status        = 'PREPARED',
-                            current_chunk = 1,
-                            mult_label    = label 
-                            )
+            logging.info( "---> Continuous run" )
             if update :
                 # Check realization on the database
-                self.check_db( rea )
+                rea = self.check_db( rea_name, self.start_date, label )
             else :
+                # Create realization
+                rea = Realization( 
+                                name          = rea_name,
+                                start_date    = self.start_date,
+                                end_date      = self.end_date, 
+                                current_date  = self.start_date,
+                                status        = 'PREPARED',
+                                current_chunk = 1,
+                                label         = label 
+                               )
                 # Add realization to the experiment 
                 self.realization.append( rea )
             # Check storage
-            if not dryrun :
+            if not self.dryrun :
                 rea._prepare_sub_files()
             rea.cycle_chunks( update )
  
-    def cycle_hindcasts(self, rea_name, label, update = False, dryrun = False ) :
+    def cycle_hindcasts(self, rea_name, label, update = False ) :
         """
         Create chunks the needed for a realization 
         """
-        logger.info( "\n---> cycle_hindcasts: %s %s %s %s %s" % ( 
-                      rea_name, self.id, self.sdate , self.edate, self.mult_label ) )
+        logging.info( "\n---> cycle_hindcasts: %s %s %s %s %s" % ( 
+                      rea_name, self.id, self.start_date , self.end_date, self.label ) )
         # Define which calendar is going to be used
-        exp_calendar = Calendar(self.experiment.calendar)
-        rea_sdate    = self.sdate
-        while rea_sdate < self.edate :
-            rea_edate = exp_calendar.add_hours(rea_sdate, self.smul_interval_h )
+        exp_calendar    = Calendar(self.experiment.calendar)
+        rea_start_date  = self.start_date
+        while rea_start_date < self.end_date :
+            rea_end_date = exp_calendar.add_hours(rea_start_date, self.smul_interval_h )
+            cycle_name   = "%s__%s_%s" % ( rea_name, datetime2datewrf( rea_start_date ),
+                                           datetime2datewrf( rea_end_date ) )
             # Create realization
-            rea = Realization( 
-                                name          = "%s__%s_%s" % ( rea_name, rea_sdate, rea_edate),
-                                sdate         = rea_sdate,
-                                edate         = rea_edate,
-                                cdate         = rea_sdate,
-                                status        = 'PREPARED',
-                                current_chunk = 1,
-                                mult_label    = label 
-                                )
             if update :
                 # Check realization on the database
-                self.check_db( rea )
+                rea = self.check_db( cycle_name, rea_start_date, label  )
             else :
+                rea = Realization( 
+                                name          = clycle_name, 
+                                start_date    = rea_start_date,
+                                end_date      = rea_end_date,
+                                current_date  = rea_start_date,
+                                status        = 'PREPARED',
+                                current_chunk = 1,
+                                label         = label 
+                                )
                 # Add realization to the experiment 
                 self.realization.append( rea )
             # Check storage
-            if not dryrun :
+            if not self.dryrun :
                 rea._prepare_sub_files()
             rea.cycle_chunks( update )
-            rea_sdate = rea_edate
+            rea_start_date = rea_end_date
     
-    def get_status(self, long_format = False, rea_pattern = False ):
+    def get_status(self, rea_pattern = False ):
         """ 
         Show information about realizations of the experiment for example:
         
@@ -350,24 +289,20 @@ class Experiment( Base ):
         """
         #list of realization of the experiment
         if rea_pattern :
-            l_realizations = self.realization.filter( Realization.name.like( rea_pattern.replace('*','%') ) ) 
+            l_realizations = self.realization.\
+                             filter( Realization.name.like( rea_pattern.replace('*','%') ) ) 
         else :
             l_realizations = self.realization.all()
 
         #Header of the information
         if not ( l_realizations ):
-            logger.info( 'There are not realizations to check.' )
-        if long_format :
-            logger.info( '%-21s %-10s %-10s %-10s %-13s %6s %-3s %5s %20s %20s'% (
-                                   'Realization','Status','Chunks','Comp.Res','Run.Sta','JID','ext','%','sdate', 'edate')
-                       )
-        else :
-            logger.info( '%-21s %-10s %-10s %-10s %-13s %6s %-3s %5s' % (
-                                   'Realization','Status','Chunks','Comp.Res','Run.Sta','JID','ext','%')
-                       )
+            raise Exception ( 'There are not realizations to check.' )
+        logging.info( '%-21s %-10s %-10s %-16s %-10s %6s %20s %20s %-3s %6s'% (
+                        'Realization','Status','Chunks','Comp.Res','Run.Sta',
+                        'JID', 'Start_date', 'End_date', 'Ext','%' ) )
         for rea in l_realizations :
             #Print information of each realization
-            rea.get_status( long_format )
+            rea.get_status( )
     
     @staticmethod 
     def create_files(name, template, force, directory):
@@ -377,15 +312,15 @@ class Experiment( Base ):
         validate_name( name )
         if not template in [ 'default', 'single', 'physics' ] :
             raise Exception( "'%s' template does not exist" % template )
-        exp_dir = expandvars( expanduser( directory ) )
+        exp_dir = expandvars( expanduser( os.getcwd() if directory == './' else directory ) )
         if not exists( exp_dir ):
             raise Exception("'%s' does not exist" % exp_dir )
         exp_dir_config = join( exp_dir, name )
         if exists( exp_dir_config ) and not force :
             raise Exception("'%s' already exists" % exp_dir_config )
         elif exists( exp_dir_config ) and force :
-            shutil.rmtree( exp_dir_config )
-        logger.debug( "Creating '%s' directory" % exp_dir_config )
+	    shutil.rmtree( exp_dir_config )
+        logging.debug( "Creating '%s' directory" % exp_dir_config )
         shutil.copytree( join( WRF4G_DIR , 'etc' , 'templates' , 'experiments',  template ),
                          exp_dir_config )
         dest_path = join( exp_dir_config , 'experiment.wrf4g' )
@@ -399,26 +334,27 @@ class Experiment( Base ):
         with open(dest_path, 'w') as f :
             f.writelines( data_updated ) 
 
-    def stop(self, dryrun = False ):
+    def stop(self):
         """
         Delete jobs which status is running or submitted 
         """
         #list of realization of the experiment
         l_realizations = self.realization.all()
         if not ( l_realizations ):
-            logger.info( 'There are not realizations to stop.' )
+            logging.info( 'There are not realizations to stop.' )
         else :
-            logger.info( 'Stopping Experiment %s' % self.name )
-            for rea in l_realizations :  
-                rea.stop( dryrun )
+            logging.info( 'Stopping Experiment %s' % self.name )
+            for rea in l_realizations :
+                rea.dryrun = self.dryrun
+                rea.stop( )
 
-    def delete(self, dryrun = False ):
+    def delete(self):
         """
         Delete the experiment ,its realizations and chunks 
         """
-        if not dryrun :
+        if not self.dryrun :
             local_exp_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
-            logger.debug( "Deleting '%s' directory" % local_exp_dir )
+            logging.debug( "Deleting '%s' directory" % local_exp_dir )
             if exists( local_exp_dir ) :
                 shutil.rmtree( local_exp_dir )
     
@@ -432,60 +368,58 @@ class Realization( Base ):
     id              = Column(u'id',INTEGER, primary_key=True, nullable=False)
     exp_id          = Column(u'exp_id',INTEGER, ForeignKey(u'experiment.id')) 
     name            = Column(u'name',VARCHAR(length=1024),nullable=False)
-    sdate           = Column(u'sdate',DATETIME())
-    edate           = Column(u'edate',DATETIME())
+    start_date      = Column(u'start_date',DATETIME())
+    end_date        = Column(u'end_date',DATETIME())
     restart         = Column(u'restart',DATETIME()) 
     status          = Column(u'status',VARCHAR(length=20))
-    cdate           = Column(u'cdate',DATETIME())
-    ctime           = Column(u'ctime',DATETIME())
+    current_date    = Column(u'current_date',DATETIME())
     current_chunk   = Column(u'current_chunk',INTEGER)
     nchunks         = Column(u'nchunks',INTEGER)
-    mult_label      = Column(u'multiparams_label',VARCHAR(length=100)) 
+    label           = Column(u'label',VARCHAR(length=100)) 
 
     # Realtionships
     experiment      = relationship("Experiment", back_populates="realization")
     chunk           = relationship("Chunk", back_populates= "realization", lazy='dynamic')
 
-    def run(self, first_chunk_run = None , last_chunk_run = None, rerun = False, dryrun = False):
+    dryrun          = False
+
+    def run(self, first_chunk_run = None , last_chunk_run = None, rerun = False ):
         """ 
         Run n_chunk of the realization.
         If n_chunk=0 run every chunk of the realization which haven't finished yet
         else run (n_chunk) chunks since the last one finished
         """
+        first_chunk_run = int( first_chunk_run ) if first_chunk_run else None 
+        last_chunk_run  = int( last_chunk_run  ) if last_chunk_run  else None
         #Check the status of the realization
         if self.status == 'FINISHED' and not rerun :
-            logger.warn( "Realization '%s' already finished." % self.name )
+            logging.warn( "Realization '%s' already finished." % self.name )
         elif ( self.status == 'SUBMITTED' or self.status == 'RUNNING' ) and not rerun :
-            logger.warn( "Realization '%s' has been submitted." % self.name )
+            logging.warn( "Realization '%s' has been submitted." % self.name )
         elif first_chunk_run and first_chunk_run < 0 :
-            logger.error( "ERROR: The first chunk to run is '%d'." % first_chunk_run ) 
+            logging.error( "ERROR: The first chunk to run is '%d'." % first_chunk_run ) 
         elif last_chunk_run and last_chunk_run  < 0 :
-            logger.error( "ERROR: The last chunk to run is '%d'." % last_chunk_run )
-        elif ( last_chunk_run and first_chunk_run ) and last_chunk_run > first_chunk_run :
-            logger.error( "ERROR: The last chunk to run is greater than the fist one." )
+            logging.error( "ERROR: The last chunk to run is '%d'." % last_chunk_run )
+        elif ( last_chunk_run and first_chunk_run ) and last_chunk_run < first_chunk_run :
+            logging.error( "ERROR: The last chunk to run is greater than the fist one." )
         else :
-            # search first chunk to run 
-            if rerun and first_chunk_run == 1 :
-                ch = self.chunk.filter( Chunk.chunk_id == first_chunk_run ).one()
-                self.restart = ch.sdate
-                self.cdate   = ch.sdate
-            elif rerun and not first_chunk_run :
-                first_chunk_run = 1
-                self.restart = None
-                self.cdate   = self.sdate
+            # search first chunk to run
+            if rerun and first_chunk_run :
+                ch                = self.chunk.filter( Chunk.chunk_id == first_chunk_run ).one()
+                self.restart      = ch.start_date
+                self.current_date = ch.start_date
             else :
                 #search first chunk to run
                 if not self.restart : # run every chunks of the realization
                     first_chunk_run = 1
                 else:
-                    #search chunk with edate>restart and sdate<restart
+                    #search chunk with end_date>restart and start_date<restart
                     try:
-                        first_chunk  = self.chunk.filter( _and( 
-                            Chunk.sdate <= self.restart, Chunk.edate >= self.restart 
-                            ) ).one()
-                        #id_first_chunk_run = first_chunk_run.id
-                        first_chunk_run = first_chunk.id_chunk
-                    except :
+                        first_chunk  = self.chunk.filter( and_( Chunk.start_date <= self.restart, 
+                                                                Chunk.end_date   >= self.restart ) 
+                                                         ).all()[ 0 ]
+                        first_chunk_run = first_chunk.chunk_id
+                    except : 
                         raise Exception( 'There are not chunks to run.' )
             #search last chunk to run
             if not last_chunk_run :
@@ -496,19 +430,17 @@ class Realization( Base ):
                 #search last chunk
                 last_chunk_run = last_chunk_run
             #Search chunks to run
-            print first_chunk_run
-            print last_chunk_run
-            l_chunks = self.chunk.filter( and_( 
-                            Chunk.chunk_id >= first_chunk_run, Chunk.chunk_id <= last_chunk_run 
-                            ) )
+            l_chunks = self.chunk.filter( and_( Chunk.chunk_id >= first_chunk_run, 
+                                                Chunk.chunk_id <= last_chunk_run )
+                                        ).all()
             #run chunks
-            for chunk in l_chunks :
+            for index, chunk in enumerate( l_chunks ) :
                 #print data of chunks
-                logger.info('\t---> Submitting Chunk %d:\t%s\t%s' % ( chunk.chunk_id, 
-                                                              datetime2datewrf(chunk.sdate), 
-                                                              datetime2datewrf(chunk.edate) ) )
-                if not dryrun :
-                    chunk.run( rerun )
+                logging.info('\t---> Submitting Chunk %d:\t%s\t%s' % ( chunk.chunk_id, 
+                                                              datetime2datewrf(chunk.start_date), 
+                                                              datetime2datewrf(chunk.end_date) ) )
+                if not self.dryrun :
+                    chunk.run( index, rerun )
             # Update reealizaiton status
             self.status = 'SUBMITTED'
             
@@ -533,69 +465,70 @@ class Realization( Base ):
             if exists( dst_file ):
                 os.remove( dst_file )
             shutil.move( 'wrf4g_files.tar.gz' , dst_file )
-        for file in ( join( WRF4G_DIR, 'etc', 'db.conf' ), "experiment.wrf4g", "namelist.input" ) :
+        for file in [ join( WRF4G_DIR, 'etc', 'db.conf' ), 
+                      "experiment.wrf4g", "namelist.input" , "experiment.pkl"] :
             if not exists ( expandvars( file ) ) :
                 raise Exception( "'%s' is not available" % file )
             else :
                 shutil.copy( expandvars( file ) , rea_submission_dir )
 
-    def check_db(self, new_chunk ):
+    def check_db(self, rea_id, chunk_id, chunk_start_date ):
         """ 
         Check if there is a chunk with the same no reconfigurable field. 
         If there is not a chunk with the same no reconfigurable fields => error,.
         If there is a chunk with the same reconfigurable fields, update data.
         """
         #Check if there is a chunk with the same no reconfigurable fields:
-        #id,id_rea,id_chunk,sdate
+        #id_rea,id_chunk,start_date
         try:
-            ch = self.chunk.filter_by( Chunk.id       == new_chunk.id,
-                                       Chunk.rea_id   == new_chunk.rea_id,
-                                       Chunk.chunk_id == new_chunk.chunk_id,
-                                       Chunk.sdate    == new_chunk.sdate
-                                      ).one()
-        except Exception:
+            ch = self.chunk.filter( Chunk.rea_id     == rea_id,
+                                    Chunk.chunk_id   == chunk_id,
+                                    Chunk.start_date == chunk_start_date
+                                   ).one()
+        except Exception : 
             #if ch does not exist (no chunk with the same no reconfigurable fields)
             raise Exception("ERROR: Chunk with the same name and no reconfigurable fields already exists")
         else:
             #if ch exits,it means a chunk with the same no reconfigurable fields
-            logger.debug('Updating chunk on the database')
-            ch = new_chunk
+            logging.debug('Updating chunk on the database')
+            return ch
 
     def cycle_chunks(self, update = False ):
         """
         Create chunks the needed for a realization 
         """
-        logger.info( "\t---> cycle_chunks: %s %s %s" % ( self.name, self.sdate , self.edate ) )
+        logging.info( "\t---> cycle_chunks: %s %s %s" % ( self.name, self.start_date , self.end_date ) )
         # Define which calendar is going to be used
         exp_calendar = Calendar(self.experiment.calendar)
         chunk_id = 1
-        chunk_sdate = self.sdate
-        while chunk_sdate < self.edate :
-            chunk_edate = exp_calendar.add_hours( chunk_sdate, hours = self.experiment.csize )
-            logger.info( "\t\t---> chunk %d: %s %s %s" %( chunk_id, self.name, chunk_sdate, chunk_edate ) )
-            # Create Chunk
-            ch = Chunk( rea_id   = self.id, 
-                        sdate    = chunk_sdate, 
-                        edate    = chunk_edate,
-                        wps      = 0, 
-                        chunk_id = chunk_id,
-                        status   = 'PREPARED' )
+        chunk_start_date = self.start_date
+        while chunk_start_date < self.end_date :
+            chunk_end_date = exp_calendar.add_hours( chunk_start_date, hours = self.experiment.chunk_size_h )
+            logging.info( "\t\t---> chunk %d: %s %s %s" %( chunk_id, self.name, chunk_start_date, chunk_end_date ) )
             if update :
                 # Check chunk on the database
-                self.check_db( ch )
+                ch = self.check_db( self.id, chunk_id, chunk_start_date )
             else :
+                # Create Chunk
+                ch = Chunk( rea_id     = self.id, 
+                            start_date = chunk_start_date, 
+                            end_date   = chunk_end_date,
+                            wps        = 0, 
+                            chunk_id   = chunk_id,
+                            status     = 'PREPARED' 
+                          )
                 # Add realization to the experiment 
                 self.chunk.append( ch )
-            chunk_sdate = chunk_edate 
+            chunk_start_date = chunk_end_date 
             chunk_id    = chunk_id + 1
         # Set the number of chunks of a relaization    
         self.nchunks = chunk_id - 1
  
-    def get_status(self, long_format=False):
+    def get_status(self):
         """ 
         Show information about the realization for example:
-            Realization Status   Chunks     Comp.Res   WN         Run.Sta     JID   ext      %
-            testc       Done     3/3        mycomputer wn001     Finished       0     0 100.00
+            Realization Status   Chunks     Comp.Res       Run.Sta     JID   ext      %
+            testc       Done     3/3        mycomputer    Finished       0     0 100.00
             
         * Realization: Realization name. It is taken from the field experiment_name in experiment.wrf4g.
         * Status: It can be take the following values: Prepared, Submitted, Running, Failed and Done).
@@ -609,48 +542,43 @@ class Realization( Base ):
         #Select parameters:job_status,rea_status,resource,exitcode,nchunks
         #Last job of current chunk
         if self.status == 'PREPARED' :
-            resource = '-'
-            exitcode = '-'
-            status   = 'PREPARED'
-            gw_job   = '-'
+            resource           = '-'
+            exitcode           = '-'
+            status             = 'PREPARED'
+            gw_job             = '-'
+            chunk_distribution = '%d/%d' % ( 0 , self.nchunks )
         else :
-            current_chunk = self.chunk.filter( Chunk.chunk_id == self.current_chunk ).one()
-            last_job = current_chunk.job.order_by( Job.id )[-1]
-            resource = last_job.resource
-            exitcode = str( last_job.exitcode )
-            status   = last_job.status
-            gw_job   = str( last_job.gw_job )
-
-        chunk_distribution = '%d/%d' % ( self.current_chunk, self.nchunks )
+            current_chunk      = self.chunk.filter( Chunk.chunk_id == self.current_chunk ).one()
+            last_job           = current_chunk.job.order_by( Job.id )[-1]
+            resource           = last_job.resource
+            exitcode           = last_job.exitcode
+            status             = last_job.status
+            gw_job             = str( last_job.gw_job )
+            chunk_distribution = '%d/%d' % ( current_chunk.chunk_id, self.nchunks )
         #Format chunks run / chunks total
-        runt   =  int( self.cdate.strftime("%s") ) - int( self.sdate.strftime("%s") ) 
-        totalt =  int( self.edate.strftime("%s") ) - int( self.sdate.strftime("%s") )
+        runt   = int( self.current_date.strftime("%s") ) - int( self.start_date.strftime("%s") ) 
+        totalt = int( self.end_date.strftime("%s") )     - int( self.start_date.strftime("%s") )
         #Percentage
         per = runt * 100.0/ totalt
         #Print output
-        if long_format :
-            logger.info( "%-21s %-10s %-10s %-10s %-13s %5s %3s %6.2f %20s %20s" % (
-                    self.name[0:20], self.status, chunk_distribution, resource[0:10], status, 
-                    gw_job, exitcode, per, self.sdate, self.edate )
-                    )
-        else :
-            logger.info( "%-21s %-10s %-10s %-10s %-13s %5s %3s %6.2f" % (
-                    self.name[0:20], self.status, chunk_distribution, resource[0:10], 
-                    status, gw_job, exitcode, per )
-                    ) 
+        logging.info( "%-21.21s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %20.20s %20.20s %-3.3s %6.2f" % (
+                    self.name[0:20], self.status, chunk_distribution, resource, status, 
+                    gw_job, self.start_date, self.end_date, exitcode, per ) )
   
-    def stop(self, dryrun=False):
+    def stop(self):
         """
         Delete chunks which status is running or submitted 
         """
-        l_chunks = self.chunk.filter( or_( Chunk.status == 'SUBMITTED', Chunk.status == 'RUNNING' 
-                                    ) ).all()
+        l_chunks = self.chunk.filter( or_( Chunk.status == 'SUBMITTED', 
+                                           Chunk.status == 'RUNNING' ) 
+                                    ).all()
         if not ( l_chunks ):
-            logger.info( 'There are not chunks to stop.' )
+            logging.info( 'There are not chunks to stop.' )
         else :
-            logger.info('---> Stopping Realization %s' % self.name )
+            logging.info('---> Stopping Realization %s' % self.name )
             for chunk in l_chunks :
-                chunk.stop( dryrun )
+                chunk.dryrun = self.dryrun
+                chunk.stop( )
     
 class Chunk( Base ):
     """ 
@@ -659,20 +587,22 @@ class Chunk( Base ):
     __tablename__   = 'chunk'
 
     # Columns
-    id              = Column(u'id',INTEGER, primary_key=True, nullable=False)
-    rea_id          = Column(u'rea_id',INTEGER, ForeignKey(u'realization.id'))
-    sdate           = Column(u'sdate',DATETIME())
-    edate           = Column(u'edate',DATETIME())
-    wps             = Column(u'wps',INTEGER) 
-    status          = Column(u'status',VARCHAR(length=20))
-    chunk_id        = Column(u'chunk_id',INTEGER)
+    id              = Column(u'id', INTEGER, primary_key = True, nullable = False)
+    rea_id          = Column(u'rea_id', INTEGER, ForeignKey(u'realization.id'))
+    start_date      = Column(u'start_date', DATETIME())
+    end_date        = Column(u'end_date', DATETIME())
+    wps             = Column(u'wps', INTEGER) 
+    status          = Column(u'status', VARCHAR(length=20))
+    chunk_id        = Column(u'chunk_id', INTEGER)
 
     # Relationships
-    realization     = relationship("Realization", back_populates= "chunk")
-    job             = relationship("Job", back_populates = "chunk", lazy='dynamic')
+    realization     = relationship("Realization", back_populates = "chunk")
+    job             = relationship("Job", back_populates = "chunk", lazy = "dynamic")
+
+    dryrun          = False 
  
     #METHODS
-    def run (self, rerun = False):
+    def run (self, index, rerun = False):
         """ 
         Run a chunk is run a drm4g job
         """
@@ -682,30 +612,32 @@ class Chunk( Base ):
         rea_name      = self.realization.name
         exp_name      = self.realization.experiment.name
         exp_path      = join( WRF4G_DIR, 'var', 'submission', exp_name )
-        rea_path      = join( exp_path, exp_name )
+        rea_path      = join( exp_path, rea_name )
         wrf4g_package = join( exp_path, "WRF4G.tar.gz" )
         if not exists(  wrf4g_package ) : 
             raise Exception( "'%s' file does not exist" % wrf4g_package )
         # files to add for the inputsandbox 
-        inputsandbox  = "file://%s," % wrf4g_package
-        inputsandbox += "file://%s/db.conf," % rea_path
+        inputsandbox  = "file://%s,"                  % wrf4g_package
+        inputsandbox += "file://%s/db.conf,"          % rea_path
         inputsandbox += "file://%s/experiment.wrf4g," % rea_path
-        inputsandbox += "file://%s/namelist.input" % rea_path  
+        inputsandbox += "file://%s/experiment.pkl,"   % rea_path
+        inputsandbox += "file://%s/namelist.input"    % rea_path  
         # Add input file if it is exist
         input_files = join( rea_path , 'wrf4g_files.tar.gz' )
         if exists( input_files ) :
             inputsandbox += ",file://%s" % ( input_files )
         # files to add for the outputsandbox
-        outputsandbox = "log_%d_${GW_JOB_ID}_${GW_RESTARTED}.tar.gz" % ( self.chunk_id )
+        outputsandbox = "log_%d_${JOB_ID}.tar.gz" % self.chunk_id
         arguments = '%s %s %d %s %s %d' % (
                                         exp_name,
                                         rea_name,                                     
                                         self.chunk_id,
-                                        self.sdate,
-                                        self.edate,
+                                        datetime2datewrf( self.start_date ) ,
+                                        datetime2datewrf( self.end_date ) ,
                                         1 if rerun else 0
                                         )
         gw_job.create_template( name          = rea_name,
+                                directory     = rea_path,
                                 arguments     = arguments,
                                 np            = self.realization.experiment.np,
                                 req           = self.realization.experiment.requirements,
@@ -715,35 +647,40 @@ class Chunk( Base ):
         #submit job
         job = Job()  #create an object "job"
         # if the first chunk of the realization
-        if self.chunk_id == 1 :
-            job.gw_job = gw_job.submit()
+        if index == 0 :
+            job.gw_job    = gw_job.submit()
         else:
-            #if the chunk is not the first of the realization, gwsubmit has an argument, gw_job of the job before
-            chunk_before    = self.realization.chunk.filter( Chunk.chunk_id == self.chunk_id - 1 ).one()
-            job_before      = chunk_before.job.order_by( Job.id )[-1]
-            id_job_before   = job_before.id          
-            gw_job_before   = job_before.gw_job
-            job.gw_job      = gw_job.submit( dep = gw_job_before )
-
+            # if the chunk is not the first of the realization, 
+            # gwsubmit has an argument, gw_job of the job before
+            chunk_before  = self.realization.chunk.\
+                            filter( Chunk.chunk_id == self.chunk_id - 1 ).one()
+            job_before    = chunk_before.job.order_by( Job.id )[-1]
+            id_job_before = job_before.id          
+            gw_job_before = job_before.gw_job
+            job.gw_job    = gw_job.submit( dep = gw_job_before ) 
+        job.chunk_id = self.chunk_id
         job.run( rerun ) #run job
         self.job.append( job )
         # Update reealizaiton status
         self.status = 'SUBMITTED'
 
-    def stop(self, dryrun = False ):
+    def stop(self):
         """
         Delete jobs
         """
-        logger.info('\t---> Stopping Chunk %d:\t%s\t%s' % ( self.chunk_id,
-                                                       datetime2datewrf(self.sdate),
-                                                       datetime2datewrf(self.edate) ) 
+        logging.info('\t---> Stopping Chunk %d:\t%s\t%s' % ( self.chunk_id,
+                                                       datetime2datewrf(self.start_date),
+                                                       datetime2datewrf(self.end_date) ) 
                                                        )
-        l_jobs = self.job.filter( or_( Job.status != 'PREPARED', Job.status == 'FAILED' ) ).all()
+        l_jobs = self.job.filter( or_( Job.status != 'PREPARED', 
+                                       Job.status == 'FAILED' ) 
+                                ).all()
         if not ( l_jobs ):
-            logger.info( 'There are not jobs to stop.' )
+            logging.info( 'There are not jobs to stop.' )
         else :
             for job in l_jobs :
-                job.stop( dryrun )
+                job.dryrun = self.dryrun
+                job.stop( )
        
 class Job( Base ):
     """
@@ -752,17 +689,19 @@ class Job( Base ):
     __tablename__   = 'job'
 
     # Columns
-    id              = Column(u'id',INTEGER, primary_key=True, nullable=False)
-    gw_job          = Column(u'gw_job',INTEGER)
-    gw_restarted    = Column(u'gw_restarted',INTEGER)  
+    id              = Column(u'id', INTEGER, primary_key=True, nullable=False)
+    gw_job          = Column(u'gw_job', INTEGER)
+    gw_restarted    = Column(u'gw_restarted', INTEGER)  
     chunk_id        = Column(u'chunck_id', INTEGER, ForeignKey(u'chunk.id'))
-    resource        = Column(u'resource',VARCHAR(length=45))
+    resource        = Column(u'resource', VARCHAR(length=45))
     status          = Column(u'status', VARCHAR(length=20))
-    exitcode        = Column(u'exitcode',INTEGER)
+    exitcode        = Column(u'exitcode', VARCHAR(length=20))
 
     # Relationship
     chunk           = relationship("Chunk", back_populates = "job")
-    events          = relationship("Events", back_populates = "job", lazy='dynamic')
+    events          = relationship("Events", back_populates = "job", lazy = 'dynamic')
+
+    dryrun          = False
     
     def set_status(self, status):
         """ 
@@ -774,11 +713,13 @@ class Job( Base ):
         #if is an status of the CHUNK_STATUS and REA_STATUS
         if ( status in CHUNK_STATUS and status in REA_STATUS ) and status != 'SUBMITTED' : 
             self.chunk.status = status
-            if status == 'FINISHED' and self.chunk_id == self.chunk.realization.nchunks :
-                self.chunk.realization.status == 'FINISHED'
-            else :
+            if status == 'FINISHED' and \
+               self.chunk.chunk_id == self.chunk.realization.nchunks :
                 self.chunk.realization.status = status
-                self.chunk.realization.current_chunk = self.chunk_id + 1
+            else :
+                self.chunk.realization.status = 'RUNNING'
+        if status == 'FINISHED' and self.chunk.realization.status != 'FINISHED' : 
+            self.chunk.realization.current_chunk = self.chunk.chunk_id + 1
         #Add event
         events            = Events()
         events.job_status = status
@@ -798,12 +739,12 @@ class Job( Base ):
         # Update status
         self.set_status( 'SUBMITTED' ) 
    
-    def stop(self, dryrun=False):
+    def stop(self):
         """
         Delete a job
         """
-        logger.info('\t\t---> Stopping Job %d' % self.gw_job ) 
-        if not dryrun :
+        logging.info('\t\t---> Stopping Job %d' % self.gw_job ) 
+        if not self.dryrun :
             GWJob().kill( self.gw_job )
             self.set_status( 'CANCEL' )
 
@@ -814,7 +755,7 @@ class Events( Base ):
     # Columns
     id              = Column(u'id',INTEGER, primary_key=True, nullable=False)
     job_id          = Column(u'job_id',INTEGER, ForeignKey(u'job.id'))
-    job_status      = Column(u'job_status',INTEGER)
+    job_status      = Column(u'job_status',VARCHAR(length=20))
     timestamp       = Column(u'timestamp',DATETIME())
 
     # Relationship

@@ -16,7 +16,7 @@ if sys.version_info < (2,5) and sys.version_info > (3,0):
 # Default values used in DRM4G package.#
 ########################################
 HOME                 = os.environ.get( 'HOME' )
-DRM4G_DIR            = os.environ.get( 'DRM4G_DIR' , join ( HOME , '.wrf4g' ) )
+DRM4G_DIR            = os.environ.get( 'WRF4G_DIR' , join ( HOME , '.wrf4g' ) )
 os.environ[ 'GW_LOCATION' ] = DRM4G_DIR
 DRM4G_DEPLOYMENT_DIR = dirname( dirname( dirname( abspath( __file__ ) ) ) )
 DRM4G_BIN            = join( DRM4G_DEPLOYMENT_DIR , 'bin'  ) 

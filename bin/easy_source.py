@@ -7,20 +7,19 @@ __revision__ = "$Id$"
 
 import os
 import sys
-from os.path     import abspath, dirname, join
-from wrf4g.utils import VarEnv
+from os.path       import abspath, dirname, join
+from wrf4g.config  import load_exp_pkl
 
 if __name__ == "__main__":
     # Which resource is it ?
     resource_name   = os.environ.get('GW_HOSTNAME')
-    experiment_file = join ( dirname( abspath( sys.argv[0] ) ), 'experiment.wrf4g' )
-    experiment_conf = VarEnv( experiment_file )
-    source_lines    = experiment_conf.get_variable( 'app_source_script' )
+    exp_conf        = load_exp_pkl( dirname( dirname( abspath( sys.argv[0] ) ) ) )  
     # Find if there is a specific section for this resource
-    for section in experiment_conf.sections() :
-        if ':' in section and section.split( ':' , 1 )[ 1 ].strip() == resource_name :
-            source_lines = experiment_conf.get_variable( 'app_source_script' , section )
+    if exp_conf.has_key( resource_name ) :
+        resource_exp_conf = exp_conf[ resource_name ]
+    else :
+        resource_exp_conf = exp_conf[ 'default' ]
     # Create the source file
     source_file = open( 'easy_source.conf', 'w' )
-    source_file.write( source_lines )
+    source_file.write( resource_exp_conf[ 'app_source_script' ] )
     source_file.close()

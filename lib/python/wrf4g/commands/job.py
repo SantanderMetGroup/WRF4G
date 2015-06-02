@@ -2,11 +2,11 @@
 Submit, get status and history and cancel jobs.
 
 Usage: 
-    wrf4g job submit [ --dbg ] [ --dep <job_id> ... ] <template> 
-    wrf4g job list [ --dbg ] [ <job_id> ] 
-    wrf4g job cancel [ --dbg ]  <job_id> ... 
-    wrf4g job get-log [ --dbg ] <job_id>
-    wrf4g job get-history [ --dbg ] <job_id> 
+    wrf4g job submit  [ --dbg ] [ --dep <job_id> ... ] <template> 
+    wrf4g job list    [ --dbg ] [ <job_id> ] 
+    wrf4g job cancel  [ --dbg ] <job_id> ... 
+    wrf4g job log     [ --dbg ] <job_id>
+    wrf4g job history [ --dbg ] <job_id> 
    
 Arguments:
    <job_id>               Job identifier.
@@ -20,8 +20,8 @@ Commands:
    submit                 Command for submitting jobs.
    list                   Monitor jobs previously submitted.
    cancel                 Cancel jobs.
-   get-log                Keep track of a job.
-   get-history            Get information about the execution history of a job.
+   log                    Keep track of a job.
+   history                Get information about the execution history of a job.
 
 Job field information:
    JID                    Job identification.
@@ -48,13 +48,14 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
 import logging
-from wrf4g                import logger
+import sys
 from drm4g                import DRM4G_BIN
 from drm4g.commands       import exec_cmd, Daemon
 
 def run( arg ) :
-    if arg[ '--dbg' ] :
-        logger.setLevel(logging.DEBUG)
+    logging.basicConfig( format = '%(message)s',
+                         level  = logging.DEBUG if arg[ '--dbg' ] else logging.INFO,
+                         stream = sys.stdout )
     try :
         daemon = Daemon( )
         if not daemon.is_alive() :
@@ -66,9 +67,9 @@ def run( arg ) :
             cmd = '%s/gwps -o Jsetxjh '  % ( DRM4G_BIN )
             if arg['<job_id>'] :
                 cmd = cmd + arg['<job_id>'][0] 
-        elif arg['get-history']:
+        elif arg['history']:
             cmd = '%s/gwhistory %s' % ( DRM4G_BIN , arg['<job_id>'][ 0 ] )
-        elif arg['get-log']:
+        elif arg['log']:
             directory = join(
                               DRM4G_DIR ,
                               'var' ,
@@ -82,8 +83,8 @@ def run( arg ) :
         else :
             cmd = '%s/gwkill -9 %s' % ( DRM4G_BIN , ' '.join( arg['<job_id>'] ) )  
         out , err = exec_cmd( cmd )
-        logger.info( out )
+        logging.info( out )
         if err :
-            logger.info( err )
+            logging.info( err )
     except Exception , err :
-        logger.error( str( err ) )
+        logging.error( str( err ) )

@@ -2,7 +2,7 @@
 Print information about the hosts available on WRF4G.
      
 Usage: 
-    wrf4g host [ list ] [ --dbg ] [ <hid> ] 
+    wrf4g host [ --dbg ] [ list ] [ <hid> ] 
     
 Arguments:
     <hid>         Host identifier.
@@ -27,13 +27,14 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
 import logging
-from wrf4g                import logger
+import sys
 from drm4g                import DRM4G_BIN
 from drm4g.commands       import exec_cmd, Daemon
 
-def run( arg ):
-    if arg[ '--dbg' ] :
-        logger.setLevel(logging.DEBUG)
+def run( arg ) :
+    logging.basicConfig( format = '%(message)s', 
+                         level  = logging.DEBUG if arg[ '--dbg' ] else logging.INFO,
+                         stream = sys.stdout )
     try :
         daemon = Daemon()
         if not daemon.is_alive() :
@@ -42,9 +43,9 @@ def run( arg ):
         if arg[ '<hid>' ] :
             cmd = cmd + arg[ '<hid>' ]
         out , err = exec_cmd( cmd )
-        logger.info( out )
+        logging.info( out )
         if err :
-            logger.info( err )
+            logging.info( err )
     except Exception , err :
-        logger.error( str( err ) )
+        logging.error( str( err ) )
 

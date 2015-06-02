@@ -2,12 +2,9 @@ import os
 import datetime
 import time
 import logging
-import commands
-
-from re        import match, search
-from sys       import stderr
-from os.path   import abspath, isdir, isfile, basename, dirname, join
-from wrf4g     import logger
+from re                  import match, search
+from os.path             import abspath, isdir, isfile, basename, dirname, join
+from wrf4g.utils.command import exec_cmd_popen as exec_cmd
 
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
@@ -181,8 +178,7 @@ class VCPURL(object):
             raise Exception(out)
         
         command = eval(self.command[self.protocol]['ls'])
-        logger.debug( command )
-        (err, out) = commands.getstatusoutput(command)
+        (err, out) = exec_cmd(command)
         if err != 0 :
             out = "Error reading dir: " + str(out)
             raise Exception(out)
@@ -218,8 +214,7 @@ class VCPURL(object):
             raise Exception(out)
         
         command = eval(self.command[self.protocol]['mkdir'])
-        logger.debug( command )
-        (err, out) = commands.getstatusoutput(command)
+        (err, out) = exec_cmd(command)
         
         if err != 0 :
             out = "Error creating dir: " + str(out)
@@ -233,8 +228,7 @@ class VCPURL(object):
             raise Exception("This method is not available for " + self.protocol + " protocol")
         
         command = eval(self.command[self.protocol]['rm'])
-        logger.debug( command )
-        (err, out) = commands.getstatusoutput(command)
+        (err, out) = exec_cmd(command)
         
         if err != 0 : 
             out="Error deleting file: " + str(out)
@@ -252,8 +246,7 @@ class VCPURL(object):
         dest_folder = dirname(orig)
         dest = join(dest_folder,newname)
         command = eval(self.command[self.protocol]['rename'])
-        logger.debug( command )
-        (err, out) = commands.getstatusoutput(command)
+        (err, out) = exec_cmd(command)
         if err != 0 :
             out="Error listing file: " + str(out)
             raise Exception(out)
@@ -311,15 +304,14 @@ def copy_tree(origin, destination, overwrite=True):
             else:
                 copy_tree(orig_name, dest_name, overwrite)
         except Exception, err:
-            stderr.write(str(err) + "\n")
-            logger.warning(str(err))
+            logging.warning(str(err))
 
 def copy_file(origin, destination, overwrite=True):
     """
     Copy orig to dest file.
     """
     vcp_matrix = {'file': {'file':   {'verbose'  : '-v', 
-                                  'command'  : "'cp %(verbose)s %(orig)s %(dest)s' %param", 
+                                  'command'  : "'cp -f %(verbose)s %(orig)s %(dest)s' %param", 
                                   'orig'     : "orig.file", 
                                   'dest'     : "dest.file"},
                        'rsync':  {'verbose'  : '-v', 
@@ -380,7 +372,7 @@ def copy_file(origin, destination, overwrite=True):
     else:
         dest = VCPURL(destination)
     out="Starting to copy ..."
-    logger.debug(out)
+    logging.debug(out)
     if http_ftp_protocol(dest.protocol):
         out="Unable to copy if the destination protocol is " + dest.protocol
         raise Exception(out)
@@ -398,7 +390,7 @@ def copy_file(origin, destination, overwrite=True):
             orig.protocol = "file"
             dest.protocol = "file"
     out = "Copying from " + orig.__str__() + " to " + dest.__str__()
-    logger.debug(out)   
+    logging.debug(out)   
     param = vcp_matrix[orig.protocol][dest.protocol]
     #orig customization 
     orig_file = eval(param['orig'])
@@ -409,22 +401,21 @@ def copy_file(origin, destination, overwrite=True):
     else:
         dest_file = eval(param['dest'])
     param['dest'] = dest_file
-    if logger.level != logging.DEBUG : 
+    if logging.DEBUG : 
         param['verbose'] = ""
     #Overwrite the destination if necessary
     if overwrite:
         if dest.exists() and dest.isfile():
             out = "Overwriting " + dest.__str__()
-            logger.debug(out)
+            logging.debug(out)
             dest.rm()
     start = time.time()
     command = eval(param['command'])
-    out="Command to copy " + command
-    logger.debug(out)
-    (err, out) = commands.getstatusoutput(command)
+    out="Command to copy... " + command
+    (err, out) = exec_cmd(command)
     if err != 0 :
         raise Exception("Error copying file: " + out)
     elapsed = time.time()- start
-    out = "The copy lasted %.2f seconds" %(elapsed)
-    logger.debug(out)
+    out = "The copy lasted %s" % ( datetime.timedelta( seconds = elapsed ) )
+    logging.debug(out)
 

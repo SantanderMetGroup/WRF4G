@@ -3,23 +3,25 @@ import os
 import sys
 
 from os.path import dirname, abspath, join 
-from drm4g   import DRM4G_BIN
+from wrf4g   import WRF4G_DEPLOYMENT_DIR
 
-__version__  = '1.5.2'
+__version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
+
+DRM4G_BIN = join( WRF4G_DEPLOYMENT_DIR, 'opt', 'drm4g', 'bin' )
     
 class Job( object ):
     """
     Class to use DRM4G 
     """
-    def create_template(self,name,arguments,np=1,req='',environ='',inputsandbox='',outputsandbox=''):
+    def create_template(self,name,directory,arguments,np=1,req='',environ='',inputsandbox='',outputsandbox=''):
         """
         Create template
         """
-        ftemplate=name + ".gw"
-        try:
-            f = open (ftemplate,'w')
+        ftemplate = join( directory,  name + ".gw" )
+        try: 
+            f = open(ftemplate,'w')
             template="""NAME = %s
 EXECUTABLE   = /usr/bin/env python 
 ARGUMENTS    = ./bin/pilot_wrf.py %s
@@ -33,7 +35,7 @@ NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np
             f.close()
         self.template=ftemplate
     
-    def submit(self,dep=None,priority=0,type_dep="afterany"):
+    def submit(self,dep=None,priority=0,type_dep="afterok"):
         if dep != None:
             depend="-d %s -r %s" % (dep, type_dep)
         else:
