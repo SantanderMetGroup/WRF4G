@@ -94,7 +94,7 @@ class Experiment( Base ):
         """
         Edit experiment.wrf4g file.
         """
-        edit_file( ( self.home_directory, 'experiment.wrf4g' )  )
+        edit_file( join( self.home_dir, 'experiment.wrf4g' )  )
 
     def check_db(self, rea_name, start_date, label ):
         """ 
