@@ -14,27 +14,27 @@ def exec_cmd_subprocess( cmd, nohup=False, stdin=subprocess.PIPE, stdout=subproc
     """
     Execute shell commands
     """
-    try :    logging.debug( "Executing command ... " + cmd )
-    except : pass
-    cmd_to_exec = subprocess.Popen(  cmd ,
-                                  shell=True ,
-                                  stdin=subprocess.PIPE,
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE,
-                                  env=env
-                                  )
+    logging.debug( "Executing command ... " + cmd )
+    cmd_to_exec = subprocess.Popen( cmd, shell = True, stdin = subprocess.PIPE,
+                                    stdout = subprocess.PIPE, stderr=  subprocess.PIPE,
+                                    env = env )
     if not nohup :
         out , err =  cmd_to_exec.communicate()
     else :
         out = err = ''
     return out , err
 
-
 def exec_cmd_popen( cmd ):
-    import popen2
-    try :     logging.debug( "Executing command ... " + cmd )
-    except :  pass
-    p3     = popen2.Popen3( "%s" % cmd )
-    output = p3.fromchild.read().strip()
-    code   = p3.wait()
+    logging.debug( "Executing command ... " + cmd )
+    try:
+        import subprocess
+        p      = subprocess.Popen( cmd, shell = True, stdout = subprocess.PIPE,
+                                   stderr = subprocess.PIPE, close_fds = True )
+        output = p.stdout.read().strip()
+        codee  = p.wait()
+    except ImportError:
+        import popen2
+        p      = popen2.Popen3( "%s" % cmd )
+        output = p.fromchild.read().strip()
+        code   = p.wait()
     return code, output
