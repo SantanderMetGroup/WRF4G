@@ -20,6 +20,7 @@ wrf4g commands are:
    exp         Manage WRF4G experiments
    rea         Manage WRF4G realizations
    resource    Manage computing resources
+   id          Manage reosurce identities
    host        Print information about the hosts
    job         Submit, get status and history and cancel jobs
  
@@ -34,7 +35,7 @@ from docopt import docopt
 if __name__ == "__main__":
     args = docopt( __doc__, version = __version__ , options_first = True )
     argv = [ args[ '<command>' ] ] + args[ '<args>' ]
-    if args['<command>'] in "start stop status conf resource host job rea exp vcp".split() :
+    if args['<command>'] in "start stop status conf resource host job id rea exp vcp".split() :
         command = getattr( __import__( "wrf4g.commands.%s" %  args['<command>'] ).commands, args['<command>'] )
         arg = docopt( command.__doc__ , argv = argv )
         try :

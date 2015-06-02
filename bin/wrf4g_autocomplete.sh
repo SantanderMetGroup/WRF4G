@@ -5,7 +5,7 @@ _wrf4g()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 1 ]; then
-        COMPREPLY=( $( compgen -W '--version -h --help status resource exp stop job vcp start host conf rea' -- $cur) )
+        COMPREPLY=( $( compgen -W '--version -h --help status resource exp stop job vcp start host conf rea id' -- $cur) )
     else
         case ${COMP_WORDS[1]} in
             status)
@@ -38,6 +38,9 @@ _wrf4g()
             rea)
             _wrf4g_rea
         ;;
+            id)
+            _wrf4g_id
+        ;;
         esac
 
     fi
@@ -59,7 +62,7 @@ _wrf4g_resource()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 2 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg edit list check id' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg edit list check' -- $cur) )
     else
         case ${COMP_WORDS[2]} in
             edit)
@@ -70,9 +73,6 @@ _wrf4g_resource()
         ;;
             check)
             _wrf4g_resource_check
-        ;;
-            id)
-            _wrf4g_resource_id
         ;;
         esac
 
@@ -106,72 +106,6 @@ _wrf4g_resource_check()
 
     if [ $COMP_CWORD -ge 3 ]; then
         COMPREPLY=( $( compgen -W ' ' -- $cur) )
-    fi
-}
-
-_wrf4g_resource_id()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -W ' info init conf delete' -- $cur) )
-    else
-        case ${COMP_WORDS[3]} in
-            info)
-            _wrf4g_resource_id_info
-        ;;
-            init)
-            _wrf4g_resource_id_init
-        ;;
-            conf)
-            _wrf4g_resource_id_conf
-        ;;
-            delete)
-            _wrf4g_resource_id_delete
-        ;;
-        esac
-
-    fi
-}
-
-_wrf4g_resource_id_info()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
-    fi
-}
-
-_wrf4g_resource_id_init()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '-l= --lifetime= --dbg ' -- $cur) )
-    fi
-}
-
-_wrf4g_resource_id_conf()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '-p= --public-key= -g= --grid-cerd= -l= --lifetime= --dbg ' -- $cur) )
-    fi
-}
-
-_wrf4g_resource_id_delete()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
     fi
 }
 
@@ -558,6 +492,59 @@ _wrf4g_rea_submit()
 
     if [ $COMP_CWORD -ge 3 ]; then
         COMPREPLY=( $( compgen -fW '--dbg -n --dry-run --rerun ' -- $cur) )
+    fi
+}
+
+_wrf4g_id()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -eq 2 ]; then
+        COMPREPLY=( $( compgen -fW ' info init delete' -- $cur) )
+    else
+        case ${COMP_WORDS[2]} in
+            info)
+            _wrf4g_id_info
+        ;;
+            init)
+            _wrf4g_id_init
+        ;;
+            delete)
+            _wrf4g_id_delete
+        ;;
+        esac
+
+    fi
+}
+
+_wrf4g_id_info()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 3 ]; then
+        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
+    fi
+}
+
+_wrf4g_id_init()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 3 ]; then
+        COMPREPLY=( $( compgen -W '--dbg -l= --lifetime= ' -- $cur) )
+    fi
+}
+
+_wrf4g_id_delete()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 3 ]; then
+        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
     fi
 }
 
