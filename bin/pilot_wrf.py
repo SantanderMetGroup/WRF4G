@@ -592,7 +592,8 @@ def main():
             ##
             logging.info( "Run preprocessors and ungrib" )
 
-            for vt in params.extdata_vtable.replace(' ', ''). split( ',' ) :
+            for vt, preprocessor in zip( params.extdata_vtable.replace(' ', '').split( ',' ) 
+                                         params.preprocessor.replace(' ', '').split( ',' ) ) :
                 code, output = exec_cmd( "fortnml -of %s -s prefix@ungrib %s" % ( params.namelist_wps, vt ) )
                 if code :
                     logging.info( output )
@@ -606,14 +607,14 @@ def main():
                 ##
                 # Execute preprocesor
                 ##
-                logging.info( "Running preprocessor.%s" % params.preprocessor )
+                logging.info( "Running preprocessor.%s" % preprocessor )
               
                 code, output = exec_cmd( "preprocessor.%s %s %s %s %s 2>&1" % (
-                                            params.preprocessor, datetime2datewrf( params.chunk_rdate ) , 
+                                            preprocessor, datetime2datewrf( params.chunk_rdate ) , 
                                             datetime2datewrf( params.chunk_edate ), params.extdata_path, vt ) )
                 logging.info( output )
                 if code :
-                    raise JobError( "Preprocessor '%s' has failed" % params.preprocessor,
+                    raise JobError( "Preprocessor '%s' has failed" % preprocessor,
                             JOB_ERROR[ 'PREPROCESSOR_FAILED' ] )
 
                 link_grib     = join( params.wps_path, 'link_grib.sh' ) 
