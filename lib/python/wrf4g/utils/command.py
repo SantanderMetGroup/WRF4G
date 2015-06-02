@@ -1,6 +1,5 @@
 import os
 import logging
-import popen2
 try :
     import subprocess
 except :
@@ -32,6 +31,7 @@ def exec_cmd_subprocess( cmd, nohup=False, stdin=subprocess.PIPE, stdout=subproc
 
 
 def exec_cmd_popen( cmd ):
+    import popen2
     try :     logging.debug( "Executing command ... " + cmd )
     except :  pass
     p3     = popen2.Popen3( "%s" % cmd )
