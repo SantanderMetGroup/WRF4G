@@ -246,7 +246,7 @@ class Experiment( Base ):
         exp_calendar    = Calendar( self.calendar )
         rea_start_date  = self.start_date
         while rea_start_date < self.end_date :
-            rea_end_date = exp_calendar.add_hours(rea_start_date, self.smul_interval_h )
+            rea_end_date = exp_calendar.add_hours(rea_start_date, self.simulation_interval_h )
             cycle_name   = "%s__%s_%s" % ( rea_name, datetime2datewrf( rea_start_date ),
                                            datetime2datewrf( rea_end_date ) )
             # Create realization
