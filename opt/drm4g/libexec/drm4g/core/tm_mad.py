@@ -167,7 +167,7 @@ class GwTmMad (object):
             com.copy( SRC_URL , DST_URL , EXE_MODE )
             out = 'CP %s %s SUCCESS -' % ( JID , TID )
         except Exception, err :
-            self.logger.warning( 'Error copying from %s to %s : %s' %( SRC_URL , DST_URL, str( err ) ) , exc_info=1 )
+            self.logger.warning( 'Error copying from %s to %s : %s' %( SRC_URL , DST_URL, str( err ) ) )
             time.sleep( 60 )
             try:
                 self.logger.debug( 'Copying again from %s to %s' % ( SRC_URL , DST_URL ) )
@@ -176,7 +176,7 @@ class GwTmMad (object):
                 out = 'CP %s %s SUCCESS -' % (JID, TID)
             except Exception, err :
                 out = 'CP %s %s FAILURE %s' % ( JID , TID , str( err ) ) 
-        else:
+        finally:
             try:
                 if 'stdout.wrapper' in DST_URL : 
                     # Connect with the database to update the exitcode
@@ -205,7 +205,7 @@ class GwTmMad (object):
             except Exception, err :
                 self.logger.warning( err )
         self.message.stdout( out )
-        self.logger.debug(out , exc_info=1 )
+        self.logger.debug(out)
         
     methods = {'INIT'    : do_INIT,
                'START'   : do_START,
