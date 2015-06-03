@@ -241,7 +241,7 @@ class Experiment( Base ):
         Create chunks the needed for a realization 
         """
         logging.info( "\n---> cycle_hindcasts: %s %s %s %s %s" % ( 
-                      rea_name, self.id, self.start_date , self.end_date, self.label ) )
+                      rea_name, self.id, self.start_date , self.end_date, label ) )
         # Define which calendar is going to be used
         exp_calendar    = Calendar(self.experiment.calendar)
         rea_start_date  = self.start_date
