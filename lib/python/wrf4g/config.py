@@ -150,7 +150,7 @@ def sanity_check( exp_conf ) :
                 values = []
                 for nml_elem in nml_conf_val :
                     if nml_elem.startswith( "'" ) :
-                        nml_elem_val = [ nml_elem ]
+                        nml_elem_val = [ nml_elem.replace( "'", '' ).replace( ",", ' ' ) ]
                     else :
                         nml_elem_val = nml_elem.strip( ',' ).split( ',' )
 
@@ -163,7 +163,7 @@ def sanity_check( exp_conf ) :
                         nml_elem_val = nml_elem_val + [ ( nml_elem_val[ -1 ] * ( exp_conf.default.max_dom - len( nml_elem_val ) ) ) ]
                     elif nml_conf_key.startswith( 'single:' ) :
                         nml_conf_key = nml_conf_key.replace( 'single:', '' )
-                    values.append( ','.join( nml_elem_val ) ) 
+                    values.append( ' '.join( nml_elem_val ) ) 
                 exp_conf.default.namelist_dict[ nml_conf_key ] = values
     # Check restart_interval
     if not exp_conf.default.namelist or not 'restart_interval' in exp_conf.default.namelist :
