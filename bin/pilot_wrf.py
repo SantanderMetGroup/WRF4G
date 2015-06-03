@@ -592,8 +592,8 @@ def main():
             ##
             logging.info( "Run preprocessors and ungrib" )
 
-            for vt, pp, epath in zip( params.extdata_vtable.replace(' ', '').split( ',' ) 
-                                      params.preprocessor.replace(' ', '').split( ',' ) 
+            for vt, pp, epath in zip( params.extdata_vtable.replace(' ', '').split( ',' ), 
+                                      params.preprocessor.replace(' ', '').split( ',' ), 
                                       params.extdata_path.replace(' ', '').split( ',' ) ) :
                 code, output = exec_cmd( "fortnml -of %s -s prefix@ungrib %s" % ( params.namelist_wps, vt ) )
                 if code :
