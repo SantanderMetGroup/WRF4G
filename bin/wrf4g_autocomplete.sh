@@ -156,7 +156,7 @@ _wrf4g_exp_status()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -p= --pattern= ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -p= --pattern=' -- $cur) )
     fi
 }
 
@@ -186,7 +186,7 @@ _wrf4g_exp_create()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -n --dry-run -d= --dir= ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -n --dry-run -d= --dir=' -- $cur) )
     fi
 }
 
@@ -196,7 +196,7 @@ _wrf4g_exp_list()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W '-p= --pattern= ' -- $cur) )
+        COMPREPLY=( $( compgen -W '-p= --pattern=' -- $cur) )
     fi
 }
 
@@ -206,7 +206,7 @@ _wrf4g_exp_update()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -n --dry-run -d= --dir= ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -n --dry-run -d= --dir=' -- $cur) )
     fi
 }
 
@@ -236,7 +236,7 @@ _wrf4g_exp_define()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -f --force -t= --from-template= -d= --dir= ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -f --force -t= --from-template= -d= --dir=' -- $cur) )
     fi
 }
 
@@ -315,7 +315,7 @@ _wrf4g_job_submit()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg --dep= ' -- $cur) )
+        COMPREPLY=( $( compgen -fW '--dbg --dep=' -- $cur) )
     fi
 }
 
@@ -345,7 +345,7 @@ _wrf4g_start()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 2 ]; then
-        COMPREPLY=( $( compgen -W '--dbg --clear-conf --disc-jobs --ext-db --db-port= --db-host= ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg --clear-conf --disc-jobs --ext-db --db-port= --db-host=' -- $cur) )
     fi
 }
 
@@ -534,7 +534,7 @@ _wrf4g_id_init()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -l= --lifetime= ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -l= --lifetime=' -- $cur) )
     fi
 }
 
