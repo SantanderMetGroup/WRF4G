@@ -443,8 +443,9 @@ class Realization( Base ):
                                                               datetime2datewrf(chunk.end_date) ) )
                 if not self.dryrun :
                     chunk.run( index, rerun )
-            # Update reealizaiton status
-            self.status = 'SUBMITTED'
+            if not self.dryrun :
+                # Update reealizaiton status
+                self.status = 'SUBMITTED'
             
     def _prepare_sub_files(self):
         """
