@@ -91,7 +91,7 @@ def run( arg ) :
                     elif arg[ 'stop' ] :
                         exp.stop( )
                     elif arg[ 'delete' ] :
-                        exp.delete( ar )
+                        exp.delete( )
                         session.delete( exp )
                         logging.info( "'%s' experiment has been deleted from the database" % exp.name )
                     elif arg[ 'create' ] :
