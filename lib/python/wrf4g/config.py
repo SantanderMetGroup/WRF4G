@@ -147,18 +147,24 @@ def sanity_check( exp_conf ) :
             if 'label_combination' in nml_conf_key :
                 exp_conf.default.label_combination = nml_conf_val
             else :
+                values = []
                 for nml_elem in nml_conf_val :
-                    nml_elem_val = nml_elem.strip( ',' ).split( ',' )
+                    if nml_elem.startswith( "'" ) :
+                        nml_elem_val = [ nml_elem ]
+                    else :
+                        nml_elem_val = nml_elem.strip( ',' ).split( ',' )
+
                     if len( nml_elem_val ) > exp_conf.default.max_dom : 
                         logging.warning( "WARNING: Truncating values of '%s' variable" % nml_conf_key )
                         nml_elem_val = nml_elem_val[ :exp_conf.default.max_dom ]
                     elif len( nml_elem_val ) < exp_conf.default.max_dom and \
-                        not nml_conf_val[0].startswith( 'single' ) : 
+                        not nml_conf_key.startswith( 'single' ) : 
                         logging.warning( "WARNING: Expanding values of '%s' variable" % nml_conf_key )
-                        nml_elem_val = nml_elem_val + nml_elem_val[ -1 ] * ( exp_conf.default.max_dom - len( nml_elem_val ) )
-                    elif nml_conf_val[0].startswith( 'single:' ) :
-                        nml_elem_val = nml_conf_val[0].replace( 'single:', '' )
-                    exp_conf.default.namelist_dict[ nml_conf_key ] = nml_conf_val             
+                        nml_elem_val = nml_elem_val + [ ( nml_elem_val[ -1 ] * ( exp_conf.default.max_dom - len( nml_elem_val ) ) ) ]
+                    elif nml_conf_key.startswith( 'single:' ) :
+                        nml_conf_key = nml_conf_key.replace( 'single:', '' )
+                    values.append( ','.join( nml_elem_val ) ) 
+                exp_conf.default.namelist_dict[ nml_conf_key ] = values
     # Check restart_interval
     if not exp_conf.default.namelist or not 'restart_interval' in exp_conf.default.namelist :
         exp_conf.default.namelist_dict[ 'restart_interval' ] = [ exp_conf.default.chunk_size_h * 60 ] * \
