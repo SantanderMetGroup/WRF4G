@@ -161,9 +161,7 @@ def sanity_check( exp_conf ) :
                     elif nml_conf_key.startswith( 'single:' ) :
                         nml_conf_key = nml_conf_key.replace( 'single:', '' )
                     values.append( ' '.join( nml_elem_val ) )
-                print values 
                 exp_conf.default.namelist_dict[ nml_conf_key ] = values
-    print exp_conf.default.namelist_dict
     # Check restart_interval
     if not exp_conf.default.namelist or not 'restart_interval' in exp_conf.default.namelist :
         exp_conf.default.namelist_dict[ 'restart_interval' ] = [ exp_conf.default.chunk_size_h * 60 ] * \
