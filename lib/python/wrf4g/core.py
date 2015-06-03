@@ -255,7 +255,7 @@ class Experiment( Base ):
                 rea = self.check_db( cycle_name, rea_start_date, label  )
             else :
                 rea = Realization( 
-                                name          = clycle_name, 
+                                name          = cycle_name, 
                                 start_date    = rea_start_date,
                                 end_date      = rea_end_date,
                                 current_date  = rea_start_date,
