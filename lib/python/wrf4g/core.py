@@ -243,7 +243,7 @@ class Experiment( Base ):
         logging.info( "\n---> cycle_hindcasts: %s %s %s %s %s" % ( 
                       rea_name, self.id, self.start_date , self.end_date, label ) )
         # Define which calendar is going to be used
-        exp_calendar    = Calendar(self.experiment.calendar)
+        exp_calendar    = Calendar( self.calendar )
         rea_start_date  = self.start_date
         while rea_start_date < self.end_date :
             rea_end_date = exp_calendar.add_hours(rea_start_date, self.smul_interval_h )
