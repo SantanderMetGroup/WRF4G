@@ -149,22 +149,21 @@ def sanity_check( exp_conf ) :
             else :
                 values = []
                 for nml_elem in nml_conf_val :
-                    if nml_elem.startswith( "'" ) :
-                        nml_elem_val = [ nml_elem.replace( "'", '' ).replace( ",", ' ' ) ]
-                    else :
-                        nml_elem_val = nml_elem.strip( ',' ).split( ',' )
-
-                    if len( nml_elem_val ) > exp_conf.default.max_dom : 
+                    nml_elem_val = nml_elem.strip( ',' ).split( ',' )
+                    if len( nml_elem_val ) > exp_conf.default.max_dom and \
+                            not nml_conf_key.startswith( 'single' ) : 
                         logging.warning( "WARNING: Truncating values of '%s' variable" % nml_conf_key )
                         nml_elem_val = nml_elem_val[ :exp_conf.default.max_dom ]
                     elif len( nml_elem_val ) < exp_conf.default.max_dom and \
-                        not nml_conf_key.startswith( 'single' ) : 
+                            not nml_conf_key.startswith( 'single' ) : 
                         logging.warning( "WARNING: Expanding values of '%s' variable" % nml_conf_key )
                         nml_elem_val = nml_elem_val + [ ( nml_elem_val[ -1 ] * ( exp_conf.default.max_dom - len( nml_elem_val ) ) ) ]
                     elif nml_conf_key.startswith( 'single:' ) :
                         nml_conf_key = nml_conf_key.replace( 'single:', '' )
-                    values.append( ' '.join( nml_elem_val ) ) 
+                    values.append( ' '.join( nml_elem_val ) )
+                print values 
                 exp_conf.default.namelist_dict[ nml_conf_key ] = values
+    print exp_conf.default.namelist_dict
     # Check restart_interval
     if not exp_conf.default.namelist or not 'restart_interval' in exp_conf.default.namelist :
         exp_conf.default.namelist_dict[ 'restart_interval' ] = [ exp_conf.default.chunk_size_h * 60 ] * \
