@@ -114,7 +114,7 @@ class Experiment( Base ):
             raise Exception("ERROR: Realization with the same name and no reconfigurable fields already exists") 
         else: 
             #if rea exit,it means a realization with the same no reconfigurable fields
-            logging.debug('Updating realization on the database...')
+            logging.debug('\tUpdating realization on the database...')
             return rea
 
     def _create_wrf4g_bundle(self):
@@ -189,7 +189,9 @@ class Experiment( Base ):
                                  "(File namelist.input does not exist)" % namelist_template )
             
             logging.debug( "Updating parameter 'max_dom' in the namelist" )
-            exec_cmd( "fortnml -wof %s -s max_dom %d" % ( namelist_input, self.max_dom ) )            
+            exec_cmd( "fortnml -wof %s -s max_dom %d" % ( namelist_input, self.max_dom ) )          
+            logging.debug( "Force trimming the arrays in the namelist to 'max_dom'" ) 
+            exec_cmd( "fortnml -wof %s --force-trim=%d" % ( namelist_input, self.max_dom ) )
         for comb, label in enumerate( exp_conf.default.label_combination ) :
             if label :
                 logging.info( "---> Realization: multiparams=%s %s %s" % ( label, self.start_date, self.end_date) )
@@ -490,7 +492,7 @@ class Realization( Base ):
             raise Exception("ERROR: Chunk with the same name and no reconfigurable fields already exists")
         else:
             #if ch exits,it means a chunk with the same no reconfigurable fields
-            logging.debug('Updating chunk on the database')
+            logging.debug('\t\tUpdating chunk on the database')
             return ch
 
     def cycle_chunks(self, update = False ):
