@@ -559,6 +559,8 @@ def main():
             logging.info( "Download geo_em files and namelist.wps" )
 
             for file_name in VCPURL( params.domain_path ).ls( '*' ):
+                if not '.nc' in file_name or not 'namelist' in file_name :
+                    continue 
                 orig = join( params.domain_path, file_name )
                 dest = join( params.wps_path, file_name )
                 try :
