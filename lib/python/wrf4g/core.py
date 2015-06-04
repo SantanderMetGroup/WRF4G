@@ -151,7 +151,7 @@ class Experiment( Base ):
         save_exp_pkl( exp_conf, directory )
 
         if update and ( exp_conf.default.name                  == self.name and \
-                        exp_conf.default.start_date            != self.start_date and \
+                        exp_conf.default.chunk_size_h          != self.chunk_size_h and \
                         exp_conf.default.simulation_length_h   != self.simulation_length_h and \
                         exp_conf.default.simulation_interval_h != self.simulation_interval_h and \
                         exp_conf.default.namelist              != self.namelist ) :
