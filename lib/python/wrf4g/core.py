@@ -512,7 +512,7 @@ class Realization( Base ):
         """
         Create chunks the needed for a realization 
         """
-        logging.info( "\t---> cycle_chunks: %s %s %s" % ( self.name, self.start_date , self.end_date ) )
+        logging.info( "\n\t---> cycle_chunks: %s %s %s" % ( self.name, self.start_date , self.end_date ) )
         # Define which calendar is going to be used
         exp_calendar = Calendar(self.experiment.calendar)
         chunk_id = 1
@@ -522,10 +522,10 @@ class Realization( Base ):
             logging.info( "\t\t---> Chunk %d: %s %s %s" %( chunk_id, self.name, chunk_start_date, chunk_end_date ) )
             if update :
                 # Check chunk on the database
-                ch = self.check_db( rea_id     = self.id, 
-                                    start_date = chunk_start_date, 
-                                    end_date   = chunk_end_date,
-                                    chunk_id   = chunk_id
+                ch = self.check_db( rea_id           = self.id, 
+                                    chunk_start_date = chunk_start_date, 
+                                    chunk_end_date   = chunk_end_date,
+                                    chunk_id         = chunk_id
                                     )
             else :
                 # Create Chunk
