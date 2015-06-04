@@ -352,7 +352,7 @@ def main():
             raise JobError( "Error creating the directory '%s' on the worker node" % params.local_path, 
                                 JOB_ERROR[ 'LOCAL_PATH'] )
 
-    logging.basicConfig( format='%(asctime)s %(message)s', filename = params.log_file, level = logging.INFO )
+    logging.basicConfig( format='%(asctime)s %(message)s', level = logging.DEBUG )
     ##
     # DRM4G won't remove root_path if clean_after_run is 1
     ##
@@ -559,16 +559,15 @@ def main():
             logging.info( "Download geo_em files and namelist.wps" )
 
             for file_name in VCPURL( params.domain_path ).ls( '*' ):
-                if not '.nc' in file_name or not 'namelist' in file_name :
-                    continue 
-                orig = join( params.domain_path, file_name )
-                dest = join( params.wps_path, file_name )
-                try :
-                    logging.info( "Downloading file '%s'" % file_name )
-                    copy_file( orig, dest )
-                except :
-                    raise JobError( "'%s' has not copied" % file_name,
-                            JOB_ERROR[ 'COPY_BOUND' ] )
+                if '.nc' in file_name or 'namelist' in file_name :
+                    orig = join( params.domain_path, file_name )
+                    dest = join( params.wps_path, file_name )
+                    try :
+                        logging.info( "Downloading file '%s'" % file_name )
+                        copy_file( orig, dest )
+                    except :
+                        raise JobError( "'%s' has not copied" % file_name,
+                               JOB_ERROR[ 'COPY_BOUND' ] )
             job_db.set_job_status( 'DOWN_BOUND' )
 
             ##
