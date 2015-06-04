@@ -96,7 +96,7 @@ class Experiment( Base ):
         """
         edit_file( join( self.home_dir, 'experiment.wrf4g' )  )
 
-    def check_db(self, rea_name, start_date, end_date, label ):
+    def check_db(self, name, start_date, end_date, label ):
         """ 
         Check if there is a realization with the same no reconfigurable field. 
         If there is not a realization with the same no reconfigurable fields => error
@@ -105,7 +105,7 @@ class Experiment( Base ):
         #Check if there is a realization with the same no reconfigurable fields:
         #rea_name, start_date, label
         try:
-            rea = self.realization.filter( Realization.name       == rea_name,
+            rea = self.realization.filter( Realization.name       == name,
                                            Realization.start_date == start_date,
                                            Realization.label      == label
                                          ).one()
@@ -115,7 +115,7 @@ class Experiment( Base ):
         else: 
             #if rea exit,it means a realization with the same no reconfigurable fields
             logging.debug('\tUpdating realization on the database...')
-            rea.end_date      = end_date
+            rea.end_date = end_date
             return rea
 
     def _create_wrf4g_bundle(self):
