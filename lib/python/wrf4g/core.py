@@ -105,9 +105,9 @@ class Experiment( Base ):
         #Check if there is a realization with the same no reconfigurable fields:
         #rea_name, start_date, label
         try:
-            rea = self.realization.filter( Realization.name        == rea_name,
-                                           Realization.start_date  == start_date,
-                                           Realization.label       == label
+            rea = self.realization.filter( Realization.name       == rea_name,
+                                           Realization.start_date == start_date,
+                                           Realization.label      == label
                                          ).one()
         except Exception :
             #if rea does not exist (no realization with the same no reconfigurable fields)
