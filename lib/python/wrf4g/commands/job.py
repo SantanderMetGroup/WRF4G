@@ -50,7 +50,7 @@ __revision__ = "$Id$"
 import logging
 import sys
 from os.path              import join
-from drm4g                import DRM4G_BIN
+from drm4g                import DRM4G_BIN, DRM4G_DIR
 from drm4g.commands       import exec_cmd, Daemon
 
 def run( arg ) :
