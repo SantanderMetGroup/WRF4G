@@ -96,7 +96,7 @@ class Experiment( Base ):
         """
         edit_file( join( self.home_dir, 'experiment.wrf4g' )  )
 
-    def check_db(self, rea_name, start_date, label ):
+    def check_db(self, rea_name, start_date, end_date, label ):
         """ 
         Check if there is a realization with the same no reconfigurable field. 
         If there is not a realization with the same no reconfigurable fields => error
@@ -115,6 +115,7 @@ class Experiment( Base ):
         else: 
             #if rea exit,it means a realization with the same no reconfigurable fields
             logging.debug('\tUpdating realization on the database...')
+            rea.end_date      = end_date
             return rea
 
     def _create_wrf4g_bundle(self):
@@ -219,7 +220,12 @@ class Experiment( Base ):
             logging.info( "---> Continuous run" )
             if update :
                 # Check realization on the database
-                rea = self.check_db( rea_name, self.start_date, label )
+                rea = self.check_db( 
+                                name          = rea_name,
+                                start_date    = self.start_date,
+                                end_date      = self.end_date, 
+                                label         = label 
+                                )
             else :
                 # Create realization
                 rea = Realization( 
@@ -254,7 +260,12 @@ class Experiment( Base ):
             # Create realization
             if update :
                 # Check realization on the database
-                rea = self.check_db( cycle_name, rea_start_date, label  )
+                rea = self.check_db( 
+                                name          = cycle_name, 
+                                start_date    = rea_start_date,
+                                end_date      = rea_end_date,
+                                label         = label
+                                ) 
             else :
                 rea = Realization( 
                                 name          = cycle_name, 
@@ -475,7 +486,7 @@ class Realization( Base ):
             else :
                 shutil.copy( expandvars( file ) , rea_submission_dir )
 
-    def check_db(self, rea_id, chunk_id, chunk_start_date ):
+    def check_db(self, rea_id, chunk_start_date, chunk_end_date, chunk_id ):
         """ 
         Check if there is a chunk with the same no reconfigurable field. 
         If there is not a chunk with the same no reconfigurable fields => error,.
@@ -493,7 +504,8 @@ class Realization( Base ):
             raise Exception("ERROR: Chunk with the same name and no reconfigurable fields already exists")
         else:
             #if ch exits,it means a chunk with the same no reconfigurable fields
-            logging.debug('\t\tUpdating chunk on the database')
+            logging.debug( "\t\tUpdating chunk on the database" )
+            ch.chunk_end_date = chunk_end_date
             return ch
 
     def cycle_chunks(self, update = False ):
@@ -507,10 +519,14 @@ class Realization( Base ):
         chunk_start_date = self.start_date
         while chunk_start_date < self.end_date :
             chunk_end_date = exp_calendar.add_hours( chunk_start_date, hours = self.experiment.chunk_size_h )
-            logging.info( "\t\t---> chunk %d: %s %s %s" %( chunk_id, self.name, chunk_start_date, chunk_end_date ) )
+            logging.info( "\t\t---> Chunk %d: %s %s %s" %( chunk_id, self.name, chunk_start_date, chunk_end_date ) )
             if update :
                 # Check chunk on the database
-                ch = self.check_db( self.id, chunk_id, chunk_start_date )
+                ch = self.check_db( rea_id     = self.id, 
+                                    start_date = chunk_start_date, 
+                                    end_date   = chunk_end_date,
+                                    chunk_id   = chunk_id
+                                    )
             else :
                 # Create Chunk
                 ch = Chunk( rea_id     = self.id, 
