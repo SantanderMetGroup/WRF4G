@@ -248,7 +248,7 @@ class Experiment( Base ):
         exp_calendar    = Calendar( self.calendar )
         rea_start_date  = self.start_date
         while rea_start_date < self.end_date :
-            rea_end_date = exp_calendar.add_hours(rea_start_date, self.simulation_interval_h )
+            rea_end_date = exp_calendar.add_hours(rea_start_date, self.simulation_length_h )
             cycle_name   = "%s__%s_%s" % ( rea_name, datetime2datewrf( rea_start_date ),
                                            datetime2datewrf( rea_end_date ) )
             # Create realization
@@ -271,7 +271,7 @@ class Experiment( Base ):
             if not self.dryrun :
                 rea._prepare_sub_files()
             rea.cycle_chunks( update )
-            rea_start_date = rea_end_date
+            rea_start_date = exp_calendar.add_hours(rea_start_date, self.simulation_interval_h ) 
     
     def get_status(self, rea_pattern = False ):
         """ 

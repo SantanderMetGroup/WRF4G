@@ -136,6 +136,9 @@ def sanity_check( exp_conf ) :
     if exp_conf.default.simulation_length_h and exp_conf.default.simulation_interval_h :
         exp_conf.default.simulation_length_h   = int( exp_conf.default.simulation_length_h )
         exp_conf.default.simulation_interval_h = int( exp_conf.default.simulation_interval_h )
+        if exp_conf.default.chunk_size_h > exp_conf.default.simulation_length_h :
+            logging.warning( "WARNING: 'chunk_size_h' is bigger than 'simulation_length_h'" )
+            exp_conf.default.chunk_size_h = exp_conf.default.simulation_length_h
     # Check namelist 
     if exp_conf.default.namelist :
         # Delete whitespace
@@ -152,12 +155,14 @@ def sanity_check( exp_conf ) :
                     nml_elem_val = nml_elem.strip( ',' ).split( ',' )
                     if len( nml_elem_val ) > exp_conf.default.max_dom and \
                             not nml_conf_key.startswith( 'single' ) : 
-                        logging.warning( "WARNING: Truncating values of '%s' variable" % nml_conf_key )
+                        nml_elem_val = nml_elem_val[ :exp_conf.default.max_dom ]
+                        logging.warning( "WARNING: Truncating values of '%s' variable --> '%s'" % ( nml_conf_key, nml_elem_val )
                         nml_elem_val = nml_elem_val[ :exp_conf.default.max_dom ]
                     elif len( nml_elem_val ) < exp_conf.default.max_dom and \
                             not nml_conf_key.startswith( 'single' ) : 
-                        logging.warning( "WARNING: Expanding values of '%s' variable" % nml_conf_key )
-                        nml_elem_val = nml_elem_val + [ ( nml_elem_val[ -1 ] * ( exp_conf.default.max_dom - len( nml_elem_val ) ) ) ]
+                        nml_elem_val = nml_elem_val + [ ( nml_elem_val[ -1 ] * \
+                            ( exp_conf.default.max_dom - len( nml_elem_val ) ) ) ]
+                        logging.warning( "WARNING: Expanding values of '%s' variable --> '%s'" % ( nml_conf_key, nml_elem_val ) )
                     elif nml_conf_key.startswith( 'single:' ) :
                         nml_conf_key = nml_conf_key.replace( 'single:', '' )
                     values.append( ' '.join( nml_elem_val ) )
