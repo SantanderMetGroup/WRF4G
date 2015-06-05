@@ -122,7 +122,7 @@ def sanity_check( exp_conf ) :
     sdate  = datewrf2datetime( exp_conf.default.start_date )
     edate  = datewrf2datetime( exp_conf.default.end_date )
     if sdate >= edate :
-        raise Exception( "'start_date' is not earlier than 'end_date'" )
+        raise Exception( "'start_date' is not earlier than the 'end_date'" )
     exp_conf.default.start_date = sdate
     exp_conf.default.end_date   = edate
     # Check chunk_size_h
