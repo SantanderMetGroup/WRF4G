@@ -4,10 +4,17 @@ try :
     import subprocess
 except :
     pass
+from distutils  import spawn
 
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
+
+def which( command ):
+    """
+    Locate commands
+    """
+    return spawn.find_executable( command )
 
 def exec_cmd_subprocess( cmd, nohup=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
               stderr=subprocess.STDOUT, env=os.environ ):

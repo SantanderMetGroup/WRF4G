@@ -1,7 +1,6 @@
 import os
 import socket
 
-from distutils            import spawn
 from os.path              import exists, join, isfile
 
 __version__  = '2.0.0'
@@ -68,10 +67,3 @@ def disk_space_check( directory ):
     fs = os.statvfs( directory )
     disk_space = fs[4] * fs[0] / 1024 / 1024
     return disk_space
-
-
-def which( command ):
-    """
-    Locate commands
-    """
-    return spawn.find_executable( command )

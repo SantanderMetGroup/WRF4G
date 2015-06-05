@@ -13,8 +13,9 @@ from wrf4g.db             import get_session
 from wrf4g.core           import Job
 from wrf4g.utils.osinfo   import ( get_hostname, os_release, 
                                    cpu_info, mem_info, 
-                                   disk_space_check, which )
+                                   disk_space_check )
 from wrf4g.utils.command  import exec_cmd_popen as exec_cmd
+from wrf4g.utils.command  import which
 from wrf4g.utils.archive  import extract
 from wrf4g.utils.time     import ( dateiso2datetime, datewrf2datetime, 
                                    datetime2datewrf, datetime2dateiso )
@@ -319,6 +320,7 @@ def wrf_monitor( job_db, log_wrf, params ):
     time.sleep( 120 )
     logging.info( "Starting monitor" )
     while True :
+        logging.info( "Checking wrf files" )
         current_date = get_current_date( log_wrf )
         if not current_date :
             current_date = params.chunk_rdate
@@ -352,7 +354,7 @@ def main():
             raise JobError( "Error creating the directory '%s' on the worker node" % params.local_path, 
                                 JOB_ERROR[ 'LOCAL_PATH'] )
 
-    logging.basicConfig( format='%(asctime)s %(message)s', level = logging.DEBUG )
+    logging.basicConfig( format='%(asctime)s %(message)s', filename = params.log_file, level = logging.INFO )
     ##
     # DRM4G won't remove root_path if clean_after_run is 1
     ##
@@ -650,7 +652,11 @@ def main():
             ##
             logging.info( "Update namelist for metgrid" )
 
-            exec_cmd( "fortnml -of %s -s fg_name@metgrid %s" % ( params.namelist_wps, params.extdata_vtable ) )
+            code, output = exec_cmd( "fortnml -of %s -s fg_name@metgrid %s" % 
+                                     ( params.namelist_wps, params.extdata_vtable.replace( ',', ' ') ) )
+            if code :
+                logging.info( output )
+                raise JobError( "Error modifying namelist", JOB_ERROR[ 'NAMELIST_FAILED' ] )
             for var_to_del in [ 'opt_output_from_metgrid_path',
                                 'opt_output_from_geogrid_path',
                                 'opt_metgrid_tbl_path',
