@@ -30,15 +30,15 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
 
-def clean_wrf_files( job_db, params, clean="all" ):
+def clean_wrf_files( job_db, params, clean ):
     """
     Postprocess wrfout files and copy files to the output path 
     """
     for patt in [ "wrfout", "wrfrst", "wrfrain", "wrfxtrm", "wrf24hc" ] :
         all_files_patt = glob.glob( join( params.wrf_run_path, patt + '*' ) )
         if clean != 'all' :
-            if len( files ) >= 2 :
-                files = all_files_patt[ :-1 ]
+            if len( all_files_patt ) > ( 2 * params.max_dom ) :
+                files = all_files_patt[ :-params.max_dom ]
             else :
                 continue
         else :
@@ -125,7 +125,7 @@ def wrf_monitor( job_db, log_wrf, params ):
             current_date = params.chunk_rdate
         job_db.set_current_date( current_date )
         clean_wrf_files( job_db, params, 'closed_files' )
-        time.sleep( 60 ) # 1 minute
+        time.sleep( 600 ) # 10 minute
 
 def main():  
     ##
