@@ -1,11 +1,14 @@
 import os
-import ConfigParser
+import re
 from os.path           import basename, dirname   
 from wrf4g.utils.time  import ( datewrf2datetime, 
                                 dateiso2datetime,
                                 datetime2datewrf, 
                                 datetime2dateiso )
-import re
+try:
+    from configparser import ConfigParser
+except ImportError:
+    from ConfigParser import ConfigParser  # ver. < 3.0
 
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
@@ -20,8 +23,7 @@ class VarEnv( object ):
         """
         'file' to read
         """
-        self._cp = ConfigParser.ConfigParser()
-        self._cp.optionxform=str
+        self._cp = ConfigParser()
         self._cp.read( file )
 
     def defaults( self ):
@@ -65,10 +67,8 @@ class VarEnv( object ):
         Get a value for given section. The default section will be 'DEFAULT'. 
         """        
         try :
-            value = dict( self._cp.items( section ) )[ var_name ]
+            value = dict( self._cp.items( section ) )[ var_name.lower() ]
             if value.startswith( '"' ) and value.endswith( '"' ) :
-                value = value[ 1 : -1 ]
-            elif value.startswith( "'" ) and value.endswith( "'" ) :
                 value = value[ 1 : -1 ]
             return value
         except ( KeyError , IOError ):
