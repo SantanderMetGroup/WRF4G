@@ -5,7 +5,7 @@ import logging
 from os.path              import join, dirname
 from wrf4g.db             import get_session
 from wrf4g.core           import Job
-from wrf4g.utils.time     import datewrf2datetime,
+from wrf4g.utils.time     import datewrf2datetime
 from wrf4g.config         import load_exp_pkl
 
 __version__  = '2.0.0'
@@ -131,6 +131,7 @@ class JobDB( object ) :
 
     def close(self) :
         if self.session :
+           self.session.close()
 
 class PilotParams( object ):
     """
