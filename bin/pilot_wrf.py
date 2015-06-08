@@ -36,14 +36,18 @@ def clean_wrf_files( job_db, params, clean ):
     """
     for patt in [ "wrfout", "wrfrst", "wrfrain", "wrfxtrm", "wrf24hc" ] :
         all_files_patt = glob.glob( join( params.wrf_run_path, patt + '*' ) )
-        if clean != 'all' :
-            if len( all_files_patt ) > ( 2 * params.max_dom ) :
+        if clean == 'closed_files' :
+            if len( all_files_patt ) >= ( 2 * params.max_dom ) :
                 files = all_files_patt[ :-params.max_dom ]
             else :
                 continue
+        elif clean == 'all' :
+            files = all_files_patt
         else :
+            logging.warning( "'%s' is not a valid option due to all files will be cleaned" % ( clean ) )
             files = all_files_patt
         for file in files :
+            logging.info( "Checking '%s' file" % file  ) 
             file_name = basename( file )
             if file_name == "wrfrst_d01_" + datetime2datewrf( params.chunk_rdate ) :
                 # Skip the initial restart file
@@ -116,7 +120,7 @@ def wrf_monitor( job_db, log_wrf, params ):
     """
     Monitor wrf.exe processes
     """
-    time.sleep( 120 )
+    time.sleep( 60 )
     logging.info( "Starting monitor" )
     while True :
         logging.info( "Checking wrf files" )
@@ -125,7 +129,7 @@ def wrf_monitor( job_db, log_wrf, params ):
             current_date = params.chunk_rdate
         job_db.set_current_date( current_date )
         clean_wrf_files( job_db, params, 'closed_files' )
-        time.sleep( 600 ) # 10 minute
+        time.sleep( 10 ) # 10 minute
 
 def main():  
     ##
@@ -153,7 +157,7 @@ def main():
             raise JobError( "Error creating the directory '%s' on the worker node" % params.local_path, 
                                 JOB_ERROR[ 'LOCAL_PATH'] )
 
-    logging.basicConfig( format='%(asctime)s %(message)s', filename = params.log_file, level = logging.INFO )
+    logging.basicConfig( format='%(asctime)s %(message)s', level = logging.INFO )
     ##
     # DRM4G won't remove root_path if clean_after_run is 1
     ##
@@ -336,7 +340,7 @@ def main():
             except :
                 raise JobError( "'namelist.wps' has not copied", JOB_ERROR[  'COPY_NAMELIST_WPS' ] )
             wps2wrf( params.namelist_wps, params.namelist_input, params.chunk_rdate, 
-                        params.chunk_edate, int(params.max_dom), chunk_rerun, params.timestep_dxfactor)
+                        params.chunk_edate, params.max_dom, chunk_rerun, params.timestep_dxfactor)
             job_db.set_job_status( 'DOWN_WPS' )
             pattern =  "wrf[lbif]*_d\d\d_" + datetime2dateiso( sdate ) + "*" 
             for file_name in VCPURL( params.real_rea_output_path ).ls( pattern ):
@@ -376,13 +380,13 @@ def main():
             ##
             logging.info( "Modify namelist.wps" )
 
-            cmds = [ "fortnml -of %s -n %s -s start_date %s" % ( params.namelist_wps, 
+            cmds = [ "fortnml -of %s -n %d -s start_date %s" % ( params.namelist_wps, 
                                                                  params.max_dom, 
                                                                  datetime2datewrf( params.chunk_sdate ) ), 
-                     "fortnml -of %s -n %s -s end_date %s"   % ( params.namelist_wps, 
+                     "fortnml -of %s -n %d -s end_date %s"   % ( params.namelist_wps, 
                                                                  params.max_dom, 
                                                                  datetime2datewrf( params.chunk_edate ) ),
-                     "fortnml -of %s -s max_dom %s"          % ( params.namelist_wps, params.max_dom ),
+                     "fortnml -of %s -s max_dom %d"          % ( params.namelist_wps, params.max_dom ),
                      "fortnml -of %s -s interval_seconds %s" % ( params.namelist_wps, params.extdata_interval) ]
             for cmd in cmds :
                 code, output = exec_cmd( cmd )
@@ -498,7 +502,7 @@ def main():
             for met_file in met_files :
                 os.symlink( met_file , join( params.wrf_run_path, basename(met_file) ) )        
             wps2wrf( params.namelist_wps, params.namelist_input, params.chunk_rdate,
-                        params.chunk_edate, int( params.max_dom) , chunk_rerun, params.timestep_dxfactor)
+                        params.chunk_edate, params.max_dom , chunk_rerun, params.timestep_dxfactor)
 
             real_exe = which( 'real.exe' )
             if real_exe == 'real.exe' :
@@ -620,7 +624,7 @@ def main():
         os.chdir( params.local_path )
         log_tar = "log_%d_%d.tar.gz" % ( params.nchunk, params.job_id )
         try :
-            logging.info( "Create tar file forlogs" ) 
+            logging.info( "Create tar file for logs" ) 
             tar = tarfile.open( log_tar , "w:gz" )
             tar.add( 'log' )
         finally :

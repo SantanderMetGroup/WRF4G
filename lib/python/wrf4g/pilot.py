@@ -153,7 +153,7 @@ class PilotParams( object ):
     postprocessor        = resource_exp_conf[ 'postprocessor' ]
     clean_after_run      = resource_exp_conf[ 'clean_after_run' ]
     extdata_path         = resource_exp_conf[ 'extdata_path' ]
-    max_dom              = resource_exp_conf[ 'max_dom' ]
+    max_dom              = int( resource_exp_conf[ 'max_dom' ] )
     save_wps             = resource_exp_conf[ 'save_wps' ]
     wrfout_name_end_date = resource_exp_conf[ 'wrfout_name_end_date' ]
     timestep_dxfactor    = resource_exp_conf[ 'timestep_dxfactor' ]
