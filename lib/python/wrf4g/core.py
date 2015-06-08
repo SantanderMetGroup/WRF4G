@@ -20,7 +20,7 @@ from os.path                import ( exists, expandvars,
                                      join )
 from datetime               import datetime, timedelta 
 from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
-from wrf4g.config           import get_conf, save_exp_pkl
+from wrf4g.config           import get_conf, save_exp_pkl, load_exp_pkl, dict_compare
 from wrf4g.db               import Base
 from wrf4g.utils.time       import datetime2datewrf, Calendar
 from wrf4g.utils.file       import validate_name, edit_file
@@ -51,10 +51,7 @@ class Experiment( Base ):
     
     # Columns
     id                    = Column(u'id', INTEGER, primary_key=True, nullable=False)
-    name                  = Column(u'name', VARCHAR(length=512), nullable=False)
-    start_date            = Column(u'start_date', DATETIME())
-    end_date              = Column(u'end_date', DATETIME())
-    chunk_size_h          = Column(u'chunk_size_h', INTEGER)
+    name                  = Column(u'name', VARCHAR(length=512), nullable=False)  
     calendar              = Column(u'calendar', VARCHAR(length=300))
     home_dir              = Column(u'home_directory', VARCHAR(length=300))
     np                    = Column(u'np', INTEGER)
@@ -62,8 +59,6 @@ class Experiment( Base ):
     environment           = Column(u'environment', VARCHAR(length=1024)) 
     namelist_version      = Column(u'namelist_version', VARCHAR(length=1024)) 
     max_dom               = Column(u'max_dom', INTEGER)
-    simulation_length_h   = Column(u'simulation_length_h', INTEGER)
-    simulation_interval_h = Column(u'simulation_interval_h', INTEGER)
     namelist              = Column(u'namelist', VARCHAR(length=1024))
 
     # Realtionships
@@ -85,10 +80,14 @@ class Experiment( Base ):
         else:
             #if there are realizations to run
             for rea in l_realizations :
-                logging.info("---> Submitting Realization: %s" % rea.name )
+                logging.info("---> Submitting Realization %s" % rea.name )
                 #Run every realization
                 rea.dryrun = self.dryrun
-                rea.run( rerun = rerun )
+                if rerun :
+                   first_chunk_run = 1
+                else :
+                   first_chunk_run = None
+                rea.run( first_chunk_run = first_chunk_run, rerun = rerun )
 
     def edit(self):
         """
@@ -148,22 +147,18 @@ class Experiment( Base ):
         Create and prepare all realizations and chunks needed to submit a WRF4G experiment.
         """
         exp_conf = get_conf( directory )
+        if update :
+            old_exp_conf = load_exp_pkl( directory )
+            added, removed, modified, same = dict_compare( old_exp_conf['default'] , exp_conf[ 'default' ] )
+            for elem_modified in modified :
+                if elem_modified in ( 'calendar' , 'max_dom', 'namelist_version', 'namelist' ) :    
+                    raise Exception( "ERROR: Experiment with the same name "
+                                     "and no reconfigurable fields already exists." )
+        elif self.name != exp_conf.default.name :
+            raise Exception( "ERROR: experiment.wrf4g file has a different experiment name." )     
         save_exp_pkl( exp_conf, directory )
-
-        if update and ( exp_conf.default.name                  == self.name and \
-                        exp_conf.default.chunk_size_h          != self.chunk_size_h and \
-                        exp_conf.default.simulation_length_h   != self.simulation_length_h and \
-                        exp_conf.default.simulation_interval_h != self.simulation_interval_h and \
-                        exp_conf.default.namelist              != self.namelist ) :
-            raise Exception( "ERROR: Experiment with the same name "
-                             "and no reconfigurable fields already exists." )
-        if not update and self.name != exp_conf.default.name :
-            raise Exception( "ERROR: experiment.wrf4g files has a different experiment name." )
         # Update experiment variables
         self.name                  = exp_conf.default.name
-        self.start_date            = exp_conf.default.start_date
-        self.end_date              = exp_conf.default.end_date
-        self.chunk_size_h          = exp_conf.default.chunk_size_h
         self.calendar              = exp_conf.default.calendar
         self.home_dir              = exp_conf.default.home_dir
         self.np                    = exp_conf.default.np
@@ -171,118 +166,90 @@ class Experiment( Base ):
         self.environment           = exp_conf.default.environment 
         self.namelist_version      = exp_conf.default.namelist_version
         self.max_dom               = exp_conf.default.max_dom
-        self.simulation_length_h   = exp_conf.default.simulation_length_h
-        self.simulation_interval_h = exp_conf.default.simulation_interval_h
         self.namelist              = exp_conf.default.namelist
+        self.datetime_list         = exp_conf.default.datetime_list
         if not self.dryrun :
             # Create a WRF4G software bundle to use on the WN
             self._create_wrf4g_bundle()
-            # Modify the namelist with the parameters available in experiment.wrf4g
-            logging.info( "Preparing namelist..." )
-            namelist_template = join( WRF4G_DIR , 'etc', 'templates', 'namelist', 
-                                     'namelist.input-%s' % self.namelist_version )
-            namelist_input    = join( directory, 'namelist.input' )
-            try :
-                logging.debug( "Copying '%s' to '%s'" % (namelist_template, namelist_input) )
-                shutil.copyfile(namelist_template, namelist_input )
-            except :
-                raise Exception( "There is not a namelist template for WRF '%s'"
-                                 "(File namelist.input does not exist)" % namelist_template )
-            
+        # Modify the namelist with the parameters available in experiment.wrf4g
+        logging.info( "Preparing namelist..." )
+        namelist_template   = join( WRF4G_DIR , 'etc', 'templates', 'namelist', 
+                                 'namelist.input-%s' % self.namelist_version )
+        self.namelist_input = join( directory, 'namelist.input' )
+        try :
+            logging.debug( "Copying '%s' to '%s'" % (namelist_template, self.namelist_input) )
+            shutil.copyfile(namelist_template, self.namelist_input )
+        except :
+            raise Exception( "There is not a namelist template for WRF '%s'"
+                             "(File namelist.input does not exist)" % self.namelist_template )
+        if not self.dryrun :  
+            # Update the namelist  
             logging.debug( "Updating parameter 'max_dom' in the namelist" )
-            exec_cmd( "fortnml -wof %s -s max_dom %d" % ( namelist_input, self.max_dom ) )          
+            exec_cmd( "fortnml -wof %s -s max_dom %d" % ( self.namelist_input, self.max_dom ) )          
             logging.debug( "Force trimming the arrays in the namelist to 'max_dom'" ) 
-            exec_cmd( "fortnml -wof %s --force-trim=%d" % ( namelist_input, self.max_dom ) )
-        for comb, label in enumerate( exp_conf.default.label_combination ) :
+            exec_cmd( "fortnml -wof %s --force-trim=%d" % ( self.namelist_input, self.max_dom ) )
+        self.cycle_combinations( exp_conf.default.label_combination, exp_conf.default.namelist_dict, update )
+
+    def cycle_combinations( self, combinations, namelist_combinations, update ):
+        """
+        Create realizations for each combination namelist.
+        """
+        for comb, label in enumerate( combinations ) :
             if label :
-                logging.info( "---> Realization: multiparams=%s %s %s" % ( label, self.start_date, self.end_date) )
+                logging.info( "---> Multicombination run %s" % (label )  )
             else :
-                logging.info( "---> Single params run" )
-            for mnl_variable, mnl_values in exp_conf.default.namelist_dict.items() :
+                logging.info( "---> Single combination run" )
+            for mnl_variable, mnl_values in namelist_combinations.items() :
                 # Update the namelist per each combination
                 if not self.dryrun :
                     logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
                     if '.' in mnl_variable :
                        section, val = mnl_variable.split( '.' )
-                       cmd = "fortnml -wof %s -s %s@%s %s" % ( namelist_input, val, section, str( mnl_values[ comb ] ) )
+                       cmd = "fortnml -wof %s -s %s@%s %s" % ( self.namelist_input, val, section, str( mnl_values[ comb ] ) )
                     else :
-                       cmd = "fortnml -wof %s -s %s %s"    % ( namelist_input, mnl_variable, str( mnl_values[ comb ] ) ) 
+                       cmd = "fortnml -wof %s -s %s %s"    % ( self.namelist_input, mnl_variable, str( mnl_values[ comb ] ) ) 
                     exec_cmd( cmd )
             self.cycle_time( "%s__%s" % ( self.name, label ) if label else self.name, label, update )
      
-    def cycle_time(self, rea_name, label, update = False) :
+    def cycle_time(self, rea_name, label, update) :
         """
-        Check if the experiment has multiple_dates 
+        Create the realizations for each datetime definition.
         """
-        if self.simulation_length_h and self.simulation_interval_h :
-            self.cycle_hindcasts( rea_name, label, update )
-        else :
-            logging.info( "---> Continuous run" )
-            if update :
-                # Check realization on the database
-                rea = self.check_db( 
-                                name          = rea_name,
-                                start_date    = self.start_date,
-                                end_date      = self.end_date, 
-                                label         = label 
-                                )
-            else :
+        for start_date, end_date, simult_interval_h, simult_length_h, chunk_size_h, restart_interval in self.datetime_list :
+            # Define which calendar is going to be used
+            exp_calendar    = Calendar( self.calendar )
+            rea_start_date  = start_date
+            while rea_start_date < end_date :
+                rea_end_date = exp_calendar.add_hours(rea_start_date, simult_length_h )
+                cycle_name   = "%s__%s_%s" % ( rea_name, datetime2datewrf( rea_start_date ),
+                                               datetime2datewrf( rea_end_date ) )
+                logging.info( "\t---> Realization %s" % cycle_name  )
                 # Create realization
-                rea = Realization( 
-                                name          = rea_name,
-                                start_date    = self.start_date,
-                                end_date      = self.end_date, 
-                                current_date  = self.start_date,
-                                status        = 'PREPARED',
-                                current_chunk = 1,
-                                label         = label 
-                               )
-                # Add realization to the experiment 
-                self.realization.append( rea )
-            # Check storage
-            if not self.dryrun :
-                rea._prepare_sub_files()
-            rea.cycle_chunks( update )
- 
-    def cycle_hindcasts(self, rea_name, label, update = False ) :
-        """
-        Create chunks the needed for a realization 
-        """
-        logging.info( "\n---> cycle_hindcasts: %s %s %s %s %s" % ( 
-                      rea_name, self.id, self.start_date , self.end_date, label ) )
-        # Define which calendar is going to be used
-        exp_calendar    = Calendar( self.calendar )
-        rea_start_date  = self.start_date
-        while rea_start_date < self.end_date :
-            rea_end_date = exp_calendar.add_hours(rea_start_date, self.simulation_length_h )
-            cycle_name   = "%s__%s_%s" % ( rea_name, datetime2datewrf( rea_start_date ),
-                                           datetime2datewrf( rea_end_date ) )
-            # Create realization
-            if update :
-                # Check realization on the database
-                rea = self.check_db( 
-                                name          = cycle_name, 
-                                start_date    = rea_start_date,
-                                end_date      = rea_end_date,
-                                label         = label
-                                ) 
-            else :
-                rea = Realization( 
-                                name          = cycle_name, 
-                                start_date    = rea_start_date,
-                                end_date      = rea_end_date,
-                                current_date  = rea_start_date,
-                                status        = 'PREPARED',
-                                current_chunk = 1,
-                                label         = label 
-                                )
-                # Add realization to the experiment 
-                self.realization.append( rea )
-            # Check storage
-            if not self.dryrun :
-                rea._prepare_sub_files()
-            rea.cycle_chunks( update )
-            rea_start_date = exp_calendar.add_hours(rea_start_date, self.simulation_interval_h ) 
+                if update :
+                    # Check realization on the database
+                    rea = self.check_db( name          = cycle_name, 
+                                         start_date    = rea_start_date,
+                                         end_date      = rea_end_date,
+                                         label         = label ) 
+                else :
+                    rea = Realization( name          = cycle_name, 
+                                       start_date    = rea_start_date,
+                                       end_date      = rea_end_date,
+                                       chunk_size_h  = chunk_size_h,
+                                       current_date  = rea_start_date,
+                                       status        = 'PREPARED',
+                                       current_chunk = 1,
+                                       label         = label )
+                    # Add realization to the experiment 
+                    self.realization.append( rea )
+                # Check storage
+                if not self.dryrun :
+                    exec_cmd( "fortnml -wof %s -n %d -s restart_interval %d"  % ( 
+                                            self.namelist_input,
+                                            self.max_dom, restart_interval ) )
+                    rea._prepare_sub_files()
+                rea.cycle_chunks( update )
+                rea_start_date = exp_calendar.add_hours(rea_start_date, simult_interval_h ) 
     
     def get_status(self, rea_pattern = False ):
         """ 
@@ -310,9 +277,9 @@ class Experiment( Base ):
         #Header of the information
         if not ( l_realizations ):
             raise Exception ( 'There are not realizations to check.' )
-        logging.info( '%-21s %-10s %-10s %-16s %-10s %6s %20s %20s %-3s %6s'% (
+        logging.info( '%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s'% (
                         'Realization','Status','Chunks','Comp.Res','Run.Sta',
-                        'JID', 'Start_date', 'End_date', 'Ext','%' ) )
+                        'JID', 'Ext','%' ) )
         for rea in l_realizations :
             #Print information of each realization
             rea.get_status( )
@@ -383,6 +350,7 @@ class Realization( Base ):
     name            = Column(u'name',VARCHAR(length=1024),nullable=False)
     start_date      = Column(u'start_date',DATETIME())
     end_date        = Column(u'end_date',DATETIME())
+    chunk_size_h    = Column(u'chunk_size_h', INTEGER)
     restart         = Column(u'restart',DATETIME()) 
     status          = Column(u'status',VARCHAR(length=20))
     current_date    = Column(u'current_date',DATETIME())
@@ -406,15 +374,15 @@ class Realization( Base ):
         last_chunk_run  = int( last_chunk_run  ) if last_chunk_run  else None
         #Check the status of the realization
         if self.status == 'FINISHED' and not rerun :
-            logging.warn( "Realization '%s' already finished." % self.name )
+            logging.warn( "\tRealization '%s' already finished." % self.name )
         elif ( self.status == 'SUBMITTED' or self.status == 'RUNNING' ) and not rerun :
-            logging.warn( "Realization '%s' has been submitted." % self.name )
+            logging.warn( "\tRealization '%s' has been submitted." % self.name )
         elif first_chunk_run and first_chunk_run < 0 :
-            logging.error( "ERROR: The first chunk to run is '%d'." % first_chunk_run ) 
+            logging.error( "\tERROR: The first chunk to run is '%d'." % first_chunk_run ) 
         elif last_chunk_run and last_chunk_run  < 0 :
-            logging.error( "ERROR: The last chunk to run is '%d'." % last_chunk_run )
+            logging.error( "\tERROR: The last chunk to run is '%d'." % last_chunk_run )
         elif ( last_chunk_run and first_chunk_run ) and last_chunk_run < first_chunk_run :
-            logging.error( "ERROR: The last chunk to run is greater than the fist one." )
+            logging.error( "\tERROR: The last chunk to run is greater than the fist one." )
         else :
             # search first chunk to run
             if rerun and first_chunk_run :
@@ -449,7 +417,7 @@ class Realization( Base ):
             #run chunks
             for index, chunk in enumerate( l_chunks ) :
                 #print data of chunks
-                logging.info('\t---> Submitting Chunk %d:\t%s\t%s' % ( chunk.chunk_id, 
+                logging.info('\t---> Submitting Chunk %d \t%s\t%s' % ( chunk.chunk_id, 
                                                               datetime2datewrf(chunk.start_date), 
                                                               datetime2datewrf(chunk.end_date) ) )
                 if not self.dryrun :
@@ -460,7 +428,7 @@ class Realization( Base ):
             
     def _prepare_sub_files(self):
         """
-        Prepare the files needed to submit the realization 
+        Prepare the files needed to submit the realization. 
         """
         rea_submission_dir = join( WRF4G_DIR , 'var' , 'submission' , self.experiment.name , self.name )
         if not isdir( rea_submission_dir ) :
@@ -512,14 +480,15 @@ class Realization( Base ):
         """
         Create chunks the needed for a realization 
         """
-        logging.info( "\n\t---> cycle_chunks: %s %s %s" % ( self.name, self.start_date , self.end_date ) )
         # Define which calendar is going to be used
         exp_calendar = Calendar(self.experiment.calendar)
         chunk_id = 1
         chunk_start_date = self.start_date
         while chunk_start_date < self.end_date :
-            chunk_end_date = exp_calendar.add_hours( chunk_start_date, hours = self.experiment.chunk_size_h )
-            logging.info( "\t\t---> Chunk %d: %s %s %s" %( chunk_id, self.name, chunk_start_date, chunk_end_date ) )
+            chunk_end_date = exp_calendar.add_hours( chunk_start_date, hours = self.chunk_size_h )
+            logging.info( "\t\t---> Chunk %d %s %s" %( chunk_id, 
+                                                       datetime2datewrf(chunk_start_date),
+                                                       datetime2datewrf(chunk_end_date) ) )
             if update :
                 # Check chunk on the database
                 ch = self.check_db( rea_id           = self.id, 
@@ -580,9 +549,9 @@ class Realization( Base ):
         #Percentage
         per = runt * 100.0/ totalt
         #Print output
-        logging.info( "%-21.21s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %20.20s %20.20s %-3.3s %6.2f" % (
-                    self.name[0:20], self.status, chunk_distribution, resource, status, 
-                    gw_job, self.start_date, self.end_date, exitcode, per ) )
+        logging.info( "%-60.60s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
+                    self.name[0:60], self.status, chunk_distribution, resource, status, 
+                    gw_job, exitcode, per ) )
   
     def stop(self):
         """

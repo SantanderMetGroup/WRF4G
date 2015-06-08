@@ -10,10 +10,10 @@ __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-mandatory_varibles = ( 'name', 'max_dom', 'start_date', 'end_date', 
-                       'namelist_version', 'domain_path', 'extdata_vtable', 
-                       'extdata_path', 'extdata_interval', 'preprocessor', 
-                       'output_path', 'postprocessor', 'app_bundles'          
+mandatory_varibles = ( 'name', 'max_dom', 'date_time', 'namelist_version', 
+                       'domain_path', 'extdata_vtable', 'extdata_path', 
+                       'extdata_interval', 'preprocessor', 'output_path', 
+                       'postprocessor', 'app_bundles'          
                      )
 
 yes_no_variables   = ( 'clean_after_run', 'save_wps', 'real_parallel', 
@@ -24,7 +24,7 @@ yes_no_variables   = ( 'clean_after_run', 'save_wps', 'real_parallel',
 default_dict       = { 
                     'description'          : '',
                     'calendar'             : 'standard',
-                    'timestep_dxfactor'    : 6,
+                    'timestep_dxfactor'    : '6',
                     'np'                   : 1,
                     'requirements'         : '',
                     'environment'          : '',
@@ -34,9 +34,23 @@ default_dict       = {
                     'wrf_parallel'         : 'yes',
                     'wrfout_name_end_date' : 'yes',
                     'app_source_script'    : '',
-                    'label_combination'    : [''],
+                    'datetime_list'        : [ ],
+                    'label_combination'    : [ '' ],
                     'namelist_dict'        : dict()
                     }
+
+def dict_compare(dict_one, dict_two ):
+    """ 
+    Compare two dictionaries
+    """
+    dict_one_keys  = set( dict_one.keys() )
+    dict_two_keys  = set( dict_two.keys() )
+    intersect_keys = dict_one_keys.intersection( dict_two_keys  )
+    added          = dict_one_keys - dict_two_keys
+    removed        = dict_two_keys - dict_one_keys
+    modified       = [ k for k in intersect_keys if dict_one[ k ] != dict_two[ k ] ]
+    same           = set( k for k in intersect_keys if dict_one[ k ] == dict_two[ k ] )
+    return ( added, removed, modified, same )
 
 class dict2obj(dict):
     """
@@ -86,7 +100,8 @@ def get_conf( directory = './' ):
         else :
             key = section 
         exp_conf_dict[ key ] = dict( exp_env.items( section ) )
-    return sanity_check( dict2obj( exp_conf_dict ) )
+    exp_conf = sanity_check( dict2obj( exp_conf_dict ) )
+    return exp_conf
 
 def sanity_check( exp_conf ) :
     """
@@ -114,34 +129,46 @@ def sanity_check( exp_conf ) :
         elif val in ( 'n', 'no' ) :
             exp_conf.default[ key ] = 'no'            
         else :
-            raise Exception( "'%s' variable should be 'yes' or 'no'" % key ) 
+            raise Exception( "ERROR: '%s' variable should be 'yes' or 'no'" % key ) 
     # Check calendar type
     if not exp_conf.default.calendar in Calendar.available_types :
         raise Exception( "'%s' calendar type is not avariable" % exp_conf.default.calendar )
     # Check strart and end dates
-    sdate  = datewrf2datetime( exp_conf.default.start_date )
-    edate  = datewrf2datetime( exp_conf.default.end_date )
-    if sdate >= edate :
-        raise Exception( "'start_date' is not earlier than the 'end_date'" )
-    exp_conf.default.start_date = sdate
-    exp_conf.default.end_date   = edate
-    # Check chunk_size_h
-    if not exp_conf.default.chunk_size_h :
-        chunk_size = ( sdate - edate ).total_seconds() / 3600
-        logging.warning( "'chunk_size_h' will be %d hours" %  chunk_size ) 
-        exp_conf.default.chunk_size_h = chunk_size
-    else :
-        exp_conf.default.chunk_size_h = int( exp_conf.default.chunk_size_h )
-    # Check multiple dates
-    if exp_conf.default.simulation_length_h and exp_conf.default.simulation_interval_h :
-        exp_conf.default.simulation_length_h   = int( exp_conf.default.simulation_length_h )
-        exp_conf.default.simulation_interval_h = int( exp_conf.default.simulation_interval_h )
-        if exp_conf.default.chunk_size_h > exp_conf.default.simulation_length_h :
-            logging.warning( "WARNING: 'chunk_size_h' is bigger than 'simulation_length_h'" )
-            exp_conf.default.chunk_size_h = exp_conf.default.simulation_length_h
+    for rea_dates in exp_conf.default.date_time.split( '\n' ) :
+        elems = rea_dates.replace( ' ', '' ).split( '|' )
+        if len( elems ) > 5 or len( elems ) < 2 :
+            raise Exception( "ERROR: Number of elements in '%s' is wrong" % rea_dates ) 
+        start_date = datewrf2datetime( elems[ 0 ] )
+        end_date   = datewrf2datetime( elems[ 1 ] )
+        if start_date >= end_date :
+            raise Exception( "ERROR: 'start_date' is not earlier than the 'end_date'" )
+        elif len( elems ) in ( 4, 5 ) :
+            simult_interval_h = int( elems[ 2 ] )
+            simult_length_h   = int( elems[ 3 ] )
+            if len( elems ) == 5 :
+                chunk_size_h = int( elems[ 4 ] )
+                if chunk_size_h > simult_length_h :
+                    logging.warning( "WARNING: 'chunk_size_h' is bigger than 'simulation_length_h'" )
+                    chunk_size_h = simult_length_h
+            else :
+                chunk_size_h  = None 
+        else :
+            simult_interval_h = simult_length_h = ( end_date - start_date ).total_seconds() / 3600 
+            if len( elems ) == 3 :
+                chunk_size_h = int( elems[ 2 ] )
+            else :
+                chunk_size_h = None
+        if not chunk_size_h :
+            chunk_size_h  = simult_length_h
+            logging.warning( "WARNING: 'chunk_size_h' will be %d hours" %  chunk_size_h )
+        # Check restart_interval
+        restart_interval = chunk_size_h * 60  
+        exp_conf.default.datetime_list.append( [ start_date, end_date, 
+                                                 simult_interval_h, simult_length_h, 
+                                                 chunk_size_h, restart_interval ] )
     # Check namelist 
     if exp_conf.default.namelist :
-        # Delete whitespace
+        # Delete whitespaces
         exp_conf.default.namelist = exp_conf.default.namelist.replace(' ', '')
         for nml_val in exp_conf.default.namelist.split( '\n' ):
             nml_conf = nml_val.split( '|' )
@@ -167,10 +194,6 @@ def sanity_check( exp_conf ) :
                         logging.warning( "WARNING: Expanding values of '%s' variable --> %s" % ( nml_conf_key, nml_elem_val ) )
                     values.append( ' '.join( nml_elem_val ) )
                 exp_conf.default.namelist_dict[ nml_conf_key ] = values
-    # Check restart_interval
-    if not exp_conf.default.namelist or not 'restart_interval' in exp_conf.default.namelist :
-        exp_conf.default.namelist_dict[ 'restart_interval' ] = [ exp_conf.default.chunk_size_h * 60 ] * \
-                                                                 len( exp_conf.default.label_combination  ) 
     return exp_conf
 
 def save_exp_pkl( obj_config, directory ) :
