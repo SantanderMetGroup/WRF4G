@@ -153,18 +153,18 @@ def sanity_check( exp_conf ) :
                 values = []
                 for nml_elem in nml_conf_val :
                     nml_elem_val = nml_elem.strip( ',' ).split( ',' )
-                    if len( nml_elem_val ) > exp_conf.default.max_dom and \
-                            not nml_conf_key.startswith( 'single' ) : 
+                    if nml_conf_key.startswith( 'single:' ) or nml_conf_key.startswith( 'single_list:' ):
+                        nml_conf_key = nml_conf_key.replace( 'single:', '' ) 
+                    elif len( nml_elem_val ) > exp_conf.default.max_dom or \
+                            nml_conf_key.startswith( 'max_dom' ) : 
                         nml_elem_val = nml_elem_val[ :exp_conf.default.max_dom ]
                         logging.warning( "WARNING: Truncating values of '%s' variable --> %s" % ( nml_conf_key, nml_elem_val ) )
                         nml_elem_val = nml_elem_val[ :exp_conf.default.max_dom ]
-                    elif len( nml_elem_val ) < exp_conf.default.max_dom and \
-                            not nml_conf_key.startswith( 'single' ) : 
+                    elif len( nml_elem_val ) < exp_conf.default.max_dom or \
+                            nml_conf_key.startswith( 'max_dom' ) : 
                         nml_elem_val = nml_elem_val + [ ( nml_elem_val[ -1 ] * \
                             ( exp_conf.default.max_dom - len( nml_elem_val ) ) ) ]
                         logging.warning( "WARNING: Expanding values of '%s' variable --> %s" % ( nml_conf_key, nml_elem_val ) )
-                    elif nml_conf_key.startswith( 'single:' ) :
-                        nml_conf_key = nml_conf_key.replace( 'single:', '' )
                     values.append( ' '.join( nml_elem_val ) )
                 exp_conf.default.namelist_dict[ nml_conf_key ] = values
     # Check restart_interval
