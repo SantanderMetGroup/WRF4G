@@ -157,7 +157,8 @@ def main():
             raise JobError( "Error creating the directory '%s' on the worker node" % params.local_path, 
                                 JOB_ERROR[ 'LOCAL_PATH'] )
 
-    logging.basicConfig( format='%(asctime)s %(message)s', level = logging.INFO )
+    logging.basicConfig( format = '%(asctime)s %(message)s', 
+                         filename = params.log_file, level = logging.INFO )
     ##
     # DRM4G won't remove root_path if clean_after_run is 1
     ##
