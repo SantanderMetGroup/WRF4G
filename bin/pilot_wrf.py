@@ -120,7 +120,7 @@ def wrf_monitor( job_db, log_wrf, params ):
     """
     Monitor wrf.exe processes
     """
-    time.sleep( 60 )
+    time.sleep( 120 ) # 2 minutes
     logging.info( "Starting monitor" )
     while True :
         logging.info( "Checking wrf files" )
@@ -129,7 +129,7 @@ def wrf_monitor( job_db, log_wrf, params ):
             current_date = params.chunk_rdate
         job_db.set_current_date( current_date )
         clean_wrf_files( job_db, params, 'closed_files' )
-        time.sleep( 10 ) # 10 minute
+        time.sleep( 600 ) # 10 minutes
 
 def main():  
     ##
