@@ -76,7 +76,7 @@ class MySQLDB( object ):
                                                                                                      )
             cmd =  "cd %s ; nohup ./bin/mysqld_safe %s &>/dev/null &" % ( MYSQL_DIR , mysql_options )
             exec_cmd( cmd , nohup = True, stdin = False )
-            time.sleep( 1.0 )
+            time.sleep( 2.0 )
             if not exists( self.mysql_pid ) or self._port_is_free() :
                 logging.error( "ERROR: MySQL did not start, check '%s' for more information " % self.mysql_log )
             else :
