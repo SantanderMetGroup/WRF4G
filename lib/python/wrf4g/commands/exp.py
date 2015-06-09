@@ -58,12 +58,13 @@ def run( arg ) :
                 l_exps = session.query( Experiment )
                 if arg[ '--pattern' ] :
                     l_exps  = l_exps.filter( Experiment.name.like( arg[ '--pattern' ].replace('*','%') ) )
-                # Header
-                logging.info( "%-20s %-20s %-20s" % ( "Name", "Start Date" , "End Date" ) )
-                for e in l_exps :
-                    logging.info("%-20.20s %-20.20s %-20.20s" % ( e.name, 
-                                                                  datetime2datewrf(e.start_date), 
-                                                                  datetime2datewrf(e.end_date) ) )
+                if not l_exps.all() :
+                    logging.info( "There are not experiments" )
+                else :
+                    # Header
+                    logging.info( "%-20.20s" % ( "Name" ) )
+                    for e in l_exps :
+                        logging.info("%-20.20s" % ( e.name ) ) 
             else :
                 try :
                     exp = session.query( Experiment ).\
@@ -102,6 +103,8 @@ def run( arg ) :
             else :
                 session.commit()
         except Exception , err :
+            import traceback
+            traceback.print_exc(file=sys.stdout)
             session.rollback()
             logging.error( str( err ) )
         finally:

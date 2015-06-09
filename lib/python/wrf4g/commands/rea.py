@@ -4,7 +4,7 @@ Manage WRF4G realizations.
 Usage: 
     wrf4g rea <name> submit [ --dbg ] [ --dry-run ] [ --rerun ] [ <first_ch> [ <last_ch> ] ]
     wrf4g rea <name> status [ --dbg ]
-    wrf4g rea <name> stop   [ --dbg ] [ --dry-run ] 
+    wrf4g rea <name> stop   [ --dbg ] [ --dry-run ]
    
 Options:
    --dbg         Debug mode.

@@ -13,7 +13,7 @@ __revision__ = "$Id$"
 mandatory_varibles = ( 'name', 'max_dom', 'date_time', 'namelist_version', 
                        'domain_path', 'extdata_vtable', 'extdata_path', 
                        'extdata_interval', 'preprocessor', 'output_path', 
-                       'postprocessor', 'app_bundles'          
+                       'postprocessor', 'app'          
                      )
 
 yes_no_variables   = ( 'clean_after_run', 'save_wps', 'real_parallel', 
@@ -118,7 +118,10 @@ def sanity_check( exp_conf ) :
     exp_conf.default.np = int( exp_conf.default.np )
     # Convert extdata_interval
     exp_conf.default.extdata_interval = int( exp_conf.default.extdata_interval )
+
+    ##
     # Check if yes/no variables are right 
+    ##
     for key in yes_no_variables :
         val = exp_conf.default[ key ].lower()
         if val in ( 'y', 'yes' ) :
@@ -130,7 +133,9 @@ def sanity_check( exp_conf ) :
     # Check calendar type
     if not exp_conf.default.calendar in Calendar.available_types :
         raise Exception( "'%s' calendar type is not avariable" % exp_conf.default.calendar )
+    ##
     # Check strart and end dates
+    ##
     exp_conf.default.datetime_list = []
     for rea_dates in exp_conf.default.date_time.split( '\n' ) :
         # Delete whitespaces and obtain each element
@@ -172,7 +177,9 @@ def sanity_check( exp_conf ) :
         exp_conf.default.datetime_list.append( [ start_date, end_date, 
                                                  simult_interval_h, simult_length_h, 
                                                  chunk_size_h, restart_interval ] )
+    ##
     # Check namelist configuration for multicombinations
+    ##
     exp_conf.default.label_combination = [ '' ] 
     if exp_conf.default.namelist :
         # Delete whitespaces
