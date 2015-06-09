@@ -34,8 +34,6 @@ default_dict       = {
                     'wrf_parallel'         : 'yes',
                     'wrfout_name_end_date' : 'yes',
                     'app_source_script'    : '',
-                    'datetime_list'        : [ ],
-                    'label_combination'    : [ '' ],
                     'namelist_dict'        : dict()
                     }
 
@@ -100,8 +98,7 @@ def get_conf( directory = './' ):
         else :
             key = section 
         exp_conf_dict[ key ] = dict( exp_env.items( section ) )
-    exp_conf = sanity_check( dict2obj( exp_conf_dict ) )
-    return exp_conf
+    return sanity_check( dict2obj( exp_conf_dict ) )
 
 def sanity_check( exp_conf ) :
     """
@@ -134,14 +131,23 @@ def sanity_check( exp_conf ) :
     if not exp_conf.default.calendar in Calendar.available_types :
         raise Exception( "'%s' calendar type is not avariable" % exp_conf.default.calendar )
     # Check strart and end dates
+    exp_conf.default.datetime_list = []
     for rea_dates in exp_conf.default.date_time.split( '\n' ) :
+        # Delete whitespaces and obtain each element
         elems = rea_dates.replace( ' ', '' ).split( '|' )
         if len( elems ) > 5 or len( elems ) < 2 :
             raise Exception( "ERROR: Number of elements in '%s' is wrong" % rea_dates ) 
+        #  date_time specification 
+        #  start_date  |  end_date  |  interval_h | length_h  | chunk_size_h
         start_date = datewrf2datetime( elems[ 0 ] )
         end_date   = datewrf2datetime( elems[ 1 ] )
         if start_date >= end_date :
             raise Exception( "ERROR: 'start_date' is not earlier than the 'end_date'" )
+        ##
+        # If there are four elements chunk_size_h = simult_length_h
+        # If there are three elements simult_interval_h = simult_length_h
+        # If there are two elements chunk_size_h = simult_interval_h = simult_length_h
+        ##
         elif len( elems ) in ( 4, 5 ) :
             simult_interval_h = int( elems[ 2 ] )
             simult_length_h   = int( elems[ 3 ] )
@@ -161,12 +167,13 @@ def sanity_check( exp_conf ) :
         if not chunk_size_h :
             chunk_size_h  = simult_length_h
             logging.warning( "WARNING: 'chunk_size_h' will be %d hours" %  chunk_size_h )
-        # Check restart_interval
+        # Defining restart_interval
         restart_interval = chunk_size_h * 60  
         exp_conf.default.datetime_list.append( [ start_date, end_date, 
                                                  simult_interval_h, simult_length_h, 
                                                  chunk_size_h, restart_interval ] )
-    # Check namelist 
+    # Check namelist configuration for multicombinations
+    exp_conf.default.label_combination = [ '' ] 
     if exp_conf.default.namelist :
         # Delete whitespaces
         exp_conf.default.namelist = exp_conf.default.namelist.replace(' ', '')
