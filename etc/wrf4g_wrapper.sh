@@ -139,19 +139,6 @@ execution(){
  
     chmod +x ./bin/*
 
-    printf "`date`: Configuring software sources ... "
-
-    python ./bin/easy_source.py 
-
-    if [ $? -eq 0 ]; then    
-        echo "done."
-    else
-        echo "failed."
-        exit 1
-    fi
-
-	source ./easy_source.conf		
-
     export DB4G_CONF=$PWD/db.conf
 
     printf "`date`: Executing actual job \"$GW_EXECUTABLE $GW_ARGUMENTS\"... "
