@@ -160,6 +160,17 @@ def main():
     logging.basicConfig( format = '%(asctime)s %(message)s', 
                          filename = params.log_file, level = logging.INFO )
     ##
+    # Show information about paths
+    ## 
+   logging.info( 'Information about directories' )
+
+    # Show root path 
+    logging.info( 'Root path  = %s' % params.root_path )
+
+    # Show local path
+    logging.info( 'Local path = %s' % params.local_path )
+   
+    ##
     # DRM4G won't remove root_path if clean_after_run is 1
     ##
     if params.clean_after_run == 'no' :
