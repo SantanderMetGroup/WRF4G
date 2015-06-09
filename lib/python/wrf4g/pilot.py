@@ -513,7 +513,7 @@ def launch_pilot( params ):
         logging.info( 'CPU (MHz)   = %d' % number_of_cpus )
 
         # Memory info
-        logging.info( 'Memory (kB)  = %s' % mem_info() )
+        logging.info( 'Memory (kB) = %s' % mem_info() )
 
         # Disk space check
         logging.info( 'DiskSpace (MB) = %d' % disk_space_check( params.root_path ) )
@@ -525,7 +525,7 @@ def launch_pilot( params ):
         rdate = job_db.get_restart_date()
         if not rdate or params.rerun :   
             logging.info( "Restart date will be '%s'" % params.chunk_sdate )
-            if nchunk > 1 :
+            if params.nchunk > 1 :
                 chunk_rerun = ".true."
             else :
                 chunk_rerun = ".false."
@@ -537,7 +537,7 @@ def launch_pilot( params ):
             raise JobError( "Restart file is the end date", JOB_ERROR[ 'RESTART_MISMATCH' ] )
         else :
             raise JobError( "There is a mismatch in the restart date", JOB_ERROR[ 'RESTART_MISMATCH' ] )
-       
+      
         if chunk_rerun == ".true." :
             pattern =  "wrfrst*" + datetime2dateiso( params.chunk_rdate ) + '*'
             for file_name in VCPURL( params.rst_rea_output_path ).ls( pattern ):
@@ -735,8 +735,8 @@ def launch_pilot( params ):
                         params.chunk_edate, params.max_dom , chunk_rerun, params.timestep_dxfactor)
 
             if 'wrf_all_in_one' in params.app :
-                os.chmod( real_exe, 0777 )
                 real_exe = './real.exe'
+                os.chmod( real_exe, 0777 )
             else :
                 real_exe = which( 'real.exe' )
             if params.real_parallel == 'yes' :
@@ -802,9 +802,9 @@ def launch_pilot( params ):
         logging.info( "Run wrf" )
         job_db.set_job_status( 'WRF' )
 
-        if 'wrf_all_in_one' in params.app : 
+        if 'wrf_all_in_one' in params.app :
+            wrf_exe = './wrf.exe' 
             os.chmod( wrf_exe, 0777 )
-            wrf_exe = './wrf.exe'
         else :
             wrf_exe = which( 'wrf.exe' ) 
         if params.wrf_parallel == 'yes' :

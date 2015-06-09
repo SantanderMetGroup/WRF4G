@@ -543,7 +543,7 @@ class Realization( Base ):
             chunk_distribution = '%d/%d' % ( 0 , self.nchunks )
         else :
             current_chunk      = self.chunk.filter( Chunk.chunk_id == self.current_chunk ).one()
-            last_job           = current_chunk.job.order_by( Job.id )[-1]
+            last_job           = current_chunk.job.order_by( Job.id )[ -1 ]
             resource           = last_job.resource
             exitcode           = last_job.exitcode
             status             = last_job.status
