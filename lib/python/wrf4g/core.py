@@ -710,6 +710,8 @@ class Job( Base ):
             self.chunk.status = status
             if status == 'FINISHED' and self.chunk.chunk_id == self.chunk.realization.nchunks :
                 self.chunk.realization.status = status
+            elif status == 'FAILED' :
+                self.chunk.realization.status = 'FAILED'
             else :
                 self.chunk.realization.status = 'RUNNING'
         if status == 'FINISHED' and self.chunk.realization.status != 'FINISHED' : 
