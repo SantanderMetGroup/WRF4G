@@ -209,7 +209,7 @@ class GwEmMad (object):
                   "DONE"     : "FINISHED" ,
                   "FAILED"   : "FAILED" ,
                  } 
-        avoid_states = ( 'CREATE_OUTPUT_PATH', 'DOWN_BUNDLES',
+        avoid_states = ( 'CREATE_OUTPUT_PATH', 'CONF_APP',
                          'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB', 'METGRID', 
                          'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF', 'FINISHED', 'FAILED' ) 
         while True:
