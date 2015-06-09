@@ -25,9 +25,8 @@ preprocessor         =
 output_path          = 
 postprocessor        = 
 wrfout_name_end_date = no
-# apps
-app_bundles          =
-app_source_script    =
+# app
+app                  = 
 # WRF-namelist parameters. Override namelist.input variables here
 namelist_version     = x.x.x
 namelist             =
