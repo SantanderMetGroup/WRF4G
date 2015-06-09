@@ -3,14 +3,11 @@
 name                 = %(exp_name)s
 # Simulation domain
 max_dom              = 1
-# Experimten time-specification
-start_date           = Year-Month-Day_HH:MM:SS
-end_date             = Year-Month-Day_HH:MM:SS
-chunk_size_h         = 12
+# Experiment time-specification
+#                      start_date              | end_date                | interval | length | chunk_size
+date_time            = Year-Month-Day_HH:MM:SS | Year-Month-Day_HH:MM:SS | H        | H      | H
 timestep_dxfactor    = 6
 calendar             = standard
-# Namelist
-namelist_version     = x.x.x
 # Running options 
 np = 1
 requirements         = ARCH="x86_64"
@@ -32,5 +29,6 @@ wrfout_name_end_date = no
 app_bundles          =
 app_source_script    =
 # WRF-namelist parameters. Override namelist.input variables here
+namelist_version     = x.x.x
 namelist             =
 

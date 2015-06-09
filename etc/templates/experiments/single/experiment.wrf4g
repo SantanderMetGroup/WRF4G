@@ -4,10 +4,9 @@ name                 = %(exp_name)s
 # Simulation domain
 max_dom              = 1
 # Experiment time-specification
-start_date           = 2011-08-28_12:00:00
-end_date             = 2011-08-30_00:00:00
+#                      start_date          | end_date            | chunk_size_h
+date_time            = 2011-08-28_12:00:00 | 2011-08-30_00:00:00 | 12
 calendar             = standard
-chunk_size_h         = 12
 timestep_dxfactor    = 6
 # Namelist
 namelist_version     = 3.3.1
@@ -37,14 +36,15 @@ app_bundles          = netcdf | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/netcdf/
                        wrf    | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/WRF/WRFbin-3.3.1_r1184INTEL_OMPI.tar.gz
                        mpi    | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/openmpi/openmpi-1.4.tar.gz
 # WRF-namelist parameters. Override namelist.input variables here
-namelist            = spec_bdy_width     | 10
-                      spec_zone          | 1
-	              relax_zone         | 9
-		      feedback           | 0
-		      history_interval   | 180
-		      frames_per_outfile | 3
-		      e_vert             | 28
-		      mp_physics         | 4   
-		      radt               | 15
-		      ra_lw_physics      | 3
-		      ra_sw_physics      | 3
+namelist_version     = 3.3.1
+namelist             = spec_bdy_width     | 10
+                       spec_zone          | 1
+	               relax_zone         | 9
+		       feedback           | 0
+		       history_interval   | 180
+		       frames_per_outfile | 3
+		       e_vert             | 28
+		       mp_physics         | 4   
+		       radt               | 15
+		       ra_lw_physics      | 3
+		       ra_sw_physics      | 3
