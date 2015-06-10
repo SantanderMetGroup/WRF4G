@@ -341,6 +341,11 @@ def launch_pilot( params ):
     os.umask( 022 )
 
     ##
+    # Set initial exit code
+    ##
+    exit_code = 255   
+ 
+    ##
     # Create log directory
     ##
     try :
