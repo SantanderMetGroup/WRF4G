@@ -33,7 +33,6 @@ default_dict       = {
                     'real_parallel'        : 'no',
                     'wrf_parallel'         : 'yes',
                     'wrfout_name_end_date' : 'yes',
-                    'app_source_script'    : '',
                     'namelist_dict'        : dict()
                     }
 
@@ -104,6 +103,7 @@ def sanity_check( exp_conf ) :
     """
     Chenck if experiment variables are written well
     """
+    logging.info( "Checking the variables in experiment.wrf4g file"  )
     # Check if all mandatory variables are avaible
     default_keys = exp_conf.default.keys()
     for key in mandatory_varibles :
@@ -147,7 +147,7 @@ def sanity_check( exp_conf ) :
         start_date = datewrf2datetime( elems[ 0 ] )
         end_date   = datewrf2datetime( elems[ 1 ] )
         if start_date >= end_date :
-            raise Exception( "ERROR: 'start_date' is not earlier than the 'end_date'" )
+            raise Exception( "ERROR: '%s' is not earlier than the '%s'" % ( elems[ 0 ] , elems[ 1 ] )  )
         ##
         # If there are four elements chunk_size_h = simult_length_h
         # If there are three elements simult_interval_h = simult_length_h
@@ -159,7 +159,8 @@ def sanity_check( exp_conf ) :
             if len( elems ) == 5 :
                 chunk_size_h = int( elems[ 4 ] )
                 if chunk_size_h > simult_length_h :
-                    logging.warning( "WARNING: 'chunk_size_h' is bigger than 'simulation_length_h'" )
+                    logging.warning( "WARNING: %d 'chunk_size' is bigger than %d 'simulation_length'" % 
+                                     ( chunk_size_h, simult_length_h ) )
                     chunk_size_h = simult_length_h
             else :
                 chunk_size_h  = None 
@@ -171,7 +172,7 @@ def sanity_check( exp_conf ) :
                 chunk_size_h = None
         if not chunk_size_h :
             chunk_size_h  = simult_length_h
-            logging.warning( "WARNING: 'chunk_size_h' will be %d hours" %  chunk_size_h )
+            logging.warning( "WARNING: 'chunk_size' will be %d hours" %  chunk_size_h )
         # Defining restart_interval
         restart_interval = chunk_size_h * 60  
         exp_conf.default.datetime_list.append( [ start_date, end_date, 
