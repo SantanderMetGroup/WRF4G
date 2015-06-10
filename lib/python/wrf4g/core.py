@@ -249,9 +249,7 @@ class Experiment( Base ):
                 # Check storage
                 if not self.dryrun :
                     # Update restart_interval on the namelist to create chunks
-                    exec_cmd( "fortnml -wof %s -n %d -s restart_interval %d"  % ( 
-                                            self.namelist_input,
-                                            self.max_dom, restart_interval ) )
+                    exec_cmd( "fortnml -wof %s -s restart_interval %d" % ( self.namelist_input, restart_interval ) )
                     rea._prepare_sub_files()
                 rea.cycle_chunks( update )
                 rea_start_date = exp_calendar.add_hours(rea_start_date, simult_interval_h ) 

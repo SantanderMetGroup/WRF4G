@@ -212,7 +212,7 @@ class PilotParams( object ):
     # logging configuration
     ###
     log_path             = join( local_path, 'log' )
-    log_file             = join( log_path,   'pilot_wrf.log' )
+    log_file             = join( log_path, 'pilot_wrf.log' )
 
     ##
     # Namelists
@@ -526,19 +526,19 @@ def launch_pilot( params ):
         if not rdate or params.rerun :   
             logging.info( "Restart date will be '%s'" % params.chunk_sdate )
             if params.nchunk > 1 :
-                chunk_rerun = ".true."
+                chunk_rerun = ".T."
             else :
-                chunk_rerun = ".false."
+                chunk_rerun = ".F."
         elif rdate >= params.chunk_sdate and rdate < params.chunk_edate :
             logging.info( "Restart date will be '%s'" % rdate )
             params.chunk_rdate = rdate
-            chunk_rerun = ".true." 
+            chunk_rerun = ".F." 
         elif rdate == params.chunk_edate :
             raise JobError( "Restart file is the end date", JOB_ERROR[ 'RESTART_MISMATCH' ] )
         else :
             raise JobError( "There is a mismatch in the restart date", JOB_ERROR[ 'RESTART_MISMATCH' ] )
       
-        if chunk_rerun == ".true." :
+        if chunk_rerun == ".F." :
             pattern =  "wrfrst*" + datetime2dateiso( params.chunk_rdate ) + '*'
             for file_name in VCPURL( params.rst_rea_output_path ).ls( pattern ):
                 # file will follow the pattern: wrfrst_d01_19900101T000000Z.nc
@@ -558,7 +558,7 @@ def launch_pilot( params ):
         #Copy namelist.input to wrf_run_path
         shutil.copyfile( join( params.root_path, 'namelist.input' ), params.namelist_input )
         
-        if job_db.has_wps() and chunk_rerun == ".false." :
+        if job_db.has_wps() and chunk_rerun == ".F." :
             logging.info( "The boundaries and initial conditions are available" )
             orig = join( params.domain_path, basename( params.namelist_wps ) )
             dest = params.namelist_wps
