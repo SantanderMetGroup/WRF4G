@@ -17,7 +17,7 @@ mandatory_varibles = ( 'name', 'max_dom', 'date_time', 'namelist_version',
                      )
 
 yes_no_variables   = ( 'clean_after_run', 'save_wps', 'real_parallel', 
-                       'wrf_parallel' , 'wrfout_name_end_date'
+                       'wrf_parallel' , 'wrfout_name_end_date', 'chunk_restart'
                      )
 
 
@@ -33,6 +33,7 @@ default_dict       = {
                     'real_parallel'        : 'no',
                     'wrf_parallel'         : 'yes',
                     'wrfout_name_end_date' : 'yes',
+                    'chunk_restart'        : 'yes',
                     'namelist_dict'        : dict()
                     }
 
@@ -174,7 +175,11 @@ def sanity_check( exp_conf ) :
             chunk_size_h  = simult_length_h
             logging.warning( "WARNING: 'chunk_size' will be %d hours" %  chunk_size_h )
         # Defining restart_interval
-        restart_interval = chunk_size_h * 60  
+        # To avoid chunk restart we add 1 hour to restart_interval variable
+        if exp_conf.default.chunk_restart == 'no' :
+            restart_interval = ( chunk_size_h + 1 ) * 60 
+        else :
+            restart_interval = chunk_size_h * 60  
         exp_conf.default.datetime_list.append( [ start_date, end_date, 
                                                  simult_interval_h, simult_length_h, 
                                                  chunk_size_h, restart_interval ] )
@@ -195,18 +200,21 @@ def sanity_check( exp_conf ) :
                 values = []
                 for nml_elem in nml_conf_val :
                     nml_elem_val = nml_elem.strip( ',' ).split( ',' )
-                    if nml_conf_key.startswith( 'single:' ) or nml_conf_key.startswith( 'single_list:' ):
+                    if nml_conf_key.startswith( 'single:' ) or \
+                            nml_conf_key.startswith( 'single_list:' ):
                         nml_conf_key = nml_conf_key.replace( 'single:', '' ) 
                     elif len( nml_elem_val ) > exp_conf.default.max_dom or \
                             nml_conf_key.startswith( 'max_dom' ) : 
                         nml_elem_val = nml_elem_val[ :exp_conf.default.max_dom ]
-                        logging.warning( "WARNING: Truncating values of '%s' variable --> %s" % ( nml_conf_key, nml_elem_val ) )
+                        logging.warning( "WARNING: Truncating values of '%s' variable --> %s" % 
+                                            ( nml_conf_key, nml_elem_val ) )
                         nml_elem_val = nml_elem_val[ :exp_conf.default.max_dom ]
                     elif len( nml_elem_val ) < exp_conf.default.max_dom or \
                             nml_conf_key.startswith( 'max_dom' ) : 
                         nml_elem_val = nml_elem_val + [ ( nml_elem_val[ -1 ] * \
                             ( exp_conf.default.max_dom - len( nml_elem_val ) ) ) ]
-                        logging.warning( "WARNING: Expanding values of '%s' variable --> %s" % ( nml_conf_key, nml_elem_val ) )
+                        logging.warning( "WARNING: Expanding values of '%s' variable --> %s" % 
+                                            ( nml_conf_key, nml_elem_val ) )
                     values.append( ' '.join( nml_elem_val ) )
                 exp_conf.default.namelist_dict[ nml_conf_key ] = values
     return exp_conf
