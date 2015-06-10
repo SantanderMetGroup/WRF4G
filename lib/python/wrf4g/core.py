@@ -113,7 +113,7 @@ class Experiment( Base ):
             raise Exception("ERROR: Realization with the same name and no reconfigurable fields already exists") 
         else: 
             #if rea exit,it means a realization with the same no reconfigurable fields
-            logging.debug('\tUpdating realization on the database...')
+            logging.debug('\t\tUpdating realization on the database...')
             rea.end_date = end_date
             return rea
 
@@ -421,7 +421,7 @@ class Realization( Base ):
             #run chunks
             for index, chunk in enumerate( l_chunks ) :
                 #print data of chunks
-                logging.info('\t---> Submitting Chunk %d \t%s\t%s' % ( chunk.chunk_id, 
+                logging.info('\t---> Submitting Chunk %d %s %s' % ( chunk.chunk_id, 
                                                               datetime2datewrf(chunk.start_date), 
                                                               datetime2datewrf(chunk.end_date) ) )
                 if not self.dryrun :
@@ -473,10 +473,11 @@ class Realization( Base ):
                                    ).one()
         except Exception : 
             #if ch does not exist (no chunk with the same no reconfigurable fields)
-            raise Exception("ERROR: Chunk with the same name and no reconfigurable fields already exists")
+            raise Exception("ERROR: Chunk with the same name and no "
+                            "reconfigurable fields already exists")
         else:
             #if ch exits,it means a chunk with the same no reconfigurable fields
-            logging.debug( "\t\tUpdating chunk on the database" )
+            logging.debug( "\t\t\tUpdating chunk on the database" )
             ch.chunk_end_date = chunk_end_date
             return ch
 
@@ -489,7 +490,8 @@ class Realization( Base ):
         chunk_id = 1
         chunk_start_date = self.start_date
         while chunk_start_date < self.end_date :
-            chunk_end_date = exp_calendar.add_hours( chunk_start_date, hours = self.chunk_size_h )
+            chunk_end_date = exp_calendar.add_hours( chunk_start_date, 
+                                                     hours = self.chunk_size_h )
             logging.info( "\t\t---> Chunk %d %s %s" %( chunk_id, 
                                                        datetime2datewrf(chunk_start_date),
                                                        datetime2datewrf(chunk_end_date) ) )
@@ -554,7 +556,7 @@ class Realization( Base ):
         per = runt * 100.0/ totalt
         #Print output
         logging.info( "%-60.60s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
-                    self.name[0:60], self.status, chunk_distribution, resource, status, 
+                    self.name, self.status, chunk_distribution, resource, status, 
                     gw_job, exitcode, per ) )
   
     def stop(self):
@@ -661,7 +663,7 @@ class Chunk( Base ):
         """
         Delete jobs
         """
-        logging.info('\t---> Stopping Chunk %d:\t%s\t%s' % ( self.chunk_id,
+        logging.info('\t---> Stopping Chunk %d t%s %s' % ( self.chunk_id,
                                                        datetime2datewrf(self.start_date),
                                                        datetime2datewrf(self.end_date) ) 
                                                        )
