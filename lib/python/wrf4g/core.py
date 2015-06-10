@@ -22,7 +22,7 @@ from datetime               import datetime, timedelta
 from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
 from wrf4g.config           import get_conf, save_exp_pkl, load_exp_pkl, dict_compare
 from wrf4g.db               import Base
-from wrf4g.utils.time       import datetime2datewrf, Calendar
+from wrf4g.utils.time       import datetime2datewrf, datetime2dateiso, Calendar
 from wrf4g.utils.file       import validate_name, edit_file
 from wrf4g.utils.command    import exec_cmd_subprocess as exec_cmd
 from wrf4g.tools.vcplib     import VCPURL
@@ -225,8 +225,8 @@ class Experiment( Base ):
             rea_start_date  = start_date
             while rea_start_date < end_date :
                 rea_end_date = exp_calendar.add_hours(rea_start_date, simult_length_h )
-                cycle_name   = "%s__%s_%s" % ( rea_name, datetime2datewrf( rea_start_date ),
-                                               datetime2datewrf( rea_end_date ) )
+                cycle_name   = "%s__%s_%s" % ( rea_name, datetime2dateiso( rea_start_date ),
+                                               datetime2dateiso( rea_end_date ) )
                 logging.info( "\t---> Realization %s" % cycle_name  )
                 if update :
                     # Check realization on the database
