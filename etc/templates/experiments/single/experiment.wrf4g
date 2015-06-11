@@ -8,8 +8,6 @@ max_dom              = 1
 date_time            = 2011-08-28_12:00:00 | 2011-08-30_00:00:00 | 12
 calendar             = standard
 timestep_dxfactor    = 6
-# Namelist
-namelist_version     = 3.3.1
 # Running options 
 np                   = 1
 requirements         = ARCH = "x86_64"
