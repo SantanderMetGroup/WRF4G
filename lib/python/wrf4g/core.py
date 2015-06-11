@@ -38,7 +38,7 @@ CHUNK_STATUS = ( 'PREPARED' , 'SUBMITTED', 'RUNNING',
                 )
 
 JOB_STATUS   = ( 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 'CANCEL',
-                 'FAILED', 'FINISHED', 'PREPARING_WN', 'DOWN_BIN',
+                 'FAILED', 'FINISHED', 'CREATE_OUTPUT_PATH', 'CONF_APP',
                  'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB',
                  'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF'
                 )
@@ -705,17 +705,17 @@ class Job( Base ):
         """
         #Save job's status
         self.status = status
-        #if is an status of the CHUNK_STATUS and REA_STATUS
-        if ( status in CHUNK_STATUS and status in REA_STATUS ) and status != 'SUBMITTED' : 
+        #if it is an status of the CHUNK_STATUS 
+        if status in CHUNK_STATUS and status != 'SUBMITTED' :
             self.chunk.status = status
-            if status == 'FINISHED' and self.chunk.chunk_id == self.chunk.realization.nchunks :
-                self.chunk.realization.status = status
-            elif status == 'FAILED' :
-                self.chunk.realization.status = 'FAILED'
-            else :
-                self.chunk.realization.status = 'RUNNING'
-        if status == 'FINISHED' and self.chunk.realization.status != 'FINISHED' : 
-            self.chunk.realization.current_chunk = self.chunk.chunk_id + 1
+            #if it is an status of the REA_STATUS 
+            if status in REA_STATUS and status != 'SUBMITTED' :
+                if status == 'FINISHED' and self.chunk.chunk_id == self.chunk.realization.nchunks :
+                    self.chunk.realization.status = 'FINISHED'
+                elif status == 'FINISHED' and self.chunk.realization.status != 'FINISHED' :
+                    self.chunk.realization.current_chunk = self.chunk.chunk_id + 1
+                elif status != 'FINISHED' :
+                    self.chunk.realization.status = status
         #Add event
         events            = Events()
         events.job_status = status

@@ -398,6 +398,7 @@ def launch_pilot( params ):
         if job_db.get_job_status() == 'CANCEL' :
             raise JobError( "Error this job should not run", JOB_ERROR[ 'JOB_SHOULD_NOT_RUN'] )
 
+        job_db.set_job_status( 'RUNNING' )
         ##
         # Create a remote tree directory for the realization
         ##
