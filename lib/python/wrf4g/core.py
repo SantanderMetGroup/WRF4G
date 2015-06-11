@@ -570,8 +570,8 @@ class Realization( Base ):
         if not exists( tar_file ) :
             raise Exception( 'There is not a log available for this chunk and this job.' )
         else :
-            logging.debug( "Unpacking %s file in the %s directory" % ( tar_file, directory ) )
-            extract(tar_file, directory )
+            logging.info( "Unpacking %s file in the %slog directory" % ( tar_file, directory ) )
+            extract(tar_file, expandvars( expanduser( directory ) ) )
 
     def stop(self):
         """
