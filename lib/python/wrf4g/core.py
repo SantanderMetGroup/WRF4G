@@ -254,7 +254,7 @@ class Experiment( Base ):
                 rea.cycle_chunks( update )
                 rea_start_date = exp_calendar.add_hours(rea_start_date, simult_interval_h ) 
     
-    def get_status(self, rea_pattern = False ):
+    def get_status(self, rea_pattern = False, rea_status = False ):
         """ 
         Show information about realizations of the experiment for example:
         
@@ -271,19 +271,20 @@ class Experiment( Base ):
         * % : percentage of simulation finished.
         """
         #list of realization of the experiment
+        l_realizations = self.realization
         if rea_pattern :
-            l_realizations = self.realization.\
+            l_realizations = l_realizations.\
                              filter( Realization.name.like( rea_pattern.replace('*','%') ) ) 
-        else :
-            l_realizations = self.realization.all()
-
+        if rea_status :
+            l_realizations = l_realizations.\
+                             filter( Realization.status == rea_status )
         #Header of the information
         if not ( l_realizations ):
             raise Exception ( 'There are not realizations to check.' )
         logging.info( '%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s'% (
                         'Realization','Status','Chunks','Comp.Res','Run.Sta',
                         'JID', 'Ext','%' ) )
-        for rea in l_realizations :
+        for rea in l_realizations.all() :
             #Print information of each realization
             rea.get_status( )
     
