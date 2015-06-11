@@ -22,6 +22,7 @@ from datetime               import datetime, timedelta
 from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
 from wrf4g.config           import get_conf, save_exp_pkl, load_exp_pkl, dict_compare
 from wrf4g.db               import Base
+from wrf4g.utils.archive    import extract
 from wrf4g.utils.time       import datetime2datewrf, datetime2dateiso, Calendar
 from wrf4g.utils.file       import validate_name, edit_file
 from wrf4g.utils.command    import exec_cmd_subprocess as exec_cmd
@@ -560,6 +561,18 @@ class Realization( Base ):
                     self.name, self.status, chunk_distribution, resource, status, 
                     gw_job, exitcode, per ) )
   
+    def get_log( self, chunk_id , job_id, directory ) :
+        """
+        Search and unpack log files. 
+        """
+        tar_file = join( WRF4G_DIR , 'var' , 'submission', self.experiment.name, 
+                         self.name, 'log_%s_%s.tar.gz' % ( chunk_id, job_id ) )
+        if not exists( tar_file ) :
+            raise Exception( 'There is not a log available for this chunk and this job.' )
+        else :
+            logging.debug( "Unpacking %s file in the %s directory" % ( tar_file, directory ) )
+            extract(tar_file, directory )
+
     def stop(self):
         """
         Delete chunks which status is running or submitted 

@@ -4,18 +4,19 @@ Manage WRF4G realizations.
 Usage: 
     wrf4g rea <name> submit [ --dbg ] [ --dry-run ] [ --rerun ] [ <first_ch> [ <last_ch> ] ]
     wrf4g rea <name> status [ --dbg ]
+    wrf4g rea <name> log    [ --dbg ] <chunk_id> <job_id> [ --dir=<directory> ]
     wrf4g rea <name> stop   [ --dbg ] [ --dry-run ]
    
 Options:
-   --dbg         Debug mode.
-   -n --dry-run  Dry run.
-   -l --long     Show a detailed information.
-   --rerun       Force to run although the realization has finished.
+   --dbg                 Debug mode.
+   -n --dry-run          Dry run.
+   --rerun               Force to run although the realization has finished.
+   -d --dir=<directory>  Directory to unpack log files [default: ./].
   
 Commands:
-   submit        Submit the realization.       
-   status        Check the status of a realization. 
-   stop          Stop the realization by killing its jobs.
+   submit                Submit the realization.       
+   status                Check the status of a realization. 
+   stop                  Stop the realization by killing its jobs.
 """
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
@@ -51,6 +52,8 @@ def run( arg ) :
                         'Realization','Status','Chunks','Comp.Res','Run.Sta',
                         'JID', 'Start_date', 'End_date', 'Ext','%' ) )
                 rea.get_status( )
+            elif arg[ 'log' ] :
+                rea.get_log( arg[ '<chunk_id>' ], arg[ '<job_id>' ], arg[ '--dir' ] )
             else :
                 rea.stop( )
             if arg[ '--dry-run' ] :
