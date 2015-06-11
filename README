@@ -18,36 +18,3 @@ WRF4G has been run only in 64bits platforms. Currently has been tested under the
  * Centos 5 and 6: No known issues.
  * Debian 6.0: No known issues.
 
-Installation
-
- * Download and unpack the distribution file from http://meteo.macc.unican.es/work/WRF4G.tar.gz to the installation directory, for example your $HOME directory. 
-cd $WRF4G_INSTALL_PATH (i.e cd $HOME)
-wget http://meteo.macc.unican.es/work/WRF4G.tar.gz
-tar xzvf WRF4G.tar.gz
-
- * Setup the WRF4G user environment. (To avoid typing the export command every time you want to use WRF4G, it is advisable to copy this line in $HOME/.bashrc)
-
-export PATH=$WRF4G_INSTALL_PATH/WRF4G/bin:$PATH
-
-The installation process provides the UI with:
-
- * A set of scripts that allows to prepare, submit and monitor experiments.
-
- * The WRF4G framework. This framework is a set of daemon/services that manages: 
-    * The Computing Resources where WRF is going to run.
-    * The database where the experiment information and status (realization, chunks, jobs) is stored.
-
-Veryfing installation
-
-* Start the WRF4G Framework. This command will start the services needed by WRF4G to run.
-
-wrf4g framework -start
-
-* List the CR available.
-
-wrf4g resources -l 
-HID PRIO  ARCH        CORES(U/F/T)  LRMS       HOSTNAME                      
-0   1     x86_64             0/1/1  FORK       localhost 
-              
-== Information ==
-If you want to find more information about WRF4G, please check out https://www.meteo.unican.es/trac/meteo/wiki/WRF4G
