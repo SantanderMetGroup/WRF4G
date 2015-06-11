@@ -61,10 +61,10 @@ _wrf4g_resource()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -eq 2 ]; then
+    if [ $COMP_CWORD -eq 3 ]; then
         COMPREPLY=( $( compgen -W '--dbg edit list check' -- $cur) )
     else
-        case ${COMP_WORDS[2]} in
+        case ${COMP_WORDS[3]} in
             edit)
             _wrf4g_resource_edit
         ;;
@@ -84,7 +84,7 @@ _wrf4g_resource_edit()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W ' ' -- $cur) )
     fi
 }
@@ -94,7 +94,7 @@ _wrf4g_resource_list()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W ' ' -- $cur) )
     fi
 }
@@ -104,7 +104,7 @@ _wrf4g_resource_check()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W ' ' -- $cur) )
     fi
 }
@@ -114,10 +114,10 @@ _wrf4g_exp()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -eq 2 ]; then
+    if [ $COMP_CWORD -eq 3 ]; then
         COMPREPLY=( $( compgen -fW ' status edit stop create list update submit delete define' -- $cur) )
     else
-        case ${COMP_WORDS[2]} in
+        case ${COMP_WORDS[3]} in
             status)
             _wrf4g_exp_status
         ;;
@@ -195,7 +195,7 @@ _wrf4g_exp_list()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W '-p= --pattern=' -- $cur) )
     fi
 }
@@ -205,7 +205,7 @@ _wrf4g_exp_update()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W '--dbg -n --dry-run -d= --dir=' -- $cur) )
     fi
 }
@@ -215,7 +215,7 @@ _wrf4g_exp_submit()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W '--dbg -n --dry-run --rerun ' -- $cur) )
     fi
 }
@@ -225,7 +225,7 @@ _wrf4g_exp_delete()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W '--dbg -n --dry-run ' -- $cur) )
     fi
 }
@@ -235,7 +235,7 @@ _wrf4g_exp_define()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W '--dbg -f --force -t= --from-template= -d= --dir=' -- $cur) )
     fi
 }
@@ -447,10 +447,10 @@ _wrf4g_rea()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -eq 2 ]; then
-        COMPREPLY=( $( compgen -fW ' status stop submit' -- $cur) )
+    if [ $COMP_CWORD -eq 3 ]; then
+        COMPREPLY=( $( compgen -fW ' status stop submit log' -- $cur) )
     else
-        case ${COMP_WORDS[2]} in
+        case ${COMP_WORDS[3]} in
             status)
             _wrf4g_rea_status
         ;;
@@ -459,6 +459,9 @@ _wrf4g_rea()
         ;;
             submit)
             _wrf4g_rea_submit
+        ;;
+            log)
+            _wrf4g_rea_log
         ;;
         esac
 
@@ -470,7 +473,7 @@ _wrf4g_rea_status()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
     fi
 }
@@ -480,7 +483,7 @@ _wrf4g_rea_stop()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W '--dbg -n --dry-run ' -- $cur) )
     fi
 }
@@ -490,20 +493,31 @@ _wrf4g_rea_submit()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -fW '--dbg -n --dry-run --rerun ' -- $cur) )
     fi
 }
+
+_wrf4g_rea_log()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 4 ]; then
+        COMPREPLY=( $( compgen -fW '--dbg -d= --dir=' -- $cur) )
+    fi
+}
+
 
 _wrf4g_id()
 {
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -eq 2 ]; then
+    if [ $COMP_CWORD -eq 3 ]; then
         COMPREPLY=( $( compgen -fW ' info init delete' -- $cur) )
     else
-        case ${COMP_WORDS[2]} in
+        case ${COMP_WORDS[3]} in
             info)
             _wrf4g_id_info
         ;;
@@ -523,7 +537,7 @@ _wrf4g_id_info()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
     fi
 }
@@ -533,7 +547,7 @@ _wrf4g_id_init()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W '--dbg -l= --lifetime=' -- $cur) )
     fi
 }
@@ -543,7 +557,7 @@ _wrf4g_id_delete()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
 
-    if [ $COMP_CWORD -ge 3 ]; then
+    if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
     fi
 }
