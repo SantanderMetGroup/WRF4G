@@ -42,6 +42,7 @@ import sys
 import logging
 import shutil
 from sqlalchemy.orm.exc   import NoResultFound
+from sqlalchemy.exc       import OperationalError
 from wrf4g.db             import get_session
 from wrf4g.core           import Experiment
 from wrf4g.utils.time     import datetime2datewrf
@@ -104,6 +105,8 @@ def run( arg ) :
                 session.rollback()
             else :
                 session.commit()
+        except OperationalError, err :
+            logging.error( err.message )
         except Exception , err :
             session.rollback()
             logging.error( str( err ) )
