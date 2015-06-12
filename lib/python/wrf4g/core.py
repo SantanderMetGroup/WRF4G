@@ -4,6 +4,7 @@ __revision__ = "$Id$"
 
 import os
 import re
+import glob
 import tarfile
 import shutil
 import datetime
@@ -561,16 +562,16 @@ class Realization( Base ):
                     self.name, self.status, chunk_distribution, resource, status, 
                     gw_job, exitcode, per ) )
   
-    def get_log( self, chunk_id , job_id, directory ) :
+    def get_log( self, chunk_id , directory ) :
         """
         Search and unpack log files. 
         """
-        tar_file = join( WRF4G_DIR , 'var' , 'submission', self.experiment.name, 
-                         self.name, 'log_%s_%s.tar.gz' % ( chunk_id, job_id ) )
-        if not exists( tar_file ) :
-            raise Exception( 'There is not a log available for this chunk and this job.' )
-        else :
-            logging.info( "Unpacking %s file in the %slog directory" % ( tar_file, directory ) )
+        tar_path      = join( WRF4G_DIR, 'var', 'submission', self.experiment.name, self.name )
+        all_tar_files = glob.glob( join( tar_path, 'log_%s_*.tar.gz' % chunk_id ) ) 
+        if not all_tar_files :
+            raise Exception( 'There is not a log available for this chunk.' )
+        for tar_file in all_tar_files :
+            logging.info( "Unpacking %s file in the %s directory" % ( tar_file, directory ) )
             extract(tar_file, expandvars( expanduser( directory ) ) )
 
     def stop(self):

@@ -4,7 +4,7 @@ Manage WRF4G realizations.
 Usage: 
     wrf4g rea <name> submit [ --dbg ] [ --dry-run ] [ --rerun ] [ <first_ch> [ <last_ch> ] ]
     wrf4g rea <name> status [ --dbg ]
-    wrf4g rea <name> log    [ --dbg ] <chunk_id> <job_id> [ --dir=<directory> ]
+    wrf4g rea <name> log    [ --dbg ] <chunk_id> [ --dir=<directory> ]
     wrf4g rea <name> stop   [ --dbg ] [ --dry-run ]
    
 Options:
@@ -54,7 +54,7 @@ def run( arg ) :
                         'JID', 'Start_date', 'End_date', 'Ext','%' ) )
                 rea.get_status( )
             elif arg[ 'log' ] :
-                rea.get_log( arg[ '<chunk_id>' ], arg[ '<job_id>' ], arg[ '--dir' ] )
+                rea.get_log( arg[ '<chunk_id>' ], arg[ '--dir' ] )
             else :
                 rea.stop( )
             if arg[ '--dry-run' ] :
