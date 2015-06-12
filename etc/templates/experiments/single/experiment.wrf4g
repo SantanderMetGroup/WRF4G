@@ -30,7 +30,7 @@ wrfout_name_end_date = no
 # app
 app                  = wrf_all_in_one | bundle | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/WRF/WRFbin-3.3.1_r1184INTEL_OMPI.tar.gz
 # WRF-namelist parameters. Override namelist.input variables here
-namelist_version     = 3.3.1
+namelist_version     = 3.4.1
 namelist             = spec_bdy_width     | 10
                        spec_zone          | 1
 	               relax_zone         | 9
