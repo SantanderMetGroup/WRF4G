@@ -137,6 +137,7 @@ then
     echo ""
     download_wrf4g_versions
     WRF4G_VERSION=$(sort $FILE_VERSIONS | tail -1)
+    rm -rf $FILE_VERSIONS
 fi
 echo ""
 echo "This script will install WRF4G version: $WRF4G_VERSION"
@@ -167,6 +168,8 @@ then
 else
     unpack_wrf4g
 fi
+
+rm -rf $WRF4G_BUNDLE
 
 cat <<EOF
 ====================================
