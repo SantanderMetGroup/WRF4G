@@ -60,7 +60,7 @@ _wrf4g_resource()
 {
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
-
+ 
     if [ $COMP_CWORD -eq 3 ]; then
         COMPREPLY=( $( compgen -W '--dbg edit list check' -- $cur) )
     else
@@ -113,9 +113,13 @@ _wrf4g_exp()
 {
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
+ 
+    if [ $COMP_CWORD -eq 2 ]; then
+        COMPREPLY=( $( compgen -fW ' list' -- $cur) )
+    fi
 
     if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -fW ' status edit stop create list update submit delete define' -- $cur) )
+        COMPREPLY=( $( compgen -fW ' status edit stop list create update submit delete define' -- $cur) )
     else
         case ${COMP_WORDS[3]} in
             status)
