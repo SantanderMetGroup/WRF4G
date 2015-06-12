@@ -61,53 +61,11 @@ _wrf4g_resource()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
  
-    if [ $COMP_CWORD -eq 3 ]; then
+    if [ $COMP_CWORD -eq 2 ]; then
         COMPREPLY=( $( compgen -W '--dbg edit list check' -- $cur) )
-    else
-        case ${COMP_WORDS[3]} in
-            edit)
-            _wrf4g_resource_edit
-        ;;
-            list)
-            _wrf4g_resource_list
-        ;;
-            check)
-            _wrf4g_resource_check
-        ;;
-        esac
-
     fi
 }
 
-_wrf4g_resource_edit()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W ' ' -- $cur) )
-    fi
-}
-
-_wrf4g_resource_list()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W ' ' -- $cur) )
-    fi
-}
-
-_wrf4g_resource_check()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W ' ' -- $cur) )
-    fi
-}
 
 _wrf4g_exp()
 {
@@ -360,23 +318,6 @@ _wrf4g_host()
 
     if [ $COMP_CWORD -eq 2 ]; then
         COMPREPLY=( $( compgen -fW '--dbg list' -- $cur) )
-    else
-        case ${COMP_WORDS[2]} in
-            list)
-            _wrf4g_host_list
-        ;;
-        esac
-
-    fi
-}
-
-_wrf4g_host_list()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W ' ' -- $cur) )
     fi
 }
 
@@ -387,63 +328,7 @@ _wrf4g_conf()
 
     if [ $COMP_CWORD -eq 2 ]; then
         COMPREPLY=( $( compgen -W '--dbg daemon sched logger database' -- $cur) )
-    else
-        case ${COMP_WORDS[2]} in
-            daemon)
-            _wrf4g_conf_daemon
-        ;;
-            sched)
-            _wrf4g_conf_sched
-        ;;
-            logger)
-            _wrf4g_conf_logger
-        ;;
-            database)
-            _wrf4g_conf_database
-        ;;
-        esac
-
-    fi
-}
-
-_wrf4g_conf_daemon()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W ' ' -- $cur) )
-    fi
-}
-
-_wrf4g_conf_sched()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W ' ' -- $cur) )
-    fi
-}
-
-_wrf4g_conf_logger()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W ' ' -- $cur) )
-    fi
-}
-
-_wrf4g_conf_database()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W ' ' -- $cur) )
-    fi
+    fi 
 }
 
 _wrf4g_rea()
