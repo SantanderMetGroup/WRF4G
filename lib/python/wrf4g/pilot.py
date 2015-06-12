@@ -861,11 +861,12 @@ def launch_pilot( params ):
         # Create a log bundle 
         ##
         os.chdir( params.local_path )
-        log_tar = "log_%d_%d" % ( params.nchunk, params.job_id )
+        log_name = "log_%d_%d" % ( params.nchunk, params.job_id )
+        log_tar  = log_name + '.tar.gz' 
         try :
             logging.info( "Create tar file for logs" ) 
-            tar = tarfile.open( log_tar + '.tar.gz' , "w:gz" )
-            tar.add( 'log', arcname = log_tar )
+            tar = tarfile.open( log_tar , "w:gz" )
+            tar.add( 'log', arcname = log_name )
         finally :
             tar.close()
         # Local copy that will use as outsandbox
