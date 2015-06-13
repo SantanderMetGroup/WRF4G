@@ -196,6 +196,8 @@ class GwTmMad (object):
                                 query_job.exitcode = exit_code
                                 if exit_code == '0' :
                                     query_job.chunk.realization.current_date = query_job.chunk.realization.end_date
+                                else :
+                                    query_job.set_status( 'FAILED' )
                                 session.commit()
                         except Exception , err :
                             session.rollback()
