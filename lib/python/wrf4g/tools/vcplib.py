@@ -112,10 +112,10 @@ class VCPURL(object):
                                        'rm'    : "" , 
                                        'rename': "" , 
                                        'name'  : "self.file"},   
-                            'sftp'  : {'ls'    : "'\"echo ls %s\"        | sftp %s' %(self.file, self.usercomputer)" ,
-                                       'mkdir' : "'\"echo mkdir %s\"     | sftp %s' %(self.file, self.usercomputer)" ,
-                                       'rm'    : "'\"echo rm %s\"        | sftp %s' %(self.file, self.usercomputer)" ,
-                                       'rename': "'\"echo rename %s %s\" | sftp %s' %(orig,dest, self.usercomputer)" ,
+                            'sftp'  : {'ls'    : '"echo \'ls %s\'        | sftp %s" %(self.file, self.usercomputer)' ,
+                                       'mkdir' : '"echo \'mkdir %s\'     | sftp %s" %(self.file, self.usercomputer)' ,
+                                       'rm'    : '"echo \'rm %s\'        | sftp %s" %(self.file, self.usercomputer)' ,
+                                       'rename': '"echo \'rename %s %s\' | sftp %s" %(orig,dest, self.usercomputer)' ,
                                        'name'  : "self.file"}, 
                             'rsync' : {'ls'    : "'ssh -q %s ls -1 %s'    %(self.usercomputer,self.file)",
                                        'mkdir' : "'ssh -q %s mkdir -p %s' %(self.usercomputer,self.file)", 
@@ -332,8 +332,9 @@ def copy_file(origin, destination, overwrite=True):
                                   'orig'     : "str(orig)", 
                                   'dest'     : "str(dest)"},
                        'sftp':   {'verbose'  : '',
-                                  'command'  : "'echo \"put -p %(orig)s %(dest)s\" | sftp %s' %orig.usercomputer",
+                                  'command'  : '"echo \'put -p %(orig)s %(dest)s\' | sftp %(usercomputer)s" %param',
                                   'orig'     : "orig.file",
+                                  'usercomputer' : "dest.usercomputer",
                                   'dest'     : "dest.file"},
                        'lfn':    {'verbose'  : '-v',
                                   'command'  : "'lcg-cr %(verbose)s %(dest)s %(orig)s' %param",
@@ -351,8 +352,9 @@ def copy_file(origin, destination, overwrite=True):
                                   'dest'     : "dest.file"},
                         },
               'sftp':  {'file' : {'verbose'  : '',
-                                  'command'  : "'echo \"get -p %(orig)s %(dest)s\" | sftp %s' %dest.usercomputer",
+                                  'command'  : '"echo \'get -p %(orig)s %(dest)s\' | sftp %(usercomputer)s" %param',
                                   'orig'     : "orig.file",
+                                  'usercomputer' : "orig.usercomputer",
                                   'dest'     : "dest.file"},
                         },
               'https': {'file' : {'verbose'  : '-v', 
@@ -415,6 +417,8 @@ def copy_file(origin, destination, overwrite=True):
     else:
         dest_file = eval(param['dest'])
     param['dest'] = dest_file
+    if orig.protocol == "sftp" or dest.protocol == "sftp" :
+       param['usercomputer'] = eval(param['usercomputer'])
     if logging.DEBUG : 
         param['verbose'] = ""
     #Overwrite the destination if necessary
