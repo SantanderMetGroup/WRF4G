@@ -37,7 +37,7 @@ def exec_cmd_popen( cmd ):
         import subprocess
         p      = subprocess.Popen( cmd, shell = True, stdout = subprocess.PIPE,
                                    stderr = subprocess.PIPE, close_fds = True )
-        output = p.stdout.read().strip()
+        output = p.stdout.read().strip() + p.stderr.read().strip()
         code   = p.wait()
     except ImportError:
         import popen2
