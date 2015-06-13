@@ -73,11 +73,11 @@ _wrf4g_exp()
     cur="${COMP_WORDS[COMP_CWORD]}"
  
     if [ $COMP_CWORD -eq 2 ]; then
-        COMPREPLY=( $( compgen -fW ' list' -- $cur) )
+        COMPREPLY=( $( compgen -W ' list' -- $cur) )
     fi
 
     if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -fW ' status edit cancel list create update submit delete define' -- $cur) )
+        COMPREPLY=( $( compgen -W ' status edit cancel list create update submit delete define' -- $cur) )
     else
         case ${COMP_WORDS[3]} in
             status)
@@ -148,7 +148,7 @@ _wrf4g_exp_create()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -n --dry-run -d= --dir=' -- $cur) )
+        COMPREPLY=( $( compgen -fW '--dbg -n --dry-run -d= --dir=' -- $cur) )
     fi
 }
 
@@ -168,7 +168,7 @@ _wrf4g_exp_update()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -n --dry-run -d= --dir=' -- $cur) )
+        COMPREPLY=( $( compgen -fW '--dbg -n --dry-run -d= --dir=' -- $cur) )
     fi
 }
 
@@ -198,7 +198,7 @@ _wrf4g_exp_define()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -f --force -t= --from-template= -d= --dir=' -- $cur) )
+        COMPREPLY=( $( compgen -fW '--dbg -f --force -t= --from-template= -d= --dir=' -- $cur) )
     fi
 }
 
@@ -218,7 +218,7 @@ _wrf4g_job()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 2 ]; then
-        COMPREPLY=( $( compgen -W ' cancel list log submit history' -- $cur) )
+        COMPREPLY=( $( compgen -W ' cancel list log submit history ' -- $cur) )
     else
         case ${COMP_WORDS[2]} in
             cancel)
@@ -247,7 +247,7 @@ _wrf4g_job_cancel()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
     fi
 }
 
@@ -257,7 +257,7 @@ _wrf4g_job_list()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
     fi
 }
 
@@ -267,7 +267,7 @@ _wrf4g_job_log()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
     fi
 }
 
@@ -277,7 +277,7 @@ _wrf4g_job_submit()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg --dep=' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg --dep=' -- $cur) )
     fi
 }
 
@@ -287,7 +287,7 @@ _wrf4g_job_history()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
     fi
 }
 
@@ -317,7 +317,7 @@ _wrf4g_host()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 2 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg list' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg list') )
     fi
 }
 
@@ -337,7 +337,7 @@ _wrf4g_rea()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -fW ' status cancel submit log' -- $cur) )
+        COMPREPLY=( $( compgen -W 'status cancel submit log ' -- $cur) )
     else
         case ${COMP_WORDS[3]} in
             status)
@@ -383,7 +383,7 @@ _wrf4g_rea_submit()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg -n --dry-run --rerun ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -n --dry-run --rerun ' -- $cur) )
     fi
 }
 
@@ -404,7 +404,7 @@ _wrf4g_id()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -fW ' info init delete' -- $cur) )
+        COMPREPLY=( $( compgen -W 'info init delete ' -- $cur) )
     else
         case ${COMP_WORDS[3]} in
             info)
