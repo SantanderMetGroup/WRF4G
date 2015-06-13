@@ -721,6 +721,8 @@ class Job( Base ):
         """
         #Save job's status
         self.status = status
+        if status == 'CANCEL' :
+            self.chunk.status = self.chunk.realization.status = 'PREPARED'
         #if it is an status of the CHUNK_STATUS 
         if status in CHUNK_STATUS and status != 'SUBMITTED' :
             self.chunk.status = status
