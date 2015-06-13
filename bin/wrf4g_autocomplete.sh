@@ -77,7 +77,7 @@ _wrf4g_exp()
     fi
 
     if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -fW ' status edit stop list create update submit delete define' -- $cur) )
+        COMPREPLY=( $( compgen -fW ' status edit cancel list create update submit delete define' -- $cur) )
     else
         case ${COMP_WORDS[3]} in
             status)
@@ -86,8 +86,8 @@ _wrf4g_exp()
             edit)
             _wrf4g_exp_edit
         ;;
-            stop)
-            _wrf4g_exp_stop
+            cancel)
+            _wrf4g_exp_cancel
         ;;
             create)
             _wrf4g_exp_create
@@ -132,7 +132,7 @@ _wrf4g_exp_edit()
     fi
 }
 
-_wrf4g_exp_stop()
+_wrf4g_exp_cancel()
 {
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
@@ -337,14 +337,14 @@ _wrf4g_rea()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -fW ' status stop submit log' -- $cur) )
+        COMPREPLY=( $( compgen -fW ' status cancel submit log' -- $cur) )
     else
         case ${COMP_WORDS[3]} in
             status)
             _wrf4g_rea_status
         ;;
-            stop)
-            _wrf4g_rea_stop
+            cancel)
+            _wrf4g_rea_cancel
         ;;
             submit)
             _wrf4g_rea_submit
@@ -367,7 +367,7 @@ _wrf4g_rea_status()
     fi
 }
 
-_wrf4g_rea_stop()
+_wrf4g_rea_cancel()
 {
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"

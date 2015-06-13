@@ -9,7 +9,7 @@ Usage:
     wrf4g exp <name> update [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
     wrf4g exp <name> submit [ --dbg ] [ --dry-run ] [ --rerun ] 
     wrf4g exp <name> status [ --dbg ] [ --pattern=<name> ] [ --rea-state=<state> ]
-    wrf4g exp <name> stop   [ --dbg ] [ --dry-run ]   
+    wrf4g exp <name> cancel [ --dbg ] [ --dry-run ]   
     wrf4g exp <name> delete [ --dbg ] [ --dry-run ]
    
 Options:
@@ -31,7 +31,7 @@ Commands:
     update                    Update the experiment configuration.
     submit                    Submit the experiment.
     status                    Check the status of the experiment realizations.
-    stop                      Stop the active realizations by killing their jobs.
+    cancel                    Cancel the active realizations by killing their jobs.
     delete                    Remove the experiment from the database.
 """
 __version__  = '2.0.0'
@@ -92,8 +92,8 @@ def run( arg ) :
                         exp.run( arg[ '--rerun' ] )
                     elif arg[ 'status' ] :
                         exp.get_status( arg[ '--pattern' ], arg[ '--rea-state' ] )
-                    elif arg[ 'stop' ] :
-                        exp.stop( )
+                    elif arg[ 'cancel' ] :
+                        exp.cancel( )
                     elif arg[ 'delete' ] :
                         exp.delete( )
                         session.delete( exp )

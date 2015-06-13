@@ -320,19 +320,19 @@ class Experiment( Base ):
         with open(dest_path, 'w') as f :
             f.writelines( data_updated ) 
 
-    def stop(self):
+    def cancel(self):
         """
         Delete jobs which status is running or submitted 
         """
         #list of realization of the experiment
         l_realizations = self.realization.all()
         if not ( l_realizations ):
-            logging.info( 'There are not realizations to stop.' )
+            logging.info( 'There are not realizations to cancel.' )
         else :
-            logging.info( 'Stopping Experiment %s' % self.name )
+            logging.info( 'Canceling Experiment %s' % self.name )
             for rea in l_realizations :
                 rea.dryrun = self.dryrun
-                rea.stop( )
+                rea.cancel( )
 
     def delete(self):
         """
@@ -574,20 +574,20 @@ class Realization( Base ):
             logging.info( "Unpacking %s file in the %s directory" % ( tar_file, directory ) )
             extract(tar_file, expandvars( expanduser( directory ) ) )
 
-    def stop(self):
+    def cancel(self):
         """
         Delete chunks which status is running or submitted 
         """
         l_chunks = self.chunk.filter( or_( Chunk.status == 'SUBMITTED', 
                                            Chunk.status == 'RUNNING' ) 
                                     ).all()
+        logging.info('---> Canceling Realization %s' % self.name )
         if not ( l_chunks ):
-            logging.info( 'There are not chunks to stop.' )
+            logging.info( '\tThere are not chunks to cancel.' )
         else :
-            logging.info('---> Stopping Realization %s' % self.name )
             for chunk in l_chunks :
                 chunk.dryrun = self.dryrun
-                chunk.stop( )
+                chunk.cancel( )
     
 class Chunk( Base ):
     """ 
@@ -674,11 +674,11 @@ class Chunk( Base ):
         # Update realizaiton status
         self.status = 'SUBMITTED'
 
-    def stop(self):
+    def cancel(self):
         """
         Delete jobs
         """
-        logging.info('\t---> Stopping Chunk %d t%s %s' % ( self.chunk_id,
+        logging.info('\t---> Canceling Chunk %d t%s %s' % ( self.chunk_id,
                                                        datetime2datewrf(self.start_date),
                                                        datetime2datewrf(self.end_date) ) 
                                                        )
@@ -687,11 +687,11 @@ class Chunk( Base ):
                                        Job.status != 'CANCEL' ) 
                                 ).all()
         if not ( l_jobs ):
-            logging.info( 'There are not jobs to stop.' )
+            logging.info( '\t\tThere are not jobs to cancel.' )
         else :
             for job in l_jobs :
                 job.dryrun = self.dryrun
-                job.stop( )
+                job.cancel( )
        
 class Job( Base ):
     """
@@ -751,11 +751,11 @@ class Job( Base ):
         # Update status
         self.set_status( 'SUBMITTED' ) 
    
-    def stop(self):
+    def cancel(self):
         """
         Delete a job
         """
-        logging.info('\t\t---> Stopping Job %d' % self.gw_job ) 
+        logging.info('\t\t---> Canceling Job %d' % self.gw_job ) 
         if not self.dryrun :
             GWJob().kill( self.gw_job )
             self.set_status( 'CANCEL' )
