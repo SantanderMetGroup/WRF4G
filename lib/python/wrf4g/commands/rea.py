@@ -49,9 +49,9 @@ def run( arg ) :
                          last_chunk_run  = arg[ '<last_ch>' ] , 
                          rerun           = arg[ '--rerun' ] )
             elif arg[ 'status' ] :
-                logging.info( '%-21s %-10s %-10s %-16s %-10s %6s %20s %20s %-3s %6s'% (
+                logging.info( '%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s'% (
                         'Realization','Status','Chunks','Comp.Res','Run.Sta',
-                        'JID', 'Start_date', 'End_date', 'Ext','%' ) )
+                        'JID', 'Ext','%' ) )
                 rea.get_status( )
             elif arg[ 'log' ] :
                 rea.get_log( arg[ '<chunk_id>' ], arg[ '--dir' ] )
