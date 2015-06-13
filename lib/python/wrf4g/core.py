@@ -683,7 +683,8 @@ class Chunk( Base ):
                                                        datetime2datewrf(self.end_date) ) 
                                                        )
         l_jobs = self.job.filter( or_( Job.status != 'PREPARED', 
-                                       Job.status == 'FAILED' ) 
+                                       Job.status != 'FINISHED',
+                                       Job.status != 'CANCEL' ) 
                                 ).all()
         if not ( l_jobs ):
             logging.info( 'There are not jobs to stop.' )
