@@ -187,7 +187,9 @@ class VCPURL(object):
         if err != 0 :
             out = "Error reading dir: " + str(out)
             raise Exception(out)
-            
+        
+        if self.protocol == 'sftp' and 'not found' in out :
+            return []
         out_list = out.split("\n")
         if self.protocol == "gsiftp": 
             for i, elem in enumerate(out_list[2:]):
