@@ -97,7 +97,7 @@ class Experiment( Base ):
         """
         edit_file( join( self.home_dir, 'experiment.wrf4g' )  )
 
-    def check_db(self, name, start_date, end_date, label ):
+    def check_db(self, name, start_date, end_date, chunk_size_h, label ):
         """ 
         Check if there is a realization with the same no reconfigurable field. 
         If there is not a realization with the same no reconfigurable fields => error
@@ -111,7 +111,9 @@ class Experiment( Base ):
         else :
             #Check if there is a realization with the same no reconfigurable fields:
             #rea_name, start_date, label
-            if rea.start_date == start_date and rea.label == label :
+            if rea.start_date   == start_date and \
+               rea.label        == label and \
+               rea.chunk_size_h == chunk_size_h :
                 logging.debug('\t\tUpdating realization on the database...')
                 rea.end_date = end_date
                 return rea
@@ -246,10 +248,11 @@ class Experiment( Base ):
                                                rea_end_date.strftime( "%Y%m%dT%H%M%S" ) )
                 logging.info( "\t---> Realization %s" % cycle_name  )
                 # Check realization on the database
-                rea = self.check_db( name          = cycle_name, 
-                                     start_date    = rea_start_date,
-                                     end_date      = rea_end_date,
-                                     label         = label ) 
+                rea = self.check_db( name             = cycle_name, 
+                                     start_date       = rea_start_date,
+                                     end_date         = rea_end_date,
+                                     chunk_size_h     = chunk_size_h,
+                                     label            = label ) 
                 if not rea :
                     # Create a realization 
                     rea = Realization( name          = cycle_name, 
@@ -470,24 +473,18 @@ class Realization( Base ):
         If there is not a chunk with the same no reconfigurable fields => error,.
         If there is a chunk with the same reconfigurable fields, update data.
         """
-        #Check if there is a chunk with the same no reconfigurable fields:
-        #id_rea,id_chunk,start_date
+        #Check if there is a chunk with the same fields
         try:
             ch = self.chunk.filter( Chunk.rea_id     == rea_id,
                                     Chunk.chunk_id   == chunk_id,
+                                    Chunk.start_date == chunk_start_date,
+                                    Chunk.end_date   == chunk_end_date,
                                    ).one()
-       
         except Exception : 
             return None  
         else :
-            if ch.start_date == chunk_start_date :
-                logging.debug( "\t\t\tUpdating chunk on the database" )
-                ch.chunk_end_date = chunk_end_date
-                return ch
-            else :
-                #if ch does not exist (no chunk with the same no reconfigurable fields)
-                raise Exception("\t\t\tERROR: Chunk with the same name and no "
-                                "reconfigurable fields already exists")
+            #if ch exists 
+            return ch      
 
     def cycle_chunks(self):
         """
