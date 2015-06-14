@@ -1,5 +1,5 @@
 """
-Stop DRM4G daemon, database and ssh-agent. 
+Stop DRM4G and MySQL daemons and ssh-agent. 
     
 Usage: 
     wrf4g stop [ --dbg ] 
