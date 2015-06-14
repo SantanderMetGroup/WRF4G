@@ -9,7 +9,7 @@ Options:
    --dbg                Debug mode.
    --clear-conf         Clear WRF4G's settings stored in .wrf4g directory.
    --disc-jobs          All available jobs on WRF4G will be discared. 
-   --ext-db             It will be use an external MySQL database.
+   --ext-db             It will be used an external MySQL database.
    --db-port=port       Port number to use for MySQL connection [default: 25000].     
    --db-host=hostname   Hostname for MySQL connection [default: localhost].
 """
