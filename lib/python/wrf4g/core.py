@@ -103,21 +103,21 @@ class Experiment( Base ):
         If there is not a realization with the same no reconfigurable fields => error
         If there is a realization with the same reconfigurable fields, update data
         """
-        #Check if there is a realization with the same no reconfigurable fields:
-        #rea_name, start_date, label
-        try:
-            rea = self.realization.filter( Realization.name       == name,
-                                           Realization.start_date == start_date,
-                                           Realization.label      == label
-                                         ).one()
+        #Check if exists the realization
+        try :
+            rea = self.realization.filter( Realization.name == name ).one()
         except Exception :
-            #if rea does not exist (no realization with the same no reconfigurable fields)
-            raise Exception("ERROR: Realization with the same name and no reconfigurable fields already exists") 
-        else: 
-            #if rea exit,it means a realization with the same no reconfigurable fields
-            logging.debug('\t\tUpdating realization on the database...')
-            rea.end_date = end_date
-            return rea
+            return None
+        else :
+            #Check if there is a realization with the same no reconfigurable fields:
+            #rea_name, start_date, label
+            if rea.start_date == start_date and rea.label == label :
+                logging.debug('\t\tUpdating realization on the database...')
+                rea.end_date = end_date
+                return rea
+            else :                                 
+                #if rea does not exist (no realization with the same no reconfigurable fields)
+                raise Exception("\t\tRealization with the same name and no reconfigurable fields already exists") 
 
     def _create_wrf4g_bundles(self):
         """
@@ -207,9 +207,9 @@ class Experiment( Base ):
             logging.debug( "Force trimming the arrays in the namelist to 'max_dom'" ) 
             exec_cmd( "fortnml -wof %s --force-trim=%d" % ( self.namelist_input, self.max_dom ) )
         # Cycle to create a realization per combination
-        self.cycle_combinations( exp_conf.default.label_combination, exp_conf.default.namelist_dict, update )
+        self.cycle_combinations( exp_conf.default.label_combination, exp_conf.default.namelist_dict )
 
-    def cycle_combinations( self, combinations, namelist_combinations, update ):
+    def cycle_combinations( self, combinations, namelist_combinations ):
         """
         Create realizations for each combination namelist.
         """
@@ -229,9 +229,9 @@ class Experiment( Base ):
                     else :
                        cmd = "fortnml -wof %s -s %s %s"    % ( self.namelist_input, mnl_variable, str( mnl_values[ comb ] ) ) 
                     exec_cmd( cmd )
-            self.cycle_time( "%s__%s" % ( self.name, label ) if label else self.name, label, update )
+            self.cycle_time( "%s__%s" % ( self.name, label ) if label else self.name, label )
      
-    def cycle_time(self, rea_name, label, update) :
+    def cycle_time(self, rea_name, label) :
         """
         Create the realizations for each datetime definition.
         """
@@ -245,13 +245,12 @@ class Experiment( Base ):
                 cycle_name   = "%s__%s_%s" % ( rea_name, rea_start_date.strftime( "%Y%m%dT%H%M%S" ),
                                                rea_end_date.strftime( "%Y%m%dT%H%M%S" ) )
                 logging.info( "\t---> Realization %s" % cycle_name  )
-                if update :
-                    # Check realization on the database
-                    rea = self.check_db( name          = cycle_name, 
-                                         start_date    = rea_start_date,
-                                         end_date      = rea_end_date,
-                                         label         = label ) 
-                else :
+                # Check realization on the database
+                rea = self.check_db( name          = cycle_name, 
+                                     start_date    = rea_start_date,
+                                     end_date      = rea_end_date,
+                                     label         = label ) 
+                if not rea :
                     # Create a realization 
                     rea = Realization( name          = cycle_name, 
                                        start_date    = rea_start_date,
@@ -268,7 +267,7 @@ class Experiment( Base ):
                     # Update restart_interval on the namelist to create chunks
                     exec_cmd( "fortnml -wof %s -s restart_interval %d" % ( self.namelist_input, restart_interval ) )
                     rea._prepare_sub_files()
-                rea.cycle_chunks( update )
+                rea.cycle_chunks( )
                 rea_start_date = exp_calendar.add_hours(rea_start_date, simult_interval_h ) 
     
     def get_status(self, rea_pattern = False, rea_status = False ):
@@ -476,19 +475,21 @@ class Realization( Base ):
         try:
             ch = self.chunk.filter( Chunk.rea_id     == rea_id,
                                     Chunk.chunk_id   == chunk_id,
-                                    Chunk.start_date == chunk_start_date
                                    ).one()
+       
         except Exception : 
-            #if ch does not exist (no chunk with the same no reconfigurable fields)
-            raise Exception("ERROR: Chunk with the same name and no "
-                            "reconfigurable fields already exists")
-        else:
-            #if ch exits,it means a chunk with the same no reconfigurable fields
-            logging.debug( "\t\t\tUpdating chunk on the database" )
-            ch.chunk_end_date = chunk_end_date
-            return ch
+            return None  
+        else :
+            if ch.start_date == chunk_start_date :
+                logging.debug( "\t\t\tUpdating chunk on the database" )
+                ch.chunk_end_date = chunk_end_date
+                return ch
+            else :
+                #if ch does not exist (no chunk with the same no reconfigurable fields)
+                raise Exception("\t\t\tERROR: Chunk with the same name and no "
+                                "reconfigurable fields already exists")
 
-    def cycle_chunks(self, update = False ):
+    def cycle_chunks(self):
         """
         Create chunks the needed for a realization 
         """
@@ -502,14 +503,13 @@ class Realization( Base ):
             logging.info( "\t\t---> Chunk %d %s %s" %( chunk_id, 
                                                        datetime2datewrf(chunk_start_date),
                                                        datetime2datewrf(chunk_end_date) ) )
-            if update :
-                # Check chunk on the database
-                ch = self.check_db( rea_id           = self.id, 
-                                    chunk_start_date = chunk_start_date, 
-                                    chunk_end_date   = chunk_end_date,
-                                    chunk_id         = chunk_id
-                                    )
-            else :
+            # Check chunk on the database
+            ch = self.check_db( rea_id           = self.id, 
+                                chunk_start_date = chunk_start_date, 
+                                chunk_end_date   = chunk_end_date,
+                                chunk_id         = chunk_id
+                                )
+            if not ch :
                 # Create Chunk
                 ch = Chunk( rea_id     = self.id, 
                             start_date = chunk_start_date, 
