@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 """
 WRF4G is a framework for the execution and monitoring of the WRF Modelling System 
-in distributed computing resources. For additional information, 
-see http://meteo.unican.es/trac/wiki/WRF4G .
+on DCIs. For additional information, see http://meteo.unican.es/trac/wiki/WRF4G.
 
 Usage: wrf4g [ --version ] [ -h | --help ] [ --dbg ]
              <command> [ <args>... ]
@@ -13,15 +12,15 @@ Options:
     --dbg      Debug mode.
     
 wrf4g commands are:
-   start       Start DRM4G daemon, database and ssh-agent
-   stop        Stop  DRM4G daemon, database and ssh-agent
-   status      Check DRM4G daemon, database and ssh-agent
-   conf        Configure DRM4G daemon, scheduler, database and logger parameters
+   start       Start DRM4G daemon, MySQL database and ssh-agent
+   stop        Stop  DRM4G daemon, MySQL database and ssh-agent
+   status      Check DRM4G daemon, MySQL database and ssh-agent
+   conf        Configure DRM4G daemon and scheduler, MySQL database and logger parameters
    exp         Manage WRF4G experiments
    rea         Manage WRF4G realizations
-   resource    Manage computing resources
-   id          Manage reosurce identities
-   host        Print information about the hosts
+   resource    Manage DCIs
+   id          Manage DCI identities
+   host        Print information about the DCI hosts
    job         Submit, get status and history and cancel jobs
  
 See 'wrf4g <command> --help' for more information on a specific command.
