@@ -1,11 +1,10 @@
 """
-Manage identities for resources. That involves managing private/public keys 
-and grid credentials, depending on the resource configuration.
+Manage identities for resources configuring private/public keys and grid credentials.
 
 Usage:  
-    wrf4g id <resource_name> init   [ --dbg ] [ --lifetime=<hours> ]
-    wrf4g id <resource_name> info   [ --dbg ] 
-    wrf4g id <resource_name> delete [ --dbg ] 
+    wrf4g id <resource> init   [ --dbg ] [ --lifetime=<hours> ]
+    wrf4g id <resource> info   [ --dbg ] 
+    wrf4g id <resource> delete [ --dbg ] 
 
  Options:
     -l --lifetime=<hours>   Duration of the identity's lifetime [default: 168].

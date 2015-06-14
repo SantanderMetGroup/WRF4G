@@ -15,7 +15,8 @@ Options:
   
 Commands:
    submit                Submit the realization.       
-   status                Check the status of a realization. 
+   status                Check the status of a realization.
+   log                   Get log files from a chunk. 
    cancel                Cancel the realization by killing its jobs.
 """
 __version__  = '2.0.0'
