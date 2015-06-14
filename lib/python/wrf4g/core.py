@@ -119,10 +119,11 @@ class Experiment( Base ):
             rea.end_date = end_date
             return rea
 
-    def _create_wrf4g_bundle(self):
+    def _create_wrf4g_bundles(self):
         """
-        Create a bundle with the necessary software to run WRF on WNs.
+        Create bundles with the necessary software to run WRF on WNs.
         """
+        # WRF4G bundle
         logging.debug( "Create a WRF4G software bundle to use on the WN..." )
         exp_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
         if not isdir( exp_dir ) :
@@ -136,12 +137,26 @@ class Experiment( Base ):
             logging.debug( "Removing '%s' package" % wrf4g_package ) 
             os.remove( wrf4g_package )
         current_path = os.getcwd()
-        tar = tarfile.open( wrf4g_package , "w:gz" )
-        os.chdir( WRF4G_DEPLOYMENT_DIR )
-        logging.debug( "Creating '%s' package" % wrf4g_package )
-        for dir in [ "bin", "lib" ]:
-            tar.add( dir )
-        tar.close()
+        try :
+            tar = tarfile.open( wrf4g_package , "w:gz" )
+            os.chdir( WRF4G_DEPLOYMENT_DIR )
+            logging.debug( "Creating '%s' package" % wrf4g_package )
+            [ tar.add( dir ) for dir in [ "bin", "lib" ] ]
+        finally :
+            tar.close()
+        # wrf4g_files bundle
+        wrf4g_files_dir = join( self.home_dir, 'wrf4g_files' )
+        if exists( wrf4g_files_dir ):
+            logging.debug( "Create a wrf4g_files.tar.gz bundle to use on the WN..." )
+            wrf4g_files_package = join ( exp_dir , "wrf4g_files.tar.gz" )
+            if exists( wrf4g_files_package ):
+                logging.debug( "Removing '%s' package" % wrf4g_files_package )
+                os.remove( wrf4g_files_package )
+            tar = tarfile.open( wrf4g_files_package , "w:gz" )
+            os.chdir( wrf4g_files_dir )
+            for elem in os.listdir('.') :
+                tar.add( elem )
+            tar.close()
         os.chdir( current_path )
 
     def create(self, update = False, directory = './' ):
@@ -171,8 +186,8 @@ class Experiment( Base ):
         self.namelist              = exp_conf.default.namelist
         self.datetime_list         = exp_conf.default.datetime_list
         if not self.dryrun :
-            # Create a WRF4G software bundle to use on the WN
-            self._create_wrf4g_bundle()
+            # Create software bundles to use on the WN
+            self._create_wrf4g_bundles()
         # Copy the namelist from the template directory 
         logging.info( "Preparing namelist..." )
         namelist_template   = join( WRF4G_DIR , 'etc', 'templates', 'namelist', 
@@ -443,17 +458,6 @@ class Realization( Base ):
                 os.makedirs( rea_submission_dir )
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % rea_submission_dir )
-        if exists( 'wrf4g_files' ):
-            current_path = os.getcwd()
-            tar = tarfile.open( 'wrf4g_files.tar.gz' , "w:gz" )
-            os.chdir( 'wrf4g_files')
-            for elem in os.listdir('.') :
-                tar.add( elem )
-            os.chdir( current_path )
-            dst_file = join( rea_submission_dir , 'wrf4g_files.tar.gz' )
-            if exists( dst_file ):
-                os.remove( dst_file )
-            shutil.move( 'wrf4g_files.tar.gz' , dst_file )
         for file in [ join( WRF4G_DIR, 'etc', 'db.conf' ), 
                       "experiment.wrf4g", "namelist.input" , "experiment.pkl"] :
             if not exists ( expandvars( file ) ) :
@@ -632,7 +636,7 @@ class Chunk( Base ):
         inputsandbox += "file://%s/experiment.pkl,"   % rea_path
         inputsandbox += "file://%s/namelist.input"    % rea_path  
         # Add input file if it is exist
-        input_files = join( rea_path , 'wrf4g_files.tar.gz' )
+        input_files = join( exp_path , 'wrf4g_files.tar.gz' )
         if exists( input_files ) :
             inputsandbox += ",file://%s" % ( input_files )
         # files to add for the outputsandbox
