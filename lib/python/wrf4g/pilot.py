@@ -28,10 +28,9 @@ __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-JOB_ERROR = {
-              'EXPERIMENT_FILE'      : 1,
-              'LOCAL_PATH'           : 2,
-              'LOG_PATH'             : 3,
+JOB_ERROR = { 'LOCAL_PATH'           : 1,
+              'LOG_PATH'             : 2,
+              'COPY_APP'             : 3,
               'APP_ERROR'            : 4,
               'SOURCE_SCRIPT'        : 5,
               'JOB_SHOULD_NOT_RUN'   : 6,
@@ -444,10 +443,14 @@ def launch_pilot( params ):
             if app_type == 'bundle' :
                 oring = app_value
                 dest  = join( archives_path, basename( app_value ) )
-                logging.info( "Trying to copy '%s'" % oring )
-                copy_file( oring, dest )
-                logging.info( "Unpacking '%s' to '%s'" % ( dest, params.local_path ) )
-                extract( dest, to_path = params.root_path )
+                try :
+                    logging.info( "Trying to copy '%s'" % oring )
+                    copy_file( oring, dest )
+                except :
+                    raise JobError( "'%s' has not copied" % oring, JOB_ERROR[ 'COPY_APP' ] )
+                else :
+                    logging.info( "Unpacking '%s' to '%s'" % ( dest, params.local_path ) )
+                    extract( dest, to_path = params.root_path )
             elif app_type == 'command' :
                 logging.info( 'Configuring source script' )
                 try :
