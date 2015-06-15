@@ -256,14 +256,13 @@ class Resource( object ):
         Check if the resource.conf file has been configured well and list the resources available.
         """
         self.check( )
-        logging.info( "\tName                          State" )
-        logging.info( "---------------------------------------------" )
+        logging.info( "\033[1;4m%-20.20s%-20.20s\033[0m" % ('Name', 'State' ) )
         for resname, resdict in sorted( self.config.resources.iteritems() ) :
             if resdict[ 'enable' ] == 'true' :
                 state = 'enabled'
             else :
                 state = 'disabled'
-            logging.info( "\t%-30.30s%s" % ( resname, state ) )
+            logging.info( "%-20.20s%s" % ( resname, state ) )
                     
     def features( self ) :
         """
