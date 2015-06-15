@@ -264,6 +264,8 @@ class VCPURL(object):
         """
         if self.protocol == "ln" :
            return True
+        elif self.protocol == "sftp" and '*' in self.file :
+           return True
         else:
            out = self.ls(self.file)
            if len(out) != 0 and basename(self.file) == out[0]:
@@ -334,7 +336,7 @@ def copy_file(origin, destination, overwrite=True):
                                   'orig'     : "str(orig)", 
                                   'dest'     : "str(dest)"},
                        'sftp':   {'verbose'  : '',
-                                  'command'  : '"echo \'put -p %(orig)s %(dest)s\' | sftp %(usercomputer)s" %param',
+                                  'command'  : '"echo \'put -P %(orig)s %(dest)s\' | sftp %(usercomputer)s" %param',
                                   'orig'     : "orig.file",
                                   'usercomputer' : "dest.usercomputer",
                                   'dest'     : "dest.file"},
@@ -354,7 +356,7 @@ def copy_file(origin, destination, overwrite=True):
                                   'dest'     : "dest.file"},
                         },
               'sftp':  {'file' : {'verbose'  : '',
-                                  'command'  : '"echo \'get -p %(orig)s %(dest)s\' | sftp %(usercomputer)s" %param',
+                                  'command'  : '"echo \'get -P %(orig)s %(dest)s\' | sftp %(usercomputer)s" %param',
                                   'orig'     : "orig.file",
                                   'usercomputer' : "orig.usercomputer",
                                   'dest'     : "dest.file"},

@@ -33,7 +33,7 @@ def run( arg ):
                          level  = logging.DEBUG if arg[ '--dbg' ] else logging.INFO,
                          stream = sys.stdout )
     try :
-        if '*' in basename( arg[ '<source>' ] ) :
+        if '*' in basename( arg[ '<source>' ] ) and not 'sftp' in  arg[ '<source>' ] :
             for file_to_copy in VCPURL( dirname( arg[ '<source>' ] ) ).ls( basename( arg[ '<source>' ] ) ):
                 copy( join(  dirname( arg[ '<source>' ] ), file_to_copy ), 
                       arg[ '<dest>' ], 
