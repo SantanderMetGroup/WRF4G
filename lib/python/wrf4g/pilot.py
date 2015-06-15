@@ -233,7 +233,7 @@ def clean_wrf_files( job_db, params, clean ):
     """
     Postprocess wrfout files and copy files to the output path 
     """
-    for patt in [ "wrfout", "wrfrst", "wrfrain", "wrfxtrm", "wrf24hc" ] :
+    for patt in [ "wrfout", "wrfzout", "wrfz2out", "wrfrst", "wrfrain", "wrfxtrm", "wrf24hc" ] :
         all_files_patt = glob.glob( join( params.wrf_run_path, patt + '*' ) )
         if clean == 'closed_files' :
             if len( all_files_patt ) >= ( 2 * params.max_dom ) :
@@ -275,7 +275,7 @@ def clean_wrf_files( job_db, params, clean ):
             ##
             # Uploading "wrfout", "wrfrst", "wrfrain", "wrfxtrm", "wrf24hc" files
             ##
-            if patt == "wrfout" and params.wrfout_name_end_date == 'yes' :
+            if patt != "wrfrst" and params.wrfout_name_end_date == 'yes' :
                 code, output = exec_cmd("ncdump -v Times %s" % file )
                 mo = re.search("(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})", output.split('\n')[-2] )
                 dest_file = WRFFile( file_name, mo.group() ).file_name_out_iso()
