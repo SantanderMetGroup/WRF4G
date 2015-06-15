@@ -515,11 +515,11 @@ def launch_pilot( params ):
                 
         # CPU info
         model_name, number_of_cpus = cpu_info()
-        logging.info( 'CPU (model) = %s' % model_name )
-        logging.info( 'CPU (MHz)   = %d' % number_of_cpus )
+        logging.info( 'CPU (model)      = %s' % model_name )
+        logging.info( 'CPU (processors) = %d' % number_of_cpus )
 
         # Memory info
-        logging.info( 'Memory (kB) = %s' % mem_info() )
+        logging.info( 'Memory (kB)    = %s' % mem_info() )
 
         # Disk space check
         logging.info( 'DiskSpace (MB) = %d' % disk_space_check( params.root_path ) )
