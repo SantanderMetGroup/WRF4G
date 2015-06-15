@@ -273,7 +273,7 @@ def clean_wrf_files( job_db, params, clean ):
                     job_db.set_restart_date( WRFFile( file_name ).date_datetime() )
 
             ##
-            # Uploading "wrfout", "wrfrst", "wrfrain", "wrfxtrm", "wrf24hc" files
+            # Uploading "wrfout", "wrfrst", "wrfzout", "wrfz2out", "wrfrain", "wrfxtrm", "wrf24hc" files
             ##
             if patt != "wrfrst" and params.wrfout_name_end_date == 'yes' :
                 code, output = exec_cmd("ncdump -v Times %s" % file )
