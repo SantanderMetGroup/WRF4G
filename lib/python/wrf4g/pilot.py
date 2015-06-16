@@ -287,16 +287,22 @@ def clean_wrf_files( job_db, params, clean ):
             else :
                 dest = join( params.out_rea_output_path, dest_file )
     
+            logging.info( "Uploading file '%s'" % file )
+            os.chmod( file, 0664 )
             try :
-                logging.info( "Uploading file '%s'" % file )
-                os.chmod( file, 0664 )
                 copy_file( file, dest )
-                try :
-                    os.remove( file )     
-                except : 
-                    pass
             except :
-                raise JobError( "'%s' has not copied" % file, JOB_ERROR[ 'COPY_OUTPUT_FILE' ] )
+                logging.error( "'%s' has not copied" % file )   
+                time.sleep( 10 )
+                logging.info( "Uploading file '%s' again" % file )
+                try :
+                    copy_file( file, dest )
+                except :
+                    raise JobError( "'%s' has not copied" % file, JOB_ERROR[ 'COPY_OUTPUT_FILE' ] ) 
+            try :
+                os.remove( file )     
+            except : 
+                pass
 
 def get_current_date( log_wrf ):
     try :
@@ -804,6 +810,16 @@ def launch_pilot( params ):
         worker = threading.Thread( target = wrf_monitor, args = ( job_db, log_wrf, params ) )
         worker.setDaemon(True)
         worker.start()
+
+        ##
+        # Wipe WPS path
+        ##
+        if params.clean_after_run == 'yes' : 
+            logging.info( "Wiping '%s' directory " % params.wps_path )
+            try :
+                shutil.rmtree( params.wps_path )
+            except :
+                logging.info( "Error wiping '%s' directory " % params.wps_path )
 
         ##
         # Run wrf
