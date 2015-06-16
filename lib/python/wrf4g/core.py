@@ -301,8 +301,8 @@ class Experiment( Base ):
         if not ( l_realizations ):
             raise Exception ( 'There are not realizations to check.' )
         logging.info( '\033[1;4m%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s\033[0m'% (
-                        'Realization','Status','Chunks','Comp.Res','Run.Sta',
-                        'JID', 'Ext','%' ) )
+                        'REALIZATION','STATUS','CHUNKS','RESOURCE','RUN STATUS',
+                        'JID', 'EXT','%' ) )
         for rea in l_realizations.all() :
             #Print information of each realization
             rea.get_status( )

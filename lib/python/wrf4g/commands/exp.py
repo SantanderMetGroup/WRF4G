@@ -65,7 +65,7 @@ def run( arg ) :
                     logging.info( "There are not experiments" )
                 else :
                     # Header
-                    logging.info( "\033[1;4m%-20.20s\033[0m" % ( "Name" ) )
+                    logging.info( "\033[1;4m%-20.20s\033[0m" % ( "EXPERIMENT" ) )
                     for e in l_exps :
                         logging.info("%-20.20s" % ( e.name ) ) 
             else :
