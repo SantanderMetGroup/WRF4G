@@ -138,7 +138,7 @@ _wrf4g_exp_cancel()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -n --dry-run ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -n --dry-run -p --pattern= -s --rea-state=' -- $cur) )
     fi
 }
 
@@ -178,7 +178,7 @@ _wrf4g_exp_submit()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -n --dry-run --rerun ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -n --dry-run --rerun -p --pattern= -s --rea-state=' -- $cur) )
     fi
 }
 

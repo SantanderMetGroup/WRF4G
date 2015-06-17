@@ -68,7 +68,7 @@ class Experiment( Base ):
 
     dryrun                = False
     
-    def run(self, rerun = False ):
+    def run(self, rerun = False, rea_pattern = False, rea_status = False ):
         """
         Run the realizations of this experiment
         n_chunk is the number of chunks to run. 
@@ -76,7 +76,7 @@ class Experiment( Base ):
         """
         #Check if the experiment have some realization to run
         #list of realizations of the experiment
-        l_realizations = self.realization.all()
+        l_realizations  = self._filter_realizations( rea_pattern, rea_status )
         if not ( l_realizations ):
             logging.warning( 'There are not realizations to run.' )
         else:
@@ -120,46 +120,6 @@ class Experiment( Base ):
             else :                                 
                 #if rea does not exist (no realization with the same no reconfigurable fields)
                 raise Exception("\t\tRealization with the same name and no reconfigurable fields already exists") 
-
-    def _create_wrf4g_bundles(self):
-        """
-        Create bundles with the necessary software to run WRF on WNs.
-        """
-        # WRF4G bundle
-        logging.debug( "Create a WRF4G software bundle to use on the WN..." )
-        exp_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
-        if not isdir( exp_dir ) :
-            try:
-                logging.debug( "Creating '%s' directory" % exp_dir ) 
-                os.makedirs( exp_dir )
-            except Exception :
-                raise Exception( "Couldn't be created '%s' directory" % exp_dir )
-        wrf4g_package = join ( exp_dir , "WRF4G.tar.gz" )
-        if exists( wrf4g_package  ):
-            logging.debug( "Removing '%s' package" % wrf4g_package ) 
-            os.remove( wrf4g_package )
-        current_path = os.getcwd()
-        try :
-            tar = tarfile.open( wrf4g_package , "w:gz" )
-            os.chdir( WRF4G_DEPLOYMENT_DIR )
-            logging.debug( "Creating '%s' package" % wrf4g_package )
-            [ tar.add( dir ) for dir in [ "bin", "lib" ] ]
-        finally :
-            tar.close()
-        # wrf4g_files bundle
-        wrf4g_files_dir = join( self.home_dir, 'wrf4g_files' )
-        if exists( wrf4g_files_dir ):
-            logging.debug( "Create a wrf4g_files.tar.gz bundle to use on the WN..." )
-            wrf4g_files_package = join ( exp_dir , "wrf4g_files.tar.gz" )
-            if exists( wrf4g_files_package ):
-                logging.debug( "Removing '%s' package" % wrf4g_files_package )
-                os.remove( wrf4g_files_package )
-            tar = tarfile.open( wrf4g_files_package , "w:gz" )
-            os.chdir( wrf4g_files_dir )
-            for elem in os.listdir('.') :
-                tar.add( elem )
-            tar.close()
-        os.chdir( current_path )
 
     def create(self, update = False, directory = './' ):
         """
@@ -209,9 +169,92 @@ class Experiment( Base ):
             logging.debug( "Force trimming the arrays in the namelist to 'max_dom'" ) 
             exec_cmd( "fortnml -wof %s --force-trim=%d" % ( self.namelist_input, self.max_dom ) )
         # Cycle to create a realization per combination
-        self.cycle_combinations( exp_conf.default.label_combination, exp_conf.default.namelist_dict )
+        self._cycle_combinations( exp_conf.default.label_combination, exp_conf.default.namelist_dict ) 
+    
+    def get_status(self, rea_pattern = False, rea_status = False ):
+        """ 
+        Show information about realizations of the experiment for example:
+        
+        Realization Status   Chunks     Comp.Res      Run.Sta     JID ext      %
+        testc       Finished    3/3     mycomputer   Finished       0   0 100.00
+        
+        * Realization: Realization name. It is taken from the field experiment_name in experiment.wrf4g.
+        * Status: It can be take the following values: Prepared, Submitted, Running, Failed and Done).
+        * Chunks [Chunk running/Total Chunks]: A realization is split into chunks. Each chunk is sent as a job.
+        * Computer resource: Resource (cluster) where the job is running.
+        * Run.Sta: Job status in the WN (Downloading data, running ungrib, real, wrf, ...)
+        * JID: Job identifier.
+        * ext: Exit Code. If exit code is different from 0, there has been an error. 
+        * % : percentage of simulation finished.
+        """
+        #list of realization of the experiment
+        l_realizations  = self._filter_realizations( rea_pattern, rea_status )
+        #Header of the information
+        if not ( l_realizations ):
+            raise Exception ( 'There are not realizations to check.' )
+        logging.info( '\033[1;4m%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s\033[0m'% (
+                        'REALIZATION','STATUS','CHUNKS','RESOURCE','RUN STATUS',
+                        'JID', 'EXT','%' ) )
+        for rea in l_realizations.all() :
+            #Print information of each realization
+            rea.get_status( )
+    
+    def cancel(self, rea_pattern = False, rea_status = False ):
+        """
+        Delete jobs which status is running or submitted 
+        """
+        #list of realization of the experiment
+        l_realizations  = self._filter_realizations( rea_pattern, rea_status )
+        if not ( l_realizations ):
+            logging.info( 'There are not realizations to cancel.' )
+        else :
+            logging.info( 'Canceling Experiment %s' % self.name )
+            for rea in l_realizations :
+                rea.dryrun = self.dryrun
+                rea.cancel( )
 
-    def cycle_combinations( self, combinations, namelist_combinations ):
+    def delete(self):
+        """
+        Delete the experiment, its realizations and chunks 
+        """
+        # Delete the local submission directory
+        local_exp_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
+        logging.debug( "Deleting '%s' directory" % local_exp_dir )
+        if not self.dryrun :
+            if exists( local_exp_dir ) : 
+                shutil.rmtree( local_exp_dir )
+
+    @staticmethod 
+    def create_files(name, template, force, directory):
+        """
+        Create the files needed to establish a WRF4G experiment
+        """
+        validate_name( name )
+        if not template in [ 'default', 'single', 'physics' ] :
+            raise Exception( "'%s' template does not exist" % template )
+        exp_dir = expandvars( expanduser( os.getcwd() if directory == './' else directory ) )
+        if not exists( exp_dir ):
+            raise Exception("'%s' does not exist" % exp_dir )
+        exp_dir_config = join( exp_dir, name )
+        if exists( exp_dir_config ) and not force :
+            raise Exception("'%s' already exists" % exp_dir_config )
+        elif exists( exp_dir_config ) and force :
+        shutil.rmtree( exp_dir_config )
+        logging.debug( "Creating '%s' directory" % exp_dir_config )
+        shutil.copytree( join( WRF4G_DIR , 'etc' , 'templates' , 'experiments',  template ),
+                         exp_dir_config )
+        dest_path = join( exp_dir_config , 'experiment.wrf4g' )
+        with open( dest_path , 'r') as f :
+            data = ''.join( f.readlines( ) )
+        data_updated = data % {
+                               'WRF4G_EXPERIMENT_HOME' : exp_dir_config ,
+                               'WRF4G_DEPLOYMENT_DIR'  : WRF4G_DEPLOYMENT_DIR ,
+                               'exp_name'              : name ,
+                               }
+        with open(dest_path, 'w') as f :
+            f.writelines( data_updated )
+
+    def _cycle_combinations( self, combinations, namelist_combinations ):
         """
         Create realizations for each combination namelist.
         """
@@ -231,9 +274,9 @@ class Experiment( Base ):
                     else :
                        cmd = "fortnml -wof %s -s %s %s"    % ( self.namelist_input, mnl_variable, str( mnl_values[ comb ] ) ) 
                     exec_cmd( cmd )
-            self.cycle_time( "%s__%s" % ( self.name, label ) if label else self.name, label )
+            self._cycle_time( "%s__%s" % ( self.name, label ) if label else self.name, label )
      
-    def cycle_time(self, rea_name, label) :
+    def _cycle_time(self, rea_name, label) :
         """
         Create the realizations for each datetime definition.
         """
@@ -272,95 +315,59 @@ class Experiment( Base ):
                     rea._prepare_sub_files()
                 rea.cycle_chunks( )
                 rea_start_date = exp_calendar.add_hours(rea_start_date, simult_interval_h ) 
-    
-    def get_status(self, rea_pattern = False, rea_status = False ):
-        """ 
-        Show information about realizations of the experiment for example:
-        
-        Realization Status   Chunks     Comp.Res      Run.Sta     JID ext      %
-        testc       Finished    3/3     mycomputer   Finished       0   0 100.00
-        
-        * Realization: Realization name. It is taken from the field experiment_name in experiment.wrf4g.
-        * Status: It can be take the following values: Prepared, Submitted, Running, Failed and Done).
-        * Chunks [Chunk running/Total Chunks]: A realization is split into chunks. Each chunk is sent as a job.
-        * Computer resource: Resource (cluster) where the job is running.
-        * Run.Sta: Job status in the WN (Downloading data, running ungrib, real, wrf, ...)
-        * JID: Job identifier.
-        * ext: Exit Code. If exit code is different from 0, there has been an error. 
-        * % : percentage of simulation finished.
+
+    def _create_wrf4g_bundles(self):
         """
-        #list of realization of the experiment
+        Create bundles with the necessary software to run WRF on worker nodes.
+        """
+        # WRF4G bundle
+        logging.debug( "Create a WRF4G software bundle to use on the worker node..." )
+        exp_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
+        if not isdir( exp_dir ) :
+            try:
+                logging.debug( "Creating '%s' directory" % exp_dir ) 
+                os.makedirs( exp_dir )
+            except Exception :
+                raise Exception( "Couldn't be created '%s' directory" % exp_dir )
+        wrf4g_package = join ( exp_dir , "WRF4G.tar.gz" )
+        if exists( wrf4g_package  ):
+            logging.debug( "Removing '%s' package" % wrf4g_package ) 
+            os.remove( wrf4g_package )
+        current_path = os.getcwd()
+        try :
+            tar = tarfile.open( wrf4g_package , "w:gz" )
+            os.chdir( WRF4G_DEPLOYMENT_DIR )
+            logging.debug( "Creating '%s' package" % wrf4g_package )
+            [ tar.add( dir ) for dir in [ "bin", "lib" ] ]
+        finally :
+            tar.close()
+        # wrf4g_files bundle
+        wrf4g_files_dir = join( self.home_dir, 'wrf4g_files' )
+        if exists( wrf4g_files_dir ):
+            logging.debug( "Create a wrf4g_files.tar.gz bundle to use on the worker node..." )
+            wrf4g_files_package = join ( exp_dir , "wrf4g_files.tar.gz" )
+            if exists( wrf4g_files_package ):
+                logging.debug( "Removing '%s' package" % wrf4g_files_package )
+                os.remove( wrf4g_files_package )
+            tar = tarfile.open( wrf4g_files_package , "w:gz" )
+            os.chdir( wrf4g_files_dir )
+            for elem in os.listdir('.') :
+                tar.add( elem )
+            tar.close()
+        os.chdir( current_path )
+
+    def _filter_realizations(self, pattern, status ):
+        """
+        Filter realizations from the experiment
+        """
         l_realizations = self.realization
         if rea_pattern :
             l_realizations = l_realizations.\
-                             filter( Realization.name.like( rea_pattern.replace('*','%') ) ) 
+                             filter( Realization.name.like( pattern.replace('*','%') ) ) 
         if rea_status :
             l_realizations = l_realizations.\
-                             filter( Realization.status == rea_status )
-        #Header of the information
-        if not ( l_realizations ):
-            raise Exception ( 'There are not realizations to check.' )
-        logging.info( '\033[1;4m%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s\033[0m'% (
-                        'REALIZATION','STATUS','CHUNKS','RESOURCE','RUN STATUS',
-                        'JID', 'EXT','%' ) )
-        for rea in l_realizations.all() :
-            #Print information of each realization
-            rea.get_status( )
-    
-    @staticmethod 
-    def create_files(name, template, force, directory):
-        """
-        Create the files needed to establish a WRF4G experiment
-        """
-        validate_name( name )
-        if not template in [ 'default', 'single', 'physics' ] :
-            raise Exception( "'%s' template does not exist" % template )
-        exp_dir = expandvars( expanduser( os.getcwd() if directory == './' else directory ) )
-        if not exists( exp_dir ):
-            raise Exception("'%s' does not exist" % exp_dir )
-        exp_dir_config = join( exp_dir, name )
-        if exists( exp_dir_config ) and not force :
-            raise Exception("'%s' already exists" % exp_dir_config )
-        elif exists( exp_dir_config ) and force :
-	    shutil.rmtree( exp_dir_config )
-        logging.debug( "Creating '%s' directory" % exp_dir_config )
-        shutil.copytree( join( WRF4G_DIR , 'etc' , 'templates' , 'experiments',  template ),
-                         exp_dir_config )
-        dest_path = join( exp_dir_config , 'experiment.wrf4g' )
-        with open( dest_path , 'r') as f :
-            data = ''.join( f.readlines( ) )
-        data_updated = data % {
-                               'WRF4G_EXPERIMENT_HOME' : exp_dir_config ,
-                               'WRF4G_DEPLOYMENT_DIR'  : WRF4G_DEPLOYMENT_DIR ,
-                               'exp_name'              : name ,
-                               }
-        with open(dest_path, 'w') as f :
-            f.writelines( data_updated ) 
-
-    def cancel(self):
-        """
-        Delete jobs which status is running or submitted 
-        """
-        #list of realization of the experiment
-        l_realizations = self.realization.all()
-        if not ( l_realizations ):
-            logging.info( 'There are not realizations to cancel.' )
-        else :
-            logging.info( 'Canceling Experiment %s' % self.name )
-            for rea in l_realizations :
-                rea.dryrun = self.dryrun
-                rea.cancel( )
-
-    def delete(self):
-        """
-        Delete the experiment, its realizations and chunks 
-        """
-        if not self.dryrun :
-            # Delete the local submission directory
-            local_exp_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
-            logging.debug( "Deleting '%s' directory" % local_exp_dir )
-            if exists( local_exp_dir ) :
-                shutil.rmtree( local_exp_dir )
+                             filter( Realization.status == status )
+        return l_realizations
     
 class Realization( Base ):
     """

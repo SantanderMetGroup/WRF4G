@@ -7,17 +7,17 @@ Usage:
     wrf4g exp <name> edit   [ --dbg ] 
     wrf4g exp <name> create [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
     wrf4g exp <name> update [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
-    wrf4g exp <name> submit [ --dbg ] [ --dry-run ] [ --rerun ] 
+    wrf4g exp <name> submit [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --rerun ] 
     wrf4g exp <name> status [ --dbg ] [ --pattern=<name> ] [ --rea-state=<state> ]
-    wrf4g exp <name> cancel [ --dbg ] [ --dry-run ]   
-    wrf4g exp <name> delete [ --dbg ] [ --dry-run ]
+    wrf4g exp <name> cancel [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ]
+    wrf4g exp <name> delete [ --dbg ] [ --dry-run ] 
    
 Options:
     --dbg                     Debug mode.
     -n --dry-run              Dry run.
     -f --force                Force to remove if it exists.
     -p --pattern=<name>       Pattern to find experiments and realizations.
-    -s --rea-state=<state>    Monitor only realizations in the indicated state. Available states :
+    -s --rea-state=<state>    Select only realizations in the indicated state. Available states :
                               PREPARED, SUBMITTED, RUNNING, PENDING, FAILED and FINISHED 
     -t --from-template=<name> Experiment template, avaible templates are default, single, physics [default: default]. 
     -d --dir=<directory>      Directory to create or start an experiment [default: ./].
@@ -114,11 +114,11 @@ def run( arg ) :
                     if arg[ 'update' ] :
                         exp.create( True, arg[ '--dir' ] )
                     elif arg[ 'submit' ] :
-                        exp.run( arg[ '--rerun' ] )
+                        exp.run( arg[ '--rerun' ], arg[ '--pattern' ], arg[ '--rea-state' ] )
                     elif arg[ 'status' ] :
                         exp.get_status( arg[ '--pattern' ], arg[ '--rea-state' ] )
                     elif arg[ 'cancel' ] :
-                        exp.cancel( )
+                        exp.cancel( arg[ '--pattern' ], arg[ '--rea-state' ] )
                     elif arg[ 'delete' ] :
                         exp.delete( )
                         session.delete( exp )
