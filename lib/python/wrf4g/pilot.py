@@ -38,19 +38,18 @@ JOB_ERROR = { 'LOCAL_PATH'           : 1,
               'RESTART_MISMATCH'     : 8,
               'COPY_NAMELIST_WPS'    : 9,
               'COPY_REAL_FILE'       : 10,
-              'COPY_WPS'             : 11,
-              'COPY_BOUND'           : 12,
-              'NAMELIST_FAILED'      : 13,
-              'PREPROCESSOR_FAILED'  : 14,
-              'LINK_GRIB_FAILED'     : 15,
-              'UNGRIB_FAILED'        : 16,
-              'METGRID_FAILED'       : 17,
-              'REAL_FAILED'          : 18,
-              'COPY_UPLOAD_WPS'      : 19,
-              'WRF_FAILED'           : 20,
-              'POSTPROCESSOR_FAILED' : 21,
-              'COPY_OUTPUT_FILE'     : 22,
-              'COPY_NODES'           : 23,
+              'COPY_BOUND'           : 11,
+              'NAMELIST_FAILED'      : 12,
+              'PREPROCESSOR_FAILED'  : 13,
+              'LINK_GRIB_FAILED'     : 14,
+              'UNGRIB_FAILED'        : 15,
+              'METGRID_FAILED'       : 16,
+              'REAL_FAILED'          : 17,
+              'COPY_UPLOAD_WPS'      : 18,
+              'WRF_FAILED'           : 19,
+              'POSTPROCESSOR_FAILED' : 20,
+              'COPY_OUTPUT_FILE'     : 21,
+              'COPY_NODES'           : 22,
               }
 
 class JobError( Exception ):
@@ -237,7 +236,8 @@ def clean_wrf_files( job_db, params, clean ):
         all_files_patt = glob.glob( join( params.wrf_run_path, patt + '*' ) )
         if clean == 'closed_files' :
             if len( all_files_patt ) >= ( 2 * params.max_dom ) :
-                files = all_files_patt[ :-params.max_dom ]
+                all_files_patt.sort( key = os.path.getmtime )
+                files = all_files_patt[ :params.max_dom ]
             else :
                 continue
         elif clean == 'all' :
@@ -254,13 +254,18 @@ def clean_wrf_files( job_db, params, clean ):
                 continue
             else :
                 if "wrfout" in file_name and params.postprocessor :
+                    code, output = exec_cmd( "ncdump -h %s" % file_name )
+                    if "WRF4G_postprocessor" in output :
+                        logging.info( "'%s' was already postprocessed" % file_name )
+                        continue
                     ##
                     # Execute postprocessor
                     ##
                     logging.info( "Running postprocessor.%s" % params.postprocessor )
 
-                    code, output = exec_cmd( "postprocessor.%s %s 2>&1" % (
-                                                params.postprocessor, file_name ) )
+                    post_log = join( params.log_path, 'postprocessor.%s.log' % params.postprocessor )
+                    code, output = exec_cmd( "postprocessor.%s %s &>> %s" % (
+                                                params.postprocessor, file_name, post_log ) )
                     if code :
                         logging.info( output )
                         raise JobError( "'%s' has not copied" % file_name,
@@ -658,11 +663,12 @@ def launch_pilot( params ):
                 # Execute preprocesor
                 ##
                 logging.info( "Running preprocessor.%s" % pp )
-              
-                code, output = exec_cmd( "preprocessor.%s %s %s %s %s 2>&1" % (
+                 
+                preprocessor_log = join( params.log_path, 'preprocessor.%s.log' %  pp )
+                code, output = exec_cmd( "preprocessor.%s %s %s %s %s &> %s" % (
                                             pp, datetime2datewrf( params.chunk_rdate ) , 
-                                            datetime2datewrf( params.chunk_edate ), epath, vt ) )
-                logging.info( output )
+                                            datetime2datewrf( params.chunk_edate ), epath, vt, 
+                                            preprocessor_log ) )
                 if code :
                     raise JobError( "Preprocessor '%s' has failed" % pp,
                             JOB_ERROR[ 'PREPROCESSOR_FAILED' ] )
