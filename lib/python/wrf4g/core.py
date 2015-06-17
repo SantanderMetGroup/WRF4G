@@ -361,10 +361,10 @@ class Experiment( Base ):
         Filter realizations from the experiment
         """
         l_realizations = self.realization
-        if rea_pattern :
+        if pattern :
             l_realizations = l_realizations.\
                              filter( Realization.name.like( pattern.replace('*','%') ) ) 
-        if rea_status :
+        if status :
             l_realizations = l_realizations.\
                              filter( Realization.status == status )
         return l_realizations
