@@ -239,7 +239,7 @@ class Experiment( Base ):
         if exists( exp_dir_config ) and not force :
             raise Exception("'%s' already exists" % exp_dir_config )
         elif exists( exp_dir_config ) and force :
-        shutil.rmtree( exp_dir_config )
+            shutil.rmtree( exp_dir_config )
         logging.debug( "Creating '%s' directory" % exp_dir_config )
         shutil.copytree( join( WRF4G_DIR , 'etc' , 'templates' , 'experiments',  template ),
                          exp_dir_config )
