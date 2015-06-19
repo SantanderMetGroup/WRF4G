@@ -87,7 +87,7 @@ def get_conf( directory = './' ):
     make_writeable( exp_file )
     logging.debug( "Reading '%s' file" % exp_file )
     exp_env = VarEnv( exp_file )
-    default_dict.update( dict ( exp_env.defaults() ) )
+    default_dict.update( dict ( exp_env.items( 'DEFAULT' ) ) )
     exp_conf_dict = dict()
     exp_conf_dict[ 'default' ] = default_dict
     exp_conf_dict[ 'default' ] [ 'home_dir' ] = os.getcwd() if directory == './' else directory

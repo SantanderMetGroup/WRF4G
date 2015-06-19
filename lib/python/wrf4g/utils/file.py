@@ -6,9 +6,9 @@ from wrf4g.utils.time  import ( datewrf2datetime,
                                 datetime2datewrf, 
                                 datetime2dateiso )
 try:
-    from configparser import ConfigParser
+    from configparser import SafeConfigParser
 except ImportError:
-    from ConfigParser import ConfigParser  # ver. < 3.0
+    from ConfigParser import SafeConfigParser  # ver. < 3.0
 
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
@@ -23,7 +23,7 @@ class VarEnv( object ):
         """
         'file' to read
         """
-        self._cp = ConfigParser()
+        self._cp = SafeConfigParser()
         self._cp.read( file )
 
     def defaults( self ):
