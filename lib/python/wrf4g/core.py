@@ -28,7 +28,7 @@ from wrf4g.utils.time       import datetime2datewrf, Calendar
 from wrf4g.utils.file       import validate_name, edit_file
 from wrf4g.utils.command    import exec_cmd_subprocess as exec_cmd
 from wrf4g.tools.vcplib     import VCPURL
-from wrf4g.tools.gridwaylib import Job as GWJob
+from wrf4g.tools.gridwaylib import GWJob
 
 # Realization, Chunk and Job status
 REA_STATUS   = ( 'PREPARED', 'SUBMITTED', 'RUNNING',
@@ -199,7 +199,7 @@ class Experiment( Base ):
             #Print information of each realization
             rea.get_status( )
     
-    def cancel(self, rea_pattern = False, rea_status = False ):
+    def cancel(self, rea_pattern = False, rea_status = False, hard = False ):
         """
         Delete jobs which status is running or submitted 
         """
@@ -211,7 +211,7 @@ class Experiment( Base ):
             logging.info( 'Canceling Experiment %s' % self.name )
             for rea in l_realizations :
                 rea.dryrun = self.dryrun
-                rea.cancel( )
+                rea.cancel( hard )
 
     def delete(self):
         """
@@ -582,7 +582,7 @@ class Realization( Base ):
             logging.info( "Unpacking %s file in the %s directory" % ( tar_file, directory ) )
             extract(tar_file, expandvars( expanduser( directory ) ) )
 
-    def cancel(self):
+    def cancel(self, hard = False ):
         """
         Delete chunks which status is running or submitted 
         """
@@ -595,7 +595,7 @@ class Realization( Base ):
         else :
             for chunk in l_chunks :
                 chunk.dryrun = self.dryrun
-                chunk.cancel( )
+                chunk.cancel( hard )
     
 class Chunk( Base ):
     """ 
@@ -654,19 +654,19 @@ class Chunk( Base ):
                                         1 if rerun else 0
                                         )
         # Create the job template
-        gw_job.create_template( name          = rea_name,
-                                directory     = rea_path,
-                                arguments     = arguments,
-                                np            = self.realization.experiment.np,
-                                req           = self.realization.experiment.requirements,
-                                environ       = self.realization.experiment.environment,
-                                inputsandbox  = inputsandbox,
-                                outputsandbox = outputsandbox )
+        file_template = gw_job.create_template( name          = rea_name,
+                                                directory     = rea_path,
+                                                arguments     = arguments,
+                                                np            = self.realization.experiment.np,
+                                                req           = self.realization.experiment.requirements,
+                                                environ       = self.realization.experiment.environment,
+                                                inputsandbox  = inputsandbox,
+                                                outputsandbox = outputsandbox )
         # Submit the template
         job = Job()  #create an object "job"
         # if the first chunk of the realization
         if index == 0 :
-            job.gw_job    = gw_job.submit()
+            job.gw_job    = gw_job.submit( file_template = file_template )
         else:
             # if the chunk is not the first of the realization, 
             # gwsubmit has an argument, gw_job of the job before
@@ -675,23 +675,24 @@ class Chunk( Base ):
             job_before    = chunk_before.job.order_by( Job.id )[-1]
             id_job_before = job_before.id          
             gw_job_before = job_before.gw_job
-            job.gw_job    = gw_job.submit( dep = gw_job_before ) 
+            job.gw_job    = gw_job.submit( dep = gw_job_before, file_template = file_template )
         job.chunk_id = self.chunk_id
         job.run( rerun ) 
         self.job.append( job )
         # Update realizaiton status
         self.status = 'SUBMITTED'
 
-    def cancel(self):
+    def cancel(self, hard = False ):
         """
         Delete jobs
         """
-        logging.info('\t---> Canceling Chunk %d t%s %s' % ( self.chunk_id,
+        logging.info('\t---> Canceling Chunk %d %s %s' % ( self.chunk_id,
                                                        datetime2datewrf(self.start_date),
                                                        datetime2datewrf(self.end_date) ) 
                                                        )
-        l_jobs = self.job.filter( or_( Job.status != 'PREPARED', 
+        l_jobs = self.job.filter( and_( Job.status != 'PREPARED', 
                                        Job.status != 'FINISHED',
+                                       Job.status != 'FAILED',
                                        Job.status != 'CANCEL' ) 
                                 ).all()
         if not ( l_jobs ):
@@ -699,7 +700,7 @@ class Chunk( Base ):
         else :
             for job in l_jobs :
                 job.dryrun = self.dryrun
-                job.cancel( )
+                job.cancel( hard )
        
 class Job( Base ):
     """
@@ -761,13 +762,13 @@ class Job( Base ):
         # Update status
         self.set_status( 'SUBMITTED' ) 
    
-    def cancel(self):
+    def cancel(self, hard = False ):
         """
         Delete a job
         """
         logging.info('\t\t---> Canceling Job %d' % self.gw_job ) 
         if not self.dryrun :
-            GWJob().kill( self.gw_job )
+            GWJob().kill( self.gw_job, hard )
             self.set_status( 'CANCEL' )
 
 class Events( Base ):

@@ -48,6 +48,11 @@ def extract(path, to_path=''):
     """
     Archive(path).extract(to_path)
 
+def list(path):
+    """
+    List the tar or zip file.
+    """
+    Archive(path).list()
 
 class Archive(object):
     """
