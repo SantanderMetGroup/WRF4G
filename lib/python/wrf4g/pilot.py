@@ -198,7 +198,7 @@ class PilotParams( object ):
     ##
     local_scp = os.environ.get( "WRF4G_LOCALSCP" )
     if os.environ.get( "WRF4G_LOCALSCP" ) :
-        local_path = join( local_scp, "wrf4g_%s_%s" % ( rea_name, nchunk ) )
+        local_path = join( local_scp, "wrf4g_%s_%d" % ( rea_name, nchunk ) )
     else :
         local_path = root_path
 
@@ -552,13 +552,13 @@ def launch_pilot( params ):
         elif rdate >= params.chunk_sdate and rdate < params.chunk_edate :
             logging.info( "Restart date will be '%s'" % rdate )
             params.chunk_rdate = rdate
-            chunk_rerun = ".F." 
+            chunk_rerun = ".T." 
         elif rdate == params.chunk_edate :
             raise JobError( "Restart file is the end date", JOB_ERROR[ 'RESTART_MISMATCH' ] )
         else :
             raise JobError( "There is a mismatch in the restart date", JOB_ERROR[ 'RESTART_MISMATCH' ] )
       
-        if chunk_rerun == ".F." :
+        if chunk_rerun == ".T." :
             pattern =  "wrfrst*" + datetime2dateiso( params.chunk_rdate ) + '*'
             for file_name in VCPURL( params.rst_rea_output_path ).ls( pattern ):
                 # file will follow the pattern: wrfrst_d01_19900101T000000Z.nc
@@ -578,7 +578,7 @@ def launch_pilot( params ):
         #Copy namelist.input to wrf_run_path
         shutil.copyfile( join( params.root_path, 'namelist.input' ), params.namelist_input )
         
-        if job_db.has_wps() and chunk_rerun == ".F." :
+        if job_db.has_wps() :
             logging.info( "The boundaries and initial conditions are available" )
             orig = join( params.domain_path, basename( params.namelist_wps ) )
             dest = params.namelist_wps
