@@ -71,6 +71,6 @@ def run( arg ) :
         elif arg['log']:
             gw_job.log( arg['<job_id>'][ 0 ] )
         else :
-            gw_job.kill( arg['<job_id>'][ 0 ], arg[ '--hard' ] ):
+            gw_job.kill( arg['<job_id>'][ 0 ], arg[ '--hard' ] )
     except Exception , err :
         logging.error( str( err ) )
