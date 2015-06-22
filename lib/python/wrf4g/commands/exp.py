@@ -133,8 +133,6 @@ def run( arg ) :
         except OperationalError, err :
             logging.error( err.message )
         except Exception , err :
-            import traceback
-            traceback.print_exc(file=sys.stdout)
             session.rollback()
             logging.error( str( err ) )
         finally:

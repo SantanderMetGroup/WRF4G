@@ -74,6 +74,4 @@ def run( arg ) :
         else :
             gw_job.kill( arg['<job_id>'][ 0 ], arg[ '--hard' ] )
     except Exception , err :
-        import traceback
-        traceback.print_exc(file=sys.stdout)   
         logging.error( str( err ) )
