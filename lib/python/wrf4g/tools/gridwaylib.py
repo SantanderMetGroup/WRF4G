@@ -3,7 +3,7 @@ import sys
 import logging
 
 from os.path             import dirname, abspath, join, exists
-from wrf4g               import WRF4G_DEPLOYMENT_DIR
+from wrf4g               import WRF4G_DEPLOYMENT_DIR, WRF4G_DIR
 from wrf4g.utils.command import exec_cmd_popen as exec_cmd
 
 __version__  = '2.0.0'
@@ -51,10 +51,10 @@ NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np
         logging.info( out )
 
     def log(self, job_id ):
-        directory = join( DRM4G_DIR ,
-                          'var' ,
-                          '%d00-%d99' % ( int(int(float(arg['<job_id>'][0]))/100) , int(int(float(arg['<job_id>'][0]))/100) ) ,
-                          job_id ,
+        directory = join( WRF4G_DIR,
+                          'var',
+                          '%d00-%d99' % ( int(int(float(arg['<job_id>'][0]))/100) , int(int(float(arg['<job_id>'][0]))/100) ),
+                          job_id,
                           'job.log' )
         if not exists( directory ) :
             raise Exception( 'There is not a log available for this job.')
