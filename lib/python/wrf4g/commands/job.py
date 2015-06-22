@@ -66,7 +66,7 @@ def run( arg ) :
         if arg['submit']:
             gw_job.submit( dep = ' '.join( arg['--dep'] ), file_template = arg['<template>'] )
         elif arg['list']:
-            gw_job.list( arg['<job_id>'][ 0 ] )
+            gw_job.list( None if not arg['<job_id>'] else arg['<job_id>'] [ 0] )
         elif arg['history']:
             gw_job.history( arg['<job_id>'][ 0 ] )
         elif arg['log']:
@@ -74,4 +74,6 @@ def run( arg ) :
         else :
             gw_job.kill( arg['<job_id>'][ 0 ], arg[ '--hard' ] )
     except Exception , err :
+        import traceback
+        traceback.print_exc(file=sys.stdout)   
         logging.error( str( err ) )
