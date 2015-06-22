@@ -50,7 +50,8 @@ __revision__ = "$Id$"
 
 import logging
 import sys
-from os.path              import join, exists
+from os.path                import join, exists
+from drm4g.commands         import Daemon
 from wrf4g.tools.gridwaylib import GWJob
 
 def run( arg ) :
