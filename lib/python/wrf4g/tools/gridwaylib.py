@@ -51,10 +51,10 @@ NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np
         logging.info( out )
 
     def log(self, job_id ):
-        directory = join( WRF4G_DIR,
-                          'var',
-                          '%d00-%d99' % ( int(int(float(arg['<job_id>'][0]))/100) , int(int(float(arg['<job_id>'][0]))/100) ),
-                          job_id,
+        directory = join( WRF4G_DIR ,
+                          'var' ,
+                          '%d00-%d99' % ( int(int(float( job_id ))/100) , int(int(float( job_id ))/100) ) ,
+                          job_id ,
                           'job.log' )
         if not exists( directory ) :
             raise Exception( 'There is not a log available for this job.')
