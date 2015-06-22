@@ -9,7 +9,7 @@ Usage:
     wrf4g exp <name> update [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
     wrf4g exp <name> submit [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --rerun ] 
     wrf4g exp <name> status [ --dbg ] [ --pattern=<name> ] [ --rea-state=<state> ]
-    wrf4g exp <name> cancel [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ]
+    wrf4g exp <name> cancel [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --hard ]
     wrf4g exp <name> delete [ --dbg ] [ --dry-run ] 
    
 Options:
@@ -22,6 +22,7 @@ Options:
     -t --from-template=<name> Experiment template, avaible templates are default, single, physics [default: default]. 
     -d --dir=<directory>      Directory to create or start an experiment [default: ./].
     --rerun                   Force to run although this realization or experiment has finished.
+    --hard                    Remove jobs from without synchronizing.
   
 Commands:
     list                      Show all the experiments available.
@@ -36,28 +37,27 @@ Commands:
     delete                    Remove the experiment from the database.
 
 EXIT CODES
-1  : Error creating directory to simulate
-2  : Error creating log directory        
-3  : Error copying apps            
-4  : Error app type does not exist            
-5  : Error executing source script       
-6  : Job already executed  
-7  : Error copying restart files        
-8  : There is a mismatch in the restart date   
-9  : Error copying namelist.wps    
-10 : Error downloading WPS files    
-11 : Error copying boundaries           
-12 : Error modifying namelist
-13 : Error executing PREPROCESSOR
-14 : Error linking GRIB files     
-15 : Error executing UNGRIB
-16 : Error executing METGRID       
-17 : Error executing REAL
-18 : Error uploadinf WPS files      
-19 : Error executing WRF
-20 : Error executing POSTPROCESSOR 
-21 : Error copying output file     
-
+    1 : Error creating directory to simulate
+    2 : Error creating log directory        
+    3 : Error copying apps            
+    4 : Error app type does not exist            
+    5 : Error executing source script       
+    6 : Job already executed  
+    7 : Error copying restart files        
+    8 : There is a mismatch in the restart date   
+    9 : Error copying namelist.wps    
+    10: Error downloading WPS files    
+    11: Error copying boundaries           
+    12: Error modifying namelist
+    13: Error executing PREPROCESSOR
+    14: Error linking GRIB files     
+    15: Error executing UNGRIB
+    16: Error executing METGRID       
+    17: Error executing REAL
+    18: Error uploadinf WPS files      
+    19: Error executing WRF
+    20: Error executing POSTPROCESSOR 
+    21: Error copying output file     
 """
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
@@ -118,7 +118,7 @@ def run( arg ) :
                     elif arg[ 'status' ] :
                         exp.get_status( arg[ '--pattern' ], arg[ '--rea-state' ] )
                     elif arg[ 'cancel' ] :
-                        exp.cancel( arg[ '--pattern' ], arg[ '--rea-state' ] )
+                        exp.cancel( arg[ '--pattern' ], arg[ '--rea-state' ], arg[ '--hard' ] )
                     elif arg[ 'delete' ] :
                         exp.delete( )
                         session.delete( exp )
@@ -133,6 +133,8 @@ def run( arg ) :
         except OperationalError, err :
             logging.error( err.message )
         except Exception , err :
+            import traceback
+            traceback.print_exc(file=sys.stdout)
             session.rollback()
             logging.error( str( err ) )
         finally:

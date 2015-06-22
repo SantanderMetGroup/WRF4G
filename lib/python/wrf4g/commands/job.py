@@ -4,7 +4,7 @@ Submit, get status and history and cancel jobs.
 Usage: 
     wrf4g job submit  [ --dbg ] [ --dep <job_id> ... ] <template> 
     wrf4g job list    [ --dbg ] [ <job_id> ] 
-    wrf4g job cancel  [ --dbg ] <job_id> ... 
+    wrf4g job cancel  [ --dbg ] [ --hard ] <job_id>  
     wrf4g job log     [ --dbg ] <job_id>
     wrf4g job history [ --dbg ] <job_id> 
    
@@ -13,8 +13,9 @@ Arguments:
    <template>             Job template.
 
 Options:
-   --dep=<job_id> ...     Define the job dependency list of the job.
    --dbg                  Debug mode.
+   --dep=<job_id> ...     Define the job dependency list of the job.
+   --hard                 Remove jobs from without synchronizing.
     
 Commands:
    submit                 Command for submitting jobs.
@@ -50,8 +51,7 @@ __revision__ = "$Id$"
 import logging
 import sys
 from os.path              import join, exists
-from drm4g                import DRM4G_BIN, DRM4G_DIR
-from drm4g.commands       import exec_cmd, Daemon
+from wrf4g.tools.gridwaylib import GWJob
 
 def run( arg ) :
     logging.basicConfig( format = '%(message)s',
@@ -61,31 +61,16 @@ def run( arg ) :
         daemon = Daemon( )
         if not daemon.is_alive() :
             raise Exception( 'DRM4G is stopped. ')
+        gw_job = GWJob()
         if arg['submit']:
-            dependencies = '-d "%s"' % ' '.join( arg['--dep'] ) if arg['--dep'] else ''
-            cmd = '%s/gwsubmit %s -v %s' % ( DRM4G_BIN , dependencies  , arg['<template>'] )
+            gw_job.submit( dep = ' '.join( arg['--dep'] ), file_template = arg['<template>'] )
         elif arg['list']:
-            cmd = '%s/gwps -o Jsetxjh '  % ( DRM4G_BIN )
-            if arg['<job_id>'] :
-                cmd = cmd + arg['<job_id>'][0] 
+            gw_job.list( arg['<job_id>'][ 0 ] )
         elif arg['history']:
-            cmd = '%s/gwhistory %s' % ( DRM4G_BIN , arg['<job_id>'][ 0 ] )
+            gw_job.history( arg['<job_id>'][ 0 ] )
         elif arg['log']:
-            directory = join(
-                              DRM4G_DIR ,
-                              'var' ,
-                              '%d00-%d99' % ( int(int(float(arg['<job_id>'][0]))/100) , int(int(float(arg['<job_id>'][0]))/100) ) ,
-                              arg['<job_id>'][0] ,
-                              'job.log'
-                            )
-            if not exists( directory ) :
-                raise Exception( 'There is not a log available for this job.')
-            cmd = 'cat %s' % ( directory )
+            gw_job.log( arg['<job_id>'][ 0 ] )
         else :
-            cmd = '%s/gwkill -9 %s' % ( DRM4G_BIN , ' '.join( arg['<job_id>'] ) )  
-        out , err = exec_cmd( cmd )
-        logging.info( out )
-        if err :
-            logging.info( err )
+            gw_job.kill( arg['<job_id>'][ 0 ], arg[ '--hard' ] ):
     except Exception , err :
         logging.error( str( err ) )
