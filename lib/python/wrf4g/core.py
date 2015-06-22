@@ -111,11 +111,10 @@ class Experiment( Base ):
         else :
             #Check if there is a realization with the same no reconfigurable fields:
             #rea_name, start_date, label
-            if rea.start_date   == start_date and \
-               rea.label        == label and \
-               rea.chunk_size_h == chunk_size_h :
+            if rea.label == label and rea.chunk_size_h == chunk_size_h :
                 logging.debug('\t\tUpdating realization on the database...')
-                rea.end_date = end_date
+                rea.start_date = start_date
+                rea.end_date   = end_date
                 return rea
             else :                                 
                 #if rea does not exist (no realization with the same no reconfigurable fields)
