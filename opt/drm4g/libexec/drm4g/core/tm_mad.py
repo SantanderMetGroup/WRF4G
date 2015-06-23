@@ -180,30 +180,36 @@ class GwTmMad (object):
             try:
                 if 'stdout.wrapper' in DST_URL : 
                     # Connect with the database to update the exitcode
-                    with open( DST_URL[7:], 'r') as file :
-                        lines = file.readlines()  
-                    all_lines = ''.join( lines )
-                    re_exit_status = re.compile( "EXIT_STATUS=(-?\d*)" )
-                    mo = re_exit_status.search(all_lines)
-                    if mo :
-                        try :
-                            session   = get_session()
-                            query_job = session.query(Job).\
-                                        filter( Job.gw_job == JID ).\
-                                        order_by( Job.id ).all()[-1] 
-                            if query_job.exitcode == '-' :
-                                exit_code = mo.group( 1 ) 
-                                query_job.exitcode = exit_code
-                                if exit_code == '0' :
-                                    query_job.chunk.realization.current_date = query_job.chunk.realization.end_date
+                    try :
+                        session   = get_session()
+                        query_job = session.query(Job).\
+                                    filter( Job.gw_job == JID ).\
+                                    order_by( Job.id ).all()[-1]
+                        if query_job.exitcode == '-' :
+                            try :
+                                with open( DST_URL[7:], 'r') as file :
+                                    lines = file.readlines()
+                            except :
+                                query_job.set_status( 'FAILED' )
+                            else :
+                                all_lines = ''.join( lines )
+                                re_exit_status = re.compile( "EXIT_STATUS=(-?\d*)" )
+                                mo = re_exit_status.search(all_lines)
+                                if mo : 
+                                    exit_code = mo.group( 1 ) 
+                                    query_job.exitcode = exit_code
+                                    if exit_code == '0' :
+                                        query_job.chunk.realization.current_date = query_job.chunk.realization.end_date
+                                    else :
+                                        query_job.set_status( 'FAILED' )
                                 else :
                                     query_job.set_status( 'FAILED' )
-                                session.commit()
-                        except Exception , err :
-                            session.rollback()
-                            self.logger.error( str( err ) )
-                        finally:
-                            session.close()  
+                            session.commit()
+                    except Exception , err :
+                        session.rollback()
+                        self.logger.error( str( err ) )
+                    finally:
+                        session.close()  
             except Exception, err :
                 self.logger.warning( err )
         self.message.stdout( out )
