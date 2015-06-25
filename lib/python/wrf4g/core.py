@@ -136,16 +136,16 @@ class Experiment( Base ):
             raise Exception( "ERROR: experiment.wrf4g file has a different experiment name." )     
         save_exp_pkl( exp_conf, directory )
         # Update experiment variables
-        self.name                  = exp_conf.default.name
-        self.calendar              = exp_conf.default.calendar
-        self.home_dir              = exp_conf.default.home_dir
-        self.np                    = exp_conf.default.np
-        self.requirements          = exp_conf.default.requirements
-        self.environment           = exp_conf.default.environment 
-        self.namelist_version      = exp_conf.default.namelist_version
-        self.max_dom               = exp_conf.default.max_dom
-        self.namelist              = exp_conf.default.namelist
-        self.datetime_list         = exp_conf.default.datetime_list
+        self.name             = exp_conf.default.name
+        self.calendar         = exp_conf.default.calendar
+        self.home_dir         = exp_conf.default.home_dir
+        self.np               = exp_conf.default.np
+        self.requirements     = exp_conf.default.requirements
+        self.environment      = exp_conf.default.environment 
+        self.namelist_version = exp_conf.default.namelist_version
+        self.max_dom          = exp_conf.default.max_dom
+        self.namelist         = exp_conf.default.namelist
+        self.datetime_list    = exp_conf.default.datetime_list
         if not self.dryrun :
             # Create software bundles to use on the WN
             self._create_wrf4g_bundles()
@@ -191,9 +191,7 @@ class Experiment( Base ):
         #Header of the information
         if not ( l_realizations ):
             raise Exception ( 'There are not realizations to check.' )
-        logging.info( '\033[1;4m%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s\033[0m'% (
-                        'REALIZATION','STATUS','CHUNKS','RESOURCE','RUN STATUS',
-                        'JID', 'EXT','%' ) )
+        Realization.status_header()
         for rea in l_realizations.all() :
             #Print information of each realization
             rea.get_status( )
@@ -527,6 +525,12 @@ class Realization( Base ):
             chunk_id    = chunk_id + 1
         # Set the number of chunks of a relaization    
         self.nchunks = chunk_id - 1
+
+    @staticmethod 
+    def status_header(): 
+        logging.info( '\033[1;4m%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s\033[0m'% (
+                        'REALIZATION','STATUS','CHUNKS','RESOURCE','RUN STATUS',
+                        'JID', 'EXT','%' ) )
  
     def get_status(self):
         """ 
