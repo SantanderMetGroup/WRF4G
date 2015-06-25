@@ -3,7 +3,7 @@ Submit, get status and history and cancel jobs.
 
 Usage: 
     wrf4g job submit  [ --dbg ] [ --dep <job_id> ... ] <template> 
-    wrf4g job list    [ --dbg ] [ <job_id> ] 
+    wrf4g job list    [ --dbg ] [ --delay=<seconds> ] [ <job_id> ] 
     wrf4g job cancel  [ --dbg ] [ --hard ] <job_id>  
     wrf4g job log     [ --dbg ] <job_id>
     wrf4g job history [ --dbg ] <job_id> 
@@ -15,6 +15,7 @@ Arguments:
 Options:
    --dbg                  Debug mode.
    --dep=<job_id> ...     Define the job dependency list of the job.
+   --delay=<seconds>      Refresh experiment information every delay seconds.
    --hard                 Remove jobs from without synchronizing.
     
 Commands:
@@ -50,8 +51,10 @@ __revision__ = "$Id$"
 
 import logging
 import sys
+import time
 from os.path                import join, exists
 from drm4g.commands         import Daemon
+from wrf4g.utils.command    import cls
 from wrf4g.tools.gridwaylib import GWJob
 
 def run( arg ) :
@@ -66,7 +69,16 @@ def run( arg ) :
         if arg['submit']:
             gw_job.submit( dep = ' '.join( arg['--dep'] ), file_template = arg['<template>'] )
         elif arg['list']:
-            gw_job.list( None if not arg['<job_id>'] else arg['<job_id>'] [ 0] )
+            if not arg[ '--delay' ] :
+                gw_job.list( None if not arg['<job_id>'] else arg['<job_id>'] [ 0] )   
+            else :
+                try:
+                    while True :
+                        cls()
+                        gw_job.list( None if not arg['<job_id>'] else arg['<job_id>'] [ 0] )
+                        time.sleep( int( arg[ '--delay' ] ) )
+                except KeyboardInterrupt :
+                    pass
         elif arg['history']:
             gw_job.history( arg['<job_id>'][ 0 ] )
         elif arg['log']:

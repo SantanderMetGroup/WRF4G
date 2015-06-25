@@ -52,7 +52,7 @@ _wrf4g_status()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 2 ]; then
-        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg' -- $cur) )
     fi
 }
 
@@ -118,7 +118,7 @@ _wrf4g_exp_status()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -p --pattern= -s --rea-state=' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -p --pattern -s --rea-state --delay' -- $cur) )
     fi
 }
 
@@ -138,7 +138,7 @@ _wrf4g_exp_cancel()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -n --dry-run -p --pattern= --hard -s --rea-state=' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -n --dry-run -p --pattern --hard -s --rea-state' -- $cur) )
     fi
 }
 
@@ -148,7 +148,7 @@ _wrf4g_exp_create()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg -n --dry-run -d --dir=' -- $cur) )
+        COMPREPLY=( $( compgen -fW '--dbg -n --dry-run -d --dir' -- $cur) )
     fi
 }
 
@@ -158,7 +158,7 @@ _wrf4g_exp_list()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '-p --pattern=' -- $cur) )
+        COMPREPLY=( $( compgen -W '-p --pattern' -- $cur) )
     fi
 }
 
@@ -168,7 +168,7 @@ _wrf4g_exp_update()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg -n --dry-run -d --dir=' -- $cur) )
+        COMPREPLY=( $( compgen -fW '--dbg -n --dry-run -d --dir' -- $cur) )
     fi
 }
 
@@ -178,7 +178,7 @@ _wrf4g_exp_submit()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -n --dry-run --rerun -p --pattern= -s --rea-state=' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -n --dry-run --rerun -p --pattern -s --rea-state' -- $cur) )
     fi
 }
 
@@ -198,7 +198,7 @@ _wrf4g_exp_define()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg -f --force -t --from-template= -d --dir=' -- $cur) )
+        COMPREPLY=( $( compgen -fW '--dbg -f --force -t --from-template -d --dir' -- $cur) )
     fi
 }
 
@@ -257,7 +257,7 @@ _wrf4g_job_list()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg --delay' -- $cur) )
     fi
 }
 
@@ -277,7 +277,7 @@ _wrf4g_job_submit()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W '--dbg --dep=' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg --dep' -- $cur) )
     fi
 }
 
@@ -287,7 +287,7 @@ _wrf4g_job_history()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg' -- $cur) )
     fi
 }
 
@@ -297,7 +297,7 @@ _wrf4g_vcp()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 2 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg -o --overwrite ' -- $cur) )
+        COMPREPLY=( $( compgen -fW '--dbg -o --overwrite' -- $cur) )
     fi
 }
 
@@ -307,7 +307,7 @@ _wrf4g_start()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 2 ]; then
-        COMPREPLY=( $( compgen -W '--dbg --clear-conf --disc-jobs --ext-db --db-port= --db-host=' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg --clear-conf --disc-jobs --ext-db --db-port --db-host' -- $cur) )
     fi
 }
 
@@ -363,7 +363,7 @@ _wrf4g_rea_status()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg --delay' -- $cur) )
     fi
 }
 
@@ -383,7 +383,7 @@ _wrf4g_rea_submit()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -n --dry-run --rerun ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -n --dry-run --rerun' -- $cur) )
     fi
 }
 
@@ -393,7 +393,7 @@ _wrf4g_rea_log()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -fW '--dbg -d --dir=' -- $cur) )
+        COMPREPLY=( $( compgen -fW '--dbg -d --dir' -- $cur) )
     fi
 }
 
@@ -404,7 +404,7 @@ _wrf4g_id()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -W 'info init delete ' -- $cur) )
+        COMPREPLY=( $( compgen -W 'info init delete' -- $cur) )
     else
         case ${COMP_WORDS[3]} in
             info)
@@ -427,7 +427,7 @@ _wrf4g_id_info()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg' -- $cur) )
     fi
 }
 
@@ -437,7 +437,7 @@ _wrf4g_id_init()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -l --lifetime=' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -l --lifetime' -- $cur) )
     fi
 }
 
@@ -447,7 +447,7 @@ _wrf4g_id_delete()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg' -- $cur) )
     fi
 }
 

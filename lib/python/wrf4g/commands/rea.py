@@ -3,7 +3,7 @@ Manage WRF4G realizations.
     
 Usage: 
      wrf4g rea <name> submit [ --dbg ] [ --dry-run ] [ --rerun ] [ <first_ch> [ <last_ch> ] ]
-     wrf4g rea <name> status [ --dbg ]
+     wrf4g rea <name> status [ --dbg ] [ --delay=<seconds> ]
      wrf4g rea <name> log    [ --dbg ] <chunk_id> [ --dir=<directory> ]
      wrf4g rea <name> cancel [ --dbg ] [ --dry-run ] [ --hard ]
    
@@ -11,13 +11,14 @@ Options:
     --dbg                 Debug mode.
     -n --dry-run          Dry run.
     --rerun               Force to run although the realization has finished.
+    --delay=<seconds>     Refresh experiment information every delay seconds.    
     -d --dir=<directory>  Directory to unpack log files [default: ./].
     --hard                Remove jobs from without synchronizing.
   
 Commands:
     submit                Submit the realization.       
     status                Check the status of a realization showing computing resources, 
-                         job identifier and exit codes (SEE EXIT CODES)
+                          job identifier and exit codes (SEE EXIT CODES).
     log                   Get log files from a chunk. 
     cancel                Cancel the realization by killing its jobs.
 
@@ -50,8 +51,10 @@ __revision__ = "$Id$"
 
 import logging
 import sys
+import time
 from sqlalchemy.orm.exc   import NoResultFound
 from sqlalchemy.exc       import OperationalError
+from wrf4g.utils.command  import cls
 from wrf4g.db             import get_session
 from wrf4g.core           import Realization
 
@@ -75,10 +78,18 @@ def run( arg ) :
                          last_chunk_run  = arg[ '<last_ch>' ] , 
                          rerun           = arg[ '--rerun' ] )
             elif arg[ 'status' ] :
-                logging.info( '\033[1;4m%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s\033[0m'% (
-                        'REALIZATION','STATUS','CHUNKS','RESOURCE','RUN STATUS',
-                        'JID', 'EXT','%' ) )
-                rea.get_status( )
+                if not arg[ '--delay' ] :
+                    rea.status_header( )
+                    rea.get_status( )
+                else :
+                    try:
+                        while True :
+                            cls()
+                            rea.status_header()
+                            rea.get_status( )
+                            time.sleep( int( arg[ '--delay' ] ) )
+                    except KeyboardInterrupt :
+                        pass
             elif arg[ 'log' ] :
                 rea.get_log( arg[ '<chunk_id>' ], arg[ '--dir' ] )
             else :

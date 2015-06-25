@@ -2,13 +2,13 @@
 Manage WRF4G experiments. 
     
 Usage: 
-    wrf4g exp list          [ --pattern=<name> ]
+    wrf4g exp list [ --pattern=<name> ]
     wrf4g exp <name> define [ --dbg ] [ --force ]   [ --from-template=<name> ] [ --dir=<directory> ] 
     wrf4g exp <name> edit   [ --dbg ] 
     wrf4g exp <name> create [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
     wrf4g exp <name> update [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
     wrf4g exp <name> submit [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --rerun ] 
-    wrf4g exp <name> status [ --dbg ] [ --pattern=<name> ] [ --rea-state=<state> ]
+    wrf4g exp <name> status [ --dbg ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --delay=<seconds> ]  
     wrf4g exp <name> cancel [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --hard ]
     wrf4g exp <name> delete [ --dbg ] [ --dry-run ] 
    
@@ -21,6 +21,7 @@ Options:
                               PREPARED, SUBMITTED, RUNNING, PENDING, FAILED and FINISHED 
     -t --from-template=<name> Experiment template, avaible templates are default, single, physics [default: default]. 
     -d --dir=<directory>      Directory to create or start an experiment [default: ./].
+    --delay=<seconds>         Refresh experiment information every delay seconds.
     --rerun                   Force to run although this realization or experiment has finished.
     --hard                    Remove jobs from without synchronizing.
   
@@ -64,12 +65,14 @@ __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
 import sys
+import time
 import logging
 import shutil
 from sqlalchemy.orm.exc   import NoResultFound
 from sqlalchemy.exc       import OperationalError
 from wrf4g.db             import get_session
 from wrf4g.core           import Experiment
+from wrf4g.utils.command  import cls
 from wrf4g.utils.time     import datetime2datewrf
 
 def run( arg ) :
@@ -116,7 +119,16 @@ def run( arg ) :
                     elif arg[ 'submit' ] :
                         exp.run( arg[ '--rerun' ], arg[ '--pattern' ], arg[ '--rea-state' ] )
                     elif arg[ 'status' ] :
-                        exp.get_status( arg[ '--pattern' ], arg[ '--rea-state' ] )
+                        if not arg[ '--delay' ] :
+                            exp.get_status( arg[ '--pattern' ], arg[ '--rea-state' ] )
+                        else :
+                            try:
+                                while True :
+                                    cls()
+                                    exp.get_status( arg[ '--pattern' ], arg[ '--rea-state' ] )
+                                    time.sleep( int( arg[ '--delay' ] ) )
+                            except KeyboardInterrupt : 
+                                pass
                     elif arg[ 'cancel' ] :
                         exp.cancel( arg[ '--pattern' ], arg[ '--rea-state' ], arg[ '--hard' ] )
                     elif arg[ 'delete' ] :
