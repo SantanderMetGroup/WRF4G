@@ -340,7 +340,7 @@ class Experiment( Base ):
             tar.close()
         # wrf4g_files bundle
         wrf4g_files_dir = join( self.home_dir, 'wrf4g_files' )
-        if exists( wrf4g_files_dir ):
+        if isdir( wrf4g_files_dir ):
             logging.debug( "Create a wrf4g_files.tar.gz bundle to use on the worker node..." )
             wrf4g_files_package = join ( exp_dir , "wrf4g_files.tar.gz" )
             if exists( wrf4g_files_package ):

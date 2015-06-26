@@ -2,7 +2,7 @@ import os
 import re
 import pickle
 import logging
-from os.path          import expandvars, expanduser, exists, join
+from os.path          import expandvars, expanduser, exists, join, abspath
 from wrf4g.utils.time import datewrf2datetime, Calendar
 from wrf4g.utils.file import VarEnv, make_writeable, validate_name
 
@@ -90,7 +90,7 @@ def get_conf( directory = './' ):
     default_dict.update( dict ( exp_env.items( 'DEFAULT' ) ) )
     exp_conf_dict = dict()
     exp_conf_dict[ 'default' ] = default_dict
-    exp_conf_dict[ 'default' ] [ 'home_dir' ] = os.getcwd() if directory == './' else directory
+    exp_conf_dict[ 'default' ] [ 'home_dir' ] = os.getcwd() if directory == './' else abspath( directory )
     for section in exp_env.sections() :
         if ':' in section :
             # In this case key will be the name of the reosurce
