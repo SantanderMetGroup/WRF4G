@@ -50,19 +50,19 @@ def run( arg ) :
         config = Configuration()
         config.load( )
         if config.check( ) :
-            raise Exception( "Review the configuration of '%s'." % ( arg['<resource_name>'] ) )
-        if not config.resources.has_key( arg['<resource_name>'] ):
-            raise Exception( "'%s' is not a configured resource." % ( arg['<resource_name>'] ) )
-        lrms         = config.resources.get( arg['<resource_name>'] )[ 'lrms' ]
-        communicator = config.resources.get( arg['<resource_name>'] )[ 'communicator' ]
+            raise Exception( "Review the configuration of '%s'." % ( arg['<resource>'] ) )
+        if not config.resources.has_key( arg['<resource>'] ):
+            raise Exception( "'%s' is not a configured resource." % ( arg['<resource>'] ) )
+        lrms         = config.resources.get( arg['<resource>'] )[ 'lrms' ]
+        communicator = config.resources.get( arg['<resource>'] )[ 'communicator' ]
         if lrms != 'cream' and communicator != 'ssh' :
-            raise Exception( "'%s' does not have an identity to configure." % ( arg['<resource_name>'] ) )
+            raise Exception( "'%s' does not have an identity to configure." % ( arg['<resource>'] ) )
         if lrms == 'cream' :
-            proxy = Proxy( config.resources[ arg['<resource_name>'] ] , 
-                           config.make_communicators()[ arg['<resource_name>'] ] 
+            proxy = Proxy( config.resources[ arg['<resource>'] ] , 
+                           config.make_communicators()[ arg['<resource>'] ] 
                            )
         if communicator == 'ssh' :
-            agent = Agent( config.resources[ arg['<resource_name>'] ] )
+            agent = Agent( config.resources[ arg['<resource>'] ] )
         if arg[ 'init' ] :
             if communicator == 'ssh' :
                 agent.start( )
