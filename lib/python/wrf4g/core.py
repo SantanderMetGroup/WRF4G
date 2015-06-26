@@ -465,7 +465,9 @@ class Realization( Base ):
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % rea_submission_dir )
         for file in [ join( WRF4G_DIR, 'etc', 'db.conf' ), 
-                      "experiment.wrf4g", "namelist.input" , "experiment.pkl"] :
+                      join( self.experiment.home_dir, "experiment.wrf4g" ), 
+                      join( self.experiment.home_dir, "namelist.input" ) , 
+                      join( self.experiment.home_dir, "experiment.pkl" ) ] :
             if not exists ( expandvars( file ) ) :
                 raise Exception( "'%s' is not available" % file )
             else :
