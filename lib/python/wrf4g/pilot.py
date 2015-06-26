@@ -262,7 +262,10 @@ def clean_wrf_files( job_db, params, clean ):
                     # Execute postprocessor
                     ##
                     logging.info( "Running postprocessor.%s" % params.postprocessor )
-
+      
+                    if not which( "postprocessor.%s" % params.postprocessor ) :
+                        raise JobError( "Postprocessor '%s' does not exist" % params.postprocessor, 
+                               JOB_ERROR[ 'POSTPROCESSOR_FAILED' ] )
                     post_log = join( params.log_path, 'postprocessor.%s.log' % params.postprocessor )
                     code, output = exec_cmd( "postprocessor.%s %s &>> %s" % (
                                                 params.postprocessor, file_name, post_log ) )
@@ -663,7 +666,9 @@ def launch_pilot( params ):
                 # Execute preprocesor
                 ##
                 logging.info( "Running preprocessor.%s" % pp )
-                 
+                
+                if not which( "preprocessor.%s" % pp ) :
+                   raise JobError( "Preprocessor '%s' does not exist" % pp, JOB_ERROR[ 'PREPROCESSOR_FAILED' ] )
                 preprocessor_log = join( params.log_path, 'preprocessor.%s.log' %  pp )
                 code, output = exec_cmd( "preprocessor.%s %s %s %s %s &> %s" % (
                                             pp, datetime2datewrf( params.chunk_rdate ) , 
