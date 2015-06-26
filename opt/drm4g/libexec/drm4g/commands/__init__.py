@@ -190,9 +190,9 @@ class Daemon( object ):
             if out :
                 logging.info( out ) 
             if not err and not out :
-                logging.info( "OK" )
+                logging.info( " OK" )
         else :
-            logging.info( "WARNING: DRM4G is already running." )
+            logging.info( " WARNING: DRM4G is already running." )
                 
     def stop( self ):
         logging.info( "Stopping DRM4G .... " )
@@ -203,7 +203,7 @@ class Daemon( object ):
         if out :
             logging.info( out )
         if not err and not out :
-            logging.info( "OK" )
+            logging.info( " OK" )
             
     def clear( self ):
         yes_choise = yes_no_choice( "Do you want to continue clearing DRM4G " )
@@ -217,7 +217,7 @@ class Daemon( object ):
             if out :
                 logging.info( out )
             if not err and not out :
-                logging.info( "OK" )
+                logging.info( " OK" )
         else :
             self.start()
             

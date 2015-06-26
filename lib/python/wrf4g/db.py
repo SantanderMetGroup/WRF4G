@@ -78,11 +78,11 @@ class MySQLDB( object ):
             exec_cmd( cmd , nohup = True, stdin = False )
             time.sleep( 2.0 )
             if not exists( self.mysql_pid ) or self._port_is_free() :
-                logging.error( "ERROR: MySQL did not start, check '%s' for more information " % self.mysql_log )
+                logging.error( " ERROR: MySQL did not start, check '%s' for more information " % self.mysql_log )
             else :
-                logging.info( "OK" )
+                logging.info( " OK" )
         else :
-            logging.warn( "WARNING: MySQL is already running" )
+            logging.warn( " WARNING: MySQL is already running" )
 
     def stop( self ):
         if not exists( self.mysql_pid ) :
@@ -90,7 +90,7 @@ class MySQLDB( object ):
         else :
             logging.info( "Stopping WRF4G_DB (MySQL) ..." )
             if not exists( self.mysql_pid ) and not process_is_runnig( self.mysql_pid ) :
-                logging.warn( "WARNING: MySQL is already stopped." )
+                logging.warn( " WARNING: MySQL is already stopped." )
             elif exists( self.mysql_pid ) and process_is_runnig( self.mysql_pid ) :
                 with open( self.mysql_pid , 'r') as f:
                     pid = f.readline().strip()
@@ -100,11 +100,11 @@ class MySQLDB( object ):
                 try :
                     os.kill( int( mysql_ppid ), signal.SIGKILL )
                     os.kill( int( pid ), signal.SIGKILL )
-                    logging.info( "OK" )
+                    logging.info( " OK" )
                 except Exception , err :
-                    logging.error( "ERROR: stopping MySQL: %s" % err )
+                    logging.error( " ERROR: stopping MySQL: %s" % err )
             else :
-                logging.warn( "WARNING: MySQL is already stopped." )
+                logging.warn( " WARNING: MySQL is already stopped." )
 
 def get_session():
     """
