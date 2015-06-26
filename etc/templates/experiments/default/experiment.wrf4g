@@ -13,14 +13,14 @@ np = 1
 requirements         = ARCH="x86_64"
 clean_after_run      = yes
 save_wps             = no
-real_parallel        = yes
+real_parallel        = no
 wrf_parallel         = yes
 # Input data
 domain_path          =
 extdata_vtable       = 
 extdata_path         =
 extdata_interval     = 
-preprocessor         = 
+preprocessor         = default
 # Output
 output_path          = 
 postprocessor        = 

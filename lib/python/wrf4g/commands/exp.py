@@ -19,7 +19,7 @@ Options:
     -p --pattern=<name>       Pattern to find experiments and realizations.
     -s --rea-state=<state>    Select only realizations in the indicated state. Available states :
                               PREPARED, SUBMITTED, RUNNING, PENDING, FAILED and FINISHED 
-    -t --from-template=<name> Experiment template, avaible templates are default, single, physics [default: default]. 
+    -t --from-template=<name> Experiment template, avaible templates are default, single, physics. 
     -d --dir=<directory>      Directory to create or start an experiment [default: ./].
     --delay=<seconds>         Refresh experiment information every delay seconds.
     --rerun                   Force to run although this realization or experiment has finished.
@@ -80,7 +80,9 @@ def run( arg ) :
                          level  = logging.DEBUG if arg[ '--dbg' ] else logging.INFO,  
                          stream = sys.stdout )
     if arg[ 'define' ] :
-        Experiment.create_files( arg[ '<name>' ], arg[ '--from-template' ], arg[ '--force' ], arg[ '--dir' ] )
+        Experiment.create_files( arg[ '<name>' ], 
+                                 "default" if not arg[ '--from-template' ] else arg[ '--from-template' ], 
+                                 arg[ '--force' ], arg[ '--dir' ] )
     else :
         # create a session to connect with the database
         session = get_session()
