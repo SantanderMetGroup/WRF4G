@@ -1,3 +1,4 @@
+from __future__           import with_statement
 import os
 import sys
 import time
@@ -51,6 +52,8 @@ JOB_ERROR = { 'LOCAL_PATH'           : 1,
               'COPY_OUTPUT_FILE'     : 21,
               'COPY_NODES'           : 22,
               }
+
+lock = __import__('threading').Lock()
 
 class JobError( Exception ):
     """Raised when job fails.
@@ -232,85 +235,86 @@ def clean_wrf_files( job_db, params, clean ):
     """
     Postprocess wrfout files and copy files to the output path 
     """
-    for patt in [ "wrfout", "wrfzout", "wrfz2out", "wrfrst", "wrfrain", "wrfxtrm", "wrf24hc" ] :
-        all_files_patt = glob.glob( join( params.wrf_run_path, patt + '*' ) )
-        if clean == 'closed_files' :
-            if len( all_files_patt ) >= ( 2 * params.max_dom ) :
-                all_files_patt.sort( key = os.path.getmtime )
-                files = all_files_patt[ :params.max_dom ]
+    with lock :
+        for patt in [ "wrfout", "wrfzout", "wrfz2out", "wrfrst", "wrfrain", "wrfxtrm", "wrf24hc" ] :
+            all_files_patt = glob.glob( join( params.wrf_run_path, patt + '*' ) )
+            if clean == 'closed_files' :
+                if len( all_files_patt ) >= ( 2 * params.max_dom ) :
+                    all_files_patt.sort( key = os.path.getmtime )
+                    files = all_files_patt[ :params.max_dom ]
+                else :
+                    continue
+            elif clean == 'all' :
+                files = all_files_patt
             else :
-                continue
-        elif clean == 'all' :
-            files = all_files_patt
-        else :
-            logging.warning( "'%s' is not a valid option due to all files will be cleaned" % ( clean ) )
-            files = all_files_patt
-        for file in files :
-            logging.info( "Checking '%s' file" % file  ) 
-            file_name = basename( file )
-            if file_name == "wrfrst_d01_" + datetime2datewrf( params.chunk_rdate ) :
-                # Skip the initial restart file
-                logging.info( "Skipping initial restart file %s" % file_name )
-                continue
-            else :
-                if "wrfout" in file_name and params.postprocessor :
-                    code, output = exec_cmd( "ncdump -h %s" % file_name )
-                    if "WRF4G_postprocessor" in output :
-                        logging.info( "'%s' was already postprocessed" % file_name )
-                        continue
-                    ##
-                    # Execute postprocessor
-                    ##
-                    logging.info( "Running postprocessor.%s" % params.postprocessor )
-      
-                    if not which( "postprocessor.%s" % params.postprocessor ) :
-                        raise JobError( "Postprocessor '%s' does not exist" % params.postprocessor, 
-                               JOB_ERROR[ 'POSTPROCESSOR_FAILED' ] )
-                    post_log = join( params.log_path, 'postprocessor.%s.log' % params.postprocessor )
-                    code, output = exec_cmd( "postprocessor.%s %s &>> %s" % (
-                                                params.postprocessor, file_name, post_log ) )
-                    if code :
-                        logging.info( output )
-                        raise JobError( "'%s' has not copied" % file_name,
-                                JOB_ERROR[ 'POSTPROCESSOR_FAILED' ] )
-                    # The file will indicate that it has been postprocessed  
-                    exec_cmd( 'ncatted -O -a WRF4G_postprocessor,global,o,c,"%s" %s' % 
-                                            (params.postprocessor, file) )
+                logging.warning( "'%s' is not a valid option due to all files will be cleaned" % ( clean ) )
+                files = all_files_patt
+            for file in files :
+                logging.info( "Checking '%s' file" % file  ) 
+                file_name = basename( file )
+                if file_name == "wrfrst_d01_" + datetime2datewrf( params.chunk_rdate ) :
+                    # Skip the initial restart file
+                    logging.info( "Skipping initial restart file %s" % file_name )
+                    continue
+                else :
+                    if "wrfout" in file_name and params.postprocessor :
+                        code, output = exec_cmd( "ncdump -h %s" % file_name )
+                        if "WRF4G_postprocessor" in output :
+                            logging.info( "'%s' was already postprocessed" % file_name )
+                            continue
+                        ##
+                        # Execute postprocessor
+                        ##
+                        logging.info( "Running postprocessor.%s" % params.postprocessor )
+          
+                        if not which( "postprocessor.%s" % params.postprocessor ) :
+                            raise JobError( "Postprocessor '%s' does not exist" % params.postprocessor, 
+                                   JOB_ERROR[ 'POSTPROCESSOR_FAILED' ] )
+                        post_log = join( params.log_path, 'postprocessor.%s.log' % params.postprocessor )
+                        code, output = exec_cmd( "postprocessor.%s %s &>> %s" % (
+                                                    params.postprocessor, file_name, post_log ) )
+                        if code :
+                            logging.info( output )
+                            raise JobError( "'%s' has not copied" % file_name,
+                                    JOB_ERROR[ 'POSTPROCESSOR_FAILED' ] )
+                        # The file will indicate that it has been postprocessed  
+                        exec_cmd( 'ncatted -O -a WRF4G_postprocessor,global,o,c,"%s" %s' % 
+                                                (params.postprocessor, file) )
 
-                if "wrfrst" and "d01" in file_name :
-                    job_db.set_restart_date( WRFFile( file_name ).date_datetime() )
+                    if "wrfrst" and "d01" in file_name :
+                        job_db.set_restart_date( WRFFile( file_name ).date_datetime() )
 
-            ##
-            # Uploading "wrfout", "wrfrst", "wrfzout", "wrfz2out", "wrfrain", "wrfxtrm", "wrf24hc" files
-            ##
-            if patt != "wrfrst" and params.wrfout_name_end_date == 'yes' :
-                code, output = exec_cmd("ncdump -v Times %s" % file )
-                mo = re.search("(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})", output.split('\n')[-2] )
-                dest_file = WRFFile( file_name, mo.group() ).file_name_out_iso()
-            else:
-                dest_file = WRFFile( file_name).file_name_iso()
-    
-            if patt == "wrfrst" :
-                dest = join( params.rst_rea_output_path, dest_file )
-            else :
-                dest = join( params.out_rea_output_path, dest_file )
-    
-            logging.info( "Uploading file '%s'" % file )
-            os.chmod( file, 0664 )
-            try :
-                copy_file( file, dest )
-            except :
-                logging.error( "'%s' has not copied" % file )   
-                time.sleep( 10 )
-                logging.info( "Uploading file '%s' again" % file )
+                ##
+                # Uploading "wrfout", "wrfrst", "wrfzout", "wrfz2out", "wrfrain", "wrfxtrm", "wrf24hc" files
+                ##
+                if patt != "wrfrst" and params.wrfout_name_end_date == 'yes' :
+                    code, output = exec_cmd("ncdump -v Times %s" % file )
+                    mo = re.search("(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})", output.split('\n')[-2] )
+                    dest_file = WRFFile( file_name, mo.group() ).file_name_out_iso()
+                else:
+                    dest_file = WRFFile( file_name).file_name_iso()
+        
+                if patt == "wrfrst" :
+                    dest = join( params.rst_rea_output_path, dest_file )
+                else :
+                    dest = join( params.out_rea_output_path, dest_file )
+        
+                logging.info( "Uploading file '%s'" % file )
+                os.chmod( file, 0664 )
                 try :
                     copy_file( file, dest )
                 except :
-                    raise JobError( "'%s' has not copied" % file, JOB_ERROR[ 'COPY_OUTPUT_FILE' ] ) 
-            try :
-                os.remove( file )     
-            except : 
-                pass
+                    logging.error( "'%s' has not copied" % file )   
+                    time.sleep( 10 )
+                    logging.info( "Uploading file '%s' again" % file )
+                    try :
+                        copy_file( file, dest )
+                    except :
+                        raise JobError( "'%s' has not copied" % file, JOB_ERROR[ 'COPY_OUTPUT_FILE' ] ) 
+                try :
+                    os.remove( file )     
+                except : 
+                    pass
 
 def get_current_date( log_wrf ):
     try :
