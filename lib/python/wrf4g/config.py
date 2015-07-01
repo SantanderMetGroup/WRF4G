@@ -90,7 +90,7 @@ def get_conf( directory = './' ):
     default_dict.update( dict ( exp_env.items( 'DEFAULT' ) ) )
     exp_conf_dict = dict()
     exp_conf_dict[ 'default' ] = default_dict
-    exp_conf_dict[ 'default' ] [ 'home_dir' ] = os.getcwd() if directory == './' else abspath( directory )
+    exp_conf_dict[ 'default' ] [ 'home_dir' ] = abspath( directory )
     for section in exp_env.sections() :
         if ':' in section :
             # In this case key will be the name of the reosurce

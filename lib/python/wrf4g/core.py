@@ -96,6 +96,27 @@ class Experiment( Base ):
         Edit experiment.wrf4g file.
         """
         edit_file( join( self.home_dir, 'experiment.wrf4g' )  )
+ 
+    def _is_reconfigurable(self, modified_variables ) :
+        """
+        Check if the experiment can be updated
+        """
+        for elem_modified in modified_variables :
+            if elem_modified in ( 'calendar', 'max_dom', 'namelist_version', 'namelist' ) :
+                return False
+        return True
+
+    def _is_parcial_reconfigurable(self, modified_variables ) :
+        """
+        Check if the experiment can be updated without update the database 
+        """
+        if modified_variables :
+            for elem_modified in modified_variables :
+                if not elem_modified in ( 'np', 'requirements', 'environment', 'clean_after_run', 'save_wps',
+                                          'real_parallel', 'wrf_parallel', 'domain_path', 'preprocessor',
+                                          'extdata_path', 'postprocessor', 'app', 'output_path' ) :
+                    return False
+        return True
 
     def check_db(self, name, start_date, end_date, chunk_size_h, label ):
         """ 
@@ -124,17 +145,9 @@ class Experiment( Base ):
         """
         Create and prepare all realizations and chunks needed to submit a WRF4G experiment.
         """
+        # Read experiment.wrf4g file
         exp_conf = get_conf( directory )
-        if update :
-            old_exp_conf = load_exp_pkl( directory )
-            added, removed, modified, same = dict_compare( old_exp_conf['default'] , exp_conf[ 'default' ] )
-            for elem_modified in modified :
-                if elem_modified in ( 'calendar' , 'max_dom', 'namelist_version', 'namelist' ) :    
-                    raise Exception( "ERROR: Experiment with the same name "
-                                     "and no reconfigurable fields already exists." )
-        elif self.name != exp_conf.default.name :
-            raise Exception( "ERROR: experiment.wrf4g file has a different experiment name." )     
-        save_exp_pkl( exp_conf, directory )
+        
         # Update experiment variables
         self.name             = exp_conf.default.name
         self.calendar         = exp_conf.default.calendar
@@ -146,29 +159,50 @@ class Experiment( Base ):
         self.max_dom          = exp_conf.default.max_dom
         self.namelist         = exp_conf.default.namelist
         self.datetime_list    = exp_conf.default.datetime_list
+ 
+        # Check if the experiment can be updated
+        if update :
+            if not exists( join( self.home_dir, 'experiment.pkl' ) ) :
+                raise Exception( "ERROR: There is not an 'experiment.pkl' file to update this experiment" )
+            old_exp_conf = load_exp_pkl( self.home_dir )
+            added, removed, modified, same = dict_compare( old_exp_conf['default'], exp_conf[ 'default' ] )
+
+            if not self._is_reconfigurable( modified ) :
+                raise Exception( "ERROR: Experiment with the same name "
+                                 "and no reconfigurable fields already exists." )
+        elif self.name != exp_conf.default.name :
+            raise Exception( "ERROR: experiment.wrf4g file has a different experiment name." )     
+         
+        # Save current configuration in the experiment.pkl file 
+        save_exp_pkl( exp_conf, directory )
+
         if not self.dryrun :
+            # Copy configure files before submission
+            self._copy_experiment_files()
             # Create software bundles to use on the WN
             self._create_wrf4g_bundles()
-        # Copy the namelist from the template directory 
-        logging.info( "Preparing namelist..." )
-        namelist_template   = join( WRF4G_DIR , 'etc', 'templates', 'namelist', 
-                                 'namelist.input-%s' % self.namelist_version )
-        self.namelist_input = join( directory, 'namelist.input' )
-        try :
-            logging.debug( "Copying '%s' to '%s'" % (namelist_template, self.namelist_input) )
-            shutil.copyfile(namelist_template, self.namelist_input )
-        except :
-            raise Exception( "There is not a namelist template for WRF '%s'"
-                             "(File namelist.input does not exist)" % self.namelist_template )
-        if not self.dryrun :  
-            # Update max_dom on the namelist  
-            logging.debug( "Updating parameter 'max_dom' in the namelist" )
-            exec_cmd( "fortnml -wof %s -s max_dom %d" % ( self.namelist_input, self.max_dom ) )          
-            # Trim the namlist
-            logging.debug( "Force trimming the arrays in the namelist to 'max_dom'" ) 
-            exec_cmd( "fortnml -wof %s --force-trim=%d" % ( self.namelist_input, self.max_dom ) )
-        # Cycle to create a realization per combination
-        self._cycle_combinations( exp_conf.default.label_combination, exp_conf.default.namelist_dict ) 
+          
+        if ( update and not self._is_parcial_reconfigurable( modified ) ) or ( not update ) :
+            # Copy the namelist from the template directory 
+            logging.info( "Preparing namelist..." )
+            namelist_template   = join( WRF4G_DIR , 'etc', 'templates', 'namelist', 
+                                       'namelist.input-%s' % self.namelist_version )
+            self.namelist_input = join( directory, 'namelist.input' )
+            try :
+                logging.debug( "Copying '%s' to '%s'" % (namelist_template, self.namelist_input) )
+                shutil.copyfile(namelist_template, self.namelist_input )
+            except :
+                raise Exception( "There is not a namelist template for WRF '%s'"
+                                 "(File namelist.input does not exist)" % self.namelist_template )
+            if not self.dryrun :  
+                # Update max_dom on the namelist  
+                logging.debug( "Updating parameter 'max_dom' in the namelist" )
+                exec_cmd( "fortnml -wof %s -s max_dom %d" % ( self.namelist_input, self.max_dom ) )          
+                # Trim the namlist
+                logging.debug( "Force trimming the arrays in the namelist to 'max_dom'" ) 
+                exec_cmd( "fortnml -wof %s --force-trim=%d" % ( self.namelist_input, self.max_dom ) )
+            # Cycle to create a realization per combination
+            self._cycle_combinations( exp_conf.default.label_combination, exp_conf.default.namelist_dict ) 
     
     def get_status(self, rea_pattern = False, rea_status = False ):
         """ 
@@ -313,6 +347,19 @@ class Experiment( Base ):
                 rea.cycle_chunks( )
                 rea_start_date = exp_calendar.add_hours(rea_start_date, simult_interval_h ) 
 
+    def _copy_experiment_files(self):
+        """
+        Copy configure files before submission.
+        """    
+        exp_submission_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
+        for file in [ join( WRF4G_DIR, 'etc', 'db.conf' ),
+                      join( self.home_dir, "experiment.wrf4g" ),
+                      join( self.home_dir, "experiment.pkl" ) ] :
+            if not exists ( expandvars( file ) ) :
+                raise Exception( "'%s' is not available" % file )
+            else :
+                shutil.copy( expandvars( file ) , exp_submission_dir )
+
     def _create_wrf4g_bundles(self):
         """
         Create bundles with the necessary software to run WRF on worker nodes.
@@ -414,9 +461,10 @@ class Realization( Base ):
         else :
             # search first chunk to run
             if rerun and first_chunk_run :
-                ch                = self.chunk.filter( Chunk.chunk_id == first_chunk_run ).one()
-                self.restart      = ch.start_date
-                self.current_date = ch.start_date
+                ch                 = self.chunk.filter( Chunk.chunk_id == first_chunk_run ).one()
+                self.restart       = ch.start_date
+                self.current_date  = ch.start_date
+                self.current_chunk = first_chunk_run
             else :
                 #search first chunk to run
                 if not self.restart : # run every chunks of the realization
@@ -464,14 +512,10 @@ class Realization( Base ):
                 os.makedirs( rea_submission_dir )
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % rea_submission_dir )
-        for file in [ join( WRF4G_DIR, 'etc', 'db.conf' ), 
-                      join( self.experiment.home_dir, "experiment.wrf4g" ), 
-                      join( self.experiment.home_dir, "namelist.input" ) , 
-                      join( self.experiment.home_dir, "experiment.pkl" ) ] :
-            if not exists ( expandvars( file ) ) :
-                raise Exception( "'%s' is not available" % file )
-            else :
-                shutil.copy( expandvars( file ) , rea_submission_dir )
+        if not exists ( expandvars( join( self.experiment.home_dir, "namelist.input" ) ) ) :
+            raise Exception( "'%s' is not available" % file )
+        else :
+            shutil.copy( expandvars( file ) , rea_submission_dir )
 
     def check_db(self, rea_id, chunk_start_date, chunk_end_date, chunk_id ):
         """ 
@@ -569,7 +613,7 @@ class Realization( Base ):
         runt   = int( self.current_date.strftime("%s") ) - int( self.start_date.strftime("%s") ) 
         totalt = int( self.end_date.strftime("%s") )     - int( self.start_date.strftime("%s") )
         #Percentage
-        per = runt * 100.0/ totalt
+        per = runt * 100.0 / totalt
         #Print output
         logging.info( "%-60.60s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
                     self.name, self.status, chunk_distribution, resource, status, 
@@ -640,9 +684,9 @@ class Chunk( Base ):
             raise Exception( "'%s' file does not exist" % wrf4g_package )
         # files to add for the inputsandbox 
         inputsandbox  = "file://%s,"                  % wrf4g_package
-        inputsandbox += "file://%s/db.conf,"          % rea_path
-        inputsandbox += "file://%s/experiment.wrf4g," % rea_path
-        inputsandbox += "file://%s/experiment.pkl,"   % rea_path
+        inputsandbox += "file://%s/db.conf,"          % exp_path
+        inputsandbox += "file://%s/experiment.wrf4g," % exp_path
+        inputsandbox += "file://%s/experiment.pkl,"   % exp_path
         inputsandbox += "file://%s/namelist.input"    % rea_path  
         # Add input file if it is exist
         input_files = join( exp_path , 'wrf4g_files.tar.gz' )
@@ -696,9 +740,9 @@ class Chunk( Base ):
                                                        datetime2datewrf(self.end_date) ) 
                                                        )
         l_jobs = self.job.filter( and_( Job.status != 'PREPARED', 
-                                       Job.status != 'FINISHED',
-                                       Job.status != 'FAILED',
-                                       Job.status != 'CANCEL' ) 
+                                        Job.status != 'FINISHED',
+                                        Job.status != 'FAILED',
+                                        Job.status != 'CANCEL' ) 
                                 ).all()
         if not ( l_jobs ):
             logging.info( '\t\tThere are not jobs to cancel.' )
