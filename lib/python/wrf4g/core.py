@@ -175,10 +175,17 @@ class Experiment( Base ):
             raise Exception( "ERROR: experiment.wrf4g file has a different experiment name." )     
          
         if not self.dryrun :
+            exp_sub_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
+            if not isdir( exp_sub_dir ) :
+                try:
+                    logging.debug( "Creating '%s' directory" % exp_sub_dir )
+                    os.makedirs( exp_sub_dir )
+                except Exception :
+                    raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )
             # Copy configure files before submission
-            self._copy_experiment_files()
+            self._copy_experiment_files( exp_sub_dir  )
             # Create software bundles to use on the WN
-            self._create_wrf4g_bundles()
+            self._create_wrf4g_bundles( exp_sub_dir  )
           
         if ( update and not self._is_parcial_reconfigurable( modified ) ) or ( not update ) :
             # Copy the namelist from the template directory 
@@ -349,33 +356,25 @@ class Experiment( Base ):
                 rea.cycle_chunks( )
                 rea_start_date = exp_calendar.add_hours(rea_start_date, simult_interval_h ) 
 
-    def _copy_experiment_files(self):
+    def _copy_experiment_files(self, exp_sub_dir ):
         """
         Copy configure files before submission.
         """    
-        exp_submission_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
         for file in [ join( WRF4G_DIR, 'etc', 'db.conf' ),
                       join( self.home_dir, "experiment.wrf4g" ),
                       join( self.home_dir, "experiment.pkl" ) ] :
             if not exists ( expandvars( file ) ) :
                 raise Exception( "'%s' is not available" % file )
             else :
-                shutil.copy( expandvars( file ) , exp_submission_dir )
+                shutil.copy( expandvars( file ) , exp_sub_dir )
 
-    def _create_wrf4g_bundles(self):
+    def _create_wrf4g_bundles(self, exp_sub_dir ):
         """
         Create bundles with the necessary software to run WRF on worker nodes.
         """
         # WRF4G bundle
         logging.debug( "Create a WRF4G software bundle to use on the worker node..." )
-        exp_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
-        if not isdir( exp_dir ) :
-            try:
-                logging.debug( "Creating '%s' directory" % exp_dir ) 
-                os.makedirs( exp_dir )
-            except Exception :
-                raise Exception( "Couldn't be created '%s' directory" % exp_dir )
-        wrf4g_package = join ( exp_dir , "WRF4G.tar.gz" )
+        wrf4g_package = join ( exp_sub_dir , "WRF4G.tar.gz" )
         if exists( wrf4g_package  ):
             logging.debug( "Removing '%s' package" % wrf4g_package ) 
             os.remove( wrf4g_package )
@@ -391,7 +390,7 @@ class Experiment( Base ):
         wrf4g_files_dir = join( self.home_dir, 'wrf4g_files' )
         if isdir( wrf4g_files_dir ):
             logging.debug( "Create a wrf4g_files.tar.gz bundle to use on the worker node..." )
-            wrf4g_files_package = join ( exp_dir , "wrf4g_files.tar.gz" )
+            wrf4g_files_package = join ( exp_sub_dir , "wrf4g_files.tar.gz" )
             if exists( wrf4g_files_package ):
                 logging.debug( "Removing '%s' package" % wrf4g_files_package )
                 os.remove( wrf4g_files_package )
