@@ -174,9 +174,6 @@ class Experiment( Base ):
         elif self.name != exp_conf.default.name :
             raise Exception( "ERROR: experiment.wrf4g file has a different experiment name." )     
          
-        # Save current configuration in the experiment.pkl file 
-        save_exp_pkl( exp_conf, directory )
-
         if not self.dryrun :
             # Copy configure files before submission
             self._copy_experiment_files()
@@ -203,7 +200,11 @@ class Experiment( Base ):
                 logging.debug( "Force trimming the arrays in the namelist to 'max_dom'" ) 
                 exec_cmd( "fortnml -wof %s --force-trim=%d" % ( self.namelist_input, self.max_dom ) )
             # Cycle to create a realization per combination
-            self._cycle_combinations( exp_conf.default.label_combination, exp_conf.default.namelist_dict ) 
+            self._cycle_combinations( exp_conf.default.label_combination, exp_conf.default.namelist_dict )
+
+        # Save current configuration in the experiment.pkl file 
+        save_exp_pkl( exp_conf, directory )
+ 
     
     def get_status(self, rea_pattern = False, rea_status = False ):
         """ 
