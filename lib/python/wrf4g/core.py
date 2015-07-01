@@ -5,6 +5,7 @@ __revision__ = "$Id$"
 import os
 import re
 import glob
+import time
 import tarfile
 import shutil
 import datetime
@@ -512,10 +513,11 @@ class Realization( Base ):
                 os.makedirs( rea_submission_dir )
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % rea_submission_dir )
-        if not exists ( expandvars( join( self.experiment.home_dir, "namelist.input" ) ) ) :
-            raise Exception( "'%s' is not available" % file )
+        file_name = expandvars( join( self.experiment.home_dir, "namelist.input" ) )
+        if not exists ( file_name ) :
+            raise Exception( "'%s' is not available" % file_name )
         else :
-            shutil.copy( expandvars( file ) , rea_submission_dir )
+            shutil.copy( file_name , rea_submission_dir )
 
     def check_db(self, rea_id, chunk_start_date, chunk_end_date, chunk_id ):
         """ 
@@ -713,6 +715,7 @@ class Chunk( Base ):
                                                 outputsandbox = outputsandbox )
         # Submit the template
         job = Job()  #create an object "job"
+        time.sleep( 0.1 )
         # if the first chunk of the realization
         if index == 0 :
             job.gw_job    = gw_job.submit( file_template = file_template )
