@@ -21,9 +21,8 @@ class GWJob( object ):
         Create template
         """
         ftemplate = join( directory,  name + ".gw" )
-        try: 
-            f = open(ftemplate,'w')
-            template="""NAME = %s
+        f = open(ftemplate,'w')
+        template="""NAME = %s
 EXECUTABLE   = /usr/bin/env python 
 ARGUMENTS    = ./bin/pilot_wrf.py %s
 INPUT_FILES  = %s
@@ -31,9 +30,8 @@ OUTPUT_FILES = %s
 REQUIREMENTS = %s
 ENVIRONMENT  = %s
 NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np)
-            f.write(template)
-        finally:
-            f.close()
+        f.write(template)
+        f.close()
         return ftemplate
     
     def submit(self, dep = None, priority = 0, type_dep = "afterok", file_template = "job.gw" ):
@@ -41,6 +39,7 @@ NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np
         cmd = "%s/gwsubmit -p %d -v %s -t %s" % (DRM4G_BIN, priority, 
                                                   depend, file_template )
         code, out = exec_cmd( cmd )
+        logging.debug( out )
         if code :
             raise Exception( out )
         return out[ 8: ]
