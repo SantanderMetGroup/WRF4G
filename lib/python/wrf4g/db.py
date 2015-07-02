@@ -8,6 +8,7 @@ from sqlalchemy                 import ( Column, INTEGER,
                                          DATETIME, ForeignKey,
                                          create_engine )
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.pool            import NullPool
 from sqlalchemy.orm             import relationship, sessionmaker
 from os.path                    import join, exists
 from wrf4g                      import DB4G_CONF, WRF4G_DIR, MYSQL_DIR
@@ -113,7 +114,7 @@ def get_session():
     logging.debug( "Reading database configuration from '%s' file" % DB4G_CONF  )
     db4g_urls = VarEnv( DB4G_CONF ).get_var( 'URL' )
     # an Engine, which the Session will use for connection
-    engine = create_engine( db4g_urls )
+    engine = create_engine( db4g_urls, poolclass = NullPool )
     # create a configured "Session" class
     Session = sessionmaker(bind = engine)
     # create a Session
