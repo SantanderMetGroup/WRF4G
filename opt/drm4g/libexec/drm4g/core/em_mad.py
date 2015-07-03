@@ -217,14 +217,12 @@ class GwEmMad (object):
             self.logger.debug( "CALLBACK new iteration ..." )
             for JID , job  in self._job_list.items( ):
                 try:
-                    self.logger.debug( "CALLBACK checking job '%s'" % JID  )
                     oldStatus = job.getStatus( )
                     job.refreshJobStatus( )
                     newStatus = job.getStatus( )
-                    if oldStatus != newStatus:
-                        if newStatus == 'DONE' or newStatus == 'FAILED':
-                            self._job_list.delete(JID)
-                            time.sleep ( 0.1 )
+                    if oldStatus != newStatus and ( newStatus == 'DONE' or newStatus == 'FAILED' ) :
+                        self._job_list.delete(JID)
+                        time.sleep ( 0.1 )
                         # Connect with the database to update the status of the job
                         try :
                             session = get_session()
@@ -233,7 +231,6 @@ class GwEmMad (object):
                                       order_by( Job.id ).all()[-1]
                             self.logger.info( states[ newStatus ]  )
                             if not q_job.status in avoid_states : 
-                                self.logger.info( "Update" )
                                 q_job.set_status( states[ newStatus ] )
                                 session.commit()                                
                         except Exception , err :
