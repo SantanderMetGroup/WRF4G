@@ -22,7 +22,8 @@ from os.path                import ( exists, expandvars,
                                      join )
 from datetime               import datetime, timedelta 
 from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
-from wrf4g.config           import get_conf, save_exp_pkl, load_exp_pkl, dict_compare
+from wrf4g.config           import ( get_conf, save_exp_pkl, 
+                                     load_exp_pkl, dict_compare )
 from wrf4g.db               import Base
 from wrf4g.utils.archive    import extract
 from wrf4g.utils.time       import datetime2datewrf, Calendar
@@ -109,7 +110,7 @@ class Experiment( Base ):
 
     def _is_parcial_reconfigurable(self, modified_variables ) :
         """
-        Check if the experiment can be updated without update the database 
+        Check if the experiment can be updated without update the database. 
         """
         if modified_variables :
             for elem_modified in modified_variables :
@@ -119,7 +120,7 @@ class Experiment( Base ):
                     return False
         return True
 
-    def check_db(self, name, start_date, end_date, chunk_size_h, label ):
+    def check_db(self, name, start_date, end_date, chunk_size_h):
         """ 
         Check if there is a realization with the same no reconfigurable field. 
         If there is not a realization with the same no reconfigurable fields => error
@@ -133,14 +134,15 @@ class Experiment( Base ):
         else :
             #Check if there is a realization with the same no reconfigurable fields:
             #rea_name, start_date, label
-            if rea.label == label and rea.chunk_size_h == chunk_size_h :
-                logging.debug('\t\tUpdating realization on the database...')
-                rea.start_date = start_date
-                rea.end_date   = end_date
+            if rea.chunk_size_h == chunk_size_h and rea.end_date < end_date :
+                logging.debug( '\t\tUpdating realization on the database...' )
+                rea.end_date = end_date
+                rea.status   = 'PREPARED'
                 return rea
             else :                                 
                 #if rea does not exist (no realization with the same no reconfigurable fields)
-                raise Exception("\t\tRealization with the same name and no reconfigurable fields already exists") 
+                raise Exception( "\t\tRealization with the same name and " 
+                                 "no reconfigurable fields already exists" ) 
 
     def create(self, update = False, directory = './' ):
         """
@@ -148,6 +150,9 @@ class Experiment( Base ):
         """
         # Read experiment.wrf4g file
         exp_conf = get_conf( directory )
+
+        if self.name != exp_conf.default.name :
+            raise Exception( "ERROR: experiment.wrf4g file has a different experiment name." )
         
         # Update experiment variables
         self.name             = exp_conf.default.name
@@ -171,9 +176,6 @@ class Experiment( Base ):
             if not self._is_reconfigurable( modified ) :
                 raise Exception( "ERROR: Experiment with the same name "
                                  "and no reconfigurable fields already exists." )
-        elif self.name != exp_conf.default.name :
-            raise Exception( "ERROR: experiment.wrf4g file has a different experiment name." )     
-         
         if not self.dryrun :
             exp_sub_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
             if not isdir( exp_sub_dir ) :
@@ -211,7 +213,6 @@ class Experiment( Base ):
 
         # Save current configuration in the experiment.pkl file 
         save_exp_pkl( exp_conf, directory )
- 
     
     def get_status(self, rea_pattern = False, rea_status = False ):
         """ 
@@ -230,7 +231,7 @@ class Experiment( Base ):
         * % : percentage of simulation finished.
         """
         #list of realization of the experiment
-        l_realizations  = self._filter_realizations( rea_pattern, rea_status )
+        l_realizations = self._filter_realizations( rea_pattern, rea_status )
         #Header of the information
         if not ( l_realizations ):
             raise Exception ( 'There are not realizations to check.' )
@@ -310,9 +311,11 @@ class Experiment( Base ):
                     # Modify the namelist with the parameters available in the namelist description
                     if '.' in mnl_variable :
                        section, val = mnl_variable.split( '.' )
-                       cmd = "fortnml -wof %s -s %s@%s %s" % ( self.namelist_input, val, section, str( mnl_values[ comb ] ) )
+                       cmd = "fortnml -wof %s -s %s@%s %s" % ( self.namelist_input, 
+                                                               val, section, str( mnl_values[ comb ] ) )
                     else :
-                       cmd = "fortnml -wof %s -s %s %s"    % ( self.namelist_input, mnl_variable, str( mnl_values[ comb ] ) ) 
+                       cmd = "fortnml -wof %s -s %s %s"    % ( self.namelist_input, 
+                                                               mnl_variable, str( mnl_values[ comb ] ) ) 
                     exec_cmd( cmd )
             self._cycle_time( "%s__%s" % ( self.name, label ) if label else self.name, label )
      
@@ -327,15 +330,13 @@ class Experiment( Base ):
             rea_start_date  = start_date
             while rea_start_date < end_date :
                 rea_end_date = exp_calendar.add_hours(rea_start_date, simult_length_h )
-                cycle_name   = "%s__%s_%s" % ( rea_name, rea_start_date.strftime( "%Y%m%dT%H%M%S" ),
-                                               rea_end_date.strftime( "%Y%m%dT%H%M%S" ) )
+                cycle_name   = "%s__%s" % ( rea_name, rea_start_date.strftime( "%Y%m%dT%H%M%S" ) )
                 logging.info( "\t---> Realization %s" % cycle_name  )
                 # Check realization on the database
                 rea = self.check_db( name             = cycle_name, 
                                      start_date       = rea_start_date,
                                      end_date         = rea_end_date,
-                                     chunk_size_h     = chunk_size_h,
-                                     label            = label ) 
+                                     chunk_size_h     = chunk_size_h ) 
                 if not rea :
                     # Create a realization 
                     rea = Realization( name          = cycle_name, 
@@ -354,7 +355,7 @@ class Experiment( Base ):
                     exec_cmd( "fortnml -wof %s -s restart_interval %d" % ( self.namelist_input, restart_interval ) )
                     rea._prepare_sub_files()
                 rea.cycle_chunks( )
-                rea_start_date = exp_calendar.add_hours(rea_start_date, simult_interval_h ) 
+                rea_start_date = exp_calendar.add_hours( rea_start_date, simult_interval_h ) 
 
     def _copy_experiment_files(self, exp_sub_dir ):
         """
@@ -475,8 +476,8 @@ class Realization( Base ):
                     try:
                         first_chunk  = self.chunk.filter( and_( Chunk.start_date <= self.restart, 
                                                                 Chunk.end_date   >= self.restart ) 
-                                                         ).all()[ 0 ]
-                        first_chunk_run = first_chunk.chunk_id
+                                                         ).all()[ -1 ]
+                        first_chunk_run = self.current_chunk  = first_chunk.chunk_id
                     except : 
                         raise Exception( 'There are not chunks to run.' )
             #search last chunk to run
@@ -576,7 +577,7 @@ class Realization( Base ):
 
     @staticmethod 
     def status_header(): 
-        logging.info( '\033[1;4m%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s\033[0m'% (
+        logging.info( '\033[1;4m%-40s %-10s %-10s %-16s %-10s %6s %-3s %6s\033[0m'% (
                         'REALIZATION','STATUS','CHUNKS','RESOURCE','RUN STATUS',
                         'JID', 'EXT','%' ) )
  
@@ -602,7 +603,7 @@ class Realization( Base ):
             exitcode           = '-'
             status             = 'PREPARED'
             gw_job             = '-'
-            chunk_distribution = '%d/%d' % ( 0 , self.nchunks )
+            chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
         else :
             current_chunk      = self.chunk.filter( Chunk.chunk_id == self.current_chunk ).one()
             last_job           = current_chunk.job.order_by( Job.id )[ -1 ]
@@ -617,7 +618,7 @@ class Realization( Base ):
         #Percentage
         per = runt * 100.0 / totalt
         #Print output
-        logging.info( "%-60.60s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
+        logging.info( "%-40.40s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
                     self.name, self.status, chunk_distribution, resource, status, 
                     gw_job, exitcode, per ) )
   

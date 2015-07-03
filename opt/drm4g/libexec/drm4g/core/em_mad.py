@@ -130,7 +130,6 @@ class GwEmMad (object):
             job.copyWrapper( local_file , remote_file )
             # Execute wrapper_drm4g 
             job.JobId = job.jobSubmit( remote_file )
-            self._job_list.put( JID , job )
             # Connect with the database to update resource and gw_restarted
             try :
                 session                = get_session()
@@ -143,6 +142,7 @@ class GwEmMad (object):
                 logger.error( str( err ) )
             finally:
                 session.close()
+            self._job_list.put( JID , job )
             out = 'SUBMIT %s SUCCESS %s:%s' % ( JID , HOST , job.JobId )
         except Exception, err:
             out = 'SUBMIT %s FAILURE %s' % ( JID , str( err ) )
@@ -231,7 +231,9 @@ class GwEmMad (object):
                             q_job   = session.query( Job ).\
                                       filter( Job.gw_job == JID ).\
                                       order_by( Job.id ).all()[-1]
+                            self.logger.info( states[ newStatus ]  )
                             if not q_job.status in avoid_states : 
+                                self.logger.info( "Update" )
                                 q_job.set_status( states[ newStatus ] )
                                 session.commit()                                
                         except Exception , err :
