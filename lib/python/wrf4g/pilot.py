@@ -94,13 +94,16 @@ class JobDB( object ) :
             return 'UNKNOWN'
 
     def set_job_status(self, status):
-        if self.session and self.job :
-            self.job.set_status( status )
-            try :
-                self.session.commit( )
-            except :
-                logging.warning( "Error updating status '%s' on the database" % status )
-                self.session.rollback()
+        try :
+            if self.session and self.job :
+                self.job.set_status( status )
+                try :
+                    self.session.commit( )
+                except :
+                    logging.warning( "Error updating status '%s' on the database" % status )
+                    self.session.rollback()
+        except :
+            logging.warning( "Error checking database" )
 
     def get_restart_date(self):
         if self.session and self.job :
@@ -113,40 +116,52 @@ class JobDB( object ) :
             return 0
 
     def set_wps(self):
-        if self.session and self.job :
-            self.job.chunk.wps = 1
-            try :
-                self.session.commit( )
-            except :
-                logging.warning( "Error updating wps on the database" )
-                self.session.rollback()
+        try :
+            if self.session and self.job :
+                self.job.chunk.wps = 1
+                try :
+                    self.session.commit( )
+                except :
+                    logging.warning( "Error updating wps on the database" )
+                    self.session.rollback()
+        except :
+            logging.warning( "Error checking database" )
 
     def set_restart_date(self, restart_date ):
-        if self.session and self.job :
-            self.job.chunk.realization.restart = restart_date
-            try :
-                self.session.commit( )
-            except :
-                logging.warning( "Error updating restart date '%s' on the database" % restart_date )
-                self.session.rollback()
+        try :
+            if self.session and self.job :
+                self.job.chunk.realization.restart = restart_date
+                try :
+                    self.session.commit( )
+                except :
+                    logging.warning( "Error updating restart date '%s' on the database" % restart_date )
+                    self.session.rollback()
+        except :
+            logging.warning( "Error checking database" )
 
     def set_current_date(self, current_date):
-        if self.session and self.job :
-            self.job.chunk.realization.current_date = current_date
-            try :
-                self.session.commit( )
-            except :
-                logging.warning( "Error updating current date '%s' on the database" % current_date )
-                self.session.rollback()
+        try :
+            if self.session and self.job :
+                self.job.chunk.realization.current_date = current_date
+                try :
+                    self.session.commit( )
+                except :
+                    logging.warning( "Error updating current date '%s' on the database" % current_date )
+                    self.session.rollback()
+        except :
+            logging.warning( "Error checking database" )
 
     def set_exit_code(self, exit_code ):
-        if self.session and self.job :
-            self.job.exitcode = exit_code
-            try :
-                self.session.commit( )
-            except :
-                logging.warning( "Error updating exit code" )
-                self.session.rollback()
+        try :
+            if self.session and self.job :
+                self.job.exitcode = exit_code
+                try :
+                    self.session.commit( )
+                except :
+                    logging.warning( "Error updating exit code" )
+                    self.session.rollback()
+        except :
+            logging.warning( "Error checking database" )
 
     def close(self) :
         if self.session :
