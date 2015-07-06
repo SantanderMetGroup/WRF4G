@@ -638,7 +638,8 @@ class Realization( Base ):
         """
         Delete chunks which status is running or submitted 
         """
-        l_chunks = self.chunk.filter( or_( Chunk.status == 'SUBMITTED', 
+        l_chunks = self.chunk.filter( or_( Chunk.status == 'SUBMITTED',
+                                           Chunk.status == 'PENDING',
                                            Chunk.status == 'RUNNING' ) 
                                     ).all()
         logging.info('---> Canceling Realization %s' % self.name )
