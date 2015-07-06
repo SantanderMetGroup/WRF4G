@@ -640,6 +640,7 @@ class Realization( Base ):
         """
         l_chunks = self.chunk.filter( or_( Chunk.status == 'SUBMITTED',
                                            Chunk.status == 'PENDING',
+                                           Chunk.status == 'FAILED',
                                            Chunk.status == 'RUNNING' ) 
                                     ).all()
         logging.info('---> Canceling Realization %s' % self.name )
