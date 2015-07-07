@@ -103,7 +103,7 @@ class JobDB( object ) :
                     logging.warning( "Error updating status '%s' on the database" % status )
                     self.session.rollback()
         except :
-            logging.warning( "Error checking database" )
+            logging.warning( "Error setting job status" )
 
     def get_restart_date(self):
         if self.session and self.job :
@@ -125,7 +125,7 @@ class JobDB( object ) :
                     logging.warning( "Error updating wps on the database" )
                     self.session.rollback()
         except :
-            logging.warning( "Error checking database" )
+            logging.warning( "Error updating wps on the database" )
 
     def set_restart_date(self, restart_date ):
         try :
@@ -137,7 +137,7 @@ class JobDB( object ) :
                     logging.warning( "Error updating restart date '%s' on the database" % restart_date )
                     self.session.rollback()
         except :
-            logging.warning( "Error checking database" )
+            logging.warning( "Error updating restart date '%s' on the database" % restart_date )
 
     def set_current_date(self, current_date):
         try :
@@ -149,7 +149,7 @@ class JobDB( object ) :
                     logging.warning( "Error updating current date '%s' on the database" % current_date )
                     self.session.rollback()
         except :
-            logging.warning( "Error checking database" )
+            logging.warning( "Error updating current date '%s' on the database" % current_date )
 
     def set_exit_code(self, exit_code ):
         try :
@@ -161,7 +161,7 @@ class JobDB( object ) :
                     logging.warning( "Error updating exit code" )
                     self.session.rollback()
         except :
-            logging.warning( "Error checking database" )
+            logging.warning( "Error updating exit code" )
 
     def close(self) :
         if self.session :
