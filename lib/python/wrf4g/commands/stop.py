@@ -24,5 +24,7 @@ def run( arg ) :
         Daemon().stop()
         Agent().stop()
         MySQLDB().stop()
+    except KeyboardInterrupt :
+        pass
     except Exception , err :
         logging.error( str( err ) )

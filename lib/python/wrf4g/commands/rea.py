@@ -100,6 +100,8 @@ def run( arg ) :
                 session.commit()
     except OperationalError, err :
         logging.error( err.message )
+    except KeyboardInterrupt :
+        session.rollback()
     except Exception , err :
         session.rollback()
         logging.error( str( err ) )

@@ -81,5 +81,7 @@ def run( arg ) :
                 agent.list_key( )
             if lrms == 'cream' :
                 proxy.check( )
+    except KeyboardInterrupt :
+        pass   
     except Exception , err :
         logging.error( str( err ) )

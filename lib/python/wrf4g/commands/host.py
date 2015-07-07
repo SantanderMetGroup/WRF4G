@@ -46,6 +46,8 @@ def run( arg ) :
         logging.info( out )
         if err :
             logging.info( err )
+    except KeyboardInterrupt :
+        pass
     except Exception , err :
         logging.error( str( err ) )
 

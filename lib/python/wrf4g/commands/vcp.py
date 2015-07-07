@@ -38,9 +38,10 @@ def run( arg ):
             for file_to_copy in VCPURL( dirname( arg[ '<source>' ] ) ).ls( basename( arg[ '<source>' ] ) ):
                 copy( join(  dirname( arg[ '<source>' ] ), file_to_copy ), 
                       arg[ '<dest>' ], 
-                      overwrite = arg[ '--overwrite' ], 
-                      )
+                      overwrite = arg[ '--overwrite' ] )
         else:
-            copy( arg[ '<source>' ] , arg[ '<dest>' ], overwrite = arg[ '--overwrite' ] )        
+            copy( arg[ '<source>' ] , arg[ '<dest>' ], overwrite = arg[ '--overwrite' ] )       
+    except KeyboardInterrupt :
+        pass 
     except Exception , err :
         logging.error( str( err ) )

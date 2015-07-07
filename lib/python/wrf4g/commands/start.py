@@ -57,5 +57,7 @@ def run( arg ) :
                                          "hostname" : arg[ '--db-host' ] } )
         if not arg[ '--ext-db' ] :
             MySQLDB( int( arg[ '--db-port' ] ) ).start()
+    except KeyboardInterrupt :
+        pass
     except Exception , err :
         logging.error( err )

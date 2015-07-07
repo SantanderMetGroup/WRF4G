@@ -37,6 +37,8 @@ def run( arg ) :
             resource.check_frontends( )
         else :
             resource.list()
+    except KeyboardInterrupt :
+        pass
     except Exception , err :
         logging.error( str( err ) )
 
