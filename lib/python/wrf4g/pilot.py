@@ -931,6 +931,8 @@ def launch_pilot( params ):
         ##
         # Close the connection with the database
         ##
+        if exit_code == 255 :
+            job_db.set_job_status( 'FAILED' )
         job_db.set_exit_code( exit_code )
         job_db.close()
         sys.exit( exit_code )
