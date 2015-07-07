@@ -184,10 +184,6 @@ class Experiment( Base ):
                     os.makedirs( exp_sub_dir )
                 except Exception :
                     raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )
-            # Copy configure files before submission
-            self._copy_experiment_files( exp_sub_dir  )
-            # Create software bundles to use on the WN
-            self._create_wrf4g_bundles( exp_sub_dir  )
           
         if ( update and not self._is_parcial_reconfigurable( modified ) ) or ( not update ) :
             # Copy the namelist from the template directory 
@@ -210,9 +206,14 @@ class Experiment( Base ):
                 exec_cmd( "fortnml -wof %s --force-trim=%d" % ( self.namelist_input, self.max_dom ) )
             # Cycle to create a realization per combination
             self._cycle_combinations( exp_conf.default.label_combination, exp_conf.default.namelist_dict )
-
-        # Save current configuration in the experiment.pkl file 
-        save_exp_pkl( exp_conf, directory )
+    
+        if not self.dryrun :
+            # Save current configuration in the experiment.pkl file 
+            save_exp_pkl( exp_conf, directory )
+            # Copy configure files before submission
+            self._copy_experiment_files( exp_sub_dir  )
+            # Create software bundles to use on the WN
+            self._create_wrf4g_bundles( exp_sub_dir  )
     
     def get_status(self, rea_pattern = False, rea_status = False ):
         """ 
