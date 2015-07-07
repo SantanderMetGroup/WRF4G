@@ -228,7 +228,7 @@ class PilotParams( object ):
     # logging configuration
     ###
     log_path             = join( local_path, 'log' )
-    log_file             = join( log_path, 'pilot_wrf.log' )
+    log_file             = join( log_path, 'main.log' )
 
     ##
     # Namelists
