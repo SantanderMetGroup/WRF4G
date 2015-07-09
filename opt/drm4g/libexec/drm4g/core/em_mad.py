@@ -107,10 +107,10 @@ class GwEmMad (object):
                 rsl['parallel_env'] = job.resfeatures[ 'parallel_env' ]
                 
             if job.resfeatures.has_key( 'scratch' ) :
-                rsl['environment']['DRM4G_SCRATCH']  = job.resfeatures[ 'scratch' ]
+                rsl['environment']['WRF4G_SCRATCH']  = job.resfeatures[ 'scratch' ]
             
             if job.resfeatures.has_key( 'local_scratch' ) :
-                rsl['environment']['DRM4G_LOCALSCP'] = job.resfeatures[ 'local_scratch' ]
+                rsl['environment']['WRF4G_LOCALSCP'] = job.resfeatures[ 'local_scratch' ]
              
             if job.resfeatures.has_key( 'vo' ) :
                 _ , host                    = HOST.split('::')
