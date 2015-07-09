@@ -551,9 +551,6 @@ class Realization( Base ):
         while chunk_start_date < self.end_date :
             chunk_end_date = exp_calendar.add_hours( chunk_start_date, 
                                                      hours = self.chunk_size_h )
-            logging.info( "\t\t---> Chunk %d %s %s" %( chunk_id, 
-                                                       datetime2datewrf(chunk_start_date),
-                                                       datetime2datewrf(chunk_end_date) ) )
             # Check chunk on the database
             ch = self.check_db( rea_id           = self.id, 
                                 chunk_start_date = chunk_start_date, 
@@ -561,6 +558,9 @@ class Realization( Base ):
                                 chunk_id         = chunk_id
                                 )
             if not ch :
+                logging.info( "\t\t---> Chunk %d %s %s" %( chunk_id,
+                                                       datetime2datewrf(chunk_start_date),
+                                                       datetime2datewrf(chunk_end_date) ) )
                 # Create Chunk
                 ch = Chunk( rea_id     = self.id, 
                             start_date = chunk_start_date, 
@@ -641,7 +641,6 @@ class Realization( Base ):
         """
         l_chunks = self.chunk.filter( or_( Chunk.status == 'SUBMITTED',
                                            Chunk.status == 'PENDING',
-                                           Chunk.status == 'FAILED',
                                            Chunk.status == 'RUNNING' ) 
                                     ).all()
         logging.info('---> Canceling Realization %s' % self.name )
