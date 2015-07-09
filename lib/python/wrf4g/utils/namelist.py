@@ -2,11 +2,35 @@ from os.path          import exists
 from wrf4g.utils.time import datetime2datewrf 
 
 import os
+import logging
 import fortran_namelist as fn
 
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
+
+def get_ptop():
+    shcmd = "ncdump -v PRES $(\ls met_em.d??.????-??-??_??:00:00.nc | head -1) | tail -2 | head -1 | tr -d ',;' | awk '{printf $1}'"
+    return int(os.popen(shcmd).read().strip())
+
+def fix_ptop( namelist_input ):
+    top_press = get_ptop()
+    nmli = fn.WrfNamelist( namelist_input )
+    try :
+        specp_top = int( nmli.getValue( "p_top_requested" )[0] )
+    except Exception :
+        if top_press > 5000 :
+            logging.info( "Default p_top is 5000., but your input files only reach %d. Fixing..." % top_press )
+            nmli.setValue( "p_top_requested ", top_press, "domains" )
+        else :
+            logging.info( "Default p_top will be 5000." )
+            nmli.setValue( "p_top_requested ", 5000, "domains" )
+    else :
+        if specp_top < top_press :
+            logging.info( "Specified p_top is %d, but your input files only reach %d. Fixing..." % ( specp_top, top_press ) )
+            nmli.setValue( "p_top_requested", top_press )
+    nmli.wrfCheck()
+    nmli.overWriteNamelist()
 
 def get_num_metgrid_levels():
     shcmd = "ncdump -h $(\ls -1 met_em*.nc | head -1) | grep 'num_metgrid_levels =' | sed -e 's/^\t//' | tr '=;' '  ' | awk '{print $2}'"
@@ -43,9 +67,9 @@ def get_latlon_dx(start_date, dom):
         raise Exception('get_latlon_dx: no met_em or wrfinput file found')
     return rval
 
-def wps2wrf( namelistwps, namelistinput, sdate, edate, maxdom, chunk_is_restart, timestep_dxfactor='6') :
-    nmlw = fn.FortranNamelist(namelistwps)
-    nmli = fn.WrfNamelist(namelistinput)
+def wps2wrf( namelist_wps, namelist_input, sdate, edate, maxdom, chunk_is_restart, timestep_dxfactor='6') :
+    nmlw = fn.FortranNamelist( namelist_wps )
+    nmli = fn.WrfNamelist( namelist_input )
     nmli.setValue("max_dom", maxdom)
     for var in ["run_days", "run_hours", "run_minutes", "run_seconds"]:
         nmli.setValue(var, 0)

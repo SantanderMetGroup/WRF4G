@@ -21,7 +21,7 @@ from wrf4g.utils.archive  import extract
 from wrf4g.utils.time     import ( dateiso2datetime, datewrf2datetime, 
                                    datetime2datewrf, datetime2dateiso )
 from wrf4g.utils.file     import WRFFile
-from wrf4g.utils.namelist import wps2wrf
+from wrf4g.utils.namelist import wps2wrf, fix_ptop
 from wrf4g.config         import load_exp_pkl
 from wrf4g.tools.vcplib   import VCPURL, copy_file
 
@@ -775,7 +775,8 @@ def launch_pilot( params ):
             # Create a sumbolic link to run real
             met_files = glob.glob( join( params.wps_path, 'met_em.d*' ) )
             for met_file in met_files :
-                os.symlink( met_file , join( params.wrf_run_path, basename(met_file) ) )        
+                os.symlink( met_file , join( params.wrf_run_path, basename(met_file) ) )
+            fix_ptop( params.namelist_input )
             wps2wrf( params.namelist_wps, params.namelist_input, params.chunk_rdate,
                         params.chunk_edate, params.max_dom , chunk_rerun, params.timestep_dxfactor)
 
