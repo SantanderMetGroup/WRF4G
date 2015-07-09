@@ -378,23 +378,23 @@ def launch_pilot( params ):
     exit_code = 255   
  
     ##
+    # Create a directory for the realization
+    ##
+    if exists( params.local_path ) :
+         shutil.rmtree( params.local_path ) 
+    try :
+        os.makedirs( params.local_path )
+    except :
+        raise JobError( "Error creating the directory" 
+                        "'%s' on the worker node" % params.local_path, JOB_ERROR[ 'LOCAL_PATH'] )
+    ##
     # Create log directory
     ##
     try :
         os.makedirs( params.log_path )
     except :
-        raise JobError( "Error creating the directory" 
+        raise JobError( "Error creating the directory"
                         "'%s' on the worker node" % params.log_path, JOB_ERROR[ 'LOG_PATH'] )
-
-    ##
-    # Create a remote tree directory for the realization
-    ##
-    if not exists( params.local_path ) :
-        try :
-            os.makedirs( params.local_path )
-        except :
-            raise JobError( "Error creating the directory" 
-                            "'%s' on the worker node" % params.local_path, JOB_ERROR[ 'LOCAL_PATH'] )
     ##
     # Logging configuration
     ##
