@@ -32,7 +32,7 @@ default_dict       = {
                     'save_wps'             : 'no',
                     'real_parallel'        : 'no',
                     'wrf_parallel'         : 'yes',
-                    'wrfout_name_end_date' : 'yes',
+                    'wrfout_name_end_date' : 'no',
                     'chunk_restart'        : 'yes',
                     'namelist_dict'        : dict()
                     }
@@ -166,7 +166,9 @@ def sanity_check( exp_conf ) :
             else :
                 chunk_size_h  = None 
         else :
-            simult_interval_h = simult_length_h = ( end_date - start_date ).total_seconds() / 3600 
+            td = end_date - start_date 
+            total_seconds =  (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
+            simult_interval_h = simult_length_h = total_seconds / 3600
             if len( elems ) == 3 :
                 chunk_size_h = int( elems[ 2 ] )
             else :
