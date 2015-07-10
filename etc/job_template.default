@@ -147,7 +147,7 @@ MONITOR            =
 # NUMBER_OF_RETRIES: Number of retries in case of failure
 #-------------------------------------------------------------------------------
 
-RESCHEDULE_ON_FAILURE = yes
+RESCHEDULE_ON_FAILURE = no
 NUMBER_OF_RETRIES     = 1 
 
 #-------------------------------------------------------------------------------
