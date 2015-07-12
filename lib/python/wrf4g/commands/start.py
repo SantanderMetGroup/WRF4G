@@ -11,15 +11,16 @@ Options:
    --disc-jobs          All available jobs on WRF4G will be discared. 
    --ext-db             It will be used an external MySQL database.
    --db-port=port       Port number to use for MySQL connection [default: 25000].     
-   --db-host=hostname   Hostname for MySQL connection [default: localhost].
+   --db-host=hostname   Hostname for MySQL connection.
 """
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-import logging
 import os
 import sys
+import socket
+import logging
 from os.path              import exists, join
 from drm4g                import DRM4G_DIR
 from drm4g.commands       import Daemon, Agent
@@ -54,7 +55,7 @@ def run( arg ) :
         # Update database configuration
         with open( DB4G_CONF , 'w') as f :
             f.write( DEFAULT_DB_CONF % { "port"     : arg[ '--db-port' ] ,
-                                         "hostname" : arg[ '--db-host' ] } )
+                                         "hostname" : arg[ '--db-host' ] if arg[ '--db-host' ] else socket.gethostname() } )
         if not arg[ '--ext-db' ] :
             MySQLDB( int( arg[ '--db-port' ] ) ).start()
     except KeyboardInterrupt :
