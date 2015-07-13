@@ -9,7 +9,9 @@ import tarfile
 import glob
 import threading
 
-from os.path              import exists, join, dirname, isfile, basename
+from os.path              import ( exists, join, 
+                                   dirname, isfile, 
+                                   basename, expandvars )
 from wrf4g.db             import get_session
 from wrf4g.core           import Job
 from wrf4g.utils.osinfo   import ( get_hostname, os_release, 
@@ -29,28 +31,28 @@ __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-JOB_ERROR = { 'LOCAL_PATH'           : 1,
-              'LOG_PATH'             : 2,
-              'COPY_APP'             : 3,
-              'APP_ERROR'            : 4,
-              'SOURCE_SCRIPT'        : 5,
-              'JOB_SHOULD_NOT_RUN'   : 6,
-              'COPY_RST_FILE'        : 7,
-              'RESTART_MISMATCH'     : 8,
-              'COPY_NAMELIST_WPS'    : 9,
-              'COPY_REAL_FILE'       : 10,
-              'COPY_BOUND'           : 11,
-              'NAMELIST_FAILED'      : 12,
-              'PREPROCESSOR_FAILED'  : 13,
-              'LINK_GRIB_FAILED'     : 14,
-              'UNGRIB_FAILED'        : 15,
-              'METGRID_FAILED'       : 16,
-              'REAL_FAILED'          : 17,
-              'COPY_UPLOAD_WPS'      : 18,
-              'WRF_FAILED'           : 19,
-              'POSTPROCESSOR_FAILED' : 20,
-              'COPY_OUTPUT_FILE'     : 21,
-              'COPY_NODES'           : 22,
+JOB_ERROR = { 'LOG_PATH'             : 1,
+              'COPY_APP'             : 2,
+              'APP_ERROR'            : 3,
+              'SOURCE_SCRIPT'        : 4,
+              'LOCAL_PATH'           : 5,
+              'COPY_NODES'           : 6,
+              'JOB_SHOULD_NOT_RUN'   : 7,
+              'COPY_RST_FILE'        : 8,
+              'RESTART_MISMATCH'     : 9,
+              'COPY_NAMELIST_WPS'    : 10,
+              'COPY_REAL_FILE'       : 11,
+              'COPY_BOUND'           : 12,
+              'NAMELIST_FAILED'      : 13,
+              'PREPROCESSOR_FAILED'  : 14,
+              'LINK_GRIB_FAILED'     : 15,
+              'UNGRIB_FAILED'        : 16,
+              'METGRID_FAILED'       : 17,
+              'REAL_FAILED'          : 18,
+              'COPY_UPLOAD_WPS'      : 19,
+              'WRF_FAILED'           : 20,
+              'POSTPROCESSOR_FAILED' : 21,
+              'COPY_OUTPUT_FILE'     : 22,
               }
 
 lock = __import__('threading').Lock()
@@ -214,7 +216,7 @@ class PilotParams( object ):
     ##
     # Local path
     ##
-    local_scp = os.environ.get( "WRF4G_LOCALSCP" )
+    local_scp = expandvars( os.environ.get( "WRF4G_LOCALSCP" ) ) 
     if os.environ.get( "WRF4G_LOCALSCP" ) :
         local_path = join( local_scp, "wrf4g_%s_%d" % ( rea_name, nchunk ) )
     else :
@@ -222,13 +224,14 @@ class PilotParams( object ):
 
     # WRF path variables
     wps_path             = join( local_path, 'WPS')
-    wrf_run_path         = join( local_path, 'WRFV3', 'run')
+    wrf_path             = join( local_path, 'WRFV3' )
+    wrf_run_path         = join( wrf_path,   'run' )
 
     ###
     # logging configuration
     ###
-    log_path             = join( local_path, 'log' )
-    log_file             = join( log_path, 'main.log' )
+    log_path             = join( root_path, 'log' )
+    log_file             = join( log_path,  'main.log' )
 
     ##
     # Namelists
@@ -239,7 +242,7 @@ class PilotParams( object ):
     ##
     # Remote paths
     ##
-    exp_output_path      = join( output_path, exp_name )
+    exp_output_path      = join( output_path,     exp_name )
     rea_output_path      = join( exp_output_path, rea_name )
     out_rea_output_path  = join( rea_output_path, 'output')
     rst_rea_output_path  = join( rea_output_path, 'restart')
@@ -378,16 +381,6 @@ def launch_pilot( params ):
     exit_code = 255   
  
     ##
-    # Create a directory for the realization
-    ##
-    if exists( params.local_path ) :
-         shutil.rmtree( params.local_path ) 
-    try :
-        os.makedirs( params.local_path )
-    except :
-        raise JobError( "Error creating the directory" 
-                        "'%s' on the worker node" % params.local_path, JOB_ERROR[ 'LOCAL_PATH'] )
-    ##
     # Create log directory
     ##
     try :
@@ -468,7 +461,7 @@ def launch_pilot( params ):
         logging.info( 'Configure app' )
         job_db.set_job_status( 'CONF_APP' )
 
-        archives_path = join( params.local_path, 'archives' )
+        archives_path = join( params.root_path, 'archives' )
         logging.info( "Creating '%s' directory" % archives_path )
         os.makedirs( archives_path )
         for app in params.app.replace(' ','').split('\n') :
@@ -482,7 +475,7 @@ def launch_pilot( params ):
                 except :
                     raise JobError( "'%s' has not copied" % oring, JOB_ERROR[ 'COPY_APP' ] )
                 else :
-                    logging.info( "Unpacking '%s' to '%s'" % ( dest, params.local_path ) )
+                    logging.info( "Unpacking '%s' to '%s'" % ( dest, params.root_path ) )
                     extract( dest, to_path = params.root_path )
             elif app_type == 'command' :
                 logging.info( 'Configuring source script' )
@@ -501,16 +494,6 @@ def launch_pilot( params ):
             extract( wrf4g_files, to_path = params.root_path )
 
         ##
-        # This is a little bit tricky prepare the pallalel environment.
-        ##
-        if ( params.real_parallel == 'yes' or params.wrf_parallel == 'yes' ) and \
-           ( params.local_path != params.root_path ) :
-            logging.info( 'Copy configured files to all worker nodes for parallel execution' )
-            code, output = exec_cmd( "mpirun -pernode --wdir cp -r %s %s" % ( params.root_path, params.local_path ) )
-            if code :
-                logging.info( output )
-                raise JobError( "Error copying files to all WNs", JOB_ERROR[ 'COPY_NODES' ] )
-        ##
         # Clean archives directory
         ##  
         shutil.rmtree( archives_path )
@@ -520,12 +503,12 @@ def launch_pilot( params ):
         ##
         logging.info( 'Setting PATH and LD_LIBRARY_PATH variables' )
 
-        local_bin_path = join( params.local_path, 'bin' )
-        os.environ[ 'PATH' ] = '%s:%s' % ( local_bin_path, os.environ.get( 'PATH' ) )
-        os.environ[ 'LD_LIBRARY_PATH' ] = '%s:%s:%s' % ( join( params.local_path, 'lib' ), 
-                                                         join( params.local_path, 'lib64' ),
+        root_bin_path = join( params.root_path, 'bin' )
+        os.environ[ 'PATH' ] = '%s:%s' % ( root_bin_path, os.environ.get( 'PATH' ) )
+        os.environ[ 'LD_LIBRARY_PATH' ] = '%s:%s:%s' % ( join( params.root_path, 'lib' ), 
+                                                         join( params.root_path, 'lib64' ),
                                                          os.environ.get( 'LD_LIBRARY_PATH' ) )
-        os.environ[ 'PYTHONPATH' ] = '%s:%s' % ( join( params.local_path, 'lib', 'python' ), 
+        os.environ[ 'PYTHONPATH' ] = '%s:%s' % ( join( params.root_path, 'lib', 'python' ), 
                                                  os.environ.get( 'PYTHONPATH' ) )
        
         if 'wrf_all_in_one' in params.app : 
@@ -535,19 +518,62 @@ def launch_pilot( params ):
         ##
         logging.info( 'Setting bin files execute by the group' )
 
-        for exe_file in os.listdir( local_bin_path ) :
-            os.chmod( join( local_bin_path, exe_file ), 0777 )
+        for exe_file in os.listdir( root_bin_path ) :
+            os.chmod( join( root_bin_path, exe_file ), 0777 )
 
-        ####
+        if 'wrf_all_in_one' in params.app :
+            os.chmod( join( params.root_path, 'WPS', 'ungrib', 'ungrib.exe' ), 0777 )
+            os.chmod( join( params.root_path, 'WPS', 'metgrid', 'metgrid.exe' ), 0777 )
+            os.chmod( join( params.root_path, 'WRFV3', 'run', 'real.exe' ), 0777 )
+            os.chmod( join( params.root_path, 'WRFV3', 'run', 'wrf.exe' ), 0777 )
+
+        ##
+        # This is a little bit tricky prepare the pallalel environment.
+        ##
+        if ( params.real_parallel == 'yes' or params.wrf_parallel == 'yes' ) and \
+           ( params.local_path != params.root_path ) :
+            logging.info( 'Copy configured files to all worker nodes for parallel execution' )
+            code, output = exec_cmd( "mpirun -pernode rm -rf %s" % ( params.local_path ) )
+            if code :
+                raise JobError( "Error wiping the directory '%s' on the worker node" % (
+                                 params.root_path ), JOB_ERROR[ 'LOCAL_PATH'] )
+            code, output = exec_cmd( "mpirun -pernode mkdir -p %s" % ( 
+                                  params.local_path ) )
+            if code :
+                logging.info( output )
+                raise JobError( "Error copying files to all WNs", JOB_ERROR[ 'COPY_NODES' ] ) 
+            for directory in [ 'WPS' , 'WRFV3' ] :
+                code, output = exec_cmd( "mpirun -pernode cp -r %s %s" % (  
+                                          join( params.root_path, directory ) , params.local_path ) )
+                if code :
+                    logging.info( output )
+                    raise JobError( "Error copying '%s' directory to all WNs" % directory, 
+                                    JOB_ERROR[ 'COPY_NODES' ] )
+
+        ##
+        # Binaries for execution  
+        ##
+        if 'wrf_all_in_one' in params.app :
+            ungrib_exe  = join( params.wps_path, 'ungrib', 'ungrib.exe' )
+            metgrid_exe = join( params.wps_path, 'metgrid', 'metgrid.exe' )
+            real_exe    = join( params.wrf_run_path, 'real.exe' )
+            wrf_exe     = join( params.wrf_run_path, 'wrf.exe' )
+        else :
+            ungrib_exe  = which( 'ungrib.exe' )
+            metgrid_exe = which( 'metgrid.exe' )
+            real_exe    = which( 'real.exe' )
+            wrf_exe     = which( 'wrf.exe' )
+    
+        ##
         # Obtain information about the WN
-        ####
+        ##
         logging.info( 'Obtaining information about the worker node' )
 
         # Host info 
-        logging.info( 'Host Name = %s' % get_hostname() )
+        logging.info( 'Host Name        = %s' % get_hostname() )
 
         # OS info
-        logging.info( 'Linux release: %s' % os_release() )
+        logging.info( 'Linux release    = %s' % os_release() )
                 
         # CPU info
         model_name, number_of_cpus = cpu_info()
@@ -555,10 +581,10 @@ def launch_pilot( params ):
         logging.info( 'CPU (processors) = %d' % number_of_cpus )
 
         # Memory info
-        logging.info( 'Memory (kB)    = %s' % mem_info() )
+        logging.info( 'Memory (kB)      = %s' % mem_info() )
 
         # Disk space check
-        logging.info( 'DiskSpace (MB) = %d' % disk_space_check( params.root_path ) )
+        logging.info( 'DiskSpace (MB)   = %d' % disk_space_check( params.root_path ) )
 
         ##
         # Check the restart date
@@ -710,11 +736,6 @@ def launch_pilot( params ):
                 job_db.set_job_status( 'UNGRIB' )
 
                 ungrib_log = join( params.log_path, 'ungrib_%s.log' % vt )
-                if 'wrf_all_in_one' in params.app :
-                    ungrib_exe = join( params.wps_path, 'ungrib', 'ungrib.exe' )
-                    os.chmod( ungrib_exe, 0777 )   
-                else :
-                    ungrib_exe = which( 'ungrib.exe' )   
                 code, output = exec_cmd( "%s > %s" % ( ungrib_exe, ungrib_log) )
                 if code or not 'Successful completion' in open( ungrib_log, 'r' ).read() : 
                     raise JobError( "'%s' has failed" % ungrib_exe,
@@ -752,11 +773,6 @@ def launch_pilot( params ):
             job_db.set_job_status( 'METGRID' )
 
             metgrid_log = join( params.log_path, 'metgrid.log' )
-            if 'wrf_all_in_one' in params.app :
-                metgrid_exe = join( params.wps_path, 'metgrid', 'metgrid.exe' )
-                os.chmod( metgrid_exe, 0777 )
-            else :
-                metgrid_exe = which( 'metgrid.exe' )
             code, output = exec_cmd( "%s > %s" % ( metgrid_exe, metgrid_log ) )
             if code or not 'Successful completion' in open( metgrid_log, 'r' ).read() :
                 raise JobError( "'%s' has failed" % metgrid_exe, JOB_ERROR[ 'METGRID_FAILED' ] )
@@ -770,8 +786,6 @@ def launch_pilot( params ):
             # Change the directory to wrf run path
             os.chdir( params.wrf_run_path )
             
-            logging.info( "Run real" )
-            job_db.set_job_status( 'REAL' )
             # Create a sumbolic link to run real
             met_files = glob.glob( join( params.wps_path, 'met_em.d*' ) )
             for met_file in met_files :
@@ -780,19 +794,24 @@ def launch_pilot( params ):
             wps2wrf( params.namelist_wps, params.namelist_input, params.chunk_rdate,
                         params.chunk_edate, params.max_dom , chunk_rerun, params.timestep_dxfactor)
 
-            if 'wrf_all_in_one' in params.app :
-                real_exe = './real.exe'
-                os.chmod( real_exe, 0777 )
-            else :
-                real_exe = which( 'real.exe' )
+            if ( params.real_parallel == 'yes' or params.wrf_parallel == 'yes' ) and \
+               ( params.local_path != params.root_path ) :
+                logging.info( "Copying namelist file to al WNs" )
+                bk_namelist = join( params.root_path, 'namelist.input.bk' )
+                shutil.copyfile( params.namelist_input, bk_namelist )
+                code, output = exec_cmd( "mpirun -pernode cp %s %s" % (
+                                  bk_namelist, params.namelist_input ) )
+                if code :
+                    logging.info( output )
+                    raise JobError( "Error copying namelist to all WNs", JOB_ERROR[ 'COPY_NODES' ] )
+
+            logging.info( "Run real" )
+            job_db.set_job_status( 'REAL' )
+ 
             if params.real_parallel == 'yes' :
                 real_log = join( params.log_path, 'rsl.out.0000' )
                 npernode = "-npernode %s" % params.ppn if params.ppn else '' 
-                if params.local_path == params.root_path :
-                    cmd = "mpirun -np %s %s %s" % ( params.np, npernode, real_exe ) 
-                else :
-                    cmd = "mpirun -np %s %s --preload-files namelist.input --preload-files-dest-dir %s %s" % (
-                           params.np, npernode, params.wrf_run_path, real_exe ) 
+                cmd = "mpirun -np %s %s %s" % ( params.np, npernode, real_exe ) 
                 code, output = exec_cmd( cmd ) 
                 if isfile( real_log ) :
                     real_rsl_path = join( params.log_path, 'rsl_real' ) 
@@ -858,19 +877,11 @@ def launch_pilot( params ):
         logging.info( "Run wrf" )
         job_db.set_job_status( 'WRF' )
 
-        if 'wrf_all_in_one' in params.app :
-            wrf_exe = './wrf.exe' 
-            os.chmod( wrf_exe, 0777 )
-        else :
-            wrf_exe = which( 'wrf.exe' ) 
         if params.wrf_parallel == 'yes' :
             npernode = "-npernode %s" % params.ppn if params.ppn else ''
-            if params.local_path == params.root_path :
-                cmd = "mpirun -np %s %s %s" % ( params.np, npernode, wrf_exe )                       
-            else :
-                cmd = "mpirun -np %s %s --preload-files namelist.input --preload-files-dest-dir %s %s" % (
-                            params.np, npernode, params.wrf_run_path, wrf_exe )
+            cmd = "mpirun -np %s %s %s" % ( params.np, npernode, wrf_exe )                       
             code, output = exec_cmd( cmd )
+            logging.info( cmd )
             if isfile( log_wrf ) :
                 wrf_rsl_path = join( params.log_path, 'rsl_wrf' ) 
                 os.mkdir( wrf_rsl_path )
@@ -880,6 +891,7 @@ def launch_pilot( params ):
         else :
             code, output = exec_cmd( "%s > %s" % ( wrf_exe, log_wrf ) )
         if code or not 'SUCCESS COMPLETE' in open( log_wrf, 'r' ).read() :
+            logging.info( output )  
             raise JobError( "'%s' has failed" % wrf_exe,
                     JOB_ERROR[ 'WRF_FAILED' ] )
         else :
@@ -896,6 +908,18 @@ def launch_pilot( params ):
         # Save all files
         ##    
         clean_wrf_files( job_db, params, 'all' )
+  
+        ##
+        # Wipe after run
+        ##
+        if ( params.real_parallel == 'yes' or params.wrf_parallel == 'yes' ) and \
+           ( params.local_path != params.root_path ) and \
+           ( params.clean_after_run ) :
+            logging.info( 'Copy configured files to all worker nodes for parallel execution' )
+            code, output = exec_cmd( "mpirun -pernode rm -rf %s" % ( params.local_path ) )
+            if code :
+                raise JobError( "Error wiping the directory '%s' on the worker node" % (
+                                 params.root_path ), JOB_ERROR[ 'LOCAL_PATH'] )
 
         ##
         # Update the status
@@ -910,7 +934,7 @@ def launch_pilot( params ):
         ##
         # Create a log bundle 
         ##
-        os.chdir( params.local_path )
+        os.chdir( params.root_path )
         log_name = "log_%d_%d" % ( params.nchunk, params.job_id )
         log_tar  = log_name + '.tar.gz' 
         try :
@@ -919,11 +943,6 @@ def launch_pilot( params ):
             tar.add( 'log', arcname = log_name )
         finally :
             tar.close()
-        # Local copy that will use as outsandbox
-        if params.root_path != params.local_path :
-            oring = join( params.local_path, log_tar )
-            dest  = join( params.root_path, log_tar ) 
-            shutil.copyfile( oring, dest )
         # Copy to repository
         oring = join( params.root_path, log_tar )
         dest  = join( params.log_rea_output_path, log_tar )
