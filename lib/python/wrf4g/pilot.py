@@ -532,10 +532,10 @@ def launch_pilot( params ):
         ##
         if ( params.real_parallel == 'yes' or params.wrf_parallel == 'yes' ) and \
            ( params.local_path != params.root_path ) :
-            logging.info( 'Copy configured files to all worker nodes for parallel execution' )
+            logging.info( "Wiping the directory '%s' on all worker nodes" % params.local_path )
             code, output = exec_cmd( "mpirun -pernode rm -rf %s" % ( params.local_path ) )
             if code :
-                raise JobError( "Error wiping the directory '%s' on the worker node" % (
+                raise JobError( "Error wiping the directory '%s' on worker nodes" % (
                                  params.root_path ), JOB_ERROR[ 'LOCAL_PATH'] )
             code, output = exec_cmd( "mpirun -pernode mkdir -p %s" % ( 
                                   params.local_path ) )
@@ -915,10 +915,10 @@ def launch_pilot( params ):
         if ( params.real_parallel == 'yes' or params.wrf_parallel == 'yes' ) and \
            ( params.local_path != params.root_path ) and \
            ( params.clean_after_run ) :
-            logging.info( 'Copy configured files to all worker nodes for parallel execution' )
+            logging.info( "Wiping the directory '%s' on all worker nodes" % params.local_path )
             code, output = exec_cmd( "mpirun -pernode rm -rf %s" % ( params.local_path ) )
             if code :
-                raise JobError( "Error wiping the directory '%s' on the worker node" % (
+                raise JobError( "Error wiping the directory '%s' on worker nodes" % (
                                  params.root_path ), JOB_ERROR[ 'LOCAL_PATH'] )
 
         ##
