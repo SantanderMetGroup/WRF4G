@@ -186,9 +186,17 @@ def sanity_check( exp_conf ) :
                                                  simult_interval_h, simult_length_h, 
                                                  chunk_size_h, restart_interval ] )
     ##
+    # Check if there are multible members 
+    ##
+    if exp_conf.default.extdata_member :
+        exp_conf.default.extdata_member = exp_conf.default.extdata_member.replace(' ', '').split( '|' )
+    else :
+        exp_conf.default.extdata_member = [ '' ]
+
+    ##
     # Check namelist configuration for multicombinations
     ##
-    exp_conf.default.label_combination = [ '' ] 
+    exp_conf.default.namelist_label_combination = [ '' ] 
     if exp_conf.default.namelist :
         # Delete whitespaces
         exp_conf.default.namelist = exp_conf.default.namelist.replace(' ', '')
@@ -197,7 +205,7 @@ def sanity_check( exp_conf ) :
             nml_conf_key = nml_conf[ 0 ]
             nml_conf_val = nml_conf[ 1: ]
             if 'label_combination' in nml_conf_key :
-                exp_conf.default.label_combination = nml_conf_val
+                exp_conf.default.namelist_label_combination = nml_conf_val
             else :
                 values = []
                 for nml_elem in nml_conf_val :

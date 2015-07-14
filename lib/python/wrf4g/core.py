@@ -104,7 +104,7 @@ class Experiment( Base ):
         Check if the experiment can be updated
         """
         for elem_modified in modified_variables :
-            if elem_modified in ( 'calendar', 'max_dom', 'namelist_version', 'namelist' ) :
+            if elem_modified in ( 'calendar', 'max_dom', 'namelist' ) :
                 return False
         return True
 
@@ -205,7 +205,9 @@ class Experiment( Base ):
                 logging.debug( "Force trimming the arrays in the namelist to 'max_dom'" ) 
                 exec_cmd( "fortnml -wof %s --force-trim=%d" % ( self.namelist_input, self.max_dom ) )
             # Cycle to create a realization per combination
-            self._cycle_combinations( exp_conf.default.label_combination, exp_conf.default.namelist_dict )
+            self._cycle_combinations( exp_conf.default.extdata_member,
+                                      exp_conf.default.namelist_label_combination, 
+                                      exp_conf.default.namelist_dict )
     
         if not self.dryrun :
             # Save current configuration in the experiment.pkl file 
@@ -296,31 +298,31 @@ class Experiment( Base ):
         with open(dest_path, 'w') as f :
             f.writelines( data_updated )
 
-    def _cycle_combinations( self, combinations, namelist_combinations ):
+    def _cycle_combinations( self, extdata_member, combinations, namelist_combinations ):
         """
-        Create realizations for each combination namelist.
+        Create realizations for each member and namelist combinations.
         """
-        for comb, label in enumerate( combinations ) :
-            if label :
-                logging.info( "---> Multicombination run %s" % (label )  )
-            else :
-                logging.info( "---> Single combination run" )
-            for mnl_variable, mnl_values in namelist_combinations.items() :
-                # Update the namelist per each combination
-                if not self.dryrun :
-                    logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
-                    # Modify the namelist with the parameters available in the namelist description
-                    if '.' in mnl_variable :
-                       section, val = mnl_variable.split( '.' )
-                       cmd = "fortnml -wof %s -s %s@%s %s" % ( self.namelist_input, 
-                                                               val, section, str( mnl_values[ comb ] ) )
-                    else :
-                       cmd = "fortnml -wof %s -s %s %s"    % ( self.namelist_input, 
-                                                               mnl_variable, str( mnl_values[ comb ] ) ) 
+        rea_name = self.name
+        for member_label in extdata_member :
+            for comb, physic_label in enumerate( combinations ) :
+                for mnl_variable, mnl_values in namelist_combinations.items() :
+                    # Update the namelist per each combination
+                    if not self.dryrun :
+                        logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
+                        # Modify the namelist with the parameters available in the namelist description
+                        if '.' in mnl_variable :
+                            section, val = mnl_variable.split( '.' )
+                            cmd = "fortnml -wof %s -s %s@%s %s" % ( self.namelist_input, 
+                                                                    val, section, str( mnl_values[ comb ] ) )
+                        else :
+                            cmd = "fortnml -wof %s -s %s %s"    % ( self.namelist_input, 
+                                                                    mnl_variable, str( mnl_values[ comb ] ) ) 
                     exec_cmd( cmd )
-            self._cycle_time( "%s__%s" % ( self.name, label ) if label else self.name, label )
+                rea_name = "%s_%s" % ( rea_name, member_label ) if member_label else rea_name
+                rea_name = "%s_%s" % ( rea_name, physic_label ) if physic_label else rea_name
+                self._cycle_time( rea_name, member_label, physic_label )
      
-    def _cycle_time(self, rea_name, label) :
+    def _cycle_time(self, rea_name, member_label, physic_label) :
         """
         Create the realizations for each datetime definition.
         """
@@ -331,7 +333,7 @@ class Experiment( Base ):
             rea_start_date  = start_date
             while rea_start_date < end_date :
                 rea_end_date = exp_calendar.add_hours(rea_start_date, simult_length_h )
-                cycle_name   = "%s__%s" % ( rea_name, rea_start_date.strftime( "%Y%m%dT%H%M%S" ) )
+                cycle_name   = "%s_%s" % ( rea_name, rea_start_date.strftime( "%Y%m%dT%H%M%S" ) )
                 logging.info( "\t---> Realization %s" % cycle_name  )
                 # Check realization on the database
                 rea = self.check_db( name             = cycle_name, 
@@ -347,7 +349,8 @@ class Experiment( Base ):
                                        current_date  = rea_start_date,
                                        status        = 'PREPARED',
                                        current_chunk = 1,
-                                       label         = label )
+                                       member_label  = member_label,
+                                       physic_label  = physic_label )
                     # Add realization to the experiment 
                     self.realization.append( rea )
                 # Check storage
@@ -434,7 +437,8 @@ class Realization( Base ):
     current_date    = Column(u'current_date',DATETIME())
     current_chunk   = Column(u'current_chunk',INTEGER)
     nchunks         = Column(u'nchunks',INTEGER)
-    label           = Column(u'label',VARCHAR(length=100)) 
+    member_label    = Column(u'member_label',VARCHAR(length=100))
+    physic_label    = Column(u'physic_label',VARCHAR(length=100)) 
 
     # Realtionships
     experiment      = relationship("Experiment", back_populates="realization")
@@ -699,14 +703,13 @@ class Chunk( Base ):
             inputsandbox += ",file://%s" % ( input_files )
         # files to add for the outputsandbox
         outputsandbox = "log_%d_${JOB_ID}.tar.gz" % self.chunk_id
-        arguments = '%s %s %d %s %s %d' % (
-                                        exp_name,
-                                        rea_name,                                     
-                                        self.chunk_id,
-                                        datetime2datewrf( self.start_date ) ,
-                                        datetime2datewrf( self.end_date ) ,
-                                        1 if rerun else 0
-                                        )
+        arguments = '%s %s %d %s %s %d %s' % ( exp_name,
+                                               rea_name,                                     
+                                               self.chunk_id,
+                                               datetime2datewrf( self.start_date ),
+                                               datetime2datewrf( self.end_date ),
+                                               1 if rerun else 0,
+                                               self.realization.member_label )
         # Create the job template
         file_template = gw_job.create_template( name          = rea_name,
                                                 directory     = rea_path,

@@ -188,13 +188,13 @@ class PilotParams( object ):
     preprocessor         = resource_exp_conf[ 'preprocessor' ]
     postprocessor        = resource_exp_conf[ 'postprocessor' ]
     clean_after_run      = resource_exp_conf[ 'clean_after_run' ]
-    extdata_path         = resource_exp_conf[ 'extdata_path' ]
     max_dom              = int( resource_exp_conf[ 'max_dom' ] )
     save_wps             = resource_exp_conf[ 'save_wps' ]
     wrfout_name_end_date = resource_exp_conf[ 'wrfout_name_end_date' ]
     timestep_dxfactor    = resource_exp_conf[ 'timestep_dxfactor' ]
-    extdata_vtable       = resource_exp_conf[ 'extdata_vtable' ]
     extdata_interval     = resource_exp_conf[ 'extdata_interval' ]
+    extdata_vtable       = resource_exp_conf[ 'extdata_vtable' ]
+    extdata_path         = resource_exp_conf[ 'extdata_path' ]
     real_parallel        = resource_exp_conf[ 'real_parallel' ]
     wrf_parallel         = resource_exp_conf[ 'wrf_parallel' ]
     ppn                  = os.environ.get( 'PPN' )
@@ -204,6 +204,7 @@ class PilotParams( object ):
     exp_name             = sys.argv[1]
     rea_name             = sys.argv[2]
     nchunk               = int( sys.argv[3] )
+
     ##
     # Dates
     ##
@@ -211,14 +212,23 @@ class PilotParams( object ):
     chunk_edate          = datewrf2datetime( sys.argv[5] )
     chunk_rdate          = chunk_sdate
 
+    ##
+    # Varieble to rerun the chunk
+    ##
     rerun                = int( sys.argv[6] )
+
+    ##
+    # Multi member
+    ##
+    try :     member     = sys.argv[ 7 ]
+    except :  member     = ''
 
     ##
     # Local path
     ##
-    local_scp = expandvars( os.environ.get( "WRF4G_LOCALSCP" ) ) 
     if os.environ.get( "WRF4G_LOCALSCP" ) :
-        local_path = join( local_scp, "wrf4g_%s_%d" % ( rea_name, nchunk ) )
+        local_path = join( expandvars( os.environ.get( "WRF4G_LOCALSCP" ) ), 
+                           "wrf4g_%s_%d" % ( rea_name, nchunk ) )
     else :
         local_path = root_path
 
@@ -717,7 +727,8 @@ def launch_pilot( params ):
                 preprocessor_log = join( params.log_path, 'preprocessor.%s.log' %  pp )
                 code, output = exec_cmd( "preprocessor.%s %s %s %s %s &> %s" % (
                                             pp, datetime2datewrf( params.chunk_rdate ) , 
-                                            datetime2datewrf( params.chunk_edate ), epath, vt, 
+                                            datetime2datewrf( params.chunk_edate ), 
+                                            join( epath, params.member ), vt, 
                                             preprocessor_log ) )
                 if code :
                     raise JobError( "Preprocessor '%s' has failed" % pp,
