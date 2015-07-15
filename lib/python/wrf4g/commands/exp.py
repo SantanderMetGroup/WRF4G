@@ -38,27 +38,28 @@ Commands:
     delete                    Remove the experiment from the database.
 
 EXIT CODES
-    1 : Error creating directory to simulate
-    2 : Error creating log directory        
-    3 : Error copying apps            
-    4 : Error app type does not exist            
-    5 : Error executing source script       
-    6 : Job already executed  
-    7 : Error copying restart files        
-    8 : There is a mismatch in the restart date   
-    9 : Error copying namelist.wps    
-    10: Error downloading WPS files    
-    11: Error copying boundaries           
-    12: Error modifying namelist
-    13: Error executing PREPROCESSOR
-    14: Error linking GRIB files     
-    15: Error executing UNGRIB
-    16: Error executing METGRID       
-    17: Error executing REAL
-    18: Error uploadinf WPS files      
-    19: Error executing WRF
-    20: Error executing POSTPROCESSOR 
-    21: Error copying output file     
+    1  : Error creating directory to simulate
+    2  : Error creating log directory        
+    3  : Error copying apps            
+    4  : Error app type does not exist            
+    5  : Error executing source script       
+    6  : Job already executed  
+    7  : Error copying restart files        
+    8  : There is a mismatch in the restart date   
+    9  : Error copying namelist.wps    
+    10 : Error downloading WPS files    
+    11 : Error copying boundaries           
+    12 : Error modifying namelist
+    13 : Error executing PREPROCESSOR
+    14 : Error linking GRIB files     
+    15 : Error executing UNGRIB
+    16 : Error executing METGRID       
+    17 : Error executing REAL
+    18 : Error uploading WPS files      
+    19 : Error executing WRF
+    20 : Error executing POSTPROCESSOR 
+    21 : Error copying output file     
+    255: Unexpected error
 """
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
