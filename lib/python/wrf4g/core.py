@@ -582,7 +582,7 @@ class Realization( Base ):
 
     @staticmethod 
     def status_header(): 
-        logging.info( '\033[1;4m%-40s %-10s %-10s %-16s %-10s %6s %-3s %6s\033[0m'% (
+        logging.info( '\033[1;4m%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s\033[0m'% (
                         'REALIZATION','STATUS','CHUNKS','RESOURCE','RUN STATUS',
                         'JID', 'EXT','%' ) )
  
@@ -623,7 +623,7 @@ class Realization( Base ):
         #Percentage
         per = runt * 100.0 / totalt
         #Print output
-        logging.info( "%-40.40s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
+        logging.info( "%-60.60s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
                     self.name, self.status, chunk_distribution, resource, status, 
                     gw_job, exitcode, per ) )
   
