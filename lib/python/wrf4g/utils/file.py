@@ -88,11 +88,11 @@ def validate_name( name ):
     # If it's not a valid directory name.
     if not re.search(r'^[_a-zA-Z]\w*$', name):
         # Provide a smart error message, depending on the error.
-        if not search(r'^[_a-zA-Z]', name):
+        if not re.search(r'^[_a-zA-Z]', name):
             message = 'make sure the name begins with a letter or underscore'
         else:
             message = 'use only numbers, letters and underscores'
-        raise Exception ("%s is not a valid %s name. Please %s." % (name, message) )
+        raise Exception ("%s is not a valid name. Please %s." % (name, message) )
 
 def edit_file( file_name ):
     """
