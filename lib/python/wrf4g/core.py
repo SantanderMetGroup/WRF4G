@@ -302,8 +302,8 @@ class Experiment( Base ):
         """
         Create realizations for each member and namelist combinations.
         """
-        rea_name = self.name
         for member_label in extdata_member :
+            rea_name = self.name
             for comb, physic_label in enumerate( combinations ) :
                 for mnl_variable, mnl_values in namelist_combinations.items() :
                     # Update the namelist per each combination
