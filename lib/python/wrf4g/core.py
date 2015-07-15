@@ -304,7 +304,7 @@ class Experiment( Base ):
         Create realizations for each member and namelist combinations.
         """
         for member_label in extdata_member :
-            rea_name = self.name
+            rea_name_member = "%s_%s" % ( self.name, member_label ) if member_label else self.name
             for comb, physic_label in enumerate( combinations ) :
                 for mnl_variable, mnl_values in namelist_combinations.items() :
                     # Update the namelist per each combination
@@ -319,8 +319,7 @@ class Experiment( Base ):
                             cmd = "fortnml -wof %s -s %s %s"    % ( self.namelist_input, 
                                                                     mnl_variable, str( mnl_values[ comb ] ) ) 
                     exec_cmd( cmd )
-                rea_name = "%s_%s" % ( rea_name, member_label ) if member_label else rea_name
-                rea_name = "%s_%s" % ( rea_name, physic_label ) if physic_label else rea_name
+                rea_name = "%s_%s" % ( rea_name_member, physic_label ) if physic_label else rea_name_member
                 self._cycle_time( rea_name, member_label, physic_label )
      
     def _cycle_time(self, rea_name, member_label, physic_label) :
