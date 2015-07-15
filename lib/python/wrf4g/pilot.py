@@ -542,7 +542,7 @@ def launch_pilot( params ):
             code, output = exec_cmd( "mpirun -pernode rm -rf %s" % ( params.local_path ) )
             if code :
                 raise JobError( "Error wiping the directory '%s' on worker nodes" % (
-                                 params.root_path ), JOB_ERROR[ 'LOCAL_PATH'] )
+                                 params.local_path ), JOB_ERROR[ 'LOCAL_PATH'] )
             code, output = exec_cmd( "mpirun -pernode mkdir -p %s" % ( 
                                   params.local_path ) )
             if code :
@@ -925,7 +925,7 @@ def launch_pilot( params ):
             code, output = exec_cmd( "mpirun -pernode rm -rf %s" % ( params.local_path ) )
             if code :
                 raise JobError( "Error wiping the directory '%s' on worker nodes" % (
-                                 params.root_path ), JOB_ERROR[ 'LOCAL_PATH'] )
+                                 params.local_path ), JOB_ERROR[ 'LOCAL_PATH'] )
 
         ##
         # Update the status
