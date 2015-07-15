@@ -1,5 +1,6 @@
 from __future__           import with_statement
 import os
+import re
 import sys
 import time
 import socket
@@ -385,11 +386,6 @@ def launch_pilot( params ):
     ##
     os.umask( 022 )
 
-    ##
-    # Set initial exit code
-    ##
-    exit_code = 255   
- 
     ##
     # Create log directory
     ##
@@ -892,7 +888,6 @@ def launch_pilot( params ):
             npernode = "-npernode %s" % params.ppn if params.ppn else ''
             cmd = "mpirun -np %s %s %s" % ( params.np, npernode, wrf_exe )                       
             code, output = exec_cmd( cmd )
-            logging.info( cmd )
             if isfile( log_wrf ) :
                 wrf_rsl_path = join( params.log_path, 'rsl_wrf' ) 
                 os.mkdir( wrf_rsl_path )
@@ -941,6 +936,10 @@ def launch_pilot( params ):
         logging.error( err.msg )
         job_db.set_job_status( 'FAILED' )
         exit_code = err.exit_code
+    except :
+        logging.error( "Unexpected error", exc_info = 1 )
+        job_db.set_job_status( 'FAILED' )
+        exit_code = 255
     finally :
         ##
         # Create a log bundle 
@@ -962,8 +961,6 @@ def launch_pilot( params ):
         ##
         # Close the connection with the database
         ##
-        if exit_code == 255 :
-            job_db.set_job_status( 'FAILED' )
         job_db.set_exit_code( exit_code )
         job_db.close()
         sys.exit( exit_code )
