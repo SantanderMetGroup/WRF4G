@@ -201,6 +201,8 @@ def sanity_check( exp_conf ) :
         # Delete whitespaces
         exp_conf.default.namelist = exp_conf.default.namelist.replace(' ', '')
         for nml_val in exp_conf.default.namelist.split( '\n' ):
+            if nml_val.startswith('#'):
+               continue
             nml_conf = nml_val.split( '|' )
             nml_conf_key = nml_conf[ 0 ]
             nml_conf_val = nml_conf[ 1: ]
