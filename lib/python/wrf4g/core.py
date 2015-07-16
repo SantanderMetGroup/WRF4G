@@ -623,7 +623,7 @@ class Realization( Base ):
         #Percentage
         per = runt * 100.0 / totalt
         #Print output
-        logging.info( "%-60.60s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
+        logging.info( "%-60s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
                     self.name, self.status, chunk_distribution, resource, status, 
                     gw_job, exitcode, per ) )
   
