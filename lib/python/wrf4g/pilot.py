@@ -304,7 +304,7 @@ def clean_wrf_files( job_db, params, clean ):
                                                     params.postprocessor, file_name, post_log ) )
                         if code :
                             logging.info( output )
-                            raise JobError( "'%s' has not copied" % file_name,
+                            raise JobError( "Error processing '%s' file" % file_name,
                                     JOB_ERROR[ 'POSTPROCESSOR_FAILED' ] )
                         # The file will indicate that it has been postprocessed  
                         exec_cmd( 'ncatted -O -a WRF4G_postprocessor,global,o,c,"%s" %s' % 
@@ -541,6 +541,7 @@ def launch_pilot( params ):
             logging.info( "Wiping the directory '%s' on all worker nodes" % params.local_path )
             code, output = exec_cmd( "mpirun -pernode rm -rf %s" % ( params.local_path ) )
             if code :
+                logging.info( output )
                 raise JobError( "Error wiping the directory '%s' on worker nodes" % (
                                  params.local_path ), JOB_ERROR[ 'LOCAL_PATH'] )
             code, output = exec_cmd( "mpirun -pernode mkdir -p %s" % ( 
@@ -727,6 +728,7 @@ def launch_pilot( params ):
                                             join( epath, params.member ), vt, 
                                             preprocessor_log ) )
                 if code :
+                    logging.info( output )
                     raise JobError( "Preprocessor '%s' has failed" % pp,
                             JOB_ERROR[ 'PREPROCESSOR_FAILED' ] )
 
@@ -735,6 +737,7 @@ def launch_pilot( params ):
                 grb_data_path = join( params.wps_path, 'grbData') 
                 code, output  = exec_cmd( "%s %s/" % ( link_grib, grb_data_path ) )
                 if code :
+                    logging.info( output )
                     raise JobError( "Error linking grib files", JOB_ERROR[ 'LINK_GRIB_FAILED' ] )
                 ##
                 # Run Ungrib
@@ -744,7 +747,8 @@ def launch_pilot( params ):
 
                 ungrib_log = join( params.log_path, 'ungrib_%s.log' % vt )
                 code, output = exec_cmd( "%s > %s" % ( ungrib_exe, ungrib_log) )
-                if code or not 'Successful completion' in open( ungrib_log, 'r' ).read() : 
+                if code or not 'Successful completion' in open( ungrib_log, 'r' ).read() :
+                    logging.info( output ) 
                     raise JobError( "'%s' has failed" % ungrib_exe,
                                 JOB_ERROR[ 'UNGRIB_FAILED' ] )
                 else :
@@ -782,6 +786,7 @@ def launch_pilot( params ):
             metgrid_log = join( params.log_path, 'metgrid.log' )
             code, output = exec_cmd( "%s > %s" % ( metgrid_exe, metgrid_log ) )
             if code or not 'Successful completion' in open( metgrid_log, 'r' ).read() :
+                logging.info( output )
                 raise JobError( "'%s' has failed" % metgrid_exe, JOB_ERROR[ 'METGRID_FAILED' ] )
             else :
                 logging.info( "metgrid has successfully finished" )
@@ -830,6 +835,7 @@ def launch_pilot( params ):
                 real_log = join( params.log_path, 'real.log' )
                 code, output = exec_cmd( "%s > %s" % ( real_exe, real_log ) )
             if code or not 'SUCCESS COMPLETE' in open( real_log, 'r' ).read() :
+                logging.info( output )
                 raise JobError( "'%s' has failed" % real_exe, JOB_ERROR[ 'REAL_FAILED' ] )
             else :
                 logging.info( "real has successfully finished" ) 
@@ -898,8 +904,7 @@ def launch_pilot( params ):
             code, output = exec_cmd( "%s > %s" % ( wrf_exe, log_wrf ) )
         if code or not 'SUCCESS COMPLETE' in open( log_wrf, 'r' ).read() :
             logging.info( output )  
-            raise JobError( "'%s' has failed" % wrf_exe,
-                    JOB_ERROR[ 'WRF_FAILED' ] )
+            raise JobError( "'%s' has failed" % wrf_exe, JOB_ERROR[ 'WRF_FAILED' ] )
         else :
             logging.info( "wrf has successfully  finished" ) 
         ##
@@ -924,6 +929,7 @@ def launch_pilot( params ):
             logging.info( "Wiping the directory '%s' on all worker nodes" % params.local_path )
             code, output = exec_cmd( "mpirun -pernode rm -rf %s" % ( params.local_path ) )
             if code :
+                logging.info( output )
                 raise JobError( "Error wiping the directory '%s' on worker nodes" % (
                                  params.local_path ), JOB_ERROR[ 'LOCAL_PATH'] )
 
