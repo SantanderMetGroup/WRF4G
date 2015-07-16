@@ -333,8 +333,11 @@ class Experiment( Base ):
             rea_start_date  = start_date
             while rea_start_date < end_date :
                 rea_end_date = exp_calendar.add_hours(rea_start_date, simult_length_h )
+                if rea_end_date > end_date :
+                    rea_end_date = end_date
                 cycle_name   = "%s_%s" % ( rea_name, rea_start_date.strftime( "%Y%m%dT%H%M%S" ) )
-                logging.info( "\t---> Realization %s" % cycle_name  )
+                logging.info( "\t---> Realization %s: start date %s end date %s" % ( 
+                               cycle_name, rea_start_date, rea_end_date ) )
                 # Check realization on the database
                 rea = self.check_db( name             = cycle_name, 
                                      start_date       = rea_start_date,
@@ -555,6 +558,8 @@ class Realization( Base ):
         while chunk_start_date < self.end_date :
             chunk_end_date = exp_calendar.add_hours( chunk_start_date, 
                                                      hours = self.chunk_size_h )
+            if chunk_end_date > self.end_date :
+                chunk_end_date = self.end_date
             # Check chunk on the database
             ch = self.check_db( rea_id           = self.id, 
                                 chunk_start_date = chunk_start_date, 
