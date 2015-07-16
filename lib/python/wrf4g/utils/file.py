@@ -1,5 +1,6 @@
 import os
 import re
+import logging
 from os.path           import basename, dirname   
 from wrf4g.utils.time  import ( datewrf2datetime, 
                                 dateiso2datetime,
@@ -99,6 +100,7 @@ def edit_file( file_name ):
     Edit files. vi is used be default. If you want to use another editor,
     please edit EDITOR shell variable.
     """
+    logging.debug( "Editing '%s' file" % file_name )    
     os.system( "%s %s" % ( os.environ.get('EDITOR', 'vi') , file_name ) )
 
 class WRFFile( object ) :
