@@ -201,10 +201,16 @@ class Experiment( Base ):
             if not self.dryrun :  
                 # Update max_dom on the namelist  
                 logging.debug( "Updating parameter 'max_dom' in the namelist" )
-                exec_cmd( "fortnml -wof %s -s max_dom %d" % ( self.namelist_input, self.max_dom ) )          
+                code, output = exec_cmd( "fortnml -wof %s -s max_dom %d" % ( self.namelist_input, self.max_dom ) )          
+                logging.debug( output )
+                if code :
+                    raise Exception( "ERROR: Updating parameter 'max_dom' in the namelist" )
                 # Trim the namlist
                 logging.debug( "Force trimming the arrays in the namelist to 'max_dom'" ) 
-                exec_cmd( "fortnml -wof %s --force-trim=%d" % ( self.namelist_input, self.max_dom ) )
+                code, output = exec_cmd( "fortnml -wof %s --force-trim=%d" % ( self.namelist_input, self.max_dom ) )
+                logging.debug( output )
+                if code :
+                    raise Exception( "ERROR: Trimming the arrays in the namelist to 'max_dom'" )
             # Cycle to create a realization per combination
             self._cycle_combinations( exp_conf.default.extdata_member,
                                       exp_conf.default.namelist_label_combination, 
@@ -318,7 +324,10 @@ class Experiment( Base ):
                         else :
                             cmd = "fortnml -wof %s -s %s %s"    % ( self.namelist_input, 
                                                                     mnl_variable, str( mnl_values[ comb ] ) ) 
-                    exec_cmd( cmd )
+                    code, output = exec_cmd( cmd )
+                    logging.debug( output )
+                    if code :
+                        raise Exception( "ERROR: Updating parameter '%s' in the namelist" % mnl_variable  )
                 rea_name = "%s_%s" % ( rea_name_member, physic_label ) if physic_label else rea_name_member
                 self._cycle_time( rea_name, member_label, physic_label )
      
@@ -358,8 +367,11 @@ class Experiment( Base ):
                     self.realization.append( rea )
                 # Check storage
                 if not self.dryrun :
-                    # Update restart_interval on the namelist to create chunks
-                    exec_cmd( "fortnml -wof %s -s restart_interval %d" % ( self.namelist_input, restart_interval ) )
+                    logging.debug( "Update restart_interval in the namelist to create chunks" )
+                    code, output = exec_cmd( "fortnml -wof %s -s restart_interval %d" % ( self.namelist_input, restart_interval ) )
+                    logging.debug( output )
+                    if code :
+                        raise Exception( "ERROR: Update '%d' restart_interval in the namelist" % restart_interval )
                     rea._prepare_sub_files()
                 rea.cycle_chunks( )
                 rea_start_date = exp_calendar.add_hours( rea_start_date, simult_interval_h ) 
