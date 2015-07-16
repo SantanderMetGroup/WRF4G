@@ -27,7 +27,7 @@ import shutil
 import sys
 import tarfile
 import zipfile
-
+import logging
 
 class ArchiveException(Exception):
     """
@@ -154,7 +154,7 @@ class TarArchive(BaseArchive):
                 except (KeyError, AttributeError):
                     # Some corrupt tar files seem to produce this
                     # (specifically bad symlinks)
-                    print ("In the tar file %s the member %s is invalid: %s" %
+                    logging.info("In the tar file %s the member %s is invalid: %s" %
                            (name, member.name, sys.exc_info()[1]))
                 else:
                     dirname = os.path.dirname(filename)
