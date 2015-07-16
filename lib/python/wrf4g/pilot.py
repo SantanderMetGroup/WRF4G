@@ -18,8 +18,7 @@ from wrf4g.core           import Job
 from wrf4g.utils.osinfo   import ( get_hostname, os_release, 
                                    cpu_info, mem_info, 
                                    disk_space_check )
-from wrf4g.utils.command  import exec_cmd_popen as exec_cmd
-from wrf4g.utils.command  import which
+from wrf4g.utils.command  import exec_cmd, which
 from wrf4g.utils.archive  import extract
 from wrf4g.utils.time     import ( dateiso2datetime, datewrf2datetime, 
                                    datetime2datewrf, datetime2dateiso )
@@ -460,7 +459,23 @@ def launch_pilot( params ):
                 copy_file( oring, dest )
             except :
                 logging.warning( "Error copying file '%s' to '%s'" % ( oring, dest ) )
+ 
+        ##
+        # Setting PATH and LD_LIBRARY_PATH 
+        ##
+        logging.info( 'Setting PATH and LD_LIBRARY_PATH variables' )
 
+        root_bin_path = join( params.root_path, 'bin' )
+        os.environ[ 'PATH' ] = '%s:%s' % ( root_bin_path, os.environ.get( 'PATH' ) )
+        os.environ[ 'LD_LIBRARY_PATH' ] = '%s:%s:%s' % ( join( params.root_path, 'lib' ),
+                                                         join( params.root_path, 'lib64' ),
+                                                         os.environ.get( 'LD_LIBRARY_PATH' ) )
+        os.environ[ 'PYTHONPATH' ] = '%s:%s' % ( join( params.root_path, 'lib', 'python' ),
+                                                 os.environ.get( 'PYTHONPATH' ) )
+
+        if 'wrf_all_in_one' in params.app :
+            os.environ[ 'OPAL_PREFIX' ] = params.root_path
+      
         ##
         # Configure app 
         ##
@@ -470,11 +485,11 @@ def launch_pilot( params ):
         archives_path = join( params.root_path, 'archives' )
         logging.info( "Creating '%s' directory" % archives_path )
         os.makedirs( archives_path )
-        for app in params.app.replace(' ','').split('\n') :
+        for app in params.app.split('\n') :
             app_tag, app_type, app_value = app.split( '|' )
-            if app_type == 'bundle' :
-                oring = app_value
-                dest  = join( archives_path, basename( app_value ) )
+            if 'bundle' in app_type :
+                oring = app_value.strip()
+                dest  = join( archives_path, basename( app_value.strip() ) )
                 try :
                     logging.info( "Trying to copy '%s'" % oring )
                     copy_file( oring, dest )
@@ -483,15 +498,20 @@ def launch_pilot( params ):
                 else :
                     logging.info( "Unpacking '%s' to '%s'" % ( dest, params.root_path ) )
                     extract( dest, to_path = params.root_path )
-            elif app_type == 'command' :
+            elif 'command' in app_type :
                 logging.info( 'Configuring source script' )
                 try :
                     f = open( 'easy_source.sh', 'w' )
                     f.write( app_value )
                 finally :
                     f.close()
-                if os.system( ". ./easy_source.sh" ) :
+                code, output = exec_cmd( ". ./easy_source.sh && env" )
+                if code :
+                    logging.info( output )
                     raise JobError( "Error executing source script", JOB_ERROR[ 'SOURCE_SCRIPT'] )
+                for line in output :
+                    key, value = line.split( "=" )
+                    os.environ[ key ] = value
             else :
                 raise JobError( "Error app type does not exist", JOB_ERROR[ 'APP_ERROR'] )              
         wrf4g_files = join( params.root_path, 'wrf4g_files.tar.gz' )
@@ -504,21 +524,6 @@ def launch_pilot( params ):
         ##  
         shutil.rmtree( archives_path )
 
-        ##
-        # Setting PATH and LD_LIBRARY_PATH 
-        ##
-        logging.info( 'Setting PATH and LD_LIBRARY_PATH variables' )
-
-        root_bin_path = join( params.root_path, 'bin' )
-        os.environ[ 'PATH' ] = '%s:%s' % ( root_bin_path, os.environ.get( 'PATH' ) )
-        os.environ[ 'LD_LIBRARY_PATH' ] = '%s:%s:%s' % ( join( params.root_path, 'lib' ), 
-                                                         join( params.root_path, 'lib64' ),
-                                                         os.environ.get( 'LD_LIBRARY_PATH' ) )
-        os.environ[ 'PYTHONPATH' ] = '%s:%s' % ( join( params.root_path, 'lib', 'python' ), 
-                                                 os.environ.get( 'PYTHONPATH' ) )
-       
-        if 'wrf_all_in_one' in params.app : 
-            os.environ[ 'OPAL_PREFIX' ] = params.root_path
         ##
         # Set bin files execute by the group
         ##

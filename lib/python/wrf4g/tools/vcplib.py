@@ -4,7 +4,7 @@ import time
 import logging
 from re                  import match, search
 from os.path             import abspath, isdir, isfile, basename, dirname, join
-from wrf4g.utils.command import exec_cmd_popen as exec_cmd
+from wrf4g.utils.command import exec_cmd
 
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
@@ -184,7 +184,7 @@ class VCPURL(object):
         
         command = eval(self.command[self.protocol]['ls'])
         (err, out) = exec_cmd(command)
-        if err != 0 :
+        if err :
             out = "Error reading dir: " + str(out)
             raise Exception(out)
         
@@ -222,8 +222,7 @@ class VCPURL(object):
         
         command = eval(self.command[self.protocol]['mkdir'])
         (err, out) = exec_cmd(command)
-        
-        if err != 0 :
+        if err :
             out = "Error creating dir: " + str(out)
             raise Exception(out)
     
@@ -236,8 +235,7 @@ class VCPURL(object):
         
         command = eval(self.command[self.protocol]['rm'])
         (err, out) = exec_cmd(command)
-        
-        if err != 0 : 
+        if err : 
             out="Error deleting file: " + str(out)
             raise Exception(out)
     
@@ -254,7 +252,7 @@ class VCPURL(object):
         dest = join(dest_folder,newname)
         command = eval(self.command[self.protocol]['rename'])
         (err, out) = exec_cmd(command)
-        if err != 0 :
+        if err :
             out="Error listing file: " + str(out)
             raise Exception(out)
 
@@ -435,7 +433,7 @@ def copy_file(origin, destination, overwrite=True):
     command = eval(param['command'])
     out="Command to copy... " + command
     (err, out) = exec_cmd(command)
-    if err != 0 :
+    if err :
         raise Exception("Error copying file: " + out)
     elapsed = time.time()- start
     out = "The copy lasted %s" % ( datetime.timedelta( seconds = elapsed ) )

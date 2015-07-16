@@ -28,7 +28,7 @@ from wrf4g.db               import Base
 from wrf4g.utils.archive    import extract
 from wrf4g.utils.time       import datetime2datewrf, Calendar
 from wrf4g.utils.file       import validate_name, edit_file
-from wrf4g.utils.command    import exec_cmd_subprocess as exec_cmd
+from wrf4g.utils.command    import exec_cmd
 from wrf4g.tools.vcplib     import VCPURL
 from wrf4g.tools.gridwaylib import GWJob
 

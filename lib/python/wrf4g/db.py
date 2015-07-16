@@ -12,7 +12,7 @@ from sqlalchemy.pool            import NullPool
 from sqlalchemy.orm             import relationship, sessionmaker
 from os.path                    import join, exists
 from wrf4g                      import DB4G_CONF, WRF4G_DIR, MYSQL_DIR
-from wrf4g.utils.command        import exec_cmd_subprocess as exec_cmd
+from wrf4g.utils.command        import exec_cmd_advance as exec_cmd
 from wrf4g.utils.file           import VarEnv
 
 

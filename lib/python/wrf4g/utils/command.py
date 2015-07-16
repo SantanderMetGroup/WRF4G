@@ -1,9 +1,6 @@
 import os
 import logging
-try :
-    import subprocess
-except :
-    pass
+import subprocess
 from distutils  import spawn
 
 __version__  = '2.0.0'
@@ -19,14 +16,14 @@ def which( command ):
     """
     return spawn.find_executable( command )
 
-def exec_cmd_subprocess( cmd, nohup=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+def exec_cmd_advance( cmd, nohup=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
               stderr=subprocess.STDOUT, env=os.environ ):
     """
     Execute shell commands
     """
     logging.debug( "Executing command ... " + cmd )
-    cmd_to_exec = subprocess.Popen( cmd, shell = True, stdin = subprocess.PIPE,
-                                    stdout = subprocess.PIPE, stderr=  subprocess.PIPE,
+    cmd_to_exec = subprocess.Popen( cmd, shell = True, stdin = stdin,
+                                    stdout = stdout, stderr = stderr,
                                     env = env )
     if not nohup :
         out , err =  cmd_to_exec.communicate()
@@ -34,17 +31,10 @@ def exec_cmd_subprocess( cmd, nohup=False, stdin=subprocess.PIPE, stdout=subproc
         out = err = ''
     return out , err
 
-def exec_cmd_popen( cmd ):
+def exec_cmd( cmd, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, env = os.environ ):
     logging.debug( "Executing command ... " + cmd )
-    try:
-        import subprocess
-        p      = subprocess.Popen( cmd, shell = True, stdout = subprocess.PIPE,
-                                   stderr = subprocess.PIPE, close_fds = True )
-        output = p.stdout.read().strip() + p.stderr.read().strip()
-        code   = p.wait()
-    except ImportError:
-        import popen2
-        p      = popen2.Popen3( "%s" % cmd )
-        output = p.fromchild.read().strip()
-        code   = p.wait()
+    p      = subprocess.Popen( cmd, shell = True, stdout = stdout,
+                               stderr = stderr, env = env )
+    output = p.stdout.read().strip() + p.stderr.read().strip()
+    code   = p.wait()
     return code, output
