@@ -249,7 +249,7 @@ class WrfNamelist(FortranNamelist):
   # "feedback" wrongly appears as max_dom var (how can this be posible?)
   # and was removed by hand. "frames_per_outfile" and "history_interval"
   # were missing and added by hand.
-  # Last updated from WRF v3.3.1 Registry.EM (J. Fernandez, 20120203)
+  # Last updated from WRF v3.7 (Carlos Blanco, 20150717)
   MAX_DOM_VARIABLES = [
     "allowed", "bdyfrq", "bl_pbl_physics", "bldt", "c_k", "c_s", "cen_lat",
     "cen_lon", "chem_adv_opt", "chem_opt", "coriolis2d", "cu_diag",
@@ -286,6 +286,9 @@ class WrfNamelist(FortranNamelist):
     "true_lat1", "true_lat2", "v_mom_adv_order", "v_sca_adv_order", "zdamp",
     "ztop", "frames_per_outfile", "history_interval","history_interval_mo",
     "history_interval_d","history_interval_h", "history_interval_m", "history_interval_s"
+  ]
+  NAMELIST_RECORDS = [ 
+    "time_control" , "domains", "physics", "fdda", "dynamics", "bdy_control", "grib2"
   ]
   def __init__(self, namelist_file, math_exp=True):
     FortranNamelist.__init__(self, namelist_file, math_exp)
@@ -328,6 +331,9 @@ class WrfNamelist(FortranNamelist):
     """
     Check for some recomendations/mandatory WRF specific issues in the namelist.
     """
+    for record in self.record_dict.keys():
+      if not record in self.NAMELIST_RECORDS :
+        raise Exception( "'%s' section does not exist" % record )
     tsratio = self.getValue('time_step')[0] * 1000 / self.getValue('dx')[0]
     if   tsratio > 6: self.printWrfWarning("Time step is larger than 6 times dx (%f)" % tsratio)
     elif tsratio < 5: self.printWrfWarning("Time step is shorter than 5 times dx (%f)" % tsratio)
