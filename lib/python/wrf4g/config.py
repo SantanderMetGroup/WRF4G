@@ -10,18 +10,18 @@ __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-mandatory_varibles = ( 'name', 'max_dom', 'date_time', 'namelist_version', 
+MANDATORY_VARIABLES = ('name', 'max_dom', 'date_time', 'namelist_version', 
                        'domain_path', 'extdata_vtable', 'extdata_path', 
                        'extdata_interval', 'preprocessor', 'output_path', 
                        'postprocessor', 'app'          
                      )
 
-yes_no_variables   = ( 'clean_after_run', 'save_wps', 'real_parallel', 
+YES_NO_VARIABLES    = ('clean_after_run', 'save_wps', 'real_parallel', 
                        'wrf_parallel' , 'wrfout_name_end_date', 'chunk_restart'
                      )
 
 
-default_dict       = { 
+DEFAULT_DICT        = { 
                     'description'          : '',
                     'calendar'             : 'standard',
                     'timestep_dxfactor'    : '6',
@@ -87,9 +87,9 @@ def get_conf( directory = './' ):
     make_writeable( exp_file )
     logging.debug( "Reading '%s' file" % exp_file )
     exp_env = VarEnv( exp_file )
-    default_dict.update( dict ( exp_env.items( 'DEFAULT' ) ) )
+    DEFAULT_DICT.update( dict ( exp_env.items( 'DEFAULT' ) ) )
     exp_conf_dict = dict()
-    exp_conf_dict[ 'default' ] = default_dict
+    exp_conf_dict[ 'default' ] = DEFAULT_DICT
     exp_conf_dict[ 'default' ] [ 'home_dir' ] = abspath( directory )
     for section in exp_env.sections() :
         if ':' in section :
@@ -107,7 +107,7 @@ def sanity_check( exp_conf ) :
     logging.info( "Checking the variables in experiment.wrf4g file"  )
     # Check if all mandatory variables are avaible
     default_keys = exp_conf.default.keys()
-    for key in mandatory_varibles :
+    for key in MANDATORY_VARIABLES :
         if key not in default_keys :
             raise Exception( "'%s' is a mandatory variable." 
                             "Please specify it in the experiment.wrf4g file" % key ) 
@@ -123,7 +123,7 @@ def sanity_check( exp_conf ) :
     ##
     # Check if yes/no variables are right 
     ##
-    for key in yes_no_variables :
+    for key in YES_NO_VARIABLES :
         val = exp_conf.default[ key ].lower()
         if val in ( 'y', 'yes' ) :
             exp_conf.default[ key ] = 'yes'
@@ -160,7 +160,7 @@ def sanity_check( exp_conf ) :
             if len( elems ) == 5 :
                 chunk_size_h = int( elems[ 4 ] )
                 if chunk_size_h > simult_length_h :
-                    logging.warning( "WARNING: %d 'chunk_size' is bigger than %d 'simulation_length'" % 
+                    logging.warn( "WARNING: %d 'chunk_size' is bigger than %d 'simulation_length'" % 
                                      ( chunk_size_h, simult_length_h ) )
                     chunk_size_h = simult_length_h
             else :
@@ -175,7 +175,7 @@ def sanity_check( exp_conf ) :
                 chunk_size_h = None
         if not chunk_size_h :
             chunk_size_h  = simult_length_h
-            logging.warning( "WARNING: 'chunk_size' will be %d hours" %  chunk_size_h )
+            logging.warn( "WARNING: 'chunk_size' will be %d hours" %  chunk_size_h )
         # Defining restart_interval
         # To avoid chunk restart we add 1 hour to restart_interval variable
         if exp_conf.default.chunk_restart == 'no' :
@@ -202,7 +202,7 @@ def sanity_check( exp_conf ) :
         exp_conf.default.namelist = exp_conf.default.namelist.replace(' ', '')
         for nml_val in exp_conf.default.namelist.split( '\n' ):
             if nml_val.startswith('#'):
-               continue
+                continue
             nml_conf = nml_val.split( '|' )
             nml_conf_key = nml_conf[ 0 ]
             nml_conf_val = nml_conf[ 1: ]
@@ -218,15 +218,15 @@ def sanity_check( exp_conf ) :
                     elif len( nml_elem_val ) > exp_conf.default.max_dom or \
                             nml_conf_key.startswith( 'max_dom' ) : 
                         nml_elem_val = nml_elem_val[ :exp_conf.default.max_dom ]
-                        logging.warning( "WARNING: Truncating values of '%s' variable --> %s" % 
-                                            ( nml_conf_key, nml_elem_val ) )
+                        logging.warn( "WARNING: Truncating values of '%s' variable --> %s" % 
+                                            ( nml_conf_key, str( nml_elem_val ) ) )
                         nml_elem_val = nml_elem_val[ :exp_conf.default.max_dom ]
                     elif len( nml_elem_val ) < exp_conf.default.max_dom or \
                             nml_conf_key.startswith( 'max_dom' ) : 
                         nml_elem_val = nml_elem_val + [ ( nml_elem_val[ -1 ] * \
                             ( exp_conf.default.max_dom - len( nml_elem_val ) ) ) ]
-                        logging.warning( "WARNING: Expanding values of '%s' variable --> %s" % 
-                                            ( nml_conf_key, nml_elem_val ) )
+                        logging.warn( "WARNING: Expanding values of '%s' variable --> %s" % 
+                                            ( nml_conf_key, str( nml_elem_val ) ) )
                     values.append( ' '.join( nml_elem_val ) )
                 exp_conf.default.namelist_dict[ nml_conf_key ] = values
     return exp_conf
