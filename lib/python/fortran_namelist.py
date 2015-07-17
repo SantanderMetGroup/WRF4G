@@ -291,6 +291,7 @@ class WrfNamelist(FortranNamelist):
     "bdy_control", "chem", "dfi_control", "diags", "domains", "dynamics", "scm",
     "fdda", "fire", "grib2", "logging", "namelist_01", "namelist_02", "time_control", 
     "namelist_03", "namelist_04", "namelist_05", "namelist_quilt", "physics",
+    "noah_mp", "tc"
   ]
   def __init__(self, namelist_file, math_exp=True):
     FortranNamelist.__init__(self, namelist_file, math_exp)
