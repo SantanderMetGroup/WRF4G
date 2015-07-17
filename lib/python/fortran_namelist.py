@@ -288,8 +288,9 @@ class WrfNamelist(FortranNamelist):
     "history_interval_d","history_interval_h", "history_interval_m", "history_interval_s"
   ]
   NAMELIST_RECORDS = [ 
-    "time_control" , "domains", "physics", "fdda", "dynamics", 
-    "bdy_control", "grib2", "namelist_quilt"
+    "bdy_control", "chem", "dfi_control", "diags", "domains", "dynamics", "scm",
+    "fdda", "fire", "grib2", "logging", "namelist_01", "namelist_02", "time_control", 
+    "namelist_03", "namelist_04", "namelist_05", "namelist_quilt", "physics",
   ]
   def __init__(self, namelist_file, math_exp=True):
     FortranNamelist.__init__(self, namelist_file, math_exp)
