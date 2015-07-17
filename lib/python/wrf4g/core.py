@@ -29,7 +29,6 @@ from wrf4g.utils.archive    import extract
 from wrf4g.utils.time       import datetime2datewrf, Calendar
 from wrf4g.utils.file       import validate_name, edit_file
 from wrf4g.utils.command    import exec_cmd
-from wrf4g.utils.namelist   import NAMELIST_RECORDS
 from wrf4g.tools.vcplib     import VCPURL
 from wrf4g.tools.gridwaylib import GWJob
 
@@ -321,9 +320,6 @@ class Experiment( Base ):
                         # Modify the namelist with the parameters available in the namelist description
                         if '.' in mnl_variable :
                             section, val = mnl_variable.split( '.' )
-                            if not section in NAMELIST_RECORDS :
-                                raise Exception( "'%s' section for '%s' variable does not exist" % 
-                                                 ( section, val ) )
                             cmd = "fortnml -wof %s -s %s@%s %s" % ( self.namelist_input, 
                                                                     val, section, str( mnl_values[ comb ] ) )
                         else :

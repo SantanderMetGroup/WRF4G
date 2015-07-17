@@ -9,9 +9,6 @@ __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-NAMELIST_RECORDS = ('time_control' , 'domains', 'physics', 'fdda',
-                       'dynamics', 'bdy_control', 'grib2' )
-
 def get_ptop():
     shcmd = "ncdump -v PRES $(\ls met_em.d??.????-??-??_??:00:00.nc | head -1) | tail -2 | head -1 | tr -d ',;' | awk '{printf $1}'"
     return int(os.popen(shcmd).read().strip())
