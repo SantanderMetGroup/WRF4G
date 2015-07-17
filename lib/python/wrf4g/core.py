@@ -202,13 +202,13 @@ class Experiment( Base ):
                 # Update max_dom on the namelist  
                 logging.debug( "Updating parameter 'max_dom' in the namelist" )
                 code, output = exec_cmd( "fortnml -wof %s -s max_dom %d" % ( self.namelist_input, self.max_dom ) )          
-                logging.debug( output )
+                logging.warning( output )
                 if code :
                     raise Exception( "ERROR: Updating parameter 'max_dom' in the namelist" )
                 # Trim the namlist
                 logging.debug( "Force trimming the arrays in the namelist to 'max_dom'" ) 
                 code, output = exec_cmd( "fortnml -wof %s --force-trim=%d" % ( self.namelist_input, self.max_dom ) )
-                logging.debug( output )
+                logging.warning( output )
                 if code :
                     raise Exception( "ERROR: Trimming the arrays in the namelist to 'max_dom'" )
             # Cycle to create a realization per combination
@@ -325,7 +325,7 @@ class Experiment( Base ):
                             cmd = "fortnml -wof %s -s %s %s"    % ( self.namelist_input, 
                                                                     mnl_variable, str( mnl_values[ comb ] ) ) 
                     code, output = exec_cmd( cmd )
-                    logging.debug( output )
+                    logging.warning( output )
                     if code :
                         raise Exception( "ERROR: Updating parameter '%s' in the namelist" % mnl_variable  )
                 rea_name = "%s_%s" % ( rea_name_member, physic_label ) if physic_label else rea_name_member
@@ -369,7 +369,7 @@ class Experiment( Base ):
                 if not self.dryrun :
                     logging.debug( "Update restart_interval in the namelist to create chunks" )
                     code, output = exec_cmd( "fortnml -wof %s -s restart_interval %d" % ( self.namelist_input, restart_interval ) )
-                    logging.debug( output )
+                    logging.warning( output )
                     if code :
                         raise Exception( "ERROR: Update '%d' restart_interval in the namelist" % restart_interval )
                     rea._prepare_sub_files()
