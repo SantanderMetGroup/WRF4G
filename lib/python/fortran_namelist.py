@@ -284,7 +284,8 @@ class WrfNamelist(FortranNamelist):
     "tke_adv_opt", "tke_drag_coefficient", "tke_heat_flux", "tke_upper_bound",
     "top_lid", "top_radiation", "topo_shading", "tracer_adv_opt", "tracer_opt",
     "true_lat1", "true_lat2", "v_mom_adv_order", "v_sca_adv_order", "zdamp",
-    "ztop", "frames_per_outfile", "history_interval" 
+    "ztop", "frames_per_outfile", "history_interval","history_interval_mo",
+    "history_interval_d","history_interval_h", "history_interval_m", "history_interval_s"
   ]
   def __init__(self, namelist_file, math_exp=True):
     FortranNamelist.__init__(self, namelist_file, math_exp)
