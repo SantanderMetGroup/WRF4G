@@ -31,7 +31,7 @@ def exec_cmd_advance( cmd, nohup=False, stdin=subprocess.PIPE, stdout=subprocess
         out = err = ''
     return out , err
 
-def exec_cmd( cmd, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, env = os.environ ):
+def exec_cmd( cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE, env = os.environ ):
     logging.debug( "Executing command ... " + cmd )
     p      = subprocess.Popen( cmd, shell = True, stdout = stdout,
                                stderr = stderr, env = env )
