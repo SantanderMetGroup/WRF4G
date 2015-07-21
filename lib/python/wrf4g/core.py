@@ -337,7 +337,7 @@ class Experiment( Base ):
                         if rea_end_date > end_date :
                             rea_end_date = end_date
                         rea_name = "%s_%s" % ( rea_name_member_physic, rea_start_date.strftime( "%Y%m%dT%H%M%S" ) )
-                        logging.info( "\t---> Realization %s: start date %s end date %s" % ( 
+                        logging.info( "---> Realization %s: start date %s end date %s" % ( 
                                        rea_name, rea_start_date, rea_end_date ) )
                         # Check realization on the database
                         rea = self.check_db( name = rea_name, start_date = rea_start_date,
