@@ -114,9 +114,9 @@ def sanity_check( exp_conf ) :
     # Check the experiment name 
     validate_name( exp_conf.default.name )
     # Convert max_dom
-    exp_conf.default.max_dom = int( exp_conf.default.max_dom )
+    exp_conf.default.max_dom          = int( exp_conf.default.max_dom )
     # Convert np
-    exp_conf.default.np = int( exp_conf.default.np )
+    exp_conf.default.np               = int( exp_conf.default.np )
     # Convert extdata_interval
     exp_conf.default.extdata_interval = int( exp_conf.default.extdata_interval )
 
@@ -158,7 +158,7 @@ def sanity_check( exp_conf ) :
             simult_interval_h = int( elems[ 2 ] )
             simult_length_h   = int( elems[ 3 ] )
             if len( elems ) == 5 :
-                chunk_size_h = int( elems[ 4 ] )
+                chunk_size_h  = int( elems[ 4 ] )
                 if chunk_size_h > simult_length_h :
                     logging.warn( "WARNING: %d 'chunk_size' is bigger than %d 'simulation_length'" % 
                                      ( chunk_size_h, simult_length_h ) )
@@ -167,7 +167,7 @@ def sanity_check( exp_conf ) :
                 chunk_size_h  = None 
         else :
             td = end_date - start_date 
-            total_seconds =  (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
+            total_seconds = ( td.microseconds + ( td.seconds + td.days * 24 * 3600) * 10**6 ) / 10**6
             simult_interval_h = simult_length_h = total_seconds / 3600
             if len( elems ) == 3 :
                 chunk_size_h = int( elems[ 2 ] )
@@ -189,46 +189,32 @@ def sanity_check( exp_conf ) :
     # Check if there are multible members 
     ##
     if exp_conf.default.extdata_member :
-        exp_conf.default.extdata_member = exp_conf.default.extdata_member.replace(' ', '').split( '|' )
+        exp_conf.default.extdata_member = exp_conf.default.extdata_member.\
+                                          replace(' ', '').split( '|' )
     else :
         exp_conf.default.extdata_member = [ '' ]
 
     ##
     # Check namelist configuration for multicombinations
     ##
-    exp_conf.default.namelist_label_combination = [ '' ] 
-    if exp_conf.default.namelist :
+    if exp_conf.default.namelist_label_comb :
+        exp_conf.default.namelist_label_comb = exp_conf.default.namelist_label_comb.\
+                                               replace(' ', '').split( '|' )
+    else :
+        exp_conf.default.namelist_label_comb = [ '' ]
+    if exp_conf.default.namelist_values :
         # Delete whitespaces
-        exp_conf.default.namelist = exp_conf.default.namelist.replace(' ', '')
-        for nml_val in exp_conf.default.namelist.split( '\n' ):
-            if nml_val.startswith('#'):
-                continue
+        exp_conf.default.namelist_values = exp_conf.default.namelist_values.\
+                                           replace(' ', '')
+        for nml_val in exp_conf.default.namelist_values.split( '\n' ):
+            if nml_val.startswith('#'): continue
             nml_conf = nml_val.split( '|' )
             nml_conf_key = nml_conf[ 0 ]
             nml_conf_val = nml_conf[ 1: ]
-            if 'label_combination' in nml_conf_key :
-                exp_conf.default.namelist_label_combination = nml_conf_val
-            else :
-                values = []
-                for nml_elem in nml_conf_val :
-                    nml_elem_val = nml_elem.strip( ',' ).split( ',' )
-                    if nml_conf_key.startswith( 'single:' ) or \
-                            nml_conf_key.startswith( 'single_list:' ):
-                        nml_conf_key = nml_conf_key.replace( 'single:', '' ) 
-                    elif len( nml_elem_val ) > exp_conf.default.max_dom or \
-                            nml_conf_key.startswith( 'max_dom' ) : 
-                        nml_elem_val = nml_elem_val[ :exp_conf.default.max_dom ]
-                        logging.warn( "WARNING: Truncating values of '%s' variable --> %s" % 
-                                            ( nml_conf_key, str( nml_elem_val ) ) )
-                        nml_elem_val = nml_elem_val[ :exp_conf.default.max_dom ]
-                    elif len( nml_elem_val ) < exp_conf.default.max_dom or \
-                            nml_conf_key.startswith( 'max_dom' ) : 
-                        nml_elem_val = nml_elem_val + [ ( nml_elem_val[ -1 ] * \
-                            ( exp_conf.default.max_dom - len( nml_elem_val ) ) ) ]
-                        logging.warn( "WARNING: Expanding values of '%s' variable --> %s" % 
-                                            ( nml_conf_key, str( nml_elem_val ) ) )
-                    values.append( ' '.join( nml_elem_val ) )
-                exp_conf.default.namelist_dict[ nml_conf_key ] = values
+            values = []
+            for nml_elem in nml_conf_val :
+                values.append( nml_elem.replace(' ', '').strip( ',' ).split( ',' ) )
+            exp_conf.default.namelist_dict[ nml_conf_key ] = values
     return exp_conf
 
 def save_exp_pkl( obj_config, directory ) :

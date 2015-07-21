@@ -9,7 +9,7 @@ date_time            = Year-Month-Day_HH:MM:SS | Year-Month-Day_HH:MM:SS | H    
 timestep_dxfactor    = 6
 calendar             = standard
 # Running options 
-np = 1
+np                   = 1
 requirements         = ARCH="x86_64"
 clean_after_run      = yes
 save_wps             = no
@@ -19,15 +19,16 @@ wrf_parallel         = yes
 domain_path          =
 extdata_vtable       = 
 extdata_path         =
+extdata_member       = 
 extdata_interval     = 
 preprocessor         = default
 # Output
 output_path          = 
 postprocessor        = 
-wrfout_name_end_date = no
 # app
-app                  = 
+app                  = wrf_all_in_one | bundle | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/WRF/WRFbin-3.4.1_r2265_gfortran.tar.gz
 # WRF-namelist parameters. Override namelist.input variables here
-namelist_version     = x.x.x
-namelist             =
+namelist_version     = 3.4.1
+namelist_label_comb  =
+namelist_values      =
 

@@ -258,13 +258,15 @@ class WrfNamelist(FortranNamelist):
     "do_curvature", "do_gradp", "dt", "dx", "dy", "e_sn", "e_vert", "e_we",
     "emdiv", "end_day", "end_hour", "end_minute", "end_month", "end_second",
     "end_year", "epssm", "fdda_end", "fdda_start", "fgdt", "fgdtzero",
-    "fine_input_stream", "gmt", "grav_settling", "grid_fdda", "gsmdt",
-    "h_mom_adv_order", "h_sca_adv_order", "i_parent_start", "id",
-    "input_from_file", "input_from_hires", "isice", "islake", "isoilwater",
+    "fine_input_stream", "frames_per_outfile", "gmt", "grav_settling", 
+    "grid_fdda", "grid_id", "gsmdt", "history_interval","history_interval_mo", 
+    "history_interval_d","history_interval_h", "history_interval_m", 
+    "history_interval_s", "h_mom_adv_order", "h_sca_adv_order", "i_parent_start", 
+    "id", "input_from_file", "input_from_hires", "isice", "islake", "isoilwater",
     "isurban", "iswater", "j_parent_start", "julday", "julyr", "khdif",
-    "kvdif", "map_proj", "max_step_increase_pct", "max_time_step",
+    "kvdif", "m_opt", "map_proj", "max_step_increase_pct", "max_time_step",
     "min_time_step", "mix_full_field", "mix_isotropic", "mix_upper_bound",
-    "moad_cen_lat", "moad_grid_ratio", "moad_time_step_ratio",
+    "moad_cen_lat", "moad_grid_ratio", "moad_time_step_ratio", "specified",
     "moist_adv_dfi_opt", "moist_adv_opt", "mp_physics", "mp_physics_dfi",
     "naer", "nested", "non_hydrostatic", "obs_coef_mois", "obs_coef_pstr",
     "obs_coef_temp", "obs_coef_wind", "obs_ionf", "obs_no_pbl_nudge_q",
@@ -284,8 +286,7 @@ class WrfNamelist(FortranNamelist):
     "tke_adv_opt", "tke_drag_coefficient", "tke_heat_flux", "tke_upper_bound",
     "top_lid", "top_radiation", "topo_shading", "tracer_adv_opt", "tracer_opt",
     "true_lat1", "true_lat2", "v_mom_adv_order", "v_sca_adv_order", "zdamp",
-    "ztop", "frames_per_outfile", "history_interval","history_interval_mo",
-    "history_interval_d","history_interval_h", "history_interval_m", "history_interval_s"
+    "ztop"
   ]
   NAMELIST_RECORDS = [ 
     "bdy_control", "chem", "dfi_control", "diags", "domains", "dynamics", "scm",
@@ -327,6 +328,7 @@ class WrfNamelist(FortranNamelist):
        mxd = ncols
     for var in self.variableList():
       if ncols or var in self.MAX_DOM_VARIABLES:# or self.checkMaxDomPatterns(var):
+        self.printWrfWarning('Trimming variable %s.' % var)
         self.setValue(var, self.getValue(var)[:mxd])
   def printWrfWarning(self, message):
     sys.stderr.write("WRF Check Warning: %s\n" % message)
@@ -400,6 +402,9 @@ class WrfNamelist(FortranNamelist):
         theval = self.getValue(var)
         if len(theval) < self.getValue("max_dom")[0]:
           self.printWrfWarning('Variable %s = %s requires as many entries as domains.' % (var, theval))
-          self.setValue(var, theval + (self.getValue("max_dom")[0]-len(theval))*[theval[-1],])
+          if var == "grid_id":
+            self.setValue(var, range(1, self.getValue("max_dom")[0]+1)) 
+          else:
+            self.setValue(var, theval + (self.getValue("max_dom")[0]-len(theval))*[theval[-1],])
           self.printWrfWarning('Filling with last domain entry!! -> %s = %s' % (var, self.getValue(var)))
 

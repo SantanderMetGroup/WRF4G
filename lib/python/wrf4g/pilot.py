@@ -9,7 +9,7 @@ import logging
 import tarfile
 import glob
 import threading
-
+import fortran_namelist as fn
 from os.path              import ( exists, join, 
                                    dirname, isfile, 
                                    basename, expandvars )
@@ -192,7 +192,7 @@ class PilotParams( object ):
     save_wps             = resource_exp_conf[ 'save_wps' ]
     wrfout_name_end_date = resource_exp_conf[ 'wrfout_name_end_date' ]
     timestep_dxfactor    = resource_exp_conf[ 'timestep_dxfactor' ]
-    extdata_interval     = resource_exp_conf[ 'extdata_interval' ]
+    extdata_interval     = int( resource_exp_conf[ 'extdata_interval' ] )
     extdata_vtable       = resource_exp_conf[ 'extdata_vtable' ]
     extdata_path         = resource_exp_conf[ 'extdata_path' ]
     real_parallel        = resource_exp_conf[ 'real_parallel' ]
@@ -688,19 +688,16 @@ def launch_pilot( params ):
             ##
             logging.info( "Modify namelist.wps" )
 
-            cmds = [ "fortnml -of %s -n %d -s start_date %s" % ( params.namelist_wps, 
-                                                                 params.max_dom, 
-                                                                 datetime2datewrf( params.chunk_sdate ) ), 
-                     "fortnml -of %s -n %d -s end_date %s"   % ( params.namelist_wps, 
-                                                                 params.max_dom, 
-                                                                 datetime2datewrf( params.chunk_edate ) ),
-                     "fortnml -of %s -s max_dom %d"          % ( params.namelist_wps, params.max_dom ),
-                     "fortnml -of %s -s interval_seconds %s" % ( params.namelist_wps, params.extdata_interval) ]
-            for cmd in cmds :
-                code, output = exec_cmd( cmd )
-                if code :
-                    logging.info( output )
-                    raise JobError( "Error modifying namelist", JOB_ERROR[ 'NAMELIST_FAILED' ] )
+            try :
+                nmlw = fn.FortranNamelist( params.namelist_wps )
+                nmlw.setValue( "max_dom", params.max_dom )
+                nmlw.setValue( "start_date", params.max_dom * [ datetime2datewrf( params.chunk_sdate ) ] )
+                nmlw.setValue( "end_date", params.max_dom * [ datetime2datewrf( params.chunk_edate ) ] )
+                nmlw.setValue( "interval_seconds", params.extdata_interval )
+                nmlw.overWriteNamelist() 
+            except Exception, err :
+                raise JobError( "Error modifying namelist: %s" % err, JOB_ERROR[ 'NAMELIST_FAILED' ] )
+
             ##
             # Preprocessor and Ungrib
             ##
@@ -709,10 +706,12 @@ def launch_pilot( params ):
             for vt, pp, epath in zip( params.extdata_vtable.replace(' ', '').split( ',' ), 
                                       params.preprocessor.replace(' ', '').split( ',' ), 
                                       params.extdata_path.replace(' ', '').split( ',' ) ) :
-                code, output = exec_cmd( "fortnml -of %s -s prefix@ungrib %s" % ( params.namelist_wps, vt ) )
-                if code :
-                    logging.info( output )
-                    raise JobError( "Error modifying namelist", JOB_ERROR[ 'NAMELIST_FAILED' ] )
+                try :
+                    nmlw = fn.FortranNamelist( params.namelist_wps )
+                    nmlw.setValue( "prefix", vt, "ungrib" )
+                    nmlw.overWriteNamelist()
+                except Exception, err :
+                    raise JobError( "Error modifying namelist: %s" % err, JOB_ERROR[ 'NAMELIST_FAILED' ] )
                 vtable = join( params.wps_path, 'Vtable' )
                 if isfile( vtable ) :
                     os.remove( vtable ) 
@@ -767,20 +766,18 @@ def launch_pilot( params ):
             #  Update namelist.wps 
             ##
             logging.info( "Update namelist for metgrid" )
-
-            code, output = exec_cmd( "fortnml -of %s -s fg_name@metgrid %s" % 
-                                     ( params.namelist_wps, params.extdata_vtable.replace( ',', ' ') ) )
-            if code :
-                logging.info( output )
-                raise JobError( "Error modifying namelist", JOB_ERROR[ 'NAMELIST_FAILED' ] )
-            for var_to_del in [ 'opt_output_from_metgrid_path',
-                                'opt_output_from_geogrid_path',
-                                'opt_metgrid_tbl_path',
-                                'opt_geogrid_tbl_path' ] :
-                code, output = exec_cmd( "fortnml -of %s -d %s" % ( params.namelist_wps, var_to_del ) )
-                if code :
-                    logging.info( output )
-                    raise JobError( "Error modifying namelist", JOB_ERROR[ 'NAMELIST_FAILED' ] )
+         
+            try :
+                nmlw = fn.FortranNamelist( params.namelist_wps )
+                nmlw.setValue( "fg_name", params.extdata_vtable.replace( ' ', '').split( ',' ), "metgrid" )
+                for var_to_del in [ 'opt_output_from_metgrid_path',
+                                    'opt_output_from_geogrid_path',
+                                    'opt_metgrid_tbl_path',
+                                    'opt_geogrid_tbl_path' ] :
+                    nmlw.delVariable( var_to_del )
+                nmlw.overWriteNamelist()
+            except Exception, err :
+                raise JobError( "Error modifying namelist: %s" % err, JOB_ERROR[ 'NAMELIST_FAILED' ] )
           
             ##
             # Run Metgrid

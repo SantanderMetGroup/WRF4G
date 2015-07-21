@@ -10,6 +10,8 @@ import tarfile
 import shutil
 import datetime
 import logging
+import fortran_namelist as fn
+from fortran_namelist       import coerce_value_list
 from sqlalchemy             import ( Column, INTEGER, 
                                      VARCHAR, SMALLINT, 
                                      DATETIME, ForeignKey,
@@ -104,7 +106,7 @@ class Experiment( Base ):
         Check if the experiment can be updated
         """
         for elem_modified in modified_variables :
-            if elem_modified in ( 'calendar', 'max_dom', 'namelist' ) :
+            if elem_modified in ( 'calendar', 'max_dom' ) :
                 return False
         return True
 
@@ -164,7 +166,7 @@ class Experiment( Base ):
         self.environment      = exp_conf.default.environment 
         self.namelist_version = exp_conf.default.namelist_version
         self.max_dom          = exp_conf.default.max_dom
-        self.namelist         = exp_conf.default.namelist
+        self.namelist         = exp_conf.default.namelist_values
         self.datetime_list    = exp_conf.default.datetime_list
  
         # Check if the experiment can be updated
@@ -178,7 +180,7 @@ class Experiment( Base ):
                 raise Exception( "ERROR: Experiment with the same name "
                                  "and no reconfigurable fields already exists." )
         if not self.dryrun :
-            exp_sub_dir = join( WRF4G_DIR , 'var' , 'submission' , self.name )
+            exp_sub_dir = join( WRF4G_DIR, 'var', 'submission', self.name )
             if not isdir( exp_sub_dir ) :
                 try:
                     logging.debug( "Creating '%s' directory" % exp_sub_dir )
@@ -198,25 +200,10 @@ class Experiment( Base ):
             except :
                 raise Exception( "There is not a namelist template for WRF '%s'"
                                  "(File namelist.input does not exist)" % self.namelist_template )
-            if not self.dryrun :  
-                # Update max_dom on the namelist  
-                logging.debug( "Updating parameter 'max_dom' in the namelist" )
-                code, output = exec_cmd( "fortnml -wof %s -s max_dom %d" % ( self.namelist_input, self.max_dom ) )          
-                logging.debug( output )
-                if code :
-                    logging.info( output )
-                    raise Exception( "ERROR: Updating parameter 'max_dom' in the namelist" )
-                # Trim the namlist
-                logging.debug( "Force trimming the arrays in the namelist to 'max_dom'" ) 
-                code, output = exec_cmd( "fortnml -wof %s --force-trim=%d" % ( self.namelist_input, self.max_dom ) )
-                logging.debug( output )
-                if code :
-                    raise Exception( "ERROR: Trimming the arrays in the namelist to 'max_dom'" )
             # Cycle to create a realization per combination
-            self._cycle_combinations( exp_conf.default.extdata_member,
-                                      exp_conf.default.namelist_label_combination, 
-                                      exp_conf.default.namelist_dict )
-    
+            self.cycle_realizations( exp_conf.default.extdata_member,
+                                     exp_conf.default.namelist_label_comb, 
+                                     exp_conf.default.namelist_dict )
         if not self.dryrun :
             # Save current configuration in the experiment.pkl file 
             save_exp_pkl( exp_conf, directory )
@@ -306,82 +293,79 @@ class Experiment( Base ):
         with open(dest_path, 'w') as f :
             f.writelines( data_updated )
 
-    def _cycle_combinations( self, extdata_member, combinations, namelist_combinations ):
+    def cycle_realizations( self, extdata_member, combinations, namelist_combinations ):
         """
         Create realizations for each member and namelist combinations.
         """
         for member_label in extdata_member :
             rea_name_member = "%s_%s" % ( self.name, member_label ) if member_label else self.name
             for comb, physic_label in enumerate( combinations ) :
+                rea_name_member_physic = "%s_%s" % ( rea_name_member, physic_label ) if physic_label else rea_name_member
+                ##
+                # Update namelist values
+                ##
+                nmli = fn.WrfNamelist( self.namelist_input )
+                logging.debug( "Updating parameter 'max_dom' in the namelist" )
+                nmli.setValue( "max_dom", self.max_dom )
                 for mnl_variable, mnl_values in namelist_combinations.items() :
                     # Update the namelist per each combination
-                    if not self.dryrun :
-                        logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
-                        # Modify the namelist with the parameters available in the namelist description
+                    logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
+                    # Modify the namelist with the parameters available in the namelist description
+                    try :
                         if '.' in mnl_variable :
                             section, val = mnl_variable.split( '.' )
-                            cmd = "fortnml -wof %s -s %s@%s %s" % ( self.namelist_input, 
-                                                                    val, section, str( mnl_values[ comb ] ) )
+                            nmli.setValue( val, coerce_value_list( mnl_values[ comb ] ), section )
                         else :
-                            cmd = "fortnml -wof %s -s %s %s"    % ( self.namelist_input, 
-                                                                    mnl_variable, str( mnl_values[ comb ] ) ) 
-                    code, output = exec_cmd( cmd )
-                    logging.debug( output )
-                    if code :
-                        raise Exception( "ERROR: Updating parameter '%s' in the namelist" % mnl_variable  )
-                rea_name = "%s_%s" % ( rea_name_member, physic_label ) if physic_label else rea_name_member
-                self._cycle_time( rea_name, member_label, physic_label )
-     
-    def _cycle_time(self, rea_name, member_label, physic_label) :
-        """
-        Create the realizations for each datetime definition.
-        """
-        for l_elem in self.datetime_list :
-            start_date, end_date, simult_interval_h, simult_length_h, chunk_size_h, restart_interval = l_elem
-            # Define which calendar is going to be used
-            exp_calendar    = Calendar( self.calendar )
-            rea_start_date  = start_date
-            while rea_start_date < end_date :
-                rea_end_date = exp_calendar.add_hours(rea_start_date, simult_length_h )
-                if rea_end_date > end_date :
-                    rea_end_date = end_date
-                cycle_name   = "%s_%s" % ( rea_name, rea_start_date.strftime( "%Y%m%dT%H%M%S" ) )
-                logging.info( "\t---> Realization %s: start date %s end date %s" % ( 
-                               cycle_name, rea_start_date, rea_end_date ) )
-                # Check realization on the database
-                rea = self.check_db( name             = cycle_name, 
-                                     start_date       = rea_start_date,
-                                     end_date         = rea_end_date,
-                                     chunk_size_h     = chunk_size_h ) 
-                if not rea :
-                    # Create a realization 
-                    rea = Realization( name          = cycle_name, 
-                                       start_date    = rea_start_date,
-                                       end_date      = rea_end_date,
-                                       chunk_size_h  = chunk_size_h,
-                                       current_date  = rea_start_date,
-                                       status        = 'PREPARED',
-                                       current_chunk = 1,
-                                       member_label  = member_label,
-                                       physic_label  = physic_label )
-                    # Add realization to the experiment 
-                    self.realization.append( rea )
-                # Check storage
-                if not self.dryrun :
-                    logging.debug( "Update restart_interval in the namelist to create chunks" )
-                    code, output = exec_cmd( "fortnml -wof %s -s restart_interval %d" % ( self.namelist_input, restart_interval ) )
-                    logging.debug( output )
-                    if code :
-                        raise Exception( "ERROR: Update '%d' restart_interval in the namelist" % restart_interval )
-                    rea._prepare_sub_files()
-                rea.cycle_chunks( )
-                rea_start_date = exp_calendar.add_hours( rea_start_date, simult_interval_h ) 
+                            nmli.setValue( mnl_variable, coerce_value_list( mnl_values[ comb ] ) )
+                    except IndexError:
+                        raise Exception( "'%s' does not have values for all namelist combinations." % mnl_variable )
+                nmli.trimMaxDom()
+                nmli.extendMaxDomVariables()
+                nmli.wrfCheck()
+                ##
+                for start_date, end_date, simult_interval_h, simult_length_h, chunk_size_h, restart_interval in self.datetime_list :
+                    # Update restart_interval in the namelist 
+                    logging.debug( "Updating parameter 'restart_interval' in the namelist" )
+                    nmli.setValue( "restart_interval", restart_interval )
+                    if not self.dryrun :
+                        nmli.overWriteNamelist()
+                    # Define which calendar is going to be used
+                    exp_calendar   = Calendar( self.calendar )
+                    rea_start_date = start_date
+                    while rea_start_date < end_date :
+                        rea_end_date = exp_calendar.add_hours(rea_start_date, simult_length_h )
+                        if rea_end_date > end_date :
+                            rea_end_date = end_date
+                        rea_name = "%s_%s" % ( rea_name_member_physic, rea_start_date.strftime( "%Y%m%dT%H%M%S" ) )
+                        logging.info( "\t---> Realization %s: start date %s end date %s" % ( 
+                                       rea_name, rea_start_date, rea_end_date ) )
+                        # Check realization on the database
+                        rea = self.check_db( name = rea_name, start_date = rea_start_date,
+                                             end_date = rea_end_date, chunk_size_h = chunk_size_h ) 
+                        if not rea :
+                            # Create a realization 
+                            rea = Realization( name          = rea_name, 
+                                               start_date    = rea_start_date,
+                                               end_date      = rea_end_date,
+                                               chunk_size_h  = chunk_size_h,
+                                               current_date  = rea_start_date,
+                                               status        = 'PREPARED',
+                                               current_chunk = 1,
+                                               member_label  = member_label,
+                                               physic_label  = physic_label )
+                            # Add realization to the experiment 
+                            self.realization.append( rea )
+                        # Check storage
+                        if not self.dryrun :   
+                            rea._prepare_sub_files()
+                        rea.cycle_chunks()
+                        rea_start_date = exp_calendar.add_hours( rea_start_date, simult_interval_h ) 
 
     def _copy_experiment_files(self, exp_sub_dir ):
         """
         Copy configure files before submission.
         """    
-        for file in [ join( WRF4G_DIR, 'etc', 'db.conf' ),
+        for file in [ join( WRF4G_DIR, "etc", "db.conf" ),
                       join( self.home_dir, "experiment.wrf4g" ),
                       join( self.home_dir, "experiment.pkl" ) ] :
             if not exists ( expandvars( file ) ) :
@@ -529,7 +513,7 @@ class Realization( Base ):
         """
         Prepare the files needed to submit the realization. 
         """
-        rea_submission_dir = join( WRF4G_DIR , 'var' , 'submission' , self.experiment.name , self.name )
+        rea_submission_dir = join( WRF4G_DIR, 'var', 'submission', self.experiment.name, self.name )
         if not isdir( rea_submission_dir ) :
             try :
                 os.makedirs( rea_submission_dir )

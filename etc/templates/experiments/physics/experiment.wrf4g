@@ -26,13 +26,12 @@ preprocessor         = default
 # Output
 output_path          = %(WRF4G_EXPERIMENT_HOME)s/output
 postprocessor        = SFC
-wrfout_name_end_date = no
 # app
 app                  = wrf_all_in_one | bundle | %(WRF4G_EXPERIMENT_HOME)s/repository/apps/WRF/WRFbin-3.4.1_r2265_gfortran.tar.gz
 # WRF-namelist parameters. Override namelist.input variables here
 namelist_version     = 3.4.1
-namelist             = label_combination  | phys1 | phys2 | phys3 | phys4 
-                       spec_bdy_width     | 10    | 10    | 10    | 10
+namelist_label_comb  =                      phys1 | phys2 | phys3 | phys4
+namelist_values      = spec_bdy_width     | 10    | 10    | 10    | 10
                        spec_zone          | 1     | 1     | 1     | 1     
                        relax_zone         | 9     | 9     | 9     | 9     
                        feedback           | 0     | 0     | 0     | 0
