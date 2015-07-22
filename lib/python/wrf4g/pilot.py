@@ -514,9 +514,10 @@ def launch_pilot( params ):
                 if code :
                     logging.info( output )
                     raise JobError( "Error executing source script", JOB_ERROR[ 'SOURCE_SCRIPT'] )
-                for line in output :
-                    key, value = line.split( "=" )
-                    os.environ[ key ] = value
+                for line in output.split( '\n' ) :
+                    if "=" in line :
+                        key, value = line.split( "=" )
+                        os.environ[ key ] = value
             else :
                 raise JobError( "Error app type does not exist", JOB_ERROR[ 'APP_ERROR'] )              
         wrf4g_files = join( params.root_path, 'wrf4g_files.tar.gz' )
