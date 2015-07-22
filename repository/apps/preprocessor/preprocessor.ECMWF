@@ -20,6 +20,6 @@ for yearmonday in $(get_yearmondays $iyy $imm $idd $fyy $fmm $fdd)
 do
   year=${yearmonday:0:4}
   for file in  ${extdata_path}/${year}/*_${yearmonday:0:6}_*128.grb; do 
-    vcp -v ${file} `pwd`/grbData/
+    wrf4g vcp i${file} file://`pwd`/grbData/
   done # end of files
 done # end of dates 

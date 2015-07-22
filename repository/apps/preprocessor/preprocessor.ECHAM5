@@ -17,14 +17,6 @@ source wrf_util.sh
 read iyy imm trash <<< `echo $sformateddate | tr '_T:-' '    '`
 read fyy fmm trash <<< `echo $eformateddate | tr '_T:-' '    '`
 
-if test ! $(which cdo); then
-  thisdir=$(pwd)
-  cd ${ROOTDIR}
-  vcp ${WRF4G_APPS}/cdo.tar.gz .
-  tar xzf cdo.tar.gz && rm cdo.tar.gz
-  cd ${thisdir}
-fi
-
 cat << EOF > echam_grib.table
  139   STL1         T of 0-7 cm ground layer                 [K]
  170   STL2         T of 7-28 cm ground layer                [K]
@@ -70,7 +62,7 @@ mkdir -p grbData
 for yearmon in $(get_yearmons $iyy $imm $fyy $fmm)
 do
   year=${yearmon:0:4}
-  vcp -v ${extdata_path}/ECHAM5-*_${yearmon}.mm5 `pwd`/grbData/
+  wrf4g vcp ${extdata_path}/ECHAM5-*_${yearmon}.mm5 `pwd`/grbData/
   ifile=$(ls grbData/*_${yearmon}.mm5)
   test -f "${ifile}" || exit
   get_fake_soil $ifile
