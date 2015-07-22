@@ -24,7 +24,7 @@ def run( arg ) :
     if arg[ 'daemon' ] :
         conf_file = DRM4G_DAEMON
     elif arg[ 'logger' ]:
-        conf_file = WRF4G_logging
+        conf_file = WRF4G_LOGGER
     elif arg[ 'database' ]:
         conf_file = DB4G_CONF
     else :
