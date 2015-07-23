@@ -22,6 +22,7 @@
 # ------------------------------------------------------------------------
 
 import sys
+import logging
 
 def listify(item):
   if type(item) == type([]):
@@ -251,19 +252,22 @@ class WrfNamelist(FortranNamelist):
   # were missing and added by hand.
   # Last updated from WRF v3.7 (Carlos Blanco, 20150717)
   MAX_DOM_VARIABLES = [
-    "allowed", "auxhist1_interval", "auxhist2_interval", "auxhist3_interval", 
-    "auxhist4_interval", "auxhist5_interval", "bdyfrq", "bl_pbl_physics", "bldt", 
-    "bucket_mm", "bucket_J", "c_k", "c_s", "cen_lat", "cen_lon", "chem_adv_opt", 
-    "chem_opt", "coriolis2d", "cu_diag", "cu_physics", "cudt", "cycle_x", "cycle_y", 
+    "allowed", "auxhist1_interval", "auxhist2_interval", "auxhist3_interval",
+    "auxhist4_interval", "auxhist5_interval", "auxhist6_interval", 
+    "auxhist7_interval", "auxhist8_interval", "auxhist9_interval", 
+    "auxhist10_interval", "auxhist11_interval", "bdyfrq", "bl_pbl_physics", 
+    "bldt", "c_k", "c_s", "cen_lat", "cen_lon", "chem_adv_opt", "chem_opt", 
+    "coriolis2d", "cu_diag", "cu_physics", "cudt", "cycle_x", "cycle_y", 
     "dampcoef", "decoupled", "dfi_stage", "diff_6th_factor", "diff_6th_opt", 
-    "do_coriolis", "do_curvature", "do_gradp", "dt", "dx", "dy", "e_sn", "e_vert", 
-    "e_we", "emdiv", "end_day", "end_hour", "end_minute", "end_month", "end_second",
-    "end_year", "epssm", "fdda_end", "fdda_start", "fgdt", "fgdtzero", "fine_input_stream", 
-    "frames_per_outfile", "frames_per_auxhist1","frames_per_auxhist2","frames_per_auxhist3", 
-    "frames_per_auxhist4", "frames_per_auxhist5", "gmt", "grav_settling", 
-    "grid_fdda", "grid_id", "gsmdt", "history_interval","history_interval_mo", 
-    "history_interval_d","history_interval_h", "history_interval_m", "history_interval_s", 
-    "h_mom_adv_order", "h_sca_adv_order", "i_parent_start", "id", "input_from_file", 
+    "do_coriolis", "do_curvature", "do_gradp", "dt", "dx", "dy", "e_sn", 
+    "e_vert", "e_we", "emdiv", "end_day", "end_hour", "end_minute", "end_month", 
+    "end_second", "end_year", "epssm", "fdda_end", "fdda_start", "fgdt", 
+    "fgdtzero", "fine_input_stream", "frames_per_outfile", "frames_per_auxhist1", 
+    "frames_per_auxhist2","frames_per_auxhist3", "frames_per_auxhist4", 
+    "frames_per_auxhist5", "gmt", "grav_settling", "grid_fdda", "grid_id", 
+    "gsmdt", "history_interval","history_interval_mo", "history_interval_d", 
+    "history_interval_h", "history_interval_m", "history_interval_s",
+    "h_mom_adv_order", "h_sca_adv_order", "i_parent_start", "id", "input_from_file",
     "input_from_hires", "iofields_filename", "isice", "islake", "isoilwater",
     "isurban", "iswater", "j_parent_start", "julday", "julyr", "khdif",
     "kvdif", "m_opt", "map_proj", "max_step_increase_pct", "max_time_step",
@@ -284,11 +288,10 @@ class WrfNamelist(FortranNamelist):
     "stand_lon", "start_day", "start_hour", "start_minute", "start_month",
     "start_second", "start_year", "starting_time_step", "stencil_half_width",
     "swap_x", "swap_y", "symmetric_xe", "symmetric_xs", "symmetric_ye",
-    "symmetric_ys", "target_cfl", "target_hcfl", "time_step_sound",
-    "tke_adv_opt", "tke_drag_coefficient", "tke_heat_flux", "tke_upper_bound",
-    "top_lid", "top_radiation", "topo_shading", "topo_wind","tracer_adv_opt", "tracer_opt",
-    "true_lat1", "true_lat2", "v_mom_adv_order", "v_sca_adv_order", "zdamp",
-    "ztop"
+    "symmetric_ys", "target_cfl", "target_hcfl", "time_step_sound", "tke_adv_opt", 
+    "tke_drag_coefficient", "tke_heat_flux", "tke_upper_bound", "top_lid", 
+    "top_radiation", "topo_shading", "topo_wind","tracer_adv_opt", "tracer_opt",
+    "true_lat1", "true_lat2", "v_mom_adv_order", "v_sca_adv_order", "zdamp", "ztop"
   ]
   NAMELIST_RECORDS = [ 
     "bdy_control", "chem", "dfi_control", "diags", "domains", "dynamics", "scm",
@@ -333,7 +336,7 @@ class WrfNamelist(FortranNamelist):
         self.printWrfWarning('Trimming variable %s.' % var)
         self.setValue(var, self.getValue(var)[:mxd])
   def printWrfWarning(self, message):
-    sys.stderr.write("WRF Check Warning: %s\n" % message)
+    logging.warn("WRF Check Warning: %s" % message)
   def wrfCheck(self):
     """
     Check for some recomendations/mandatory WRF specific issues in the namelist.
