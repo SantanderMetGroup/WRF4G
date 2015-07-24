@@ -515,9 +515,11 @@ def launch_pilot( params ):
                     logging.info( output )
                     raise JobError( "Error executing source script", JOB_ERROR[ 'SOURCE_SCRIPT'] )
                 for line in output.split( '\n' ) :
-                    if "=" in line :
-                        key, value = line.split( "=" )
-                        os.environ[ key ] = value
+                    if "=" in line and not "(" in line :
+                        logging.info( line)
+                        try :    key, value = line.split( "=" )
+                        except : pass
+                        else :   os.environ[ key ] = value
             else :
                 raise JobError( "Error app type does not exist", JOB_ERROR[ 'APP_ERROR'] )              
         wrf4g_files = join( params.root_path, 'wrf4g_files.tar.gz' )
@@ -626,6 +628,7 @@ def launch_pilot( params ):
       
         if chunk_rerun == ".T." :
             pattern =  "wrfrst*" + datetime2dateiso( params.chunk_rdate ) + '*'
+            files_downloaded = 0
             for file_name in VCPURL( params.rst_rea_output_path ).ls( pattern ):
                 # file will follow the pattern: wrfrst_d01_19900101T000000Z.nc
                 orig = join( params.rst_rea_output_path, file_name )
@@ -635,6 +638,9 @@ def launch_pilot( params ):
                     copy_file( orig, dest )
                 except :
                     raise JobError( "'%s' has not copied" % file_name, JOB_ERROR[ 'COPY_RST_FILE' ] )
+                files_downloaded += 1
+            if not files_downloaded :
+                raise JobError( "No restart file has been downloaded", JOB_ERROR[ 'COPY_RST_FILE' ] )
             job_db.set_job_status( 'DOWN_RESTART' )
 
         ##
