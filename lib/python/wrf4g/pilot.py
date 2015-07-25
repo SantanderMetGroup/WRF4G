@@ -318,7 +318,7 @@ def clean_wrf_files( job_db, params, clean ):
                 if patt != "wrfrst" and params.wrfout_name_end_date == 'yes' :
                     code, output = exec_cmd("ncdump -v Times %s" % file )
                     try :
-                        mo = re.findall.search("(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})", output )
+                        mo = re.findall("(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})", output )
                         dest_file = WRFFile( file_name, mo[-1] ).file_name_out_iso()
                     except Exception, err :
                         logging.error( "ERROR: Calculating wrfout_name_end_date %s" % err )
