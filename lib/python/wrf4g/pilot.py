@@ -938,8 +938,7 @@ def launch_pilot( params ):
         # Wipe after run
         ##
         if ( params.real_parallel == 'yes' or params.wrf_parallel == 'yes' ) and \
-           ( params.local_path != params.root_path ) and \
-           ( params.clean_after_run ) :
+           ( params.local_path != params.root_path ) and ( params.clean_after_run == 'yes' ) :
             logging.info( "Wiping the directory '%s' on all worker nodes" % params.local_path )
             code, output = exec_cmd( "mpirun -pernode rm -rf %s" % ( params.local_path ) )
             if code :
