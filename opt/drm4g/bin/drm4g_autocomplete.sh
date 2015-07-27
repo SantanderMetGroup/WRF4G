@@ -5,7 +5,7 @@ _drm4g()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 1 ]; then
-        COMPREPLY=( $( compgen -W '-h --help --version status resource clear stop job start host conf restart' -- $cur) )
+        COMPREPLY=( $( compgen -W '-h --help --version --dbg status resource clear stop host start job conf id restart' -- $cur) )
     else
         case ${COMP_WORDS[1]} in
             status)
@@ -20,17 +20,20 @@ _drm4g()
             stop)
             _drm4g_stop
         ;;
-            job)
-            _drm4g_job
+            host)
+            _drm4g_host
         ;;
             start)
             _drm4g_start
         ;;
-            host)
-            _drm4g_host
+            job)
+            _drm4g_job
         ;;
             conf)
             _drm4g_conf
+        ;;
+            id)
+            _drm4g_id
         ;;
             restart)
             _drm4g_restart
@@ -56,7 +59,7 @@ _drm4g_resource()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 2 ]; then
-        COMPREPLY=( $( compgen -fW ' edit list check id' -- $cur) )
+        COMPREPLY=( $( compgen -W ' edit list check' -- $cur) )
     else
         case ${COMP_WORDS[2]} in
             edit)
@@ -67,9 +70,6 @@ _drm4g_resource()
         ;;
             check)
             _drm4g_resource_check
-        ;;
-            id)
-            _drm4g_resource_id
         ;;
         esac
 
@@ -106,82 +106,6 @@ _drm4g_resource_check()
     fi
 }
 
-_drm4g_resource_id()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -W ' info init conf delete' -- $cur) )
-    else
-        case ${COMP_WORDS[3]} in
-            info)
-            _drm4g_resource_id_info
-        ;;
-            init)
-            _drm4g_resource_id_init
-        ;;
-            conf)
-            _drm4g_resource_id_conf
-        ;;
-            delete)
-            _drm4g_resource_id_delete
-        ;;
-        esac
-
-    fi
-}
-
-_drm4g_resource_id_info()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W ' ' -- $cur) )
-    fi
-}
-
-_drm4g_resource_id_init()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W ' ' -- $cur) )
-    fi
-}
-
-_drm4g_resource_id_conf()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W ' ' -- $cur) )
-    fi
-}
-
-_drm4g_resource_id_delete()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W ' ' -- $cur) )
-    fi
-}
-
-_drm4g_help()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 2 ]; then
-        COMPREPLY=( $( compgen -fW ' ' -- $cur) )
-    fi
-}
-
 _drm4g_clear()
 {
     local cur
@@ -193,95 +117,6 @@ _drm4g_clear()
 }
 
 _drm4g_stop()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 2 ]; then
-        COMPREPLY=( $( compgen -W ' ' -- $cur) )
-    fi
-}
-
-_drm4g_job()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -eq 2 ]; then
-        COMPREPLY=( $( compgen -W ' cancel get-history list get-log submit' -- $cur) )
-    else
-        case ${COMP_WORDS[2]} in
-            cancel)
-            _drm4g_job_cancel
-        ;;
-            get-history)
-            _drm4g_job_get-history
-        ;;
-            list)
-            _drm4g_job_list
-        ;;
-            get-log)
-            _drm4g_job_get-log
-        ;;
-            submit)
-            _drm4g_job_submit
-        ;;
-        esac
-
-    fi
-}
-
-_drm4g_job_cancel()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -fW ' ' -- $cur) )
-    fi
-}
-
-_drm4g_job_get-history()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -fW ' ' -- $cur) )
-    fi
-}
-
-_drm4g_job_list()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -fW ' ' -- $cur) )
-    fi
-}
-
-_drm4g_job_get-log()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -fW ' ' -- $cur) )
-    fi
-}
-
-_drm4g_job_submit()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 3 ]; then
-        COMPREPLY=( $( compgen -fW ' ' -- $cur) )
-    fi
-}
-
-_drm4g_start()
 {
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
@@ -315,6 +150,95 @@ _drm4g_host_list()
 
     if [ $COMP_CWORD -ge 3 ]; then
         COMPREPLY=( $( compgen -W ' ' -- $cur) )
+    fi
+}
+
+_drm4g_start()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 2 ]; then
+        COMPREPLY=( $( compgen -W ' ' -- $cur) )
+    fi
+}
+
+_drm4g_job()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -eq 2 ]; then
+        COMPREPLY=( $( compgen -W ' cancel history list log submit' -- $cur) )
+    else
+        case ${COMP_WORDS[2]} in
+            cancel)
+            _drm4g_job_cancel
+        ;;
+            history)
+            _drm4g_job_history
+        ;;
+            list)
+            _drm4g_job_list
+        ;;
+            log)
+            _drm4g_job_log
+        ;;
+            submit)
+            _drm4g_job_submit
+        ;;
+        esac
+
+    fi
+}
+
+_drm4g_job_cancel()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 3 ]; then
+        COMPREPLY=( $( compgen -fW ' ' -- $cur) )
+    fi
+}
+
+_drm4g_job_history()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 3 ]; then
+        COMPREPLY=( $( compgen -fW ' ' -- $cur) )
+    fi
+}
+
+_drm4g_job_list()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 3 ]; then
+        COMPREPLY=( $( compgen -fW ' ' -- $cur) )
+    fi
+}
+
+_drm4g_job_log()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 3 ]; then
+        COMPREPLY=( $( compgen -fW ' ' -- $cur) )
+    fi
+}
+
+_drm4g_job_submit()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 3 ]; then
+        COMPREPLY=( $( compgen -fW '--dep= ' -- $cur) )
     fi
 }
 
@@ -362,6 +286,59 @@ _drm4g_conf_sched()
 }
 
 _drm4g_conf_logger()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 3 ]; then
+        COMPREPLY=( $( compgen -W ' ' -- $cur) )
+    fi
+}
+
+_drm4g_id()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -eq 2 ]; then
+        COMPREPLY=( $( compgen -fW ' info init delete' -- $cur) )
+    else
+        case ${COMP_WORDS[2]} in
+            info)
+            _drm4g_id_info
+        ;;
+            init)
+            _drm4g_id_init
+        ;;
+            delete)
+            _drm4g_id_delete
+        ;;
+        esac
+
+    fi
+}
+
+_drm4g_id_info()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 3 ]; then
+        COMPREPLY=( $( compgen -W ' ' -- $cur) )
+    fi
+}
+
+_drm4g_id_init()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 3 ]; then
+        COMPREPLY=( $( compgen -W '-l= --lifetime= ' -- $cur) )
+    fi
+}
+
+_drm4g_id_delete()
 {
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
