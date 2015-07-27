@@ -14,9 +14,9 @@ if sys.version_info < (2,5) and sys.version_info > (3,0):
     exit( 'The version number of the Python has to be > = 2.5 and < 3.0' )
 try:
     sys.path.insert(0, join(dirname(dirname(os.path.abspath(__file__))), 'libexec'))
-    from drm4g import DRM4G_LOGGER, DRM4G_DIR  
+    from wrf4g import WRF4G_LOGGER, WRF4G_DIR  
     try:
-        logging.config.fileConfig(DRM4G_LOGGER, {"DRM4G_DIR": DRM4G_DIR})
+        logging.config.fileConfig(WRF4G_LOGGER, {"WRF4G_DIR": WRF4G_DIR})
     except :
         pass
 except Exception, e:
