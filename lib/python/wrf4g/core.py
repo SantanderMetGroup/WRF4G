@@ -311,12 +311,20 @@ class Experiment( Base ):
                     # Update the namelist per each combination
                     logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
                     # Modify the namelist with the parameters available in the namelist description
-                    try :
-                        if '.' in mnl_variable :
-                            section, val = mnl_variable.split( '.' )
-                            nmli.setValue( val, coerce_value_list( mnl_values[ comb ] ), section )
-                        else :
-                            nmli.setValue( mnl_variable, coerce_value_list( mnl_values[ comb ] ) )
+                    if '.' in mnl_variable :
+                        section, val = mnl_variable.split( '.' )
+                    else :
+                        section, val = "",  mnl_variable
+                    if val.startswith( "max_dom:" ) :
+                        val = val[ 8: ]
+                        if not val in nmli.MAX_DOM_VARIABLES : 
+                            nmli.MAX_DOM_VARIABLES.extend( val  )
+                    elif val.startswith( "single:" ) :
+                        val = val[ 7: ]
+                        if val in nmli.MAX_DOM_VARIABLES : 
+                            nmli.MAX_DOM_VARIABLES.remove( val  )
+                    try :                        
+                        nmli.setValue( val, coerce_value_list( mnl_values[ comb ] ), section )
                     except IndexError:
                         raise Exception( "'%s' does not have values for all namelist combinations." % mnl_variable )
                 nmli.trimMaxDom()

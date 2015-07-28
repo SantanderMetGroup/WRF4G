@@ -118,7 +118,7 @@ def wps2wrf( namelist_wps, namelist_input, sdate, edate, maxdom, chunk_is_restar
     #
     #  Trim, check, overwrite the file and ... we are done!
     #
-    nmli.trimMaxDom()
+    #nmli.trimMaxDom()
     nmli.wrfCheck()
-    nmli.extendMaxDomVariables()
+    #nmli.extendMaxDomVariables()
     nmli.overWriteNamelist()

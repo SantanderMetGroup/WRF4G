@@ -516,7 +516,6 @@ def launch_pilot( params ):
                     raise JobError( "Error executing source script", JOB_ERROR[ 'SOURCE_SCRIPT'] )
                 for line in output.split( '\n' ) :
                     if "=" in line and not "(" in line :
-                        logging.info( line)
                         try :    key, value = line.split( "=" )
                         except : pass
                         else :   os.environ[ key ] = value
