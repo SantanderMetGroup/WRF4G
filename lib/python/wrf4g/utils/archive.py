@@ -156,6 +156,7 @@ class TarArchive(BaseArchive):
                     # (specifically bad symlinks)
                     logging.info("In the tar file %s the member %s is invalid: %s" %
                            (name, member.name, sys.exc_info()[1]))
+                    extracted = None
                 else:
                     dirname = os.path.dirname(filename)
                     if dirname and not os.path.exists(dirname):
