@@ -156,7 +156,8 @@ class Agent( object ):
         logging.info( 'Stopping ssh-agent ... ' )
         if self.is_alive():
             out , err = exec_cmd( 'ssh-agent -k' , env=self.update_agent_env() )
-            logging.debug( out )
+            if out :
+                logging.debug( out )
             if err :
                 logging.info( err )
             else :
