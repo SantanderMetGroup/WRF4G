@@ -91,9 +91,9 @@ class Agent( object ):
  
     def status( self ) :
         if self.is_alive() :
-            logging.info( " ssh-agent is running" )
+            logging.info( "ssh-agent is running" )
         else :
-            logging.info( " ssh-agent is stopped" )
+            logging.info( "ssh-agent is stopped" )
 
     def is_alive( self ):
         if not exists( self.agent_file ) :
