@@ -31,9 +31,9 @@ def datetime2dateiso( date_object ):
 
 class Calendar( object ):
     """
-    Class to manage calendars like 'standard' and 'leap' 
+    Class to manage calendars like 'standard' and 'no_leap' 
     """
-    available_types = ( 'standard', 'leap' )
+    available_types = ( 'standard', 'no_leap' )
 
     def __init__( self, type = 'standard' ):
         if not type in self.available_types :
@@ -45,7 +45,7 @@ class Calendar( object ):
         """
         Subtract two dates returning a timedelta object
         """
-        if self.type == 'leap' :
+        if self.type == 'no_leap' :
             diff_days = self._no_leap_day( date1 ) - self._no_leap_day( date2 )
             return timedelta( days=diff_days )
         else :
@@ -55,7 +55,7 @@ class Calendar( object ):
         """
         Add hours to a date returning a datetime object
         """
-        if self.type == 'leap' and calendar.isleap( date.year ) :
+        if self.type == 'no_leap' and calendar.isleap( date.year ) :
             date_add = date + timedelta(hours=hours)
             day_29   = datetime( date.year, 2 , 29 )
             if ( date < day_29 ) and ( day_29 < date_add ) :
@@ -70,7 +70,7 @@ class Calendar( object ):
         """
         Subtract hours to a date returning a datetime object
         """
-        if self.type == 'leap' and calendar.isleap( date.year ) :
+        if self.type == 'no_leap' and calendar.isleap( date.year ) :
             date_sub = date - timedelta(hours=hours)
             day_29   = datetime( date.year, 2 , 29 )
             if ( date > day_29 ) and ( day_29 > date_sub ) :
