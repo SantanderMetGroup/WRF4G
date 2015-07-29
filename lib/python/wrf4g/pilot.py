@@ -505,7 +505,7 @@ def launch_pilot( params ):
                     logging.info( "Unpacking '%s' to '%s'" % ( dest, params.root_path ) )
                     extract( dest, to_path = params.root_path )
             elif 'command' in app_type :
-                logging.info( 'Configuring source script' )
+                logging.info( 'Configuring source script for %s' % app_tag )
                 try :
                     f = open( 'easy_source.sh', 'w' )
                     f.write( app_value )
@@ -514,7 +514,7 @@ def launch_pilot( params ):
                 code, output = exec_cmd( ". ./easy_source.sh && env" )
                 if code :
                     logging.info( output )
-                    raise JobError( "Error executing source script", JOB_ERROR[ 'SOURCE_SCRIPT'] )
+                    raise JobError( "Error executing source script for %s" app_tag, JOB_ERROR[ 'SOURCE_SCRIPT'] )
                 for line in output.split( '\n' ) :
                     if "=" in line and not "(" in line :
                         try :    key, value = line.split( "=" )
