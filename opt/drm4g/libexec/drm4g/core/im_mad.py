@@ -78,6 +78,7 @@ class GwImMad (object):
                     continue
                 try :
                     self._resources[ resname ][ 'Resource' ].Communicator = communicators[ resname ]
+                    self._resources[ resname ][ 'Resource' ].Communicator.connect()
                     hosts = hosts + " " + self._resources[ resname ] [ 'Resource' ].hosts()
                     self._resources[ resname ][ 'Resource' ].Communicator.close() 
                 except Exception , err :
