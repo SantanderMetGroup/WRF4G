@@ -24,7 +24,7 @@ class Send (object):
         self._lock.acquire()
         try:
             sys.stderr.write(message + '\n')
-            sys.stderr.flus()
+            sys.stderr.flush()
         finally:
             self._lock.release()
 
