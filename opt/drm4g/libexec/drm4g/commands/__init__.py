@@ -69,13 +69,14 @@ class Agent( object ):
 
     def start( self ):
         def _start():
-            logging.debug('--> Starting ssh-agent ...')
+            logging.info( 'Starting ssh-agent ...')
             # 's' option generates Bourne shell commands on stdout
             out , err = exec_cmd( 'ssh-agent -s ' ) 
             logging.debug( out )
             match = re.search( 'SSH_AUTH_SOCK=(?P<SSH_AUTH_SOCK>[^;]+);.*' \
                            + 'SSH_AGENT_PID=(?P<SSH_AGENT_PID>\d+);', out, re.DOTALL)
             if match :
+                logging.info( " OK" )
                 self.agent_env = match.groupdict()
                 logging.debug(' Agent pid: %s'  % self.agent_env['SSH_AGENT_PID'])
             else:
@@ -158,6 +159,8 @@ class Agent( object ):
             logging.debug( out )
             if err :
                 logging.info( err )
+            else :
+                logging.info( " OK" )
         else:
             logging.info( ' ssh-agent is already stopped' )
         try:
