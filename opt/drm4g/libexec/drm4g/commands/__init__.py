@@ -272,7 +272,7 @@ class Resource( object ):
                 state = 'enabled'
             else :
                 state = 'disabled'
-            logging.info( "%-20.20s%s" % ( resname, state ) 
+            logging.info( "%-20.20s%s" % ( resname, state ) ) 
 
     def features( self ) :
         """
