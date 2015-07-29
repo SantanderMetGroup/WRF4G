@@ -60,7 +60,7 @@ class Job (drm4g.managers.Job):
     def jobTemplate(self, parameters):
         args  = '#!/bin/bash\n'
         args += '# @ job_name = JID_%s\n' % (parameters['environment']['GW_JOB_ID'])
-        args += '# @ initialdir = $directory\n'
+        args += '# @ initialdir = .\n'
         args += '# @ output = $stdout\n'
         args += '# @ error  = $stderr\n'
         args += '# @ total_tasks = $count\n'
