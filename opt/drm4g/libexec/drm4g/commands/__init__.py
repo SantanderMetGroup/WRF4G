@@ -91,9 +91,9 @@ class Agent( object ):
  
     def status( self ) :
         if self.is_alive() :
-            logging.info( "ssh-agent is running" )
+            logging.info( " ssh-agent is running" )
         else :
-            logging.info( "ssh-agent is stopped" )
+            logging.info( " ssh-agent is stopped" )
 
     def is_alive( self ):
         if not exists( self.agent_file ) :
@@ -149,7 +149,7 @@ class Agent( object ):
         if match :
             logging.info( match.group() )
         else :
-            logging.info( "The private key '%s' is not available anymore" % self.private_key )
+            logging.info( " The private key '%s' is not available anymore" % self.private_key )
         
     def stop( self ):
         logging.info( 'Stopping ssh-agent ... ' )
@@ -159,7 +159,7 @@ class Agent( object ):
             if err :
                 logging.info( err )
         else:
-            logging.info( 'ssh-agent is already stopped' )
+            logging.info( ' ssh-agent is already stopped' )
         try:
             os.remove( self.agent_file )
         except :
