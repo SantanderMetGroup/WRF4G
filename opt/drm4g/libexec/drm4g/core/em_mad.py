@@ -223,21 +223,22 @@ class GwEmMad (object):
                     if oldStatus != newStatus and ( newStatus == 'DONE' or newStatus == 'FAILED' ) :
                         self._job_list.delete(JID)
                         time.sleep ( 0.1 )
-                        # Connect with the database to update the status of the job
-                        try :
-                            session = get_session()
-                            q_job   = session.query( Job ).\
-                                      filter( Job.gw_job == JID ).\
-                                      order_by( Job.id ).all()[-1]
-                            self.logger.info( states[ newStatus ]  )
-                            if not q_job.status in avoid_states : 
-                                q_job.set_status( states[ newStatus ] )
-                                session.commit()                                
-                        except Exception , err :
-                            session.rollback()
-                            self.logger.error( str( err ) )
-                        finally :
-                            session.close()
+                        if newStatus != 'DONE' :
+                            # Connect with the database to update the status of the job
+                            try :
+                                session = get_session()
+                                q_job   = session.query( Job ).\
+                                          filter( Job.gw_job == JID ).\
+                                          order_by( Job.id ).all()[-1]
+                                self.logger.info( states[ newStatus ]  )
+                                if not q_job.status in avoid_states : 
+                                    q_job.set_status( states[ newStatus ] )
+                                    session.commit()                                
+                            except Exception , err :
+                                session.rollback()
+                                self.logger.error( str( err ) )
+                            finally :
+                                session.close()
                         out = 'CALLBACK %s SUCCESS %s' % ( JID, newStatus )
                         self.message.stdout( out )
                         self.logger.debug( out )
