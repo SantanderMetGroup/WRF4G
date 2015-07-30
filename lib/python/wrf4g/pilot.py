@@ -514,7 +514,7 @@ def launch_pilot( params ):
                 code, output = exec_cmd( ". ./easy_source.sh && env" )
                 if code :
                     logging.info( output )
-                    raise JobError( "Error executing source script for %s" app_tag, JOB_ERROR[ 'SOURCE_SCRIPT'] )
+                    raise JobError( "Error executing source script for %s" % app_tag, JOB_ERROR[ 'SOURCE_SCRIPT'] )
                 for line in output.split( '\n' ) :
                     if "=" in line and not "(" in line :
                         try :    key, value = line.split( "=" )
