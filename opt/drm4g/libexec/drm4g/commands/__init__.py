@@ -139,7 +139,7 @@ class Agent( object ):
     
     def copy_key( self ):
         logging.info("--> Copy '%s' to ~/.ssh/authorized_keys file on '%s'" % ( self.private_key, self.frontend ) )
-        out , err = exec_cmd( 'ssh-copy-id -i %s %s@%s' %(  self.private_key, self.user, self.frontend ),
+        out , err = exec_cmd( '%s/ssh-copy-id -i %s %s@%s' %( DRM4G_BIN, self.private_key, self.user, self.frontend ),
                               stdin=sys.stdin, stdout=sys.stdout, env=self.update_agent_env() )
         logging.debug( out ) 
     
