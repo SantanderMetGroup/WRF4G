@@ -163,7 +163,7 @@ class Agent( object ):
             else :
                 logging.info( " OK" )
         else:
-            logging.info( ' ssh-agent is already stopped' )
+            logging.info( ' WARNING: ssh-agent is already stopped' )
         try:
             os.remove( self.agent_file )
         except :
@@ -206,7 +206,7 @@ class Daemon( object ):
             if not err and not out :
                 logging.info( " OK" )
         else :
-            logging.info( " WARNING: DRM4G is already running." )
+            logging.info( " WARNING: DRM4G is already running" )
                 
     def stop( self ):
         logging.info( "Stopping DRM4G .... " )
@@ -220,7 +220,7 @@ class Daemon( object ):
             logging.info( " OK" )
             
     def clear( self ):
-        yes_choise = yes_no_choice( "Do you want to continue clearing DRM4G " )
+        yes_choise = yes_no_choice( "Do you want to continue clearing DRM4G ?" )
         if yes_choise :
             logging.info( "Clearing DRM4G .... " )
             cmd = "%s -c" % join( DRM4G_BIN , "gwd" )
