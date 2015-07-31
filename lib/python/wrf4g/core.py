@@ -621,12 +621,19 @@ class Realization( Base ):
             chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
         else :
             current_chunk      = self.chunk.filter( Chunk.chunk_id == self.current_chunk ).one()
-            last_job           = current_chunk.job.order_by( Job.id )[ -1 ]
-            resource           = last_job.resource
-            exitcode           = last_job.exitcode
-            status             = last_job.status
-            gw_job             = str( last_job.gw_job )
-            chunk_distribution = '%d/%d' % ( current_chunk.chunk_id, self.nchunks )
+            l_jobs             = current_chunk.job.order_by( Job.id ).all()
+            if len( l_jobs)  == 0 :
+                resource           = '-'
+                exitcode           = '-'
+                status             = 'PREPARED'
+                gw_job             = '-'
+            else :
+                last_job           = l_jobs[ -1 ]
+                resource           = last_job.resource
+                exitcode           = last_job.exitcode
+                status             = last_job.status
+                gw_job             = str( last_job.gw_job )
+            chunk_distribution = '%d/%d' % ( self.current_chunk, self.nchunks )
         #Format chunks run / chunks total
         runt   = int( self.current_date.strftime("%s") ) - int( self.start_date.strftime("%s") ) 
         totalt = int( self.end_date.strftime("%s") )     - int( self.start_date.strftime("%s") )
