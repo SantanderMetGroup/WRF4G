@@ -69,7 +69,6 @@ class Agent( object ):
 
     def start( self ):
         def _start():
-            logging.info( 'Starting ssh-agent ...')
             # 's' option generates Bourne shell commands on stdout
             out , err = exec_cmd( 'ssh-agent -s ' ) 
             logging.debug( out )
@@ -84,9 +83,12 @@ class Agent( object ):
                 raise Exception( ' Cannot determine agent data from output: %s' % out )
             with open( self.agent_file , 'w') as f:
                 f.write( self.agent_env['SSH_AGENT_PID'] + '\n' + self.agent_env['SSH_AUTH_SOCK'] )
-        
+
+        logging.info( 'Starting ssh-agent ...')
         if not self.is_alive() :
             _start()
+        elif self.is_alive() :
+            logging.info( " WARNING: ssh-agent is already running" )
         elif not self.agent_env:
             self.get_agent_env()
  
