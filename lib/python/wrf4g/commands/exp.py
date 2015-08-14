@@ -58,7 +58,8 @@ EXIT CODES
     18 : Error uploading WPS files      
     19 : Error executing WRF
     20 : Error executing POSTPROCESSOR 
-    21 : Error copying output file     
+    21 : Error copying output file    
+    22 : Job killed by the system 
     255: Unexpected error
 """
 __version__  = '2.0.0'

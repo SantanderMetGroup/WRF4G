@@ -205,6 +205,7 @@ class GwTmMad (object):
                                         else :
                                             query_job.set_status( 'FAILED' )
                                     else :
+                                        query_job.exitcode = 22
                                         query_job.set_status( 'FAILED' )
                                 session.commit()
                         except Exception , err :
