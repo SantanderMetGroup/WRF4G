@@ -57,14 +57,14 @@ class Calendar( object ):
         """
         if self.type == 'no_leap' and calendar.isleap( date.year ) :
             date_add = date + timedelta(hours=hours)
-            day_29   = datetime( date.year, 2 , 29 )
-            if ( date < day_29 ) and ( day_29 < date_add ) :
-               hours_to_add = 24
+            day_29   = datetime( date.year, 2, 29 )
+            if ( date < day_29 ) and ( day_29 <= date_add ) :
+                hours_to_add = 24
             else :
-               hours_to_add = 0
-            return date + timedelta(hours=hours+hours_to_add)
+                hours_to_add = 0
+            return date + timedelta( hours=hours+hours_to_add ) 
         else :
-            return date + timedelta(hours=hours)
+            return date + timedelta( hours=hours )
 
     def sub_hours(self, date, hours):
         """
@@ -72,14 +72,14 @@ class Calendar( object ):
         """
         if self.type == 'no_leap' and calendar.isleap( date.year ) :
             date_sub = date - timedelta(hours=hours)
-            day_29   = datetime( date.year, 2 , 29 )
-            if ( date > day_29 ) and ( day_29 > date_sub ) :
-               hours_to_add = 24
+            day_29   = datetime( date.year, 2, 29 )
+            if ( date > day_29 ) and ( day_29 >= date_sub ) :
+                hours_to_sub = 24
             else :
-               hours_to_add = 0
-            return date + timedelta(hours=hours-hours_to_add)
+                hours_to_sub = 0
+            return date + timedelta( hours=hours-hours_to_sub )
         else :
-            return date + timedelta(hours=hours)
+            return date + timedelta( hours=hours )
 
     def _no_leap_day(self, date):
         year        = date.year
