@@ -39,9 +39,7 @@ class Job (drm4g.managers.Job):
 
     def jobStatus(self):
         out, err = self.Communicator.execCommand('squeue -h -o %T -j ' + self.JobId)
-        if err:
-            return 'UNKNOWN'
-        elif not out:
+        if err or not out :
             return 'DONE'
         else:
             return self.states_SLURM.setdefault(out.rstrip('\n'), 'UNKNOWN')

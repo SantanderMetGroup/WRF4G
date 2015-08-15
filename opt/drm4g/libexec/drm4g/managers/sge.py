@@ -64,7 +64,7 @@ class Job (drm4g.managers.Job):
 
     def jobStatus(self):
         out, err = self.Communicator.execCommand('%s | grep %s' % (QSTAT, self.JobId))
-        if not out:
+        if not out :
             return 'DONE'
         else:
             state = out.split()[4]

@@ -44,9 +44,7 @@ class Job (drm4g.managers.Job):
 
     def jobStatus(self):
         out, err = self.Communicator.execCommand('%s -j %s -h' % (MNQ, self.JobId))
-        if err:
-            return 'UNKNOWN'
-        elif not out: 
+        if err or not out: 
             return 'DONE'
         else:
             state = out.split()[3]
