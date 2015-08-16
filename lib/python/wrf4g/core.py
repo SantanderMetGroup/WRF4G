@@ -151,6 +151,8 @@ class Experiment( Base ):
         """
         Create and prepare all realizations and chunks needed to submit a WRF4G experiment.
         """
+        if update :
+            directory = self.home_dir
         # Read experiment.wrf4g file
         exp_conf = get_conf( directory )
 
@@ -171,9 +173,9 @@ class Experiment( Base ):
  
         # Check if the experiment can be updated
         if update :
-            if not exists( join( self.home_dir, 'experiment.pkl' ) ) :
+            if not exists( join( directory, 'experiment.pkl' ) ) :
                 raise Exception( "ERROR: There is not an 'experiment.pkl' file to update this experiment" )
-            old_exp_conf = load_exp_pkl( self.home_dir )
+            old_exp_conf = load_exp_pkl( directory )
             added, removed, modified, same = dict_compare( old_exp_conf['default'], exp_conf[ 'default' ] )
 
             if not self._is_reconfigurable( modified ) :
@@ -808,7 +810,7 @@ class Job( Base ):
         if status == 'CANCEL' :
             self.chunk.status = self.chunk.realization.status = 'PREPARED'
         #if it is an status of the CHUNK_STATUS 
-        if status in CHUNK_STATUS and status != 'SUBMITTED' :
+        elif status in CHUNK_STATUS and status != 'SUBMITTED' :
             self.chunk.status = status
             #if it is an status of the REA_STATUS 
             if status in REA_STATUS and status != 'SUBMITTED' :

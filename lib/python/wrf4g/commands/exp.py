@@ -6,7 +6,7 @@ Usage:
     wrf4g exp <name> define [ --dbg ] [ --force ]   [ --from-template=<name> ] [ --dir=<directory> ] 
     wrf4g exp <name> edit   [ --dbg ] 
     wrf4g exp <name> create [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
-    wrf4g exp <name> update [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
+    wrf4g exp <name> update [ --dbg ] [ --dry-run ] 
     wrf4g exp <name> submit [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --rerun ] 
     wrf4g exp <name> status [ --dbg ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --delay=<seconds> ]  
     wrf4g exp <name> cancel [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --hard ]
@@ -119,7 +119,7 @@ def run( arg ) :
                     if arg[ 'edit' ] :
                         exp.edit( )
                     if arg[ 'update' ] :
-                        exp.create( True, arg[ '--dir' ] )
+                        exp.create( True )
                     elif arg[ 'submit' ] :
                         exp.run( arg[ '--rerun' ], arg[ '--pattern' ], arg[ '--rea-state' ] )
                     elif arg[ 'status' ] :
