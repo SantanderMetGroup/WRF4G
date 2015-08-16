@@ -141,41 +141,25 @@ def sanity_check( exp_conf ) :
     for rea_dates in exp_conf.default.date_time.split( '\n' ) :
         # Delete whitespaces and obtain each element
         elems = rea_dates.replace( ' ', '' ).split( '|' )
-        if len( elems ) > 5 or len( elems ) < 2 :
+        if len( elems ) != 5 or len( elems ) != 3 :
             raise Exception( "ERROR: Number of elements in '%s' is wrong" % rea_dates ) 
         #  date_time specification 
-        #  start_date  |  end_date  |  interval_h | length_h  | chunk_size_h
+        #  start_date  |  end_date  |  chunk_size_h | interval_h | length_h 
         start_date = datewrf2datetime( elems[ 0 ] )
         end_date   = datewrf2datetime( elems[ 1 ] )
         if start_date >= end_date :
             raise Exception( "ERROR: '%s' is not earlier than the '%s'" % ( elems[ 0 ] , elems[ 1 ] )  )
-        ##
-        # If there are four elements chunk_size_h = simult_length_h
-        # If there are three elements simult_interval_h = simult_length_h
-        # If there are two elements chunk_size_h = simult_interval_h = simult_length_h
-        ##
-        elif len( elems ) in ( 4, 5 ) :
-            simult_interval_h = int( elems[ 2 ] )
-            simult_length_h   = int( elems[ 3 ] )
-            if len( elems ) == 5 :
-                chunk_size_h  = int( elems[ 4 ] )
-                if chunk_size_h > simult_length_h :
-                    logging.warn( "WARNING: %d 'chunk_size' is bigger than %d 'simulation_length'" % 
+        chunk_size_h = int( elems[ 2 ] )
+        if len( elems ) == 5 :
+            simult_interval_h = int( elems[ 3 ] )
+            simult_length_h   = int( elems[ 4 ] )
+            if chunk_size_h > simult_length_h :
+                logging.warn( "WARNING: %d 'chunk_size' is bigger than %d 'simulation_length'" % 
                                      ( chunk_size_h, simult_length_h ) )
-                    chunk_size_h = simult_length_h
-            else :
-                chunk_size_h  = None 
         else :
-            td = end_date - start_date 
+            td = end_date - start_date
             total_seconds = ( td.microseconds + ( td.seconds + td.days * 24 * 3600) * 10**6 ) / 10**6
             simult_interval_h = simult_length_h = total_seconds / 3600
-            if len( elems ) == 3 :
-                chunk_size_h = int( elems[ 2 ] )
-            else :
-                chunk_size_h = None
-        if not chunk_size_h :
-            chunk_size_h  = simult_length_h
-            logging.warn( "WARNING: 'chunk_size' will be %d hours" %  chunk_size_h )
         # Defining restart_interval
         # To avoid chunk restart we add 1 hour to restart_interval variable
         if exp_conf.default.chunk_restart == 'no' :
