@@ -178,7 +178,7 @@ class Configuration(object):
                 com_object.frontend       = resdict.get( 'frontend' )
                 com_object.private_key    = resdict.get( 'private_key' )
                 com_object.public_key     = resdict.get( 'public_key' )
-                com_object.work_directory = resdict.get( 'local_scratch', REMOTE_JOBS_DIR ) 
+                com_object.work_directory = resdict.get( 'scratch', REMOTE_JOBS_DIR ) 
                 communicators[name]       = com_object
             except Exception, err:
                 output = "Failed creating communicator for resource '%s' : %s" % ( name, str( err ) )
