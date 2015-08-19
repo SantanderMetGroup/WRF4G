@@ -413,7 +413,7 @@ def launch_pilot( params ):
     logging.info( 'Root path  = %s' % params.root_path )
 
     # Show local path
-    logging.info( 'Local path = %s' % params.local_path )
+    logging.info( 'Run path = %s' % params.local_path )
    
     ##
     # DRM4G won't remove root_path if clean_after_run is 1
@@ -590,7 +590,7 @@ def launch_pilot( params ):
         logging.info( 'Obtaining information about the worker node' )
 
         # Host info 
-        logging.info( 'Host Name        = %s' % get_hostname() )
+        logging.info( 'Host name        = %s' % get_hostname() )
 
         # OS info
         logging.info( 'Linux release    = %s' % os_release() )
@@ -601,10 +601,10 @@ def launch_pilot( params ):
         logging.info( 'CPU (processors) = %d' % number_of_cpus )
 
         # Memory info
-        logging.info( 'Memory (kB)      = %s' % mem_info() )
+        logging.info( 'RAM Memory (kB)  = %s' % mem_info() )
 
         # Disk space check
-        logging.info( 'DiskSpace (MB)   = %d' % disk_space_check( params.root_path ) )
+        logging.info( 'DiskSpace (GB)   = %d' % disk_space_check( params.root_path ) )
 
         ##
         # Check the restart date
@@ -920,7 +920,7 @@ def launch_pilot( params ):
             logging.info( output )  
             raise JobError( "'%s' has failed" % wrf_exe, JOB_ERROR[ 'WRF_FAILED' ] )
         else :
-            logging.info( "wrf has successfully  finished" ) 
+            logging.info( "wrf has successfully finished" ) 
         ##
         # Update current date
         ##
@@ -943,9 +943,7 @@ def launch_pilot( params ):
             code, output = exec_cmd( "mpirun -pernode rm -rf %s" % ( params.local_path ) )
             if code :
                 logging.info( output )
-                raise JobError( "Error wiping the directory '%s' on worker nodes" % (
-                                 params.local_path ), JOB_ERROR[ 'LOCAL_PATH'] )
-
+                logging.error( "Error wiping the directory '%s' on worker nodes" % params.local_path )
         ##
         # Update the status
         ##
