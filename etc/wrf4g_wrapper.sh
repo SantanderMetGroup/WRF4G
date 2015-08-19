@@ -35,50 +35,6 @@ setup(){
     
     cd `dirname $0`
 
-    FIRST_RMT_JOB_HOME=`pwd`
-    
-    if [ "${WRF4G_SCRATCH}" ]; then
-      
-        RMT_JOB_HOME="${WRF4G_SCRATCH}/${GW_USER}_${GW_JOB_ID}" 
-
-    	printf "`date`: Making ${RMT_JOB_HOME}  directory... "
-    	
-    	rm -rf ${RMT_JOB_HOME}
-    	
-    	mkdir -p ${RMT_JOB_HOME}
-    	
-    	if [ $? -ne 0 ]; then
-    	    echo "failed."
-            exit 1
-    	else
-    	    echo "done."
-    	fi
-    	
-    	printf "`date`: Moving to ${RMT_JOB_HOME} directory... "
-    	
-    	mv ${FIRST_RMT_JOB_HOME}/* ${RMT_JOB_HOME}/
-    	
-    	if [ $? -ne 0 ]; then
-    	    echo "failed."
-    	    exit 1
-        else
-            echo "done."
-        fi
-    else
-        RMT_JOB_HOME=${FIRST_RMT_JOB_HOME}
-    fi
-    
-    printf "`date`: Checking remote job home... "
-
-    cd ${RMT_JOB_HOME}
-
-    if [ $? -ne 0 ]; then
-        echo "failed."
-        exit 1
-    else
-        echo "done."
-    fi
-    
     printf "`date`: Checking job environment... "
     
     source ./job.env
@@ -366,15 +322,6 @@ transfer_output_files(){
             ;;
 
         *)
-            if [ "${WRF4G_SCRATCH}" ]; then
-                printf "`date`: Copy ${RMT_JOB_HOME}/${SRC_FILE} file to ${FIRST_RMT_JOB_HOME} ... "
-                cp ${RMT_JOB_HOME}/${SRC_FILE} ${FIRST_RMT_JOB_HOME}/
-                if [ $? -ne 0 ]; then
-                    echo "failed."
-                else
-                    echo "done."
-                fi	
-            fi
             ;;
         esac
 
@@ -383,20 +330,6 @@ transfer_output_files(){
     IFS=$SAVED_IFS
 }
 
-clean(){
-    if [ "${WRF4G_SCRATCH}" ]; then
-        if ! test -f ${RMT_JOB_HOME}/.lock; then
-            printf "`date`: Deleting remote SCRATCH directory... "
-            rm -rf  ${RMT_JOB_HOME}
-            if [ $? -ne 0 ]; then
-                echo "failed."
-            else
-                echo "done."
-            fi
-        fi
-    fi
-}
-		
 #-------------------------------------------------------------------------------
 #                       WRAPPER SCRIPT
 #-------------------------------------------------------------------------------
@@ -412,7 +345,5 @@ transfer_input_files
 execution
 
 transfer_output_files
-
-clean
 
 echo "REAL_TIME=$SECONDS"

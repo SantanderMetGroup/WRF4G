@@ -3,7 +3,11 @@ import os.path
 import sys
 import logging
 from drm4g.utils.importlib import import_module
-from drm4g                 import DRM4G_CONFIG_FILE, COMMUNICATORS, RESOURCE_MANAGERS
+from drm4g                 import ( DRM4G_CONFIG_FILE, 
+                                    COMMUNICATORS, 
+                                    RESOURCE_MANAGERS,
+                                    REMOTE_JOBS_DIR, 
+                                    SSH_PORT )
 
 try :
     import configparser
@@ -168,13 +172,14 @@ class Configuration(object):
         communicators = dict()
         for name, resdict in self.resources.iteritems():
             try:
-                communicator            = import_module(COMMUNICATORS[ resdict[ 'communicator' ] ] )
-                com_object              = getattr( communicator , 'Communicator' ) ()
-                com_object.username     = resdict.get( 'username' )
-                com_object.frontend     = resdict.get( 'frontend' )
-                com_object.private_key  = resdict.get( 'private_key' )
-                com_object.public_key   = resdict.get( 'public_key' )
-                communicators[name]     = com_object
+                communicator              = import_module(COMMUNICATORS[ resdict[ 'communicator' ] ] )
+                com_object                = getattr( communicator , 'Communicator' ) ()
+                com_object.username       = resdict.get( 'username' )
+                com_object.frontend       = resdict.get( 'frontend' )
+                com_object.private_key    = resdict.get( 'private_key' )
+                com_object.public_key     = resdict.get( 'public_key' )
+                com_object.work_directory = resdict.get( 'local_scratch', REMOTE_JOBS_DIR ) 
+                communicators[name]       = com_object
             except Exception, err:
                 output = "Failed creating communicator for resource '%s' : %s" % ( name, str( err ) )
                 logger.warning( output , exc_info=1 )
