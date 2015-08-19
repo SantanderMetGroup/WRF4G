@@ -141,7 +141,7 @@ def sanity_check( exp_conf ) :
     for rea_dates in exp_conf.default.date_time.split( '\n' ) :
         # Delete whitespaces and obtain each element
         elems = rea_dates.replace( ' ', '' ).split( '|' )
-        if len( elems ) != 5 or len( elems ) != 3 :
+        if len( elems ) != 5 and len( elems ) != 3 :
             raise Exception( "ERROR: Number of elements in '%s' is wrong" % rea_dates ) 
         #  date_time specification 
         #  start_date and  end_date  
