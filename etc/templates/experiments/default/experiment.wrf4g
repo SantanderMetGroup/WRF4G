@@ -4,8 +4,8 @@ name                 = %(exp_name)s
 # Simulation domain
 max_dom              = 1
 # Experiment time-specification
-#                      start_date              | end_date                | interval | length | chunk_size
-date_time            = Year-Month-Day_HH:MM:SS | Year-Month-Day_HH:MM:SS | H        | H      | H
+#                      start_date              | end_date                | chunk_size | interval | length 
+date_time            = Year-Month-Day_HH:MM:SS | Year-Month-Day_HH:MM:SS | H          | H        | H
 timestep_dxfactor    = 6
 calendar             = standard
 # Running options 
