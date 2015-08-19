@@ -331,7 +331,8 @@ class Experiment( Base ):
                         raise Exception( "'%s' does not have values for all namelist combinations." % mnl_variable )
                 nmli.trimMaxDom()
                 nmli.extendMaxDomVariables()
-                nmli.wrfCheck()
+                if nmli.wrfCheck() :
+                    raise Exception( "Please review 'namelist_values' variable." ) 
                 ##
                 for start_date, end_date, simult_interval_h, simult_length_h, chunk_size_h, restart_interval in self.datetime_list :
                     # Update restart_interval in the namelist 
