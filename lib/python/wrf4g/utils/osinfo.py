@@ -65,5 +65,5 @@ def disk_space_check( directory ):
     Disk space check
     """
     fs = os.statvfs( directory )
-    disk_space = fs[4] * fs[0] / 1024 / 1024
+    disk_space = fs[4] * fs[0] / 1024 
     return disk_space

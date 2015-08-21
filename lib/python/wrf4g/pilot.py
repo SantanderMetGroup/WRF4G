@@ -604,7 +604,7 @@ def launch_pilot( params ):
         logging.info( 'RAM Memory (kB)  = %s' % mem_info() )
 
         # Disk space check
-        logging.info( 'DiskSpace (GB)   = %d' % disk_space_check( params.root_path ) )
+        logging.info( 'DiskSpace (GB) of %s = %d' % ( params.root_path, disk_space_check( params.root_path ) ) )
 
         ##
         # Check the restart date
