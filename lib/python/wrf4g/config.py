@@ -172,6 +172,20 @@ def sanity_check( exp_conf ) :
                                                  simult_interval_h, simult_length_h, 
                                                  chunk_size_h, restart_interval ] )
     ##
+    # Check if app variable has been configure correctly
+    ##
+    for section in exp_conf.keys():
+        if exp_conf[ section ].get( 'app' ) :
+            for app in exp_conf[ section ].get( 'app' ).split('\n') :
+                try :
+                    app_tag, app_type, app_value = app.split( '|' )
+                except ValueError:
+                    raise Exception( "ERROR: 'app' variable in section '%s' is wrong." % section )
+                app_type = app_type.strip()
+                if app_type not in ( 'bundle', 'commnad' ) :
+                    raise Exception( "ERROR: '%s' app type does not exist in section '%s'." % ( app_type, section ) )
+
+    ##
     # Check if there are multible members 
     ##
     if exp_conf.default.extdata_member :
