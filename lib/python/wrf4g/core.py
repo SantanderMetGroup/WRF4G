@@ -483,6 +483,9 @@ class Realization( Base ):
                 self.restart       = ch.start_date
                 self.current_date  = ch.start_date
                 self.current_chunk = first_chunk_run
+            elif rerun and not first_chunk_run :
+                self.restart       = None
+                first_chunk_run    = self.current_chunk = 1
             else :
                 #search first chunk to run
                 if not self.restart : # run every chunks of the realization
