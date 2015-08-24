@@ -8,6 +8,7 @@ import logging
 from os.path                 import join, dirname
 from string                  import Template
 from Queue                   import Queue
+from drm4g                   import REMOTE_JOBS_DIR
 from drm4g.utils.rsl2        import Rsl2Parser
 from drm4g.utils.list        import List 
 from drm4g.core.configure    import Configuration
@@ -115,7 +116,7 @@ class GwEmMad (object):
                 job.resfeatures['env_file'] = join( dirname(RSL) , "job.env" )
                 job.resfeatures['queue']    = rsl[ 'queue' ]
             # Update remote directories
-            ABS_REMOTE_JOBS_DIR   = job.get_abs_directory( job.resfeatures[ 'scratch' ] )
+            ABS_REMOTE_JOBS_DIR   = job.get_abs_directory( job.resfeatures.get( 'scratch',  REMOTE_JOBS_DIR ) )
             for key in [ "stdout" , "stderr" , "executable" ] :
                 rsl[key] = join( ABS_REMOTE_JOBS_DIR , rsl[key] )
             # Create and copy wrapper_drm4g file 
