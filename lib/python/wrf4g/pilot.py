@@ -835,7 +835,7 @@ def launch_pilot( params ):
             job_db.set_job_status( 'REAL' )
  
             if params.real_parallel == 'yes' :
-                real_log = join( params.log_path, 'rsl.out.0000' )
+                real_log = join( params.wrf_run_path, 'rsl.out.0000' )
                 npernode = "-npernode %s" % params.ppn if params.ppn else '' 
                 cmd = "mpirun -np %s %s %s" % ( params.np, npernode, real_exe ) 
                 code, output = exec_cmd( cmd ) 
