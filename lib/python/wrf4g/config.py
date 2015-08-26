@@ -28,6 +28,7 @@ DEFAULT_DICT        = {
                     'np'                   : 1,
                     'requirements'         : '',
                     'environment'          : '',
+                    'constants_name'       : '',
                     'clean_after_run'      : 'yes',
                     'save_wps'             : 'no',
                     'real_parallel'        : 'no',
