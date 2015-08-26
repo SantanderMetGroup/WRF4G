@@ -195,6 +195,7 @@ class PilotParams( object ):
     extdata_interval     = int( resource_exp_conf[ 'extdata_interval' ] )
     extdata_vtable       = resource_exp_conf[ 'extdata_vtable' ]
     extdata_path         = resource_exp_conf[ 'extdata_path' ]
+    constants_name       = resource_exp_conf[ 'constants_name' ]
     real_parallel        = resource_exp_conf[ 'real_parallel' ]
     wrf_parallel         = resource_exp_conf[ 'wrf_parallel' ]
     ppn                  = os.environ.get( 'PPN' )
@@ -781,7 +782,9 @@ def launch_pilot( params ):
          
             try :
                 nmlw = fn.FortranNamelist( params.namelist_wps )
-                nmlw.setValue( "fg_name", params.extdata_vtable.replace( ' ', '').split( ',' ), "metgrid" )
+                nmlw.setValue( "fg_name", params.extdata_vtable.replace(' ', '').split( ',' ), "metgrid" )
+                if params.constants_name :
+                    nmlw.setValue( "constants_name", params.constants_name.replace(' ', '').split( ',' ), "metgrid" )
                 for var_to_del in [ 'opt_output_from_metgrid_path',
                                     'opt_output_from_geogrid_path',
                                     'opt_metgrid_tbl_path',
