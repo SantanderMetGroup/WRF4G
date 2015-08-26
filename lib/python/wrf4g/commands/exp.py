@@ -110,7 +110,7 @@ def run( arg ) :
                         exp2        = Experiment()
                         exp2.name   = arg[ '<name>' ]
                         exp2.dryrun = arg[ '--dry-run' ]
-                        exp2.create( False, arg[ '--dir' ] )
+                        exp2.prepare( update = False, arg[ '--dir' ] )
                         session.add( exp2 )
                     else :
                         raise Exception( "'%s' experiment does not exist" % arg[ '<name>' ] )
@@ -119,7 +119,7 @@ def run( arg ) :
                     if arg[ 'edit' ] :
                         exp.edit( )
                     if arg[ 'update' ] :
-                        exp.create( True )
+                        exp.prepare( update = True )
                     elif arg[ 'submit' ] :
                         exp.run( arg[ '--rerun' ], arg[ '--pattern' ], arg[ '--rea-state' ] )
                     elif arg[ 'status' ] :

@@ -147,9 +147,9 @@ class Experiment( Base ):
                 raise Exception( "\t\tRealization with the same name and " 
                                  "no reconfigurable fields already exists" ) 
 
-    def create(self, update = False, directory = './' ):
+    def prepare(self, update = False, directory = './' ):
         """
-        Create and prepare all realizations and chunks needed to submit a WRF4G experiment.
+        Prepare all realizations and chunks needed to submit a WRF4G experiment.
         """
         if update :
             directory = self.home_dir
