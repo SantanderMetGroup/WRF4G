@@ -13,7 +13,7 @@ __revision__ = "$Id$"
 MANDATORY_VARIABLES = ('name', 'max_dom', 'date_time', 'namelist_version', 
                        'domain_path', 'extdata_vtable', 'extdata_path', 
                        'extdata_interval', 'preprocessor', 'output_path', 
-                       'postprocessor', 'app'          
+                       'postprocessor'          
                      )
 
 YES_NO_VARIABLES    = ('clean_after_run', 'save_wps', 'real_parallel', 
