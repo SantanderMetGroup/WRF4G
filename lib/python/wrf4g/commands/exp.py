@@ -110,7 +110,7 @@ def run( arg ) :
                         exp2        = Experiment()
                         exp2.name   = arg[ '<name>' ]
                         exp2.dryrun = arg[ '--dry-run' ]
-                        exp2.prepare( update = False, arg[ '--dir' ] )
+                        exp2.prepare( update = False, directory = arg[ '--dir' ] )
                         session.add( exp2 )
                     else :
                         raise Exception( "'%s' experiment does not exist" % arg[ '<name>' ] )
