@@ -496,9 +496,14 @@ class Realization( Base ):
                         first_chunk  = self.chunk.filter( and_( Chunk.start_date <= self.restart, 
                                                                 Chunk.end_date   >= self.restart ) 
                                                          ).all()[ -1 ]
-                        first_chunk_run = self.current_chunk  = first_chunk.chunk_id
                     except : 
                         raise Exception( 'There are not chunks to run.' )
+                    else:
+                        if ( first_chunk_run 
+                             and first_chunk.chunk_id != first_chunk_run ):
+                            raise Exception( 'Use the option --rerun.' )
+                        else : 
+                            first_chunk_run = self.current_chunk  = first_chunk.chunk_id
             #search last chunk to run
             if not last_chunk_run :
                 #run every chunk

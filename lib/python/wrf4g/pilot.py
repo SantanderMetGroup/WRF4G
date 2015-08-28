@@ -260,23 +260,20 @@ class PilotParams( object ):
     real_rea_output_path = join( rea_output_path, 'realout')
     log_rea_output_path  = join( rea_output_path, 'log')
 
-def clean_wrf_files( job_db, params, clean ):
+def clean_wrf_files( job_db, params, clean_all = False ):
     """
     Postprocess wrfout files and copy files to the output path 
     """
     with lock :
         for patt in [ "wrfout", "wrfzout", "wrfz2out", "wrfrst", "wrfrain", "wrfxtrm", "wrf24hc" ] :
             all_files_patt = glob.glob( join( params.wrf_run_path, patt + '*' ) )
-            if clean == 'closed_files' :
+            if not clean_all :
                 if len( all_files_patt ) >= ( 2 * params.max_dom ) :
                     all_files_patt.sort( key = os.path.getmtime )
                     files = all_files_patt[ :params.max_dom ]
                 else :
                     continue
-            elif clean == 'all' :
-                files = all_files_patt
             else :
-                logging.warning( "'%s' is not a valid option due to all files will be cleaned" % ( clean ) )
                 files = all_files_patt
             for file in files :
                 logging.info( "Checking '%s' file" % file  ) 
@@ -380,7 +377,7 @@ def wrf_monitor( job_db, log_wrf, params ):
         if not current_date :
             current_date = params.chunk_rdate
         job_db.set_current_date( current_date )
-        clean_wrf_files( job_db, params, 'closed_files' )
+        clean_wrf_files( job_db, params )
         time.sleep( 600 ) # 10 minutes
 
 def launch_pilot( params ):
@@ -935,7 +932,7 @@ def launch_pilot( params ):
         ##
         # Save all files
         ##    
-        clean_wrf_files( job_db, params, 'all' )
+        clean_wrf_files( job_db, params, clean_all = True )
   
         ##
         # Wipe after run
