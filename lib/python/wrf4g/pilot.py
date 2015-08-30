@@ -31,30 +31,6 @@ __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-JOB_ERROR = { 'LOG_PATH'             : 1,
-              'COPY_APP'             : 2,
-              'APP_ERROR'            : 3,
-              'SOURCE_SCRIPT'        : 4,
-              'LOCAL_PATH'           : 5,
-              'COPY_NODES'           : 6,
-              'JOB_SHOULD_NOT_RUN'   : 7,
-              'COPY_RST_FILE'        : 8,
-              'RESTART_MISMATCH'     : 9,
-              'COPY_NAMELIST_WPS'    : 10,
-              'COPY_REAL_FILE'       : 11,
-              'COPY_BOUND'           : 12,
-              'NAMELIST_FAILED'      : 13,
-              'PREPROCESSOR_FAILED'  : 14,
-              'LINK_GRIB_FAILED'     : 15,
-              'UNGRIB_FAILED'        : 16,
-              'METGRID_FAILED'       : 17,
-              'REAL_FAILED'          : 18,
-              'COPY_UPLOAD_WPS'      : 19,
-              'WRF_FAILED'           : 20,
-              'POSTPROCESSOR_FAILED' : 21,
-              'COPY_OUTPUT_FILE'     : 22,
-              }
-
 lock = __import__('threading').Lock()
 
 class JobError( Exception ):
@@ -295,14 +271,14 @@ def clean_wrf_files( job_db, params, clean_all = False ):
           
                         if not which( "postprocessor.%s" % params.postprocessor ) :
                             raise JobError( "Postprocessor '%s' does not exist" % params.postprocessor, 
-                                   JOB_ERROR[ 'POSTPROCESSOR_FAILED' ] )
+                                   Job._ERROR[ 'POSTPROCESSOR_FAILED' ] )
                         post_log = join( params.log_path, 'postprocessor.%s.log' % params.postprocessor )
                         code, output = exec_cmd( "postprocessor.%s %s &>> %s" % (
                                                     params.postprocessor, file_name, post_log ) )
                         if code :
                             logging.info( output )
                             raise JobError( "Error processing '%s' file" % file_name,
-                                    JOB_ERROR[ 'POSTPROCESSOR_FAILED' ] )
+                                    Job.CodeError.POSTPROCESSOR_FAILED )
                         # The file will indicate that it has been postprocessed  
                         exec_cmd( 'ncatted -O -a WRF4G_postprocessor,global,o,c,"%s" %s' % 
                                                 (params.postprocessor, file) )
@@ -342,7 +318,7 @@ def clean_wrf_files( job_db, params, clean_all = False ):
                     try :
                         copy_file( file, dest )
                     except :
-                        raise JobError( "'%s' has not copied" % file, JOB_ERROR[ 'COPY_OUTPUT_FILE' ] ) 
+                        raise JobError( "'%s' has not copied" % file, Job.CodeError.COPY_OUTPUT_FILE ) 
                 try :
                     os.remove( file )     
                 except : 
@@ -396,7 +372,7 @@ def launch_pilot( params ):
         os.makedirs( params.log_path )
     except :
         raise JobError( "Error creating the directory"
-                        "'%s' on the worker node" % params.log_path, JOB_ERROR[ 'LOG_PATH'] )
+                        "'%s' on the worker node" % params.log_path, Job.CodeError.LOG_PATH )
     ##
     # Logging configuration
     ##
@@ -430,7 +406,7 @@ def launch_pilot( params ):
         # Check if this job should run
         ##
         if job_db.get_job_status() == Job.Status.CANCEL :
-            raise JobError( "Error this job should not run", JOB_ERROR[ 'JOB_SHOULD_NOT_RUN'] )
+            raise JobError( "Error this job should not run", Job.CodeError.JOB_SHOULD_NOT_RUN )
 
         job_db.set_job_status( Job.Status.RUNNING )
         ##
@@ -498,7 +474,7 @@ def launch_pilot( params ):
                     logging.info( "Trying to copy '%s'" % oring )
                     copy_file( oring, dest )
                 except :
-                    raise JobError( "'%s' has not copied" % oring, JOB_ERROR[ 'COPY_APP' ] )
+                    raise JobError( "'%s' has not copied" % oring, Job.CodeError.COPY_APP )
                 else :
                     logging.info( "Unpacking '%s' to '%s'" % ( dest, params.root_path ) )
                     extract( dest, to_path = params.root_path )
@@ -512,14 +488,14 @@ def launch_pilot( params ):
                 code, output = exec_cmd( ". ./easy_source.sh && env" )
                 if code :
                     logging.info( output )
-                    raise JobError( "Error executing source script for %s" % app_tag, JOB_ERROR[ 'SOURCE_SCRIPT'] )
+                    raise JobError( "Error executing source script for %s" % app_tag, Job.CodeError.SOURCE_SCRIPT )
                 for line in output.split( '\n' ) :
                     if "=" in line and not "(" in line :
                         try :    key, value = line.split( "=" )
                         except : pass
                         else :   os.environ[ key ] = value
             else :
-                raise JobError( "Error app type does not exist", JOB_ERROR[ 'APP_ERROR'] )              
+                raise JobError( "Error app type does not exist", Job.CodeError.APP_ERROR )              
         wrf4g_files = join( params.root_path, 'wrf4g_files.tar.gz' )
         if isfile( wrf4g_files ) :
             logging.info( "Unpacking '%s'" % wrf4g_files )
@@ -554,19 +530,19 @@ def launch_pilot( params ):
             if code :
                 logging.info( output )
                 raise JobError( "Error wiping the directory '%s' on worker nodes" % (
-                                 params.local_path ), JOB_ERROR[ 'LOCAL_PATH'] )
+                                 params.local_path ), Job.CodeError.LOCAL_PATH )
             code, output = exec_cmd( "mpirun -pernode mkdir -p %s" % ( 
                                   params.local_path ) )
             if code :
                 logging.info( output )
-                raise JobError( "Error copying files to all WNs", JOB_ERROR[ 'COPY_NODES' ] ) 
+                raise JobError( "Error copying files to all WNs", Job.CodeError.COPY_NODES ) 
             for directory in [ 'WPS' , 'WRFV3' ] :
                 code, output = exec_cmd( "mpirun -pernode cp -r %s %s" % (  
                                           join( params.root_path, directory ) , params.local_path ) )
                 if code :
                     logging.info( output )
                     raise JobError( "Error copying '%s' directory to all WNs" % directory, 
-                                    JOB_ERROR[ 'COPY_NODES' ] )
+                                    Job.CodeError.COPY_NODES )
 
         ##
         # Binaries for execution  
@@ -620,9 +596,9 @@ def launch_pilot( params ):
             params.chunk_rdate = rdate
             chunk_rerun = ".T." 
         elif rdate == params.chunk_edate :
-            raise JobError( "Restart file is the end date", JOB_ERROR[ 'RESTART_MISMATCH' ] )
+            raise JobError( "Restart file is the end date", Job.CodeError.RESTART_MISMATCH )
         else :
-            raise JobError( "There is a mismatch in the restart date", JOB_ERROR[ 'RESTART_MISMATCH' ] )
+            raise JobError( "There is a mismatch in the restart date", Job.CodeError.RESTART_MISMATCH )
       
         if chunk_rerun == ".T." :
             pattern =  "wrfrst*" + datetime2dateiso( params.chunk_rdate ) + '*'
@@ -635,10 +611,10 @@ def launch_pilot( params ):
                     logging.info( "Downloading file '%s'" % file_name ) 
                     copy_file( orig, dest )
                 except :
-                    raise JobError( "'%s' has not copied" % file_name, JOB_ERROR[ 'COPY_RST_FILE' ] )
+                    raise JobError( "'%s' has not copied" % file_name, Job.CodeError.COPY_RST_FILE )
                 files_downloaded += 1
             if not files_downloaded :
-                raise JobError( "No restart file has been downloaded", JOB_ERROR[ 'COPY_RST_FILE' ] )
+                raise JobError( "No restart file has been downloaded", Job.CodeError.COPY_RST_FILE )
             job_db.set_job_status( Job.Status.DOWN_RESTART )
 
         ##
@@ -656,7 +632,7 @@ def launch_pilot( params ):
                 logging.info( "Downloading file 'namelist.wps'" )
                 copy_file( orig, dest )
             except :
-                raise JobError( "'namelist.wps' has not copied", JOB_ERROR[  'COPY_NAMELIST_WPS' ] )
+                raise JobError( "'namelist.wps' has not copied", Job.CodeError.COPY_NAMELIST_WPS )
             wps2wrf( params.namelist_wps, params.namelist_input, params.chunk_rdate, 
                         params.chunk_edate, params.max_dom, chunk_rerun, params.timestep_dxfactor)
             job_db.set_job_status( Job.Status.DOWN_WPS )
@@ -669,7 +645,7 @@ def launch_pilot( params ):
                     logging.info( "Downloading file '%s'" % file_name )
                     copy_file( orig, dest )
                 except :
-                    raise JobError( "'%s' has not copied" % file_name, JOB_ERROR[  'COPY_REAL_FILE' ] )
+                    raise JobError( "'%s' has not copied" % file_name, Job.CodeError.COPY_REAL_FILE )
         else :
             logging.info( "The boundaries and initial conditions are not available" )
 
@@ -690,7 +666,7 @@ def launch_pilot( params ):
                         copy_file( orig, dest )
                     except :
                         raise JobError( "'%s' has not copied" % file_name,
-                               JOB_ERROR[ 'COPY_BOUND' ] )
+                               Job.CodeError.COPY_BOUND )
             job_db.set_job_status( Job.Status.DOWN_BOUND )
 
             ##
@@ -706,7 +682,7 @@ def launch_pilot( params ):
                 nmlw.setValue( "interval_seconds", params.extdata_interval )
                 nmlw.overWriteNamelist() 
             except Exception, err :
-                raise JobError( "Error modifying namelist: %s" % err, JOB_ERROR[ 'NAMELIST_FAILED' ] )
+                raise JobError( "Error modifying namelist: %s" % err, Job.CodeError.NAMELIST_FAILED )
 
             ##
             # Preprocessor and Ungrib
@@ -721,7 +697,7 @@ def launch_pilot( params ):
                     nmlw.setValue( "prefix", vt, "ungrib" )
                     nmlw.overWriteNamelist()
                 except Exception, err :
-                    raise JobError( "Error modifying namelist: %s" % err, JOB_ERROR[ 'NAMELIST_FAILED' ] )
+                    raise JobError( "Error modifying namelist: %s" % err, Job.CodeError.NAMELIST_FAILED )
                 vtable = join( params.wps_path, 'Vtable' )
                 if isfile( vtable ) :
                     os.remove( vtable ) 
@@ -734,7 +710,7 @@ def launch_pilot( params ):
                 logging.info( "Running preprocessor.%s" % pp )
                 
                 if not which( "preprocessor.%s" % pp ) :
-                   raise JobError( "Preprocessor '%s' does not exist" % pp, JOB_ERROR[ 'PREPROCESSOR_FAILED' ] )
+                   raise JobError( "Preprocessor '%s' does not exist" % pp, Job.CodeError.PREPROCESSOR_FAILED )
                 preprocessor_log = join( params.log_path, 'preprocessor.%s.log' %  pp )
                 code, output = exec_cmd( "preprocessor.%s %s %s %s %s &> %s" % (
                                             pp, datetime2datewrf( params.chunk_rdate ) , 
@@ -744,7 +720,7 @@ def launch_pilot( params ):
                 if code :
                     logging.info( output )
                     raise JobError( "Preprocessor '%s' has failed" % pp,
-                            JOB_ERROR[ 'PREPROCESSOR_FAILED' ] )
+                            Job.CodeError.PREPROCESSOR_FAILED )
 
                 link_grib     = join( params.wps_path, 'link_grib.sh' ) 
                 os.chmod( link_grib, 0777 )
@@ -752,7 +728,7 @@ def launch_pilot( params ):
                 code, output  = exec_cmd( "%s %s/" % ( link_grib, grb_data_path ) )
                 if code :
                     logging.info( output )
-                    raise JobError( "Error linking grib files", JOB_ERROR[ 'LINK_GRIB_FAILED' ] )
+                    raise JobError( "Error linking grib files", Job.CodeError.LINK_GRIB_FAILED )
                 ##
                 # Run Ungrib
                 ##
@@ -764,7 +740,7 @@ def launch_pilot( params ):
                 if code or not 'Successful completion' in open( ungrib_log, 'r' ).read() :
                     logging.info( output ) 
                     raise JobError( "'%s' has failed" % ungrib_exe,
-                                JOB_ERROR[ 'UNGRIB_FAILED' ] )
+                                Job.CodeError.UNGRIB_FAILED )
                 else :
                     logging.info( "ungrib has successfully finished" )
                 shutil.rmtree( grb_data_path )
@@ -789,7 +765,7 @@ def launch_pilot( params ):
                     nmlw.delVariable( var_to_del )
                 nmlw.overWriteNamelist()
             except Exception, err :
-                raise JobError( "Error modifying namelist: %s" % err, JOB_ERROR[ 'NAMELIST_FAILED' ] )
+                raise JobError( "Error modifying namelist: %s" % err, Job.CodeError.NAMELIST_FAILED )
           
             ##
             # Run Metgrid
@@ -801,7 +777,7 @@ def launch_pilot( params ):
             code, output = exec_cmd( "%s > %s" % ( metgrid_exe, metgrid_log ) )
             if code or not 'Successful completion' in open( metgrid_log, 'r' ).read() :
                 logging.info( output )
-                raise JobError( "'%s' has failed" % metgrid_exe, JOB_ERROR[ 'METGRID_FAILED' ] )
+                raise JobError( "'%s' has failed" % metgrid_exe, Job.CodeError.METGRID_FAILED )
             else :
                 logging.info( "metgrid has successfully finished" )
 
@@ -829,7 +805,7 @@ def launch_pilot( params ):
                                   bk_namelist, params.namelist_input ) )
                 if code :
                     logging.info( output )
-                    raise JobError( "Error copying namelist to all WNs", JOB_ERROR[ 'COPY_NODES' ] )
+                    raise JobError( "Error copying namelist to all WNs", Job.CodeError.COPY_NODES )
 
             logging.info( "Run real" )
             job_db.set_job_status( Job.Status.REAL )
@@ -850,7 +826,7 @@ def launch_pilot( params ):
                 code, output = exec_cmd( "%s > %s" % ( real_exe, real_log ) )
             if code or not 'SUCCESS COMPLETE' in open( real_log, 'r' ).read() :
                 logging.info( output )
-                raise JobError( "'%s' has failed" % real_exe, JOB_ERROR[ 'REAL_FAILED' ] )
+                raise JobError( "'%s' has failed" % real_exe, Job.CodeError.REAL_FAILED )
             else :
                 logging.info( "real has successfully finished" ) 
             ##
@@ -871,7 +847,7 @@ def launch_pilot( params ):
                         os.chmod( oiring, 0664 ) 
                         copy_file( oiring, dest )
                     except :
-                        raise JobError( "'%s' has not copied" % oiring, JOB_ERROR[  'COPY_UPLOAD_WPS' ] )
+                        raise JobError( "'%s' has not copied" % oiring, Job.CodeError.COPY_UPLOAD_WPS )
                 job_db.set_wps()
         
         # Change the directory to wrf run path
@@ -918,7 +894,7 @@ def launch_pilot( params ):
             code, output = exec_cmd( "%s > %s" % ( wrf_exe, log_wrf ) )
         if code or not 'SUCCESS COMPLETE' in open( log_wrf, 'r' ).read() :
             logging.info( output )  
-            raise JobError( "'%s' has failed" % wrf_exe, JOB_ERROR[ 'WRF_FAILED' ] )
+            raise JobError( "'%s' has failed" % wrf_exe, Job.CodeError.WRF_FAILED )
         else :
             logging.info( "wrf has successfully finished" ) 
         ##

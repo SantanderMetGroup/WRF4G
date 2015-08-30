@@ -809,6 +809,30 @@ class Job( Base ):
             'CONF_APP', 'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB', 
             'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF' )
 
+    class CodeError():
+        LOG_PATH             = 1
+        COPY_APP             = 2
+        APP_ERROR            = 3
+        SOURCE_SCRIPT        = 4
+        LOCAL_PATH           = 5
+        COPY_NODES           = 6
+        JOB_SHOULD_NOT_RUN   = 7
+        COPY_RST_FILE        = 8
+        RESTART_MISMATCH     = 9
+        COPY_NAMELIST_WPS    = 10
+        COPY_REAL_FILE       = 11
+        COPY_BOUND           = 12
+        NAMELIST_FAILED      = 13
+        PREPROCESSOR_FAILED  = 14
+        LINK_GRIB_FAILED     = 15
+        UNGRIB_FAILED        = 16
+        METGRID_FAILED       = 17
+        REAL_FAILED          = 18
+        COPY_UPLOAD_WPS      = 19
+        WRF_FAILED           = 20
+        POSTPROCESSOR_FAILED = 21
+        COPY_OUTPUT_FILE     = 22
+
     def set_status(self, status):
         """ 
         Save the status of the job and if it is a jobstatus of CHUNK STATUS and REALIZATION STATUS,
