@@ -201,10 +201,10 @@ class GwEmMad (object):
         Show the state of the job
         """
         states = {
-                  "PENDING"  : "PENDING" ,
-                  "ACTIVE"   : "RUNNING" ,
-                  "DONE"     : "FINISHED" ,
-                  "FAILED"   : "FAILED" ,
+                  "PENDING"  : Job.Status.PENDING,
+                  "ACTIVE"   : Job.Status.RUNNING,
+                  "DONE"     : Job.Status.FINISHED,
+                  "FAILED"   : Job.Status.FAILED,
                  } 
         avoid_states = ( 'CANCEL', 'CREATE_OUTPUT_PATH', 'CONF_APP',
                          'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB', 'METGRID', 

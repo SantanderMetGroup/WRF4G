@@ -27,6 +27,7 @@ from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
 from wrf4g.config           import ( get_conf, save_exp_pkl, 
                                      load_exp_pkl, dict_compare )
 from wrf4g.db               import Base
+from wrf4g.utils            import Enumerate
 from wrf4g.utils.archive    import extract
 from wrf4g.utils.time       import datetime2datewrf, Calendar
 from wrf4g.utils.file       import validate_name, edit_file
@@ -34,21 +35,12 @@ from wrf4g.utils.command    import exec_cmd
 from wrf4g.tools.vcplib     import VCPURL
 from wrf4g.tools.gridwaylib import GWJob
 
-# Realization, Chunk and Job status
-REA_STATUS   = ( 'PREPARED', 'SUBMITTED', 'RUNNING',
-                 'PENDING', 'FAILED', 'FINISHED'
-                )
+class Status(Enumerate):
+    """
+    Enumerate realizations, chunks and jobs status.
+    """
+    pass
 
-CHUNK_STATUS = ( 'PREPARED' , 'SUBMITTED', 'RUNNING',      
-                 'PENDING', 'FAILED', 'FINISHED'
-                )
-
-JOB_STATUS   = ( 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 'CANCEL',
-                 'FAILED', 'FINISHED', 'CREATE_OUTPUT_PATH', 'CONF_APP',
-                 'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB',
-                 'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF'
-                )
-             
 class Experiment( Base ):
     """ 
     Manage WRF4G experiments
@@ -138,7 +130,7 @@ class Experiment( Base ):
             if rea.chunk_size_h == chunk_size_h and rea.end_date < end_date :
                 logging.debug( '\t\tUpdating realization on the database...' )
                 rea.end_date = end_date
-                rea.status   = 'PREPARED'
+                rea.status   = Realization.Status.PREPARED
                 return rea
             elif rea.chunk_size_h == chunk_size_h and rea.end_date == end_date :
                 return rea
@@ -360,7 +352,7 @@ class Experiment( Base ):
                                                end_date      = rea_end_date,
                                                chunk_size_h  = chunk_size_h,
                                                current_date  = rea_start_date,
-                                               status        = 'PREPARED',
+                                               status        = Realization.Status.PREPARED,
                                                current_chunk = 1,
                                                member_label  = member_label,
                                                physic_label  = physic_label )
@@ -457,6 +449,9 @@ class Realization( Base ):
 
     dryrun          = False
 
+    Status( 'PREPARED', 'SUBMITTED', 'RUNNING',
+            'PENDING', 'FAILED', 'FINISHED' )
+        
     def run(self, first_chunk_run = None , last_chunk_run = None, rerun = False ):
         """ 
         Run n_chunk of the realization.
@@ -466,9 +461,10 @@ class Realization( Base ):
         first_chunk_run = int( first_chunk_run ) if first_chunk_run else None 
         last_chunk_run  = int( last_chunk_run  ) if last_chunk_run  else None
         #Check the status of the realization
-        if self.status == 'FINISHED' and not rerun :
+        if self.status == Realization.Status.FINISHED and not rerun :
             logging.warn( "\tRealization '%s' already finished." % self.name )
-        elif ( self.status == 'SUBMITTED' or self.status == 'RUNNING' ) and not rerun :
+        elif ( self.status == Realization.Status.SUBMITTED or 
+               self.status == Realization.Status.RUNNING ) and not rerun :
             logging.warn( "\tRealization '%s' has been submitted." % self.name )
         elif first_chunk_run and first_chunk_run < 0 :
             logging.error( "\tERROR: The first chunk to run is '%d'." % first_chunk_run ) 
@@ -526,7 +522,7 @@ class Realization( Base ):
                     chunk.run( index, rerun )
             if not self.dryrun :
                 # Update reealizaiton status
-                self.status = 'SUBMITTED'
+                self.status = Realization.Status.SUBMITTED
             
     def _prepare_sub_files(self):
         """
@@ -592,7 +588,7 @@ class Realization( Base ):
                             end_date   = chunk_end_date,
                             wps        = 0, 
                             chunk_id   = chunk_id,
-                            status     = 'PREPARED' 
+                            status     = Chunk.Status.PREPARED
                           )
                 # Add realization to the experiment 
                 self.chunk.append( ch )
@@ -624,20 +620,16 @@ class Realization( Base ):
         """                
         #Select parameters:job_status,rea_status,resource,exitcode,nchunks
         #Last job of current chunk
-        if self.status == 'PREPARED' :
-            resource           = '-'
-            exitcode           = '-'
-            status             = 'PREPARED'
-            gw_job             = '-'
+        if self.status == Realization.Status.PREPARED :
+            resource, exitcode, gw_job = '-', '-' , '-'
+            status             = Realization.Status.PREPARED
             chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
         else :
             current_chunk      = self.chunk.filter( Chunk.chunk_id == self.current_chunk ).one()
             l_jobs             = current_chunk.job.order_by( Job.id ).all()
             if len( l_jobs)  == 0 :
-                resource           = '-'
-                exitcode           = '-'
-                status             = 'PREPARED'
-                gw_job             = '-'
+                resource, exitcode, gw_job = '-', '-' , '-'
+                status             = Realization.Status.PREPARED
             else :
                 last_job           = l_jobs[ -1 ]
                 resource           = last_job.resource
@@ -671,9 +663,9 @@ class Realization( Base ):
         """
         Delete chunks which status is running or submitted 
         """
-        l_chunks = self.chunk.filter( or_( Chunk.status == 'SUBMITTED',
-                                           Chunk.status == 'PENDING',
-                                           Chunk.status == 'RUNNING' ) 
+        l_chunks = self.chunk.filter( or_( Chunk.status == Chunk.Status.SUBMITTED,
+                                           Chunk.status == Chunk.Status.PENDING,
+                                           Chunk.status == Chunk.Status.RUNNING ) 
                                     ).all()
         logging.info('---> Canceling Realization %s' % self.name )
         if not ( l_chunks ):
@@ -703,6 +695,9 @@ class Chunk( Base ):
     job             = relationship("Job", back_populates = "chunk", lazy = "dynamic")
 
     dryrun          = False 
+
+    Status( 'PREPARED', 'SUBMITTED', 'RUNNING',
+            'PENDING', 'FAILED', 'FINISHED' )
  
     #METHODS
     def run (self, index, rerun = False):
@@ -766,7 +761,7 @@ class Chunk( Base ):
         job.run( rerun ) 
         self.job.append( job )
         # Update realizaiton status
-        self.status = 'SUBMITTED'
+        self.status = Chunk.Status.SUBMITTED
 
     def cancel(self, hard = False ):
         """
@@ -776,10 +771,10 @@ class Chunk( Base ):
                                                        datetime2datewrf(self.start_date),
                                                        datetime2datewrf(self.end_date) ) 
                                                        )
-        l_jobs = self.job.filter( and_( Job.status != 'PREPARED', 
-                                        Job.status != 'FINISHED',
-                                        Job.status != 'FAILED',
-                                        Job.status != 'CANCEL' ) 
+        l_jobs = self.job.filter( and_( Job.status != Job.Status.PREPARED, 
+                                        Job.status != Job.Status.FINISHED,
+                                        Job.status != Job.Status.FAILED,
+                                        Job.status != Job.Status.CANCEL ) 
                                 ).all()
         if not ( l_jobs ):
             logging.info( '\t\tThere are not jobs to cancel.' )
@@ -808,26 +803,34 @@ class Job( Base ):
     events          = relationship("Events", back_populates = "job", lazy = 'dynamic')
 
     dryrun          = False
-    
+
+    Status( 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 'CANCEL',
+            'FAILED', 'FINISHED', 'CREATE_OUTPUT_PATH', 'CONF_APP',
+            'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB',
+            'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF' )
+
     def set_status(self, status):
         """ 
-        Save the status of the job and if it is a jobstatus of CHUNK_STATUS and REA_STATUS,
+        Save the status of the job and if it is a jobstatus of CHUNK STATUS and REALIZATION STATUS,
         change the status of the Chunk and the Realization and add an event. 
         """
         #Save job's status
         self.status = status
-        if status == 'CANCEL' :
-            self.chunk.status = self.chunk.realization.status = 'PREPARED'
-        #if it is an status of the CHUNK_STATUS 
-        elif status in CHUNK_STATUS and status != 'SUBMITTED' :
+        if status == Job.Status.CANCEL :
+            self.chunk.status = Chunk.Status.PREPARED
+            self.chunk.realization.status = Realization.Status.PREPARED
+        #if it is an status of the CHUNK STATUS 
+        elif status in Chunk.Status and status != Chunk.Status.SUBMITTED :
             self.chunk.status = status
-            #if it is an status of the REA_STATUS 
-            if status in REA_STATUS and status != 'SUBMITTED' :
-                if status == 'FINISHED' and self.chunk.chunk_id == self.chunk.realization.nchunks :
-                    self.chunk.realization.status = 'FINISHED'
-                elif status == 'FINISHED' and self.chunk.realization.status != 'FINISHED' :
+            #if it is an status of the REALIZATION STATUS 
+            if status in Realization.Status and status != Realization.Status.SUBMITTED :
+                if ( status == Job.Status.FINISHED and 
+                     self.chunk.chunk_id == self.chunk.realization.nchunks :
+                    self.chunk.realization.status = Realization.Status.FINISHED
+                elif ( status == Job.Status.FINISHED and 
+                       self.chunk.realization.status != Realization.Status.FINISHED ) :
                     self.chunk.realization.current_chunk = self.chunk.chunk_id + 1
-                elif status != 'FINISHED' :
+                elif status != Job.Status.FINISHED :
                     self.chunk.realization.status = status
         #Add event
         events            = Events()
@@ -846,7 +849,7 @@ class Job( Base ):
         self.resource = '-'
         self.exitcode = '-'
         # Update status
-        self.set_status( 'SUBMITTED' ) 
+        self.set_status( Job.Status.SUBMITTED ) 
    
     def cancel(self, hard = False ):
         """
@@ -855,7 +858,7 @@ class Job( Base ):
         logging.info('\t\t---> Canceling Job %d' % self.gw_job ) 
         if not self.dryrun :
             GWJob().kill( self.gw_job, hard )
-            self.set_status( 'CANCEL' )
+            self.set_status( Job.Status.CANCEL )
 
 class Events( Base ):
 

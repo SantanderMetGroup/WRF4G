@@ -192,7 +192,7 @@ class GwTmMad (object):
                                     with open( DST_URL[7:], 'r') as file :
                                         lines = file.readlines()
                                 except :
-                                    query_job.set_status( 'FAILED' )
+                                    query_job.set_status( Job.Status.FAILED )
                                 else :
                                     all_lines = ''.join( lines )
                                     re_exit_status = re.compile( "EXIT_STATUS=(-?\d*)" )
@@ -204,10 +204,10 @@ class GwTmMad (object):
                                             query_job.chunk.realization.current_date = query_job.chunk.end_date
                                             query_job.job.chunk.realization.restart  = query_job.chunk.end_date
                                         else :
-                                            query_job.set_status( 'FAILED' )
+                                            query_job.set_status( Job.Status.FAILED )
                                     else :
                                         query_job.exitcode = 22
-                                        query_job.set_status( 'FAILED' )
+                                        query_job.set_status( Job.Status.FAILED )
                                 session.commit()
                         except Exception , err :
                             session.rollback()
