@@ -93,7 +93,7 @@ class JobDB( object ) :
         if self.session and self.job :
             return self.job.status
         else :
-            return 'UNKNOWN'
+            return Job.Status.UNKNOWN
 
     def set_job_status(self, status):
         try :
@@ -429,15 +429,15 @@ def launch_pilot( params ):
         ##
         # Check if this job should run
         ##
-        if job_db.get_job_status() == 'CANCEL' :
+        if job_db.get_job_status() == Job.Status.CANCEL :
             raise JobError( "Error this job should not run", JOB_ERROR[ 'JOB_SHOULD_NOT_RUN'] )
 
-        job_db.set_job_status( 'RUNNING' )
+        job_db.set_job_status( Job.Status.RUNNING )
         ##
         # Create a remote tree directory for the realization
         ##
         logging.info( "Creating remote tree directory under '%s'" % params.output_path )
-        job_db.set_job_status( 'CREATE_OUTPUT_PATH' )
+        job_db.set_job_status( Job.Status.CREATE_OUTPUT_PATH )
 
         for remote_path in [  params.output_path, 
                               params.exp_output_path,
@@ -484,7 +484,7 @@ def launch_pilot( params ):
         # Configure app 
         ##
         logging.info( 'Configure app' )
-        job_db.set_job_status( 'CONF_APP' )
+        job_db.set_job_status( Job.Status.CONF_APP )
 
         archives_path = join( params.root_path, 'archives' )
         logging.info( "Creating '%s' directory" % archives_path )
@@ -639,7 +639,7 @@ def launch_pilot( params ):
                 files_downloaded += 1
             if not files_downloaded :
                 raise JobError( "No restart file has been downloaded", JOB_ERROR[ 'COPY_RST_FILE' ] )
-            job_db.set_job_status( 'DOWN_RESTART' )
+            job_db.set_job_status( Job.Status.DOWN_RESTART )
 
         ##
         # Either WPS runs or the boundaries and initial conditions are available
@@ -659,7 +659,7 @@ def launch_pilot( params ):
                 raise JobError( "'namelist.wps' has not copied", JOB_ERROR[  'COPY_NAMELIST_WPS' ] )
             wps2wrf( params.namelist_wps, params.namelist_input, params.chunk_rdate, 
                         params.chunk_edate, params.max_dom, chunk_rerun, params.timestep_dxfactor)
-            job_db.set_job_status( 'DOWN_WPS' )
+            job_db.set_job_status( Job.Status.DOWN_WPS )
             pattern =  "wrf[lbif]*_d\d\d_" + datetime2dateiso( sdate ) + "*" 
             for file_name in VCPURL( params.real_rea_output_path ).ls( pattern ):
                 orig = join( params.real_rea_output_path, file_name )
@@ -691,7 +691,7 @@ def launch_pilot( params ):
                     except :
                         raise JobError( "'%s' has not copied" % file_name,
                                JOB_ERROR[ 'COPY_BOUND' ] )
-            job_db.set_job_status( 'DOWN_BOUND' )
+            job_db.set_job_status( Job.Status.DOWN_BOUND )
 
             ##
             #  Modify the namelist
@@ -757,7 +757,7 @@ def launch_pilot( params ):
                 # Run Ungrib
                 ##
                 logging.info( "Run ungrib" )
-                job_db.set_job_status( 'UNGRIB' )
+                job_db.set_job_status( Job.Status.UNGRIB )
 
                 ungrib_log = join( params.log_path, 'ungrib_%s.log' % vt )
                 code, output = exec_cmd( "%s > %s" % ( ungrib_exe, ungrib_log) )
@@ -795,7 +795,7 @@ def launch_pilot( params ):
             # Run Metgrid
             ##
             logging.info( "Run metgrid" )
-            job_db.set_job_status( 'METGRID' )
+            job_db.set_job_status( Job.Status.METGRID )
 
             metgrid_log = join( params.log_path, 'metgrid.log' )
             code, output = exec_cmd( "%s > %s" % ( metgrid_exe, metgrid_log ) )
@@ -832,7 +832,7 @@ def launch_pilot( params ):
                     raise JobError( "Error copying namelist to all WNs", JOB_ERROR[ 'COPY_NODES' ] )
 
             logging.info( "Run real" )
-            job_db.set_job_status( 'REAL' )
+            job_db.set_job_status( Job.Status.REAL )
  
             if params.real_parallel == 'yes' :
                 real_log = join( params.wrf_run_path, 'rsl.out.0000' )
@@ -858,7 +858,7 @@ def launch_pilot( params ):
             ##   
             if params.save_wps == 'yes' :
                 logging.info( "Saving wps" )
-                job_db.set_job_status( 'UPLOAD_WPS' )
+                job_db.set_job_status( Job.Status.UPLOAD_WPS )
                 # If the files are WPS, add the date to the name. Three files have to be uploaded: wrfinput_d0?,wrfbdy_d0? and wrflowinp_d0?
                 # The command: $ upload_file wps     1990-01-01_00:00:00
                 # will create in the repositore three files with the following format: wrfinput_d01_19900101T000000Z
@@ -902,7 +902,7 @@ def launch_pilot( params ):
         # Run wrf
         ##
         logging.info( "Run wrf" )
-        job_db.set_job_status( 'WRF' )
+        job_db.set_job_status( Job.Status.WRF )
 
         if params.wrf_parallel == 'yes' :
             npernode = "-npernode %s" % params.ppn if params.ppn else ''
@@ -947,15 +947,15 @@ def launch_pilot( params ):
         ##
         # Update the status
         ##
-        job_db.set_job_status( 'FINISHED' )
+        job_db.set_job_status( Job.Status.FINISHED )
         exit_code = 0
     except JobError, err :
         logging.error( err.msg )
-        job_db.set_job_status( 'FAILED' )
+        job_db.set_job_status( Job.Status.FAILED )
         exit_code = err.exit_code
     except :
         logging.error( "Unexpected error", exc_info = 1 )
-        job_db.set_job_status( 'FAILED' )
+        job_db.set_job_status( Job.Status.FAILED )
         exit_code = 255
     finally :
         ##

@@ -804,9 +804,9 @@ class Job( Base ):
 
     dryrun          = False
 
-    Status( 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 'CANCEL',
-            'FAILED', 'FINISHED', 'CREATE_OUTPUT_PATH', 'CONF_APP',
-            'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB',
+    Status( 'UNKNOWN', 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 
+            'CANCEL', 'FAILED', 'FINISHED', 'CREATE_OUTPUT_PATH', 
+            'CONF_APP', 'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB', 
             'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF' )
 
     def set_status(self, status):
