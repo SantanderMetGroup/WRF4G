@@ -25,7 +25,7 @@ from os.path                import ( exists, expandvars,
 from datetime               import datetime, timedelta 
 from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
 from wrf4g.config           import ( get_conf, save_exp_pkl, 
-                                     load_exp_pkl, dict_compare )
+                                     load_exp_pkl )
 from wrf4g.db               import Base
 from wrf4g.utils            import Enumerate, dict_compare 
 from wrf4g.utils.archive    import extract
@@ -863,10 +863,10 @@ class Job( Base ):
             self.chunk.status = status
             #if it is an status of the REALIZATION STATUS 
             if status in Realization.Status and status != Realization.Status.SUBMITTED :
-                if ( status == Job.Status.FINISHED and 
-                     self.chunk.chunk_id == self.chunk.realization.nchunks :
+                if ( status == Job.Status.FINISHED and \
+                     self.chunk.chunk_id == self.chunk.realization.nchunks ) :
                     self.chunk.realization.status = Realization.Status.FINISHED
-                elif ( status == Job.Status.FINISHED and 
+                elif ( status == Job.Status.FINISHED and \
                        self.chunk.realization.status != Realization.Status.FINISHED ) :
                     self.chunk.realization.current_chunk = self.chunk.chunk_id + 1
                 elif status != Job.Status.FINISHED :
