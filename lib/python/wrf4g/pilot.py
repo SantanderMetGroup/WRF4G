@@ -15,6 +15,7 @@ from os.path              import ( exists, join,
                                    basename, expandvars )
 from wrf4g.db             import get_session
 from wrf4g.core           import Job
+from wrf4g.utils.mpi      import ParallelEnvironment
 from wrf4g.utils.osinfo   import ( get_hostname, os_release, 
                                    cpu_info, mem_info, 
                                    disk_space_check )
@@ -172,10 +173,6 @@ class PilotParams( object ):
     extdata_vtable       = resource_exp_conf[ 'extdata_vtable' ]
     extdata_path         = resource_exp_conf[ 'extdata_path' ]
     constants_name       = resource_exp_conf[ 'constants_name' ]
-    real_parallel        = resource_exp_conf[ 'real_parallel' ]
-    wrf_parallel         = resource_exp_conf[ 'wrf_parallel' ]
-    ppn                  = os.environ.get( 'PPN' )
-    np                   = os.environ.get( 'GW_NP' )
     job_id               = int( os.environ.get( 'GW_JOB_ID' ) )
     restarted_id         = int( os.environ.get( 'GW_RESTARTED' ) )
     exp_name             = sys.argv[1]
@@ -209,6 +206,15 @@ class PilotParams( object ):
     else :
         local_path = root_path
 
+    # Parallel enviroment
+    parallel_real        = resource_exp_conf[ 'parallel_real' ]
+    parallel_wrf         = resource_exp_conf[ 'parallel_wrf' ]
+    
+    parallel_env         = ParallelEnvironment.launcher_map.get( exp_conf.default.parallel_environment )
+    parallel_run         = "%s %s %s" % ( parallel_env.launcher, parallel_env.np, os.environ.get( 'GW_NP' ) ) + \
+                           "%s %s" % ( parallel_env.pernode, os.environ.get( 'PPN' ) ) if os.environ.get( 'PPN' ) else ''
+    parallel_run_pernode = "%s %s" % ( parallel_env.launcher, parallel_env.npernode )
+        
     # WRF path variables
     wps_path             = join( local_path, 'WPS')
     wrf_path             = join( local_path, 'WRFV3' )
@@ -384,10 +390,10 @@ def launch_pilot( params ):
     logging.info( 'Information about directories' )
 
     # Show root path 
-    logging.info( 'Root path  = %s' % params.root_path )
+    logging.info( 'Root path = %s' % params.root_path )
 
     # Show local path
-    logging.info( 'Run path = %s' % params.local_path )
+    logging.info( 'Run path  = %s' % params.local_path )
    
     ##
     # DRM4G won't remove root_path if clean_after_run is 1
@@ -523,21 +529,22 @@ def launch_pilot( params ):
         ##
         # This is a little bit tricky prepare the pallalel environment.
         ##
-        if ( params.real_parallel == 'yes' or params.wrf_parallel == 'yes' ) and \
+        if ( params.parallel_real == 'yes' or params.parallel_wrf == 'yes' ) and \
            ( params.local_path != params.root_path ) :
             logging.info( "Wiping the directory '%s' on all worker nodes" % params.local_path )
-            code, output = exec_cmd( "mpirun -pernode rm -rf %s" % ( params.local_path ) )
+            code, output = exec_cmd( "%s %s rm -rf %s" % ( params.parallel_env.launcher, 
+                                                           params.parallel_env.,
+                                                           params.local_path ) )
             if code :
                 logging.info( output )
                 raise JobError( "Error wiping the directory '%s' on worker nodes" % (
                                  params.local_path ), Job.CodeError.LOCAL_PATH )
-            code, output = exec_cmd( "mpirun -pernode mkdir -p %s" % ( 
-                                  params.local_path ) )
+            code, output = exec_cmd( "%s mkdir -p %s" % ( parallel_run_pernode, params.local_path ) )
             if code :
                 logging.info( output )
                 raise JobError( "Error copying files to all WNs", Job.CodeError.COPY_NODES ) 
             for directory in [ 'WPS' , 'WRFV3' ] :
-                code, output = exec_cmd( "mpirun -pernode cp -r %s %s" % (  
+                code, output = exec_cmd( "%s cp -r %s %s" % ( parallel_run_pernode, 
                                           join( params.root_path, directory ) , params.local_path ) )
                 if code :
                     logging.info( output )
@@ -796,12 +803,12 @@ def launch_pilot( params ):
             wps2wrf( params.namelist_wps, params.namelist_input, params.chunk_rdate,
                         params.chunk_edate, params.max_dom , chunk_rerun, params.timestep_dxfactor)
 
-            if ( params.real_parallel == 'yes' or params.wrf_parallel == 'yes' ) and \
+            if ( params.parallel_real == 'yes' or params.parallel_wrf == 'yes' ) and \
                ( params.local_path != params.root_path ) :
                 logging.info( "Copying namelist file to al WNs" )
                 bk_namelist = join( params.root_path, 'namelist.input.bk' )
                 shutil.copyfile( params.namelist_input, bk_namelist )
-                code, output = exec_cmd( "mpirun -pernode cp %s %s" % (
+                code, output = exec_cmd( "%s cp %s %s" % ( parallel_run_pernode,
                                   bk_namelist, params.namelist_input ) )
                 if code :
                     logging.info( output )
@@ -810,10 +817,9 @@ def launch_pilot( params ):
             logging.info( "Run real" )
             job_db.set_job_status( Job.Status.REAL )
  
-            if params.real_parallel == 'yes' :
+            if params.parallel_real == 'yes' :
                 real_log = join( params.wrf_run_path, 'rsl.out.0000' )
-                npernode = "-npernode %s" % params.ppn if params.ppn else '' 
-                cmd = "mpirun -np %s %s %s" % ( params.np, npernode, real_exe ) 
+                cmd = "%s %s" % ( parallel_run, real_exe ) 
                 code, output = exec_cmd( cmd ) 
                 if isfile( real_log ) :
                     real_rsl_path = join( params.log_path, 'rsl_real' ) 
@@ -856,7 +862,7 @@ def launch_pilot( params ):
         ##
         # Start a thread to monitor wrf 
         ##
-        if params.wrf_parallel == 'yes' :
+        if params.parallel_wrf == 'yes' :
             log_wrf = join( params.wrf_run_path, 'rsl.out.0000' )
         else :
             log_wrf = join( params.log_path, 'wrf.log' )
@@ -880,9 +886,9 @@ def launch_pilot( params ):
         logging.info( "Run wrf" )
         job_db.set_job_status( Job.Status.WRF )
 
-        if params.wrf_parallel == 'yes' :
+        if params.parallel_wrf == 'yes' :
             npernode = "-npernode %s" % params.ppn if params.ppn else ''
-            cmd = "mpirun -np %s %s %s" % ( params.np, npernode, wrf_exe )                       
+            cmd = "%s %s" % ( parallel_run, wrf_exe )                       
             code, output = exec_cmd( cmd )
             if isfile( log_wrf ) :
                 wrf_rsl_path = join( params.log_path, 'rsl_wrf' ) 
@@ -913,10 +919,10 @@ def launch_pilot( params ):
         ##
         # Wipe after run
         ##
-        if ( params.real_parallel == 'yes' or params.wrf_parallel == 'yes' ) and \
+        if ( params.parallel_real == 'yes' or params.parallel_wrf == 'yes' ) and \
            ( params.local_path != params.root_path ) and ( params.clean_after_run == 'yes' ) :
             logging.info( "Wiping the directory '%s' on all worker nodes" % params.local_path )
-            code, output = exec_cmd( "mpirun -pernode rm -rf %s" % ( params.local_path ) )
+            code, output = exec_cmd( "%s rm -rf %s" % ( parallel_run_pernode, params.local_path ) )
             if code :
                 logging.info( output )
                 logging.error( "Error wiping the directory '%s' on worker nodes" % params.local_path )

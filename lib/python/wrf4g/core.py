@@ -27,7 +27,7 @@ from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
 from wrf4g.config           import ( get_conf, save_exp_pkl, 
                                      load_exp_pkl, dict_compare )
 from wrf4g.db               import Base
-from wrf4g.utils            import Enumerate
+from wrf4g.utils            import Enumerate, dict_compare 
 from wrf4g.utils.archive    import extract
 from wrf4g.utils.time       import datetime2datewrf, Calendar
 from wrf4g.utils.file       import validate_name, edit_file
@@ -109,8 +109,8 @@ class Experiment( Base ):
         if modified_variables :
             for elem_modified in modified_variables :
                 if not elem_modified in ( 'np', 'requirements', 'environment', 'clean_after_run', 'save_wps',
-                                          'real_parallel', 'wrf_parallel', 'domain_path', 'preprocessor',
-                                          'extdata_path', 'postprocessor', 'app', 'output_path' ) :
+                                          'parallel_real', 'parallel_wrf', 'parallel_environment', 'domain_path', 
+                                          'preprocessor', 'extdata_path', 'postprocessor', 'app', 'output_path' ) :
                     return False
         return True
 
@@ -636,22 +636,21 @@ class Realization( Base ):
         """                
         #Select parameters:job_status,rea_status,resource,exitcode,nchunks
         #Last job of current chunk
+        resource, exitcode, gw_job = '-', '-' , '-'
         if self.status == Realization.Status.PREPARED :
-            resource, exitcode, gw_job = '-', '-' , '-'
             status             = Realization.Status.PREPARED
             chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
         else :
             current_chunk      = self.chunk.filter( Chunk.chunk_id == self.current_chunk ).one()
             l_jobs             = current_chunk.job.order_by( Job.id ).all()
             if len( l_jobs)  == 0 :
-                resource, exitcode, gw_job = '-', '-' , '-'
-                status             = Realization.Status.PREPARED
+                status         = Realization.Status.PREPARED
             else :
-                last_job           = l_jobs[ -1 ]
-                resource           = last_job.resource
-                exitcode           = last_job.exitcode
-                status             = last_job.status
-                gw_job             = str( last_job.gw_job )
+                last_job       = l_jobs[ -1 ]
+                resource       = last_job.resource
+                exitcode       = last_job.exitcode
+                status         = last_job.status
+                gw_job         = str( last_job.gw_job )
             chunk_distribution = '%d/%d' % ( self.current_chunk, self.nchunks )
         #Format chunks run / chunks total
         runt   = int( self.current_date.strftime("%s") ) - int( self.start_date.strftime("%s") ) 
@@ -784,9 +783,9 @@ class Chunk( Base ):
         Delete jobs
         """
         logging.info('\t---> Canceling Chunk %d %s %s' % ( self.chunk_id,
-                                                       datetime2datewrf(self.start_date),
-                                                       datetime2datewrf(self.end_date) ) 
-                                                       )
+                                                           datetime2datewrf(self.start_date),
+                                                           datetime2datewrf(self.end_date) ) 
+                                                          )
         l_jobs = self.job.filter( and_( Job.status != Job.Status.PREPARED, 
                                         Job.status != Job.Status.FINISHED,
                                         Job.status != Job.Status.FAILED,

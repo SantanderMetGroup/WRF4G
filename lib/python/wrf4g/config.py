@@ -3,6 +3,8 @@ import re
 import pickle
 import logging
 from os.path          import expandvars, expanduser, exists, join, abspath
+from wrf4g.utils      import dict2obj
+from wrf4g.utils.mpi  import ParallelEnvironment 
 from wrf4g.utils.time import datewrf2datetime, Calendar
 from wrf4g.utils.file import VarEnv, make_writeable, validate_name
 
@@ -13,11 +15,11 @@ __revision__ = "$Id$"
 MANDATORY_VARIABLES = ('name', 'max_dom', 'date_time', 'namelist_version', 
                        'domain_path', 'extdata_vtable', 'extdata_path', 
                        'extdata_interval', 'preprocessor', 'output_path', 
-                       'postprocessor'          
+                       'postprocessor', 'parallel_environment'          
                      )
 
-YES_NO_VARIABLES    = ('clean_after_run', 'save_wps', 'real_parallel', 
-                       'wrf_parallel' , 'wrfout_name_end_date', 'chunk_restart'
+YES_NO_VARIABLES    = ('clean_after_run', 'save_wps', 'parallel_real', 
+                       'parallel_wrf' , 'wrfout_name_end_date', 'chunk_restart'
                      )
 
 
@@ -31,48 +33,12 @@ DEFAULT_DICT        = {
                     'constants_name'       : '',
                     'clean_after_run'      : 'yes',
                     'save_wps'             : 'no',
-                    'real_parallel'        : 'no',
-                    'wrf_parallel'         : 'yes',
+                    'parallel_real'        : 'no',
+                    'parallel_wrf'         : 'yes',
                     'wrfout_name_end_date' : 'no',
                     'chunk_restart'        : 'yes',
                     'namelist_dict'        : dict()
                     }
-
-def dict_compare(dict_one, dict_two ):
-    """ 
-    Compare two dictionaries
-    """
-    dict_one_keys  = set( dict_one.keys() )
-    dict_two_keys  = set( dict_two.keys() )
-    intersect_keys = dict_one_keys.intersection( dict_two_keys  )
-    added          = dict_one_keys - dict_two_keys
-    removed        = dict_two_keys - dict_one_keys
-    modified       = [ k for k in intersect_keys if dict_one[ k ] != dict_two[ k ] ]
-    same           = set( k for k in intersect_keys if dict_one[ k ] == dict_two[ k ] )
-    return ( added, removed, modified, same )
-
-class dict2obj(dict):
-    """
-    Class to convert a dictionary to an object
-    """
-    def __init__(self, dictionary, default=None):
-        self.__dictionary = dictionary
-        self.__default = default
-        super(self.__class__, self).__init__(dictionary)
- 
-    def __getattr__(self, key ):
-        if key.startswith('__'):
-            raise AttributeError
-        if key in self.__dictionary :
-            val = self.__dictionary[ key ]
-            if isinstance(val, dict):
-                val = self.__class__( val )
-            setattr(self, key, val )
-            return val
-        return self.__default
-
-    def __missing__(self, key):
-        return False 
 
 def get_conf( directory = './' ):
     """
@@ -173,6 +139,12 @@ def sanity_check( exp_conf ) :
                                                  simult_interval_h, simult_length_h, 
                                                  chunk_size_h, restart_interval ] )
     ##
+    # Check parallel enviroment
+    ##
+    if not ParallelEnvironment.launcher_map.has_key( exp_conf.default.parallel_environment ):
+        raise Exception( "ERROR: '%s' does not exist" % exp_conf.default.parallel_environment )
+
+    ##
     # Check if app variable has been configure correctly
     ##
     for section in exp_conf.keys():
@@ -191,7 +163,7 @@ def sanity_check( exp_conf ) :
     ##
     if exp_conf.default.extdata_member :
         exp_conf.default.extdata_member = exp_conf.default.extdata_member.\
-                                          replace(' ', '').split( '|' )
+                                          replace(' ', '').split( '\n' )
     else :
         exp_conf.default.extdata_member = [ '' ]
 
