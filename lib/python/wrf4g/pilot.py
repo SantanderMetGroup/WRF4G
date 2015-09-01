@@ -532,19 +532,18 @@ def launch_pilot( params ):
         if ( params.parallel_real == 'yes' or params.parallel_wrf == 'yes' ) and \
            ( params.local_path != params.root_path ) :
             logging.info( "Wiping the directory '%s' on all worker nodes" % params.local_path )
-            code, output = exec_cmd( "%s %s rm -rf %s" % ( params.parallel_env.launcher, 
-                                                           params.parallel_env.,
-                                                           params.local_path ) )
+            code, output = exec_cmd( "%s rm -rf %s" % ( params.parallel_run_pernode, 
+                                                        params.local_path ) )
             if code :
                 logging.info( output )
                 raise JobError( "Error wiping the directory '%s' on worker nodes" % (
                                  params.local_path ), Job.CodeError.LOCAL_PATH )
-            code, output = exec_cmd( "%s mkdir -p %s" % ( parallel_run_pernode, params.local_path ) )
+            code, output = exec_cmd( "%s mkdir -p %s" % ( params.parallel_run_pernode, params.local_path ) )
             if code :
                 logging.info( output )
                 raise JobError( "Error copying files to all WNs", Job.CodeError.COPY_NODES ) 
             for directory in [ 'WPS' , 'WRFV3' ] :
-                code, output = exec_cmd( "%s cp -r %s %s" % ( parallel_run_pernode, 
+                code, output = exec_cmd( "%s cp -r %s %s" % ( params.parallel_run_pernode, 
                                           join( params.root_path, directory ) , params.local_path ) )
                 if code :
                     logging.info( output )
@@ -582,10 +581,10 @@ def launch_pilot( params ):
         logging.info( 'CPU (processors) = %d' % number_of_cpus )
 
         # Memory info
-        logging.info( 'RAM Memory (kB)  = %s' % mem_info() )
+        logging.info( 'RAM Memory       = %s MB' % mem_info() )
 
         # Disk space check
-        logging.info( 'DiskSpace (GB) of %s = %d' % ( params.root_path, disk_space_check( params.root_path ) ) )
+        logging.info( 'DiskSpace of %s  = %d GB' % ( params.root_path, disk_space_check( params.root_path ) ) )
 
         ##
         # Check the restart date
@@ -808,7 +807,7 @@ def launch_pilot( params ):
                 logging.info( "Copying namelist file to al WNs" )
                 bk_namelist = join( params.root_path, 'namelist.input.bk' )
                 shutil.copyfile( params.namelist_input, bk_namelist )
-                code, output = exec_cmd( "%s cp %s %s" % ( parallel_run_pernode,
+                code, output = exec_cmd( "%s cp %s %s" % ( params.parallel_run_pernode,
                                   bk_namelist, params.namelist_input ) )
                 if code :
                     logging.info( output )
@@ -819,7 +818,7 @@ def launch_pilot( params ):
  
             if params.parallel_real == 'yes' :
                 real_log = join( params.wrf_run_path, 'rsl.out.0000' )
-                cmd = "%s %s" % ( parallel_run, real_exe ) 
+                cmd = "%s %s" % ( params.parallel_run, real_exe ) 
                 code, output = exec_cmd( cmd ) 
                 if isfile( real_log ) :
                     real_rsl_path = join( params.log_path, 'rsl_real' ) 
@@ -887,8 +886,7 @@ def launch_pilot( params ):
         job_db.set_job_status( Job.Status.WRF )
 
         if params.parallel_wrf == 'yes' :
-            npernode = "-npernode %s" % params.ppn if params.ppn else ''
-            cmd = "%s %s" % ( parallel_run, wrf_exe )                       
+            cmd = "%s %s" % ( params.parallel_run, wrf_exe )                       
             code, output = exec_cmd( cmd )
             if isfile( log_wrf ) :
                 wrf_rsl_path = join( params.log_path, 'rsl_wrf' ) 
@@ -922,7 +920,7 @@ def launch_pilot( params ):
         if ( params.parallel_real == 'yes' or params.parallel_wrf == 'yes' ) and \
            ( params.local_path != params.root_path ) and ( params.clean_after_run == 'yes' ) :
             logging.info( "Wiping the directory '%s' on all worker nodes" % params.local_path )
-            code, output = exec_cmd( "%s rm -rf %s" % ( parallel_run_pernode, params.local_path ) )
+            code, output = exec_cmd( "%s rm -rf %s" % ( params.parallel_run_pernode, params.local_path ) )
             if code :
                 logging.info( output )
                 logging.error( "Error wiping the directory '%s' on worker nodes" % params.local_path )

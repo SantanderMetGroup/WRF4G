@@ -35,12 +35,6 @@ from wrf4g.utils.command    import exec_cmd
 from wrf4g.tools.vcplib     import VCPURL
 from wrf4g.tools.gridwaylib import GWJob
 
-class Status(Enumerate):
-    """
-    Enumerate realizations, chunks and jobs status.
-    """
-    pass
-
 class Experiment( Base ):
     """ 
     Manage WRF4G experiments
@@ -449,8 +443,8 @@ class Realization( Base ):
 
     dryrun          = False
 
-    Status( 'PREPARED', 'SUBMITTED', 'RUNNING',
-            'PENDING', 'FAILED', 'FINISHED' )
+    Status          = Enumerate( 'PREPARED', 'SUBMITTED', 'RUNNING',
+                                 'PENDING', 'FAILED', 'FINISHED' )
         
     def run(self, first_chunk_run = None , last_chunk_run = None, rerun = False ):
         """ 
@@ -711,8 +705,8 @@ class Chunk( Base ):
 
     dryrun          = False 
 
-    Status( 'PREPARED', 'SUBMITTED', 'RUNNING',
-            'PENDING', 'FAILED', 'FINISHED' )
+    Status          = Enumerate( 'PREPARED', 'SUBMITTED', 'RUNNING',
+                                 'PENDING', 'FAILED', 'FINISHED' )
  
     #METHODS
     def run (self, index, rerun = False):
@@ -819,10 +813,10 @@ class Job( Base ):
 
     dryrun          = False
 
-    Status( 'UNKNOWN', 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 
-            'CANCEL', 'FAILED', 'FINISHED', 'CREATE_OUTPUT_PATH', 
-            'CONF_APP', 'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB', 
-            'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF' )
+    Status          = Enumerate( 'UNKNOWN', 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 
+                                 'CANCEL', 'FAILED', 'FINISHED', 'CREATE_OUTPUT_PATH', 
+                                 'CONF_APP', 'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB', 
+                                 'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF' )
 
     class CodeError():
         LOG_PATH             = 1
