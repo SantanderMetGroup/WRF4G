@@ -13,8 +13,9 @@ np                   = 1
 requirements         = ARCH = "x86_64"
 clean_after_run      = yes
 save_wps             = no
-real_parallel        = no
-wrf_parallel         = yes
+parallel_environment = MPIRUN
+parallel_real        = no
+parallel_wrf         = yes
 # Input data
 domain_path          = %(WRF4G_DEPLOYMENT_DIR)s/repository/domains/Santander_50km
 # Vtables must exist as Vtable.[input_extdata]
