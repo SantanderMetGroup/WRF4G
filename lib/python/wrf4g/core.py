@@ -127,7 +127,7 @@ class Experiment( Base ):
             return None
         else :
             #Check if there is a realization with the same no reconfigurable fields
-            if rea.chunk_size_h == chunk_size_h and rea.end_date < end_date :
+            if rea.chunk_size_h == chunk_size_h and rea.end_date != end_date :
                 logging.debug( '\t\tUpdating realization on the database...' )
                 rea.end_date = end_date
                 rea.status   = Realization.Status.PREPARED
@@ -292,7 +292,7 @@ class Experiment( Base ):
         Create realizations for each member and namelist combinations.
         """
         for member_label in extdata_member :
-            rea_name_member = "%s_%s" % ( self.name, member_label ) if member_label else self.name
+            rea_name_member = "%s_%s" % ( self.name, member.split( '|' )[ 0 ] ) if member_label else self.name
             for comb, physic_label in enumerate( combinations ) :
                 rea_name_member_physic = "%s_%s" % ( rea_name_member, physic_label ) if physic_label else rea_name_member
                 ##
@@ -553,11 +553,27 @@ class Realization( Base ):
                                     Chunk.start_date == chunk_start_date,
                                     Chunk.end_date   == chunk_end_date,
                                    ).one()
-        except Exception : 
-            return None  
+        except Exception :
+            #There will be an exception for the last chunk of a realization.
+            #This chunk will be able to modify 
+            if self.nchunks == chunk_id :
+                try :
+                    ch2 = self.chunk.filter( Chunk.rea_id     == rea_id,
+                                             Chunk.chunk_id   == chunk_id,
+                                             Chunk.start_date == chunk_start_date,
+                                             Chunk.end_date   != chunk_end_date,
+                                           ).one()
+                except Exception :
+                    return None
+                else :
+                    logging.debug( '\t\tUpdating chunk on the database...' )
+                    ch2.end_date = chunk_end_date
+                    return ch2
+            else :
+                return None
         else :
             #if ch exists 
-            return ch      
+            return ch
 
     def cycle_chunks(self):
         """
