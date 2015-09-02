@@ -245,7 +245,7 @@ class Experiment( Base ):
         Setting priority to jobs 
         """
         #list of realization of the experiment
-        l_realizations  = self._filter_realizations( rea_pattern, rea_status = None )
+        l_realizations  = self._filter_realizations( rea_pattern, False )
         if not ( l_realizations ):
             logging.info( 'There are not realizations to set priority.' )
         else :
@@ -702,8 +702,8 @@ class Realization( Base ):
         """
         Setting priority to chunks which status is submitted.
         """
-        if priority >= 0 and priority <= 20 :
-            raise Exception( '' )       
+        if priority < 0 or priority > 20 :
+            raise Exception( "'%d' priority is out of the range [0, 20]" % priority )      
         l_chunks = self.chunk.filter( Chunk.status == Chunk.Status.SUBMITTED ).all()
         logging.info( '---> Setting priority Realization %s' % self.name )
         if not ( l_chunks ):
