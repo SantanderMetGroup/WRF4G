@@ -83,8 +83,8 @@ def run( arg ) :
         else :
             if arg[ 'submit' ] :
                 rea.run( first_chunk_run = arg[ '<first_ch>' ], 
-                         last_chunk_run  = arg[ '<last_ch>' ] , 
-                         rerun           = arg[ '--rerun' ]
+                         last_chunk_run  = arg[ '<last_ch>' ], 
+                         rerun           = arg[ '--rerun' ],
                          priority        = int( arg[ '--priority' ] ) )
             elif arg[ 'status' ] :
                 if not arg[ '--delay' ] :
@@ -101,7 +101,7 @@ def run( arg ) :
                         pass
             elif arg[ 'log' ] :
                 rea.get_log( arg[ '<chunk_id>' ], arg[ '--dir' ] )
-             elif arg[ 'set-priority' ] :
+            elif arg[ 'set-priority' ] :
                 rea.set_priority( int( arg[ '<priority>' ] ) )
             else :
                 rea.cancel( arg[ '--hard' ] )
