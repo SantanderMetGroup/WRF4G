@@ -161,11 +161,13 @@ def sanity_check( exp_conf ) :
     ##
     # Check if there are multible members 
     ##
+    # member tag | member number | initial month number
+    exp_conf.default.extdata_member = [ ]
     if exp_conf.default.extdata_member :
-        exp_conf.default.extdata_member = exp_conf.default.extdata_member.\
-                                          replace(' ', '').split( '\n' )
+        for member in exp_conf.default.extdata_member.replace(' ', '').split( '\n' ):
+            exp_conf.default.extdata_member.append( member )
     else :
-        exp_conf.default.extdata_member = [ '' ]
+        exp_conf.default.extdata_member.append( '' )
 
     ##
     # Check namelist configuration for multicombinations
@@ -177,16 +179,14 @@ def sanity_check( exp_conf ) :
         exp_conf.default.namelist_label_comb = [ '' ]
     if exp_conf.default.namelist_values :
         # Delete whitespaces
-        exp_conf.default.namelist_values = exp_conf.default.namelist_values.\
-                                           replace(' ', '')
-        for nml_val in exp_conf.default.namelist_values.split( '\n' ):
+        for nml_val in exp_conf.default.namelist_values.replace(' ', '').split( '\n' ):
             if nml_val.startswith('#'): continue
             nml_conf = nml_val.split( '|' )
             nml_conf_key = nml_conf[ 0 ]
             nml_conf_val = nml_conf[ 1: ]
             values = []
             for nml_elem in nml_conf_val :
-                values.append( nml_elem.replace(' ', '').strip( ',' ).split( ',' ) )
+                values.append( nml_elem.strip( ',' ).split( ',' ) )
             exp_conf.default.namelist_dict[ nml_conf_key ] = values
     return exp_conf
 

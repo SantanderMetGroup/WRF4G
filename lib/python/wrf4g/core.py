@@ -764,13 +764,14 @@ class Chunk( Base ):
             inputsandbox += ",file://%s" % ( input_files )
         # files to add for the outputsandbox
         outputsandbox = "log_%d_${JOB_ID}.tar.gz" % self.chunk_id
-        arguments = '%s %s %d %s %s %d %s' % ( exp_name,
-                                               rea_name,                                     
-                                               self.chunk_id,
-                                               datetime2datewrf( self.start_date ),
-                                               datetime2datewrf( self.end_date ),
-                                               1 if rerun else 0,
-                                               self.realization.member_label )
+        arguments = '%s %s %d %s %s %s %d %s' % ( exp_name,
+                                                  rea_name,                                     
+                                                  self.chunk_id,
+                                                  datetime2datewrf( self.start_date ),
+                                                  datetime2datewrf( self.end_date ),
+                                                  datetime2datewrf( self.realization.start_date ),
+                                                  1 if rerun else 0,
+                                                  self.realization.member_label )
         # Create the job template
         file_template = gw_job.create_template( name          = rea_name,
                                                 directory     = rea_path,

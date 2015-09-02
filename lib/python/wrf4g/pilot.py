@@ -184,19 +184,29 @@ class PilotParams( object ):
     ##
     chunk_sdate          = datewrf2datetime( sys.argv[4] )
     chunk_edate          = datewrf2datetime( sys.argv[5] )
+    realization_sdate    = datewrf2datetime( sys.argv[6] )
     chunk_rdate          = chunk_sdate
 
     ##
     # Varieble to rerun the chunk
     ##
-    rerun                = int( sys.argv[6] )
+    rerun                = int( sys.argv[7] )
 
     ##
     # Multi member
     ##
-    try :     member     = sys.argv[ 7 ]
-    except :  member     = ''
-
+    try :    
+        member_tag  = sys.argv[ 8 ]           
+        for member in resource_exp_conf[ 'extdata_member' ] :
+            if member_tag in member :
+                try :
+                    member_number, initial_month_ number = member.split( '|' )[ 1:2 ]
+                except :
+                    member_number        = member.split( '|' )[ 1 ]
+                    initial_month_number = realization_sdate.month
+    except :
+        member_number        = ''
+        initial_month_number = ''
     ##
     # Local path
     ##
@@ -718,10 +728,10 @@ def launch_pilot( params ):
                 if not which( "preprocessor.%s" % pp ) :
                    raise JobError( "Preprocessor '%s' does not exist" % pp, Job.CodeError.PREPROCESSOR_FAILED )
                 preprocessor_log = join( params.log_path, 'preprocessor.%s.log' %  pp )
-                code, output = exec_cmd( "preprocessor.%s %s %s %s %s &> %s" % (
+                code, output = exec_cmd( "preprocessor.%s %s %s %s %s %s &> %s" % (
                                             pp, datetime2datewrf( params.chunk_rdate ) , 
-                                            datetime2datewrf( params.chunk_edate ), 
-                                            join( epath, params.member ), vt, 
+                                            datetime2datewrf( params.chunk_edate ), epath, 
+                                            params.member_number, params.initial_month_number, 
                                             preprocessor_log ) )
                 if code :
                     logging.info( output )
