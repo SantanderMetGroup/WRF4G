@@ -74,8 +74,8 @@ NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np
         if code :
             logging.info( out )
                 
-    def change_priority(self, priority, job_id ):
-        cmd = "%s/gwkill -9 -p %d %s" % (DRM4G_BIN, priority, job_id )
+    def set_priority(self, job_id, priority ):
+        cmd = "%s/gwkill -9 -p %d %s" % (DRM4G_BIN, priority, str(job_id ) )
         code, out = exec_cmd( cmd )
         logging.info( out )
 

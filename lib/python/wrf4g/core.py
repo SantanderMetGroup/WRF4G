@@ -58,7 +58,7 @@ class Experiment( Base ):
 
     dryrun                = False
     
-    def run(self, rerun = False, rea_pattern = False, rea_status = False ):
+    def run(self, rerun = False, rea_pattern = False, rea_status = False, priority = 0 ):
         """
         Run the realizations of this experiment
         n_chunk is the number of chunks to run. 
@@ -79,7 +79,7 @@ class Experiment( Base ):
                    first_chunk_run = 1
                 else :
                    first_chunk_run = None
-                rea.run( first_chunk_run = first_chunk_run, rerun = rerun )
+                rea.run( first_chunk_run = first_chunk_run, rerun = rerun, priority = priority )
 
     def edit(self):
         """
@@ -239,6 +239,20 @@ class Experiment( Base ):
             for rea in l_realizations :
                 rea.dryrun = self.dryrun
                 rea.cancel( hard )
+
+    def set_priority(self, rea_pattern = False, rea_status = False, priority = 0 ):
+        """
+        Setting priority to jobs 
+        """
+        #list of realization of the experiment
+        l_realizations  = self._filter_realizations( rea_pattern, rea_status )
+        if not ( l_realizations ):
+            logging.info( 'There are not realizations to set priority.' )
+        else :
+            logging.info( 'Setting priority Experiment %s' % self.name )
+            for rea in l_realizations :
+                rea.dryrun = self.dryrun
+                rea.set_priority( priority )
 
     def delete(self):
         """
@@ -446,7 +460,7 @@ class Realization( Base ):
     Status          = Enumerate( 'PREPARED', 'SUBMITTED', 'RUNNING',
                                  'PENDING', 'FAILED', 'FINISHED' )
         
-    def run(self, first_chunk_run = None , last_chunk_run = None, rerun = False ):
+    def run(self, first_chunk_run = None , last_chunk_run = None, rerun = False, priority = 0 ):
         """ 
         Run n_chunk of the realization.
         If n_chunk=0 run every chunk of the realization which haven't finished yet
@@ -513,7 +527,7 @@ class Realization( Base ):
                                                               datetime2datewrf(chunk.start_date), 
                                                               datetime2datewrf(chunk.end_date) ) )
                 if not self.dryrun :
-                    chunk.run( index, rerun )
+                    chunk.run( index, rerun, priority )
             if not self.dryrun :
                 # Update reealizaiton status
                 self.status = Realization.Status.SUBMITTED
@@ -683,7 +697,22 @@ class Realization( Base ):
             for chunk in l_chunks :
                 chunk.dryrun = self.dryrun
                 chunk.cancel( hard )
-    
+   
+    def set_priority(self, priority = 0 ):
+        """
+        Setting priority to chunks which status is submitted.
+        """
+        if priority >= 0 and priority <= 20 :
+            raise Exception( '' )       
+        l_chunks = self.chunk.filter( Chunk.status == Chunk.Status.SUBMITTED ).all()
+        logging.info( '---> Setting priority Realization %s' % self.name )
+        if not ( l_chunks ):
+            logging.info( '\tThere are not chunks to set priority.' )
+        else :
+            for chunk in l_chunks :
+                chunk.dryrun = self.dryrun
+                chunk.set_priority( hard )
+ 
 class Chunk( Base ):
     """ 
     A class to manage WRF4G chunks
@@ -709,7 +738,7 @@ class Chunk( Base ):
                                  'PENDING', 'FAILED', 'FINISHED' )
  
     #METHODS
-    def run (self, index, rerun = False):
+    def run (self, index, rerun = False, priority = 0 ):
         """ 
         Run a chunk is run a drm4g job
         """
@@ -756,7 +785,7 @@ class Chunk( Base ):
         time.sleep( 0.1 )
         # if the first chunk of the realization
         if index == 0 :
-            job.gw_job    = gw_job.submit( file_template = file_template )
+            job.gw_job    = gw_job.submit( priority = priority, file_template = file_template )
         else:
             # if the chunk is not the first of the realization, 
             # gwsubmit has an argument, gw_job of the job before
@@ -765,7 +794,8 @@ class Chunk( Base ):
             job_before    = chunk_before.job.order_by( Job.id )[-1]
             id_job_before = job_before.id          
             gw_job_before = job_before.gw_job
-            job.gw_job    = gw_job.submit( dep = gw_job_before, file_template = file_template )
+            job.gw_job    = gw_job.submit( dep = gw_job_before, priority = priority,
+                                           file_template = file_template )
         job.chunk_id = self.chunk_id
         job.run( rerun ) 
         self.job.append( job )
@@ -791,6 +821,22 @@ class Chunk( Base ):
             for job in l_jobs :
                 job.dryrun = self.dryrun
                 job.cancel( hard )
+
+    def set_priority(self, priority = 0 ):
+        """
+        Setting priority to jobs
+        """
+        logging.info('\t---> Setting priority Chunk %d %s %s' % ( self.chunk_id,
+                                                                  datetime2datewrf(self.start_date),
+                                                                  datetime2datewrf(self.end_date) )
+                                                          )
+        l_jobs = self.job.filter( Job.status == Job.Status.SUBMITTED ).all()
+        if not ( l_jobs ):
+            logging.info( '\t\tThere are not jobs to set priority.' )
+        else :
+            for job in l_jobs :
+                job.dryrun = self.dryrun
+                job.set_priority( priority )
        
 class Job( Base ):
     """
@@ -892,6 +938,14 @@ class Job( Base ):
         if not self.dryrun :
             GWJob().kill( self.gw_job, hard )
             self.set_status( Job.Status.CANCEL )
+
+    def set_priority(self, priority = 0 ):
+        """
+        Delete a job
+        """
+        logging.info('\t\t---> Setting priority Job %d' % self.gw_job )
+        if not self.dryrun :
+            GWJob().set_priority( self.gw_job, priority )
 
 class Events( Base ):
 

@@ -2,20 +2,22 @@
 Manage WRF4G experiments. 
     
 Usage: 
-    wrf4g exp list [ --pattern=<name> ]
-    wrf4g exp <name> define [ --dbg ] [ --force ]   [ --from-template=<name> ] [ --dir=<directory> ] 
-    wrf4g exp <name> edit   [ --dbg ] 
-    wrf4g exp <name> create [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
-    wrf4g exp <name> update [ --dbg ] [ --dry-run ] 
-    wrf4g exp <name> submit [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --rerun ] 
-    wrf4g exp <name> status [ --dbg ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --delay=<seconds> ]  
-    wrf4g exp <name> cancel [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --hard ]
-    wrf4g exp <name> delete [ --dbg ] [ --dry-run ] 
+    wrf4g exp list                [ --pattern=<name> ]
+    wrf4g exp <name> define       [ --dbg ] [ --force ]   [ --from-template=<name> ] [ --dir=<directory> ] 
+    wrf4g exp <name> edit         [ --dbg ] 
+    wrf4g exp <name> create       [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
+    wrf4g exp <name> update       [ --dbg ] [ --dry-run ] 
+    wrf4g exp <name> submit       [ --dbg ] [ --dry-run ] [ --priority=<value> ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --rerun ] 
+    wrf4g exp <name> status       [ --dbg ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --delay=<seconds> ]  
+    wrf4g exp <name> cancel       [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --hard ]
+    wrf4g exp <name> set-priority [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] <priority>
+    wrf4g exp <name> delete       [ --dbg ] [ --dry-run ] 
    
 Options:
     --dbg                     Debug mode.
     -n --dry-run              Dry run.
     -f --force                Force to remove if it exists.
+    -P --priority=<value>     Fix-priority for scheduling [default: 0]. 
     -p --pattern=<name>       Pattern to find experiments and realizations.
     -s --rea-state=<state>    Select only realizations in the indicated state. Available states :
                               PREPARED, SUBMITTED, RUNNING, PENDING, FAILED and FINISHED 
@@ -29,12 +31,17 @@ Commands:
     list                      Show all the experiments available.
     define                    Create the files needed to define a WRF4G experiment.
     edit                      Edit experiment.wrf4g file.
-    create                    Given experiment.wrf4g file, prepare the experiment creating the realizations and chunks needed.
+    create                    Given experiment.wrf4g file, prepare the experiment creating 
+                              the realizations and chunks needed.
     update                    Update the experiment configuration.
     submit                    Submit the experiment.
     status                    Check the status of realizations and chunks showing computing resources, 
                               job identifier and exit codes (SEE EXIT CODES) 
     cancel                    Cancel the active realizations by killing their jobs.
+    set-priority              Change the scheduling priority of any job releted to a realization. 
+                              The priority must be in range [0,20], and the default value is 0. 
+                              When a job gets a priority of 20, it becomes an urgent job. This job 
+                              is dispatched as soon as possible passing all the scheduling policies.
     delete                    Remove the experiment from the database.
 
 EXIT CODES
@@ -121,7 +128,10 @@ def run( arg ) :
                     if arg[ 'update' ] :
                         exp.prepare( update = True )
                     elif arg[ 'submit' ] :
-                        exp.run( arg[ '--rerun' ], arg[ '--pattern' ], arg[ '--rea-state' ] )
+                        exp.run( arg[ '--rerun' ], 
+                                 arg[ '--pattern' ], 
+                                 arg[ '--rea-state' ],
+                                 int( arg[ '--priority' ] ) )
                     elif arg[ 'status' ] :
                         if not arg[ '--delay' ] :
                             exp.get_status( arg[ '--pattern' ], arg[ '--rea-state' ] )
@@ -135,6 +145,8 @@ def run( arg ) :
                                 pass
                     elif arg[ 'cancel' ] :
                         exp.cancel( arg[ '--pattern' ], arg[ '--rea-state' ], arg[ '--hard' ] )
+                    elif arg[ 'set-priority' ] :
+                        exp.set_priority( arg[ '--pattern' ], arg[ '--rea-state' ], int( arg[ '<priority>' ] ) )
                     elif arg[ 'delete' ] :
                         exp.delete( )
                         session.delete( exp )
