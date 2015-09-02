@@ -240,12 +240,12 @@ class Experiment( Base ):
                 rea.dryrun = self.dryrun
                 rea.cancel( hard )
 
-    def set_priority(self, rea_pattern = False, rea_status = False, priority = 0 ):
+    def set_priority(self, rea_pattern = False, priority = 0 ):
         """
         Setting priority to jobs 
         """
         #list of realization of the experiment
-        l_realizations  = self._filter_realizations( rea_pattern, rea_status )
+        l_realizations  = self._filter_realizations( rea_pattern, rea_status = None )
         if not ( l_realizations ):
             logging.info( 'There are not realizations to set priority.' )
         else :
@@ -711,7 +711,7 @@ class Realization( Base ):
         else :
             for chunk in l_chunks :
                 chunk.dryrun = self.dryrun
-                chunk.set_priority( hard )
+                chunk.set_priority( priority )
  
 class Chunk( Base ):
     """ 

@@ -77,7 +77,7 @@ _wrf4g_exp()
     fi
 
     if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -W ' status edit cancel list create update submit delete define' -- $cur) )
+        COMPREPLY=( $( compgen -W ' status edit cancel create update submit delete define set-priority' -- $cur) )
     else
         case ${COMP_WORDS[3]} in
             status)
@@ -92,9 +92,6 @@ _wrf4g_exp()
             create)
             _wrf4g_exp_create
         ;;
-            list)
-            _wrf4g_exp_list
-        ;;
             update)
             _wrf4g_exp_update
         ;;
@@ -107,6 +104,10 @@ _wrf4g_exp()
             define)
             _wrf4g_exp_define
         ;;
+            set-priority)
+            _wrf4g_exp_set_priority
+        ;;
+
         esac
 
     fi
@@ -152,16 +153,6 @@ _wrf4g_exp_create()
     fi
 }
 
-_wrf4g_exp_list()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-
-    if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '-p --pattern' -- $cur) )
-    fi
-}
-
 _wrf4g_exp_update()
 {
     local cur
@@ -178,7 +169,7 @@ _wrf4g_exp_submit()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -n --dry-run --rerun -p --pattern -s --rea-state' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -n --dry-run --rerun -p --pattern -s --rea-state -P --priority' -- $cur) )
     fi
 }
 
@@ -189,6 +180,16 @@ _wrf4g_exp_delete()
 
     if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W '--dbg -n --dry-run ' -- $cur) )
+    fi
+}
+
+_wrf4g_exp_set_priority()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 4 ]; then
+        COMPREPLY=( $( compgen -W '--dbg -n --dry-run -p --pattern' -- $cur) )
     fi
 }
 
@@ -337,7 +338,7 @@ _wrf4g_rea()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -W 'status cancel submit log ' -- $cur) )
+        COMPREPLY=( $( compgen -W 'status cancel submit set-priority log ' -- $cur) )
     else
         case ${COMP_WORDS[3]} in
             status)
@@ -348,6 +349,9 @@ _wrf4g_rea()
         ;;
             submit)
             _wrf4g_rea_submit
+        ;;
+            set-priority)
+            _wrf4g_rea_set_priority
         ;;
             log)
             _wrf4g_rea_log
@@ -383,7 +387,17 @@ _wrf4g_rea_submit()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -ge 4 ]; then
-        COMPREPLY=( $( compgen -W '--dbg -n --dry-run --rerun' -- $cur) )
+        COMPREPLY=( $( compgen -W '--dbg -n --dry-run --rerun -P --priority' -- $cur) )
+    fi
+}
+
+_wrf4g_rea_set_priority()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 4 ]; then
+        COMPREPLY=( $( compgen -W '--dbg -n --dry-run ' -- $cur) )
     fi
 }
 
