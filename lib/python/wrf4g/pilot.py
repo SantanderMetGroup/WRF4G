@@ -197,10 +197,10 @@ class PilotParams( object ):
     ##
     try :    
         member_tag  = sys.argv[ 8 ]           
-        for member in resource_exp_conf[ 'extdata_member' ] :
+        for member in resource_exp_conf[ 'extdata_member_list' ] :
             if member_tag in member :
                 try :
-                    member_number, initial_month_ number = member.split( '|' )[ 1:2 ]
+                    member_number, initial_month_number = member.split( '|' )[ 1: ]
                 except :
                     member_number        = member.split( '|' )[ 1 ]
                     initial_month_number = realization_sdate.month

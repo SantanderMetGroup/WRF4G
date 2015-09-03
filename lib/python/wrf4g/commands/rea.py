@@ -9,24 +9,24 @@ Usage:
      wrf4g rea <name> cancel       [ --dbg ] [ --dry-run ] [ --hard ]
    
 Options:
-    --dbg                 Debug mode.
-    -n --dry-run          Dry run.
-    --rerun               Force to run although the realization has finished.
-    -P --priority=<value> Fix-priority for scheduling [default: 0]. 
-    --delay=<seconds>     Refresh experiment information every delay seconds.    
-    -d --dir=<directory>  Directory to unpack log files [default: ./].
-    --hard                Remove jobs from without synchronizing.
+    --dbg                  Debug mode.
+    -n --dry-run           Dry run.
+    --rerun                Force to run although the realization has finished.
+    -P --priority=<value>  Fix-priority for scheduling [default: 0].
+    --delay=<seconds>      Refresh experiment information every delay seconds.    
+    -d --dir=<directory>   Directory to unpack log files [default: ./].
+    --hard                 Remove jobs from without synchronizing.
   
 Commands:
-    submit                Submit the realization.       
-    status                Check the status of a realization showing computing resources, 
-                          job identifier and exit codes (SEE EXIT CODES).
-    log                   Get log files from a chunk.
-    set-priority          Change the scheduling priority of any job releted to the realization. 
-                          The priority must be in range [0,20], and the default value is 0. 
-                          When a job gets a priority of 20, it becomes an urgent job, and it is 
-                          dispatched as soon as possible passing all the scheduling policies. 
-    cancel                Cancel the realization by killing its jobs.
+    submit                 Submit the realization.       
+    status                 Check the status of a realization showing computing resources, 
+                           job identifier and exit codes (SEE EXIT CODES).
+    log                    Get log files from a chunk.
+    set-priority           Change the scheduling priority of any job releted to the realization. 
+                           The priority must be in range [0,20], and the default value is 0. 
+                           When a job gets a priority of 20, it becomes an urgent job, and it is 
+                           dispatched as soon as possible passing all the scheduling policies. 
+    cancel                 Cancel the realization by killing its jobs.
 
 EXIT CODES
     1  : Error creating directory to simulate

@@ -189,7 +189,7 @@ class Experiment( Base ):
                 raise Exception( "There is not a namelist template for WRF '%s'"
                                  "(File namelist.input does not exist)" % self.namelist_template )
             # Cycle to create a realization per combination
-            self.cycle_realizations( exp_conf.default.extdata_member,
+            self.cycle_realizations( exp_conf.default.extdata_member_list,
                                      exp_conf.default.namelist_label_comb, 
                                      exp_conf.default.namelist_dict )
         if not self.dryrun :
@@ -299,8 +299,8 @@ class Experiment( Base ):
         """
         Create realizations for each member and namelist combinations.
         """
-        for member_label in extdata_member :
-            rea_name_member = "%s_%s" % ( self.name, member.split( '|' )[ 0 ] ) if member_label else self.name
+        for member in extdata_member :
+            rea_name_member = "%s_%s" % ( self.name, member.split( '|' )[ 0 ] ) if member else self.name
             for comb, physic_label in enumerate( combinations ) :
                 rea_name_member_physic = "%s_%s" % ( rea_name_member, physic_label ) if physic_label else rea_name_member
                 ##
@@ -362,7 +362,7 @@ class Experiment( Base ):
                                                current_date  = rea_start_date,
                                                status        = Realization.Status.PREPARED,
                                                current_chunk = 1,
-                                               member_label  = member_label,
+                                               member_label  = member.split( '|' )[ 0 ],
                                                physic_label  = physic_label )
                             # Add realization to the experiment 
                             self.realization.append( rea )

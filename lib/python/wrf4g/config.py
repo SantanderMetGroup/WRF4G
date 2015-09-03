@@ -162,12 +162,10 @@ def sanity_check( exp_conf ) :
     # Check if there are multible members 
     ##
     # member tag | member number | initial month number
-    exp_conf.default.extdata_member = [ ]
     if exp_conf.default.extdata_member :
-        for member in exp_conf.default.extdata_member.replace(' ', '').split( '\n' ):
-            exp_conf.default.extdata_member.append( member )
+        exp_conf.default.extdata_member_list = [ member for member in  exp_conf.default.extdata_member.replace(' ', '').split( '\n' ) ]
     else :
-        exp_conf.default.extdata_member.append( '' )
+        exp_conf.default.extdata_member_list = [ '' ]
 
     ##
     # Check namelist configuration for multicombinations
@@ -194,7 +192,7 @@ def save_exp_pkl( obj_config, directory ) :
     """
     Save experiment into a pickle file.
     """
-    f = open( join( directory, "experiment.pkl"), "wb" )
+    f = open( join( directory, "experiment.pkl"), "w" )
     try :
         pickle.dump( obj_config, f )
     finally :
@@ -204,7 +202,7 @@ def load_exp_pkl( directory ) :
     """
     Load the experiment back from the pickle file.
     """
-    f = open( join( directory, "experiment.pkl"), "rb" )
+    f = open( join( directory, "experiment.pkl"), "r" )
     try :
         return pickle.load( f )
     finally :
