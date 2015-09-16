@@ -21,6 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ------------------------------------------------------------------------
 
+import sys
 from fortran_namelist import *
 from optparse import OptionParser
 
@@ -135,6 +136,6 @@ if __name__ == "__main__":
     nml.overWriteNamelist()
   elif not opt.quiet:
     if opt.thisrecord:
-      print nml.printNamelist(opt.thisrecord, sorted=opt.sort)
+      sys.stdout(nml.printNamelist(opt.thisrecord, sorted=opt.sort))
     else:
-      print nml.printNamelist(sorted=opt.sort)
+      sys.stdout(nml.printNamelist(sorted=opt.sort))

@@ -50,15 +50,15 @@ def asterisk_expansion(expr):
   if '*' in expr:
     [mult, value] = expr.split('*')
     rval = int(mult)*[value,]
-    return map(math_expansion, rval)
+    return list(map(math_expansion, rval))
   else:
     return expr
 
 def coerce_value_list(vlist, math_exp=True):
   if math_exp:
-    vlist = map(math_expansion, vlist)
+    vlist = list(map(math_expansion, vlist))
   else:
-    vlist = map(asterisk_expansion, vlist)
+    vlist = list(map(asterisk_expansion, vlist))
     vlist = flat_list(vlist)
   try:
     values=[int(element) for element in vlist]
@@ -178,7 +178,7 @@ class FortranNamelist:
     return rval
   def setValue(self, variable, value, record=""):
     if record:
-      if not self.record_dict.has_key(record):
+      if record not in self.record_dict:
         self.record_dict[record] = FortranNamelistRecord(record)
         if not record in self.ordered_records:
           self.ordered_records.append(record)
@@ -191,7 +191,7 @@ class FortranNamelist:
           gotit=True
           break
       if not gotit:
-        raise KeyError, "The variable '%s' was not found and no record was specified!" % variable
+        raise KeyError( "The variable '%s' was not found and no record was specified!" % variable )
   def getValue(self, variable, record=""):
     if record:
       return self[record][variable]
@@ -203,7 +203,7 @@ class FortranNamelist:
           gotit=True
           break
       if not gotit:
-        raise KeyError, "The variable '%s' was not found." % variable
+        raise KeyError( "The variable '%s' was not found." % variable )
   def hasVariable(self, variable, record=""):
     if record:
       return self[record].hasVariable(variable)
@@ -230,7 +230,7 @@ class FortranNamelist:
           gotit = True
           break
       if not gotit:
-        raise KeyError, "The variable '%s' was not found and no record was specified!" % variable
+        raise KeyError( "The variable '%s' was not found and no record was specified!" % variable )
   def delVariable(self, variable, record=""):
     if record:
       self[record].delVariable(variable)
@@ -313,7 +313,7 @@ class WrfNamelist(FortranNamelist):
           gotit=True
           break
       if not gotit:
-        raise KeyError, "The variable was not found and no record was specified!"
+        raise KeyError( "The variable was not found and no record was specified!" )
   def checkMaxDomPatterns(self, var):
     prefixes = ["start_", "end_"]
     suffixes = ["_inname", "_outname", "_interval"]
@@ -335,20 +335,26 @@ class WrfNamelist(FortranNamelist):
       if ncols or var in self.MAX_DOM_VARIABLES:# or self.checkMaxDomPatterns(var):
         self.printWrfWarning('Trimming variable %s.' % var)
         self.setValue(var, self.getValue(var)[:mxd])
+  def printWrfError(self, message):
+    logging.error("WRF Check Error: %s" % message)
   def printWrfWarning(self, message):
     logging.warn("WRF Check Warning: %s" % message)
   def wrfCheck(self):
     """
     Check for some recomendations/mandatory WRF specific issues in the namelist.
     """
-    for record in self.record_dict.keys():
+    error = 0
+    for record in list(self.record_dict.keys()):
       if not record in self.NAMELIST_RECORDS :
-        raise Exception( "'%s' section does not exist" % record )
+        printWrfError( "'%s' section does not exist" % record )
+        error = error + 1
     if self.hasVariable('eta_levels', 'domains'):
       if not self.hasVariable('e_vert', 'domains'): 
-        raise Exception( "Selected eta_levels but e_vert was not set" )
+        printWrfError( "Selected eta_levels but e_vert was not set" )
+        error = error + 1
       elif len( self.getValue('eta_levels', 'domains') ) != self.getValue('e_vert', 'domains')[0]:
-        raise Exception( "eta_levels are not %s" % len( self.getValue('eta_levels', 'domains') ) ) 
+        printWrfError( "eta_levels are not %s" % len( self.getValue('eta_levels', 'domains') ) ) 
+        error = error + 1
     tsratio = self.getValue('time_step')[0] * 1000 / self.getValue('dx')[0]
     if   tsratio > 6: self.printWrfWarning("Time step is larger than 6 times dx (%f)" % tsratio)
     elif tsratio < 5: self.printWrfWarning("Time step is shorter than 5 times dx (%f)" % tsratio)
@@ -398,6 +404,7 @@ class WrfNamelist(FortranNamelist):
     if self.getValue('sf_surface_physics')[0] == 1 and self.getValue('num_soil_layers')[0] != 5:
       self.printWrfWarning('Simple soil selected but the soil levels are not 5. Fixing...')
       self['physics'].setValue('num_soil_layers', 5)
+    return error
   def extendMaxDomVariables(self):
     #
     # Provide enough columns in max_dom variables. Risky stuff..
@@ -408,7 +415,7 @@ class WrfNamelist(FortranNamelist):
         if len(theval) < self.getValue("max_dom")[0]:
           self.printWrfWarning('Variable %s = %s requires as many entries as domains.' % (var, theval))
           if var == "grid_id":
-            self.setValue(var, range(1, self.getValue("max_dom")[0]+1)) 
+            self.setValue(var, list(range(1, self.getValue("max_dom")[0]+1))) 
           else:
             self.setValue(var, theval + (self.getValue("max_dom")[0]-len(theval))*[theval[-1],])
           self.printWrfWarning('Filling with last domain entry!! -> %s = %s' % (var, self.getValue(var)))
