@@ -51,7 +51,7 @@ def run( arg ) :
         config.load( )
         if config.check( ) :
             raise Exception( "Review the configuration of '%s'." % ( arg['<resource>'] ) )
-        if not config.resources.has_key( arg['<resource>'] ):
+        if arg['<resource>'] not in config.resources :
             raise Exception( "'%s' is not a configured resource." % ( arg['<resource>'] ) )
         lrms         = config.resources.get( arg['<resource>'] )[ 'lrms' ]
         communicator = config.resources.get( arg['<resource>'] )[ 'communicator' ]
@@ -83,5 +83,5 @@ def run( arg ) :
                 proxy.check( )
     except KeyboardInterrupt :
         pass   
-    except Exception , err :
+    except Exception as err :
         logging.error( str( err ) )

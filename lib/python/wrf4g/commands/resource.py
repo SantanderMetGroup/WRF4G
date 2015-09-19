@@ -39,6 +39,6 @@ def run( arg ) :
             resource.list()
     except KeyboardInterrupt :
         pass
-    except Exception , err :
+    except Exception as err :
         logging.error( str( err ) )
 

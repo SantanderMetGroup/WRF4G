@@ -87,5 +87,5 @@ def run( arg ) :
             gw_job.kill( arg['<job_id>'], arg[ '--hard' ] )
     except KeyboardInterrupt :
         pass
-    except Exception , err :
+    except Exception as err :
         logging.error( str( err ) )

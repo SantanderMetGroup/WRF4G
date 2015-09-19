@@ -92,7 +92,7 @@ def wps2wrf( namelist_wps, namelist_input, sdate, edate, maxdom, chunk_is_restar
     #
     #  Compute the grid spacings. Read them from met_em files if the projection is lat-lon.
     #
-    nmli.setValue("grid_id", range(1, maxdom+1))
+    nmli.setValue("grid_id", list(range(1, maxdom+1)))
     pid  = nmlw.getValue("parent_id")
     pgr  = nmlw.getValue("parent_grid_ratio")
     proj = nmlw.getValue("map_proj")[0]

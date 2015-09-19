@@ -29,7 +29,7 @@ def process_is_runnig( pid ):
     Check is a process is running given a file
     """
     try:
-        with open( pid , 'r' ) as f:
+        with open( pid , 'r' ) as f :
             lines = f.readlines()
         os.kill( int( lines[0].strip() ) , 0 )
     except :
@@ -102,7 +102,7 @@ class MySQLDB( object ):
                     os.kill( int( mysql_ppid ), signal.SIGKILL )
                     os.kill( int( pid ), signal.SIGKILL )
                     logging.info( " OK" )
-                except Exception , err :
+                except Exception as err :
                     logging.error( " ERROR: stopping MySQL: %s" % err )
             else :
                 logging.warn( " WARNING: MySQL is already stopped" )

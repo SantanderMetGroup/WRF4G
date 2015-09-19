@@ -60,5 +60,5 @@ def run( arg ) :
             MySQLDB( int( arg[ '--db-port' ] ) ).start()
     except KeyboardInterrupt :
         pass
-    except Exception , err :
+    except Exception as err :
         logging.error( err )

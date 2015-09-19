@@ -39,7 +39,7 @@ if __name__ == "__main__":
         arg = docopt( command.__doc__ , argv = argv )
         try :
             command.run( arg )
-        except Exception, err :
+        except Exception as err :
             exit( err )
     else:
         exit( "%r is not a wrf4g command. See 'wrf4g --help'." % args[ '<command>' ] )

@@ -109,11 +109,11 @@ def run( arg ) :
                 session.rollback()
             else :
                 session.commit()
-    except OperationalError, err :
+    except OperationalError as err :
         logging.error( err.message )
     except KeyboardInterrupt :
         session.rollback()
-    except Exception , err :
+    except Exception as err :
         session.rollback()
         logging.error( str( err ) )
     finally:

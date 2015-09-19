@@ -27,7 +27,7 @@ __revision__ = "$Id$"
 
 import logging, sys
 from os.path              import join, basename, dirname
-from wrf4g.tools.vcplib   import VCPURL, copy
+from wrf4g.utils.vcplib   import VCPURL, copy
 
 def run( arg ):
     logging.basicConfig( format = '%(message)s',
@@ -43,5 +43,5 @@ def run( arg ):
             copy( arg[ '<source>' ] , arg[ '<dest>' ], overwrite = arg[ '--overwrite' ] )       
     except KeyboardInterrupt :
         pass 
-    except Exception , err :
+    except Exception as err :
         logging.error( str( err ) )

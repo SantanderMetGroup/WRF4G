@@ -32,7 +32,7 @@ from wrf4g.utils.archive    import extract
 from wrf4g.utils.time       import datetime2datewrf, Calendar
 from wrf4g.utils.file       import validate_name, edit_file
 from wrf4g.utils.command    import exec_cmd
-from wrf4g.tools.vcplib     import VCPURL
+from wrf4g.utils.vcplib     import VCPURL
 from wrf4g.tools.gridwaylib import GWJob
 
 class Experiment( Base ):
@@ -42,16 +42,16 @@ class Experiment( Base ):
     __tablename__         = 'experiment'
     
     # Columns
-    id                    = Column(u'id', INTEGER, primary_key=True, nullable=False)
-    name                  = Column(u'name', VARCHAR(length=512), nullable=False)  
-    calendar              = Column(u'calendar', VARCHAR(length=300))
-    home_dir              = Column(u'home_directory', VARCHAR(length=300))
-    np                    = Column(u'np', INTEGER)
-    requirements          = Column(u'requirements', VARCHAR(length=1024)) 
-    environment           = Column(u'environment', VARCHAR(length=1024)) 
-    namelist_version      = Column(u'namelist_version', VARCHAR(length=1024)) 
-    max_dom               = Column(u'max_dom', INTEGER)
-    namelist              = Column(u'namelist', VARCHAR(length=1024))
+    id                    = Column('id', INTEGER, primary_key=True, nullable=False)
+    name                  = Column('name', VARCHAR(length=512), nullable=False)  
+    calendar              = Column('calendar', VARCHAR(length=300))
+    home_dir              = Column('home_directory', VARCHAR(length=300))
+    np                    = Column('np', INTEGER)
+    requirements          = Column('requirements', VARCHAR(length=1024)) 
+    environment           = Column('environment', VARCHAR(length=1024)) 
+    namelist_version      = Column('namelist_version', VARCHAR(length=1024)) 
+    max_dom               = Column('max_dom', INTEGER)
+    namelist              = Column('namelist', VARCHAR(length=1024))
 
     # Realtionships
     realization           = relationship("Realization", back_populates="experiment", lazy='dynamic')
@@ -309,7 +309,7 @@ class Experiment( Base ):
                 nmli = fn.WrfNamelist( self.namelist_input )
                 logging.debug( "Updating parameter 'max_dom' in the namelist" )
                 nmli.setValue( "max_dom", self.max_dom )
-                for mnl_variable, mnl_values in namelist_combinations.items() :
+                for mnl_variable, mnl_values in list(namelist_combinations.items()) :
                     # Update the namelist per each combination
                     logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
                     # Modify the namelist with the parameters available in the namelist description
@@ -437,19 +437,19 @@ class Realization( Base ):
     __tablename__   = 'realization'
     
     # Columns
-    id              = Column(u'id',INTEGER, primary_key=True, nullable=False)
-    exp_id          = Column(u'exp_id',INTEGER, ForeignKey(u'experiment.id')) 
-    name            = Column(u'name',VARCHAR(length=1024),nullable=False)
-    start_date      = Column(u'start_date',DATETIME())
-    end_date        = Column(u'end_date',DATETIME())
-    chunk_size_h    = Column(u'chunk_size_h', INTEGER)
-    restart         = Column(u'restart',DATETIME()) 
-    status          = Column(u'status',VARCHAR(length=20))
-    current_date    = Column(u'current_date',DATETIME())
-    current_chunk   = Column(u'current_chunk',INTEGER)
-    nchunks         = Column(u'nchunks',INTEGER)
-    member_label    = Column(u'member_label',VARCHAR(length=100))
-    physic_label    = Column(u'physic_label',VARCHAR(length=100)) 
+    id              = Column('id',INTEGER, primary_key=True, nullable=False)
+    exp_id          = Column('exp_id',INTEGER, ForeignKey('experiment.id')) 
+    name            = Column('name',VARCHAR(length=1024),nullable=False)
+    start_date      = Column('start_date',DATETIME())
+    end_date        = Column('end_date',DATETIME())
+    chunk_size_h    = Column('chunk_size_h', INTEGER)
+    restart         = Column('restart',DATETIME()) 
+    status          = Column('status',VARCHAR(length=20))
+    current_date    = Column('current_date',DATETIME())
+    current_chunk   = Column('current_chunk',INTEGER)
+    nchunks         = Column('nchunks',INTEGER)
+    member_label    = Column('member_label',VARCHAR(length=100))
+    physic_label    = Column('physic_label',VARCHAR(length=100)) 
 
     # Realtionships
     experiment      = relationship("Experiment", back_populates="realization")
@@ -720,13 +720,13 @@ class Chunk( Base ):
     __tablename__   = 'chunk'
 
     # Columns
-    id              = Column(u'id', INTEGER, primary_key = True, nullable = False)
-    rea_id          = Column(u'rea_id', INTEGER, ForeignKey(u'realization.id'))
-    start_date      = Column(u'start_date', DATETIME())
-    end_date        = Column(u'end_date', DATETIME())
-    wps             = Column(u'wps', INTEGER) 
-    status          = Column(u'status', VARCHAR(length=20))
-    chunk_id        = Column(u'chunk_id', INTEGER)
+    id              = Column('id', INTEGER, primary_key = True, nullable = False)
+    rea_id          = Column('rea_id', INTEGER, ForeignKey('realization.id'))
+    start_date      = Column('start_date', DATETIME())
+    end_date        = Column('end_date', DATETIME())
+    wps             = Column('wps', INTEGER) 
+    status          = Column('status', VARCHAR(length=20))
+    chunk_id        = Column('chunk_id', INTEGER)
 
     # Relationships
     realization     = relationship("Realization", back_populates = "chunk")
@@ -846,13 +846,13 @@ class Job( Base ):
     __tablename__   = 'job'
 
     # Columns
-    id              = Column(u'id', INTEGER, primary_key=True, nullable=False)
-    gw_job          = Column(u'gw_job', INTEGER)
-    gw_restarted    = Column(u'gw_restarted', INTEGER)  
-    chunk_id        = Column(u'chunck_id', INTEGER, ForeignKey(u'chunk.id'))
-    resource        = Column(u'resource', VARCHAR(length=45))
-    status          = Column(u'status', VARCHAR(length=20))
-    exitcode        = Column(u'exitcode', VARCHAR(length=20))
+    id              = Column('id', INTEGER, primary_key=True, nullable=False)
+    gw_job          = Column('gw_job', INTEGER)
+    gw_restarted    = Column('gw_restarted', INTEGER)  
+    chunk_id        = Column('chunck_id', INTEGER, ForeignKey('chunk.id'))
+    resource        = Column('resource', VARCHAR(length=45))
+    status          = Column('status', VARCHAR(length=20))
+    exitcode        = Column('exitcode', VARCHAR(length=20))
 
     # Relationship
     chunk           = relationship("Chunk", back_populates = "job")
@@ -953,10 +953,10 @@ class Events( Base ):
     __tablename__   = 'events'   
  
     # Columns
-    id              = Column(u'id',INTEGER, primary_key=True, nullable=False)
-    job_id          = Column(u'job_id',INTEGER, ForeignKey(u'job.id'))
-    job_status      = Column(u'job_status',VARCHAR(length=20))
-    timestamp       = Column(u'timestamp',DATETIME())
+    id              = Column('id',INTEGER, primary_key=True, nullable=False)
+    job_id          = Column('job_id',INTEGER, ForeignKey('job.id'))
+    job_status      = Column('job_status',VARCHAR(length=20))
+    timestamp       = Column('timestamp',DATETIME())
 
     # Relationship
     job             = relationship("Job", back_populates = "events")

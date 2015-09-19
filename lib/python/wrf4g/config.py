@@ -73,7 +73,7 @@ def sanity_check( exp_conf ) :
     """
     logging.info( "Checking the variables in experiment.wrf4g file"  )
     # Check if all mandatory variables are avaible
-    default_keys = exp_conf.default.keys()
+    default_keys = list( exp_conf.default.keys() )
     for key in MANDATORY_VARIABLES :
         if key not in default_keys :
             raise Exception( "'%s' is a mandatory variable." 
@@ -141,13 +141,13 @@ def sanity_check( exp_conf ) :
     ##
     # Check parallel enviroment
     ##
-    if not ParallelEnvironment.launcher_map.has_key( exp_conf.default.parallel_environment ):
+    if exp_conf.default.parallel_environment not in ParallelEnvironment.launcher_map :
         raise Exception( "ERROR: '%s' does not exist" % exp_conf.default.parallel_environment )
 
     ##
     # Check if app variable has been configure correctly
     ##
-    for section in exp_conf.keys():
+    for section in list(exp_conf.keys( ) ) :
         if exp_conf[ section ].get( 'app' ) :
             for app in exp_conf[ section ].get( 'app' ).split('\n') :
                 try :

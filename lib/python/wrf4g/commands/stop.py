@@ -26,5 +26,5 @@ def run( arg ) :
         MySQLDB().stop()
     except KeyboardInterrupt :
         pass
-    except Exception , err :
+    except Exception as err :
         logging.error( str( err ) )

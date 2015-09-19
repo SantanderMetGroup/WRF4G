@@ -21,7 +21,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-from __future__ import with_statement
 import os
 import shutil
 import sys
@@ -64,7 +63,7 @@ class Archive(object):
     @staticmethod
     def _archive_cls(file):
         cls = None
-        if isinstance(file, basestring):
+        if isinstance(file, str):
             filename = file
         else:
             try:

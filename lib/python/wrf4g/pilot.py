@@ -1,7 +1,7 @@
-from __future__           import with_statement
 import os
 import re
 import sys
+import stat
 import time
 import socket
 import shutil
@@ -25,14 +25,17 @@ from wrf4g.utils.time     import ( dateiso2datetime, datewrf2datetime,
                                    datetime2datewrf, datetime2dateiso )
 from wrf4g.utils.file     import WRFFile
 from wrf4g.utils.namelist import wps2wrf, fix_ptop
+from wrf4g.utils.vcplib   import VCPURL, copy_file
 from wrf4g.config         import load_exp_pkl
-from wrf4g.tools.vcplib   import VCPURL, copy_file
 
 __version__  = '2.0.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
 lock = __import__('threading').Lock()
+
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
 
 class JobError( Exception ):
     """Raised when job fails.
@@ -155,7 +158,7 @@ class PilotParams( object ):
     exp_conf            = load_exp_pkl( root_path )
     # Find if there is a specific section for this resource
     resource_name  = os.environ.get( 'GW_HOSTNAME' )
-    if exp_conf.has_key( resource_name ) :
+    if resource_name in exp_conf :
         resource_exp_conf = exp_conf[ resource_name ]
     else :
         resource_exp_conf = exp_conf[ 'default' ]
@@ -311,7 +314,7 @@ def clean_wrf_files( job_db, params, clean_all = False ):
                         mo = re.findall("(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})", output )
                         mo.sort()
                         dest_file = WRFFile( file_name, mo[-1] ).file_name_out_iso()
-                    except Exception, err :
+                    except Exception as err :
                         logging.error( "ERROR: Calculating wrfout_name_end_date %s" % err )
                         dest_file = WRFFile( file_name).file_name_iso()
                         logging.info( "Destination file will be %s" % dest_file )
@@ -324,7 +327,7 @@ def clean_wrf_files( job_db, params, clean_all = False ):
                     dest = join( params.out_rea_output_path, dest_file )
         
                 logging.info( "Uploading file '%s'" % file )
-                os.chmod( file, 0664 )
+                os.chmod( file,  stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH )
                 try :
                     copy_file( file, dest )
                 except :
@@ -376,11 +379,6 @@ def launch_pilot( params ):
     """
     Prepare and launch the job pilot
     """
-    ##
-    # Give all access permissions to the group and allow other users 
-    ##
-    os.umask( 022 )
-
     ##
     # Create log directory
     ##
@@ -528,13 +526,13 @@ def launch_pilot( params ):
         logging.info( 'Setting bin files execute by the group' )
 
         for exe_file in os.listdir( root_bin_path ) :
-            os.chmod( join( root_bin_path, exe_file ), 0777 )
+            os.chmod( join( root_bin_path, exe_file ), stat.S_IRWXU )
 
         if 'wrf_all_in_one' in params.app :
-            os.chmod( join( params.root_path, 'WPS', 'ungrib', 'ungrib.exe' ), 0777 )
-            os.chmod( join( params.root_path, 'WPS', 'metgrid', 'metgrid.exe' ), 0777 )
-            os.chmod( join( params.root_path, 'WRFV3', 'run', 'real.exe' ), 0777 )
-            os.chmod( join( params.root_path, 'WRFV3', 'run', 'wrf.exe' ), 0777 )
+            os.chmod( join( params.root_path, 'WPS', 'ungrib', 'ungrib.exe' ), stat.S_IRWXU )
+            os.chmod( join( params.root_path, 'WPS', 'metgrid', 'metgrid.exe' ), stat.S_IRWXU )
+            os.chmod( join( params.root_path, 'WRFV3', 'run', 'real.exe' ), stat.S_IRWXU )
+            os.chmod( join( params.root_path, 'WRFV3', 'run', 'wrf.exe' ), stat.S_IRWXU )
 
         ##
         # This is a little bit tricky prepare the pallalel environment.
@@ -697,7 +695,7 @@ def launch_pilot( params ):
                 nmlw.setValue( "end_date", params.max_dom * [ datetime2datewrf( params.chunk_edate ) ] )
                 nmlw.setValue( "interval_seconds", params.extdata_interval )
                 nmlw.overWriteNamelist() 
-            except Exception, err :
+            except Exception as err :
                 raise JobError( "Error modifying namelist: %s" % err, Job.CodeError.NAMELIST_FAILED )
 
             ##
@@ -712,7 +710,7 @@ def launch_pilot( params ):
                     nmlw = fn.FortranNamelist( params.namelist_wps )
                     nmlw.setValue( "prefix", vt, "ungrib" )
                     nmlw.overWriteNamelist()
-                except Exception, err :
+                except Exception as err :
                     raise JobError( "Error modifying namelist: %s" % err, Job.CodeError.NAMELIST_FAILED )
                 vtable = join( params.wps_path, 'Vtable' )
                 if isfile( vtable ) :
@@ -739,7 +737,7 @@ def launch_pilot( params ):
                             Job.CodeError.PREPROCESSOR_FAILED )
 
                 link_grib     = join( params.wps_path, 'link_grib.sh' ) 
-                os.chmod( link_grib, 0777 )
+                os.chmod( link_grib, stat.S_IRWXU )
                 grb_data_path = join( params.wps_path, 'grbData') 
                 code, output  = exec_cmd( "%s %s/" % ( link_grib, grb_data_path ) )
                 if code :
@@ -780,7 +778,7 @@ def launch_pilot( params ):
                                     'opt_geogrid_tbl_path' ] :
                     nmlw.delVariable( var_to_del )
                 nmlw.overWriteNamelist()
-            except Exception, err :
+            except Exception as err :
                 raise JobError( "Error modifying namelist: %s" % err, Job.CodeError.NAMELIST_FAILED )
           
             ##
@@ -859,7 +857,7 @@ def launch_pilot( params ):
                     dest   = join( params.real_rea_output_path, basename( wps_file) , suffix )
                     try:
                         logging.info( "Uploading '%s' file" % oiring )
-                        os.chmod( oiring, 0664 ) 
+                        os.chmod( oiring, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH ) 
                         copy_file( oiring, dest )
                     except :
                         raise JobError( "'%s' has not copied" % oiring, Job.CodeError.COPY_UPLOAD_WPS )
@@ -939,7 +937,7 @@ def launch_pilot( params ):
         ##
         job_db.set_job_status( Job.Status.FINISHED )
         exit_code = 0
-    except JobError, err :
+    except JobError as err :
         logging.error( err.msg )
         job_db.set_job_status( Job.Status.FAILED )
         exit_code = err.exit_code
