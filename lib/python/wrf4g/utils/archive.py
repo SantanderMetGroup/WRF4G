@@ -28,6 +28,11 @@ import tarfile
 import zipfile
 import logging
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
 class ArchiveException(Exception):
     """
     Base exception class for all archive errors.
@@ -63,7 +68,7 @@ class Archive(object):
     @staticmethod
     def _archive_cls(file):
         cls = None
-        if isinstance(file, str):
+        if isinstance(file,basestring):
             filename = file
         else:
             try:
