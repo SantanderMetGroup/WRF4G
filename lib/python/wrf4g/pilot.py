@@ -224,8 +224,7 @@ class PilotParams( object ):
     parallel_wrf         = resource_exp_conf[ 'parallel_wrf' ]
     
     parallel_env         = ParallelEnvironment.launcher_map.get( exp_conf.default.parallel_environment )
-    parallel_run         = "%s %s %s " % ( parallel_env.launcher, parallel_env.np, os.environ.get( 'GW_NP' ) ) + \
-                           ( "%s %s " % ( parallel_env.ppn, os.environ.get( 'PPN' ) ) if os.environ.get( 'PPN' ) else '' )
+    parallel_run         = "%s %s %s " % ( parallel_env.launcher, parallel_env.np, os.environ.get( 'GW_NP' ) ) 
     parallel_run_pernode = "%s %s" % ( parallel_env.launcher, parallel_env.npernode )
         
     # WRF path variables
