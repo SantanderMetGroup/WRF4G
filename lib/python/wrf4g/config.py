@@ -177,7 +177,7 @@ def sanity_check( exp_conf ) :
         exp_conf.default.namelist_label_comb = [ '' ]
     if exp_conf.default.namelist_values :
         # Delete whitespaces
-        for nml_val in exp_conf.default.namelist_values.replace(' ', '').split( '\n' ):
+        for nml_val in exp_conf.default.namelist_values.replace(' ', '').replace('\t', '').split( '\n' ):
             if nml_val.startswith('#'): continue
             nml_conf = nml_val.split( '|' )
             nml_conf_key = nml_conf[ 0 ]
