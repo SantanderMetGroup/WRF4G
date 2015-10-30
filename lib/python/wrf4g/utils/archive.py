@@ -152,6 +152,16 @@ class TarArchive(BaseArchive):
             if member.isdir():
                 if filename and not os.path.exists(filename):
                     os.makedirs(filename)
+            elif member.issym():
+                try:
+                    self._archive._extract_member(member, filename)
+                except:
+                    # Some corrupt tar files seem to produce this
+                    # (specifically bad symlinks)
+                    logging.warn(
+                        'In the tar file %s the member %s is invalid: %s'
+                        % (filename, member.name, sys.exc_info()[1] ))
+                    continue
             else:
                 try:
                     extracted = self._archive.extractfile(member)
