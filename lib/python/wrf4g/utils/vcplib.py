@@ -190,19 +190,22 @@ class VCPURL(object):
         if self.protocol == 'sftp' and 'not found' in out :
             return []
         out_list = out.split("\n")
-        if self.protocol == "gsiftp": 
+        if self.protocol == "gsiftp":
+            aux_list = []
             for i, elem in enumerate(out_list[2:]):
-                out_list[i] = elem.split()[-1]
+                aux_list.append( elem.split()[-1] )
+            out_list = aux_list
+
         pattern = basename( file ).replace(".", "\.")
         pattern = pattern.replace("*", ".*")
         pattern = pattern + "$"
-        
+
         try :
             out_list.remove(".")
             out_list.remove("..")
         except ValueError:
             pass
-        
+
         file_list = []
         for file in out_list :
             file_name = basename( file )
