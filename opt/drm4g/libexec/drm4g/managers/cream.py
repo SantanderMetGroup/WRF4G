@@ -213,8 +213,8 @@ class Job (drm4g.managers.Job):
         else :
             input_files = ''
         
-        self.default_output_files.extend( output_sandbox )
-        output_files = ','.join( [ '"%s"' % (f) for f in self.default_output_files ] )
+        self.output_files = output_sandbox + self.default_output_files
+        output_files = ','.join( [ '"%s"' % (f) for f in self.output_files ] )
                     
         requirements = ''
         if parameters.has_key('maxWallTime'):  
@@ -274,7 +274,7 @@ Environment = { %(env)s };
         """ 
         Get output files from the remote output_url
         """
-        for file in self.default_output_files :
+        for file in self.output_files :
             cmd = '%s %s file://%s' % ( 
                                        GLOBUS_CP % self.resfeatures[ 'vo' ],
                                        join( output_url , file ) ,
