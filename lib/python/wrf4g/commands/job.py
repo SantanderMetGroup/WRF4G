@@ -55,7 +55,7 @@ import time
 from os.path                import join, exists
 from drm4g.commands         import Daemon
 from wrf4g.utils.command    import cls
-from wrf4g.tools.gridwaylib import GWJob
+from wrf4g.utils.gridwaylib import GWJob
 
 def run( arg ) :
     logging.basicConfig( format = '%(message)s',

@@ -33,7 +33,7 @@ from wrf4g.utils.time       import datetime2datewrf, Calendar
 from wrf4g.utils.file       import validate_name, edit_file
 from wrf4g.utils.command    import exec_cmd
 from wrf4g.utils.vcplib     import VCPURL
-from wrf4g.tools.gridwaylib import GWJob
+from wrf4g.utils.gridwaylib import GWJob
 
 class Experiment( Base ):
     """ 
