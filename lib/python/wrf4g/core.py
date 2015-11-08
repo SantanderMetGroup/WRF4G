@@ -952,7 +952,9 @@ class Job( Base ):
             GWJob().set_priority( self.gw_job, priority )
 
 class Events( Base ):
-
+    """
+    A class to keep track of workflow events
+    """
     __tablename__   = 'events'   
  
     # Columns
