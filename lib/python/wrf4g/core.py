@@ -187,7 +187,7 @@ class Experiment( Base ):
                 shutil.copyfile(namelist_template, self.namelist_input )
             except :
                 raise Exception( "There is not a namelist template for WRF '%s'"
-                                 "(File namelist.input does not exist)" % self.namelist_template )
+                                 "(File namelist.input does not exist)" % namelist_template )
             # Cycle to create a realization per combination
             self.cycle_realizations( exp_conf.default.extdata_member_list,
                                      exp_conf.default.namelist_label_comb, 
