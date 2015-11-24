@@ -155,7 +155,7 @@ def sanity_check( exp_conf ) :
                 except ValueError:
                     raise Exception( "ERROR: 'app' variable in section '%s' is wrong." % section )
                 app_type = app_type.strip()
-                if app_type not in ( 'bundle', 'commnad' ) :
+                if app_type not in ( 'bundle', 'command' ) :
                     raise Exception( "ERROR: '%s' app type does not exist in section '%s'." % ( app_type, section ) )
 
     ##
