@@ -353,7 +353,8 @@ class WrfNamelist(FortranNamelist):
         self.printWrfError( "Selected eta_levels but e_vert was not set" )
         error = error + 1
       elif len( self.getValue('eta_levels', 'domains') ) != self.getValue('e_vert', 'domains')[0]:
-        self.printWrfError( "eta_levels are not %s" % len( self.getValue('eta_levels', 'domains') ) ) 
+        self.printWrfError( "eta_levels are not %s, they are %s" % ( self.getValue('e_vert', 'domains')[0],
+                                                                     len( self.getValue('eta_levels', 'domains') ) ) )
         error = error + 1
     tsratio = self.getValue('time_step')[0] * 1000 / self.getValue('dx')[0]
     if   tsratio > 6: self.printWrfWarning("Time step is larger than 6 times dx (%f)" % tsratio)
