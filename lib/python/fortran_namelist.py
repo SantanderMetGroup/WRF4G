@@ -346,14 +346,14 @@ class WrfNamelist(FortranNamelist):
     error = 0
     for record in list(self.record_dict.keys()):
       if not record in self.NAMELIST_RECORDS :
-        printWrfError( "'%s' section does not exist" % record )
+        self.printWrfError( "'%s' section does not exist" % record )
         error = error + 1
     if self.hasVariable('eta_levels', 'domains'):
       if not self.hasVariable('e_vert', 'domains'): 
-        printWrfError( "Selected eta_levels but e_vert was not set" )
+        self.printWrfError( "Selected eta_levels but e_vert was not set" )
         error = error + 1
       elif len( self.getValue('eta_levels', 'domains') ) != self.getValue('e_vert', 'domains')[0]:
-        printWrfError( "eta_levels are not %s" % len( self.getValue('eta_levels', 'domains') ) ) 
+        self.printWrfError( "eta_levels are not %s" % len( self.getValue('eta_levels', 'domains') ) ) 
         error = error + 1
     tsratio = self.getValue('time_step')[0] * 1000 / self.getValue('dx')[0]
     if   tsratio > 6: self.printWrfWarning("Time step is larger than 6 times dx (%f)" % tsratio)
