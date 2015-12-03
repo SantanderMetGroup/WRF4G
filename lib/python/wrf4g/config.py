@@ -67,16 +67,14 @@ def get_conf( directory = './' ):
         exp_conf_dict[ key ] = dict( exp_env.items( section ) )
     return sanity_check( dict2obj( exp_conf_dict ) )
 
-class SanityCheck():
+class SanityCheck :
     """
-    Chenck if experiment variables are written well
+    Check if experiment variables are written well
     """
 
     def __init__(self, exp_conf) :
-      
-        self.exp_cfg       = exp_cfg
-        self.exp_cfg_final = exp_cfg
-        self.total_errors  = 0
+        self.exp_cfg      = self.exp_cfg_final = exp_cfg
+        self.total_errors = 0
         logging.info( "Checking the variables in experiment.wrf4g file"  )
 
     def mandatory_variables(self) :
@@ -200,38 +198,36 @@ class SanityCheck():
         """
         # member tag | member number | initial month number
         if self.exp_cfg.default.extdata_member :
-            exp_conf.default.extdata_member_list = [ member for member in  exp_conf.default.extdata_member.replace(' ', '').split( '\n' ) ]
+            self.exp_cfg_final.default.extdata_member_list = [ member for member in self.exp_cfg.\
+                                                               default.extdata_member.replace(' ', '').split( '\n' ) ]
         else :
-            exp_conf.default.extdata_member_list = [ '' ]
+            self.exp_cfg_final.default.extdata_member_list = [ '' ]
 
-    ##
-    # Check namelist configuration for multicombinations
-    ##
-    if exp_conf.default.namelist_label_comb :
-        exp_conf.default.namelist_label_comb = exp_conf.default.namelist_label_comb.\
-                                               replace(' ', '').split( '|' )
-    else :
-        exp_conf.default.namelist_label_comb = [ '' ]
-    if exp_conf.default.namelist_values :
-        # Delete whitespaces
-        for nml_val in exp_conf.default.namelist_values.replace(' ', '').replace('\t', '').split( '\n' ):
-            if nml_val.startswith('#'): continue
-            nml_conf = nml_val.split( '|' )
-            nml_conf_key = nml_conf[ 0 ]
-            nml_conf_val = nml_conf[ 1: ]
-            values = []
-            for nml_elem in nml_conf_val :
-                values.append( nml_elem.strip( ',' ).split( ',' ) )
-            exp_conf.default.namelist_dict[ nml_conf_key ] = values
-    if exp_conf.default.namelist_label_comb :
-        exp_conf.default.namelist_label_comb = exp_conf.default.namelist_label_comb.\
-                                               replace(' ', '').split( '|' )
-    else :
-        exp_conf.default.namelist_label_comb = [ '' ]
-    ensemble
-    if total_errors :
-        raise Exception( "Please review your experiment configuration" )
-    return exp_conf
+    def namelist(self) :
+        """
+        Check namelist configuration for multicombinations
+        """
+        if exp_conf.default.namelist_label_comb :
+            self.exp_cfg_final.default.namelist_label_comb = self.exp_cfg.default.namelist_label_comb.\
+                                                             replace(' ', '').split( '|' )
+        else :
+            self.exp_cfg_final.default.namelist_label_comb = [ '' ]
+        if self.exp_cfg.default.namelist_values :
+            # Delete whitespaces
+            for nml_val in self.exp_cfg.default.namelist_values.replace(' ', '').replace('\t', '').split( '\n' ):
+                if nml_val.startswith('#'): continue
+                nml_conf = nml_val.split( '|' )
+                nml_conf_key = nml_conf[ 0 ]
+                nml_conf_val = nml_conf[ 1: ]
+                values = []
+                for nml_elem in nml_conf_val :
+                    values.append( nml_elem.strip( ',' ).split( ',' ) )
+                self.exp_cfg_final.default.namelist_dict[ nml_conf_key ] = values
+        if self.exp_cfg.default.namelist_label_comb :
+            self.exp_cfg_final.default.namelist_label_comb = self.exp_cfg.default.namelist_label_comb.\
+                                                             replace(' ', '').split( '|' )
+        else :
+            self.exp_cfg_final.default.namelist_label_comb = [ '' ]
 
 def save_exp_pkl( obj_config, directory ) :
     """
