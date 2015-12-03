@@ -67,105 +67,142 @@ def get_conf( directory = './' ):
         exp_conf_dict[ key ] = dict( exp_env.items( section ) )
     return sanity_check( dict2obj( exp_conf_dict ) )
 
-def sanity_check( exp_conf ) :
+class SanityCheck():
     """
     Chenck if experiment variables are written well
     """
-    logging.info( "Checking the variables in experiment.wrf4g file"  )
-    # Check if all mandatory variables are avaible
-    default_keys = list( exp_conf.default.keys() )
-    for key in MANDATORY_VARIABLES :
-        if key not in default_keys :
-            raise Exception( "'%s' is a mandatory variable." 
-                            "Please specify it in the experiment.wrf4g file" % key ) 
-    # Check the experiment name 
-    validate_name( exp_conf.default.name )
-    # Convert max_dom
-    exp_conf.default.max_dom          = int( exp_conf.default.max_dom )
-    # Convert np
-    exp_conf.default.np               = int( exp_conf.default.np )
-    # Convert extdata_interval
-    exp_conf.default.extdata_interval = int( exp_conf.default.extdata_interval )
 
-    ##
-    # Check if yes/no variables are right 
-    ##
-    for key in YES_NO_VARIABLES :
-        val = exp_conf.default[ key ].lower()
-        if val in ( 'y', 'yes' ) :
-            exp_conf.default[ key ] = 'yes'
-        elif val in ( 'n', 'no' ) :
-            exp_conf.default[ key ] = 'no'            
-        else :
-            raise Exception( "ERROR: '%s' variable should be 'yes' or 'no'" % key ) 
-    # Check calendar type
-    if not exp_conf.default.calendar in Calendar.available_types :
-        raise Exception( "'%s' calendar type is not avariable" % exp_conf.default.calendar )
-    ##
-    # Check strart and end dates
-    ##
-    exp_conf.default.datetime_list = []
-    for rea_dates in exp_conf.default.date_time.split( '\n' ) :
-        # Delete whitespaces and obtain each element
-        elems = rea_dates.replace( ' ', '' ).split( '|' )
-        if len( elems ) != 5 and len( elems ) != 3 :
-            raise Exception( "ERROR: Number of elements in '%s' is wrong" % rea_dates ) 
-        #  date_time specification 
-        #  start_date and  end_date  
-        start_date = datewrf2datetime( elems[ 0 ] )
-        end_date   = datewrf2datetime( elems[ 1 ] )
-        if start_date >= end_date :
-            raise Exception( "ERROR: '%s' is not earlier than the '%s'" % ( elems[ 0 ] , elems[ 1 ] )  )
-        # chunk_size_h
-        chunk_size_h = int( elems[ 2 ] )
-        # simulation_interval_h and simulation_length_h 
-        if len( elems ) == 5 :
-            simult_interval_h = int( elems[ 3 ] )
-            simult_length_h   = int( elems[ 4 ] )
-        else :
-            td = end_date - start_date
-            total_seconds = ( td.microseconds + ( td.seconds + td.days * 24 * 3600) * 10**6 ) / 10**6
-            simult_interval_h = simult_length_h = total_seconds / 3600
-        if chunk_size_h > simult_length_h :
-            logging.warn( "WARNING: %d 'chunk_size' is bigger than %d 'simulation_length'" %
-                                     ( chunk_size_h, simult_length_h ) )
-        # Defining restart_interval
-        # To avoid chunk restart we add 1 hour to restart_interval variable
-        if exp_conf.default.chunk_restart == 'no' :
-            restart_interval = ( chunk_size_h + 1 ) * 60 
-        else :
-            restart_interval = chunk_size_h * 60  
-        exp_conf.default.datetime_list.append( [ start_date, end_date, 
+    def __init__(self, exp_conf) :
+      
+        self.exp_cfg       = exp_cfg
+        self.exp_cfg_final = exp_cfg
+        self.total_errors  = 0
+        logging.info( "Checking the variables in experiment.wrf4g file"  )
+
+    def mandatory_variables(self) :
+        """
+        Check if all mandatory variables are avaible
+        """
+        default_keys = list( self.exp_cfg.default.keys() )
+        for key in MANDATORY_VARIABLES :
+            if key not in default_keys :
+                logging.warn( "ERROR: '%s' is a mandatory variable." 
+                              "Please specify it in the experiment.wrf4g file" % key ) 
+                self.total_errors += 1
+        
+    def experiment_name(self) :
+        """
+        Check the experiment name 
+        """
+        validate_name( self.exp_cfg.default.name )
+  
+    def convert_max_dom2int(self) :
+        """
+        Convert max_dom
+        """
+        self.exp_cfg_final.default.max_dom = int( self.exp_cfg.default.max_dom )
+    
+    def convert_np2int(self) :
+        """
+        Convert np
+        """
+        self.exp_cfg_final.default.np      = int( self.exp_cfg.default.np )
+
+    def yesno_vars(self):
+        """
+        Check if yes/no variables are right 
+        """
+        for key in YES_NO_VARIABLES :
+            val = self.exp_cfg.default[ key ].lower()
+            if val in ( 'y', 'yes' ) :
+                self.exp_cfg_final.default[ key ] = 'yes'
+            elif val in ( 'n', 'no' ) :
+                self.exp_cfg_final.default[ key ] = 'no'            
+            else :
+                logging.error( "ERROR: '%s' variable should be 'yes' or 'no'" % key ) 
+                self.total_errors += 1
+
+    def calendar(self):
+        """
+        Check calendar type
+        """
+        if not self.exp_cfg.default.calendar in Calendar.available_types :
+            logging.error( "'%s' calendar type is not avariable" % self.exp_cfg.default.calendar )
+            self.total_errors += 1
+    
+    def dates(self):
+        """
+        Check strart and end dates
+        """
+        self.exp_cfg_final.default.datetime_list = []
+        for rea_dates in self.exp_cfg.default.date_time.split( '\n' ) :
+            # Delete whitespaces and obtain each element
+            elems = rea_dates.replace( ' ', '' ).split( '|' )
+            if len( elems ) != 5 and len( elems ) != 3 :
+                raise Exception( "ERROR: Number of elements in '%s' is wrong" % rea_dates ) 
+            #  date_time specification 
+            #  start_date and  end_date  
+            start_date = datewrf2datetime( elems[ 0 ] )
+            end_date   = datewrf2datetime( elems[ 1 ] )
+            if start_date >= end_date :
+                logging.error( "ERROR: '%s' is not earlier than the '%s'" % ( elems[ 0 ] , elems[ 1 ] )  )
+                self.total_errors += 1
+            # chunk_size_h
+            chunk_size_h = int( elems[ 2 ] )
+            # simulation_interval_h and simulation_length_h 
+            if len( elems ) == 5 :
+                simult_interval_h = int( elems[ 3 ] )
+                simult_length_h   = int( elems[ 4 ] )
+            else :
+                td = end_date - start_date
+                total_seconds = ( td.microseconds + ( td.seconds + td.days * 24 * 3600) * 10**6 ) / 10**6
+                simult_interval_h = simult_length_h = total_seconds / 3600
+            if chunk_size_h > simult_length_h :
+                logging.warn( "WARNING: %d 'chunk_size' is bigger than %d 'simulation_length'" %
+                                         ( chunk_size_h, simult_length_h ) )
+            # Defining restart_interval
+            # To avoid chunk restart we add 1 hour to restart_interval variable
+            if self.exp_cfg.default.chunk_restart == 'no' :
+                restart_interval = ( chunk_size_h + 1 ) * 60 
+            else :
+                restart_interval = chunk_size_h * 60  
+            self.exp_cfg_final.default.datetime_list.append( [ start_date, end_date, 
                                                  simult_interval_h, simult_length_h, 
                                                  chunk_size_h, restart_interval ] )
-    ##
-    # Check parallel enviroment
-    ##
-    if exp_conf.default.parallel_environment not in ParallelEnvironment.launcher_map :
-        raise Exception( "ERROR: '%s' does not exist" % exp_conf.default.parallel_environment )
 
-    ##
-    # Check if app variable has been configure correctly
-    ##
-    for section in list(exp_conf.keys( ) ) :
-        if exp_conf[ section ].get( 'app' ) :
-            for app in exp_conf[ section ].get( 'app' ).split('\n') :
-                try :
-                    app_tag, app_type, app_value = app.split( '|' )
-                except ValueError:
-                    raise Exception( "ERROR: 'app' variable in section '%s' is wrong." % section )
-                app_type = app_type.strip()
-                if app_type not in ( 'bundle', 'command' ) :
-                    raise Exception( "ERROR: '%s' app type does not exist in section '%s'." % ( app_type, section ) )
+    def parallel_env(self) : 
+        """
+        Check parallel enviroment
+        """
+        if self.exp_cfg.default.parallel_environment not in ParallelEnvironment.launcher_map :
+            logging.error( "ERROR: '%s' does not exist" % self.exp_cfg.default.parallel_environment )
+            self.total_errors += 1
 
-    ##
-    # Check if there are multible members 
-    ##
-    # member tag | member number | initial month number
-    if exp_conf.default.extdata_member :
-        exp_conf.default.extdata_member_list = [ member for member in  exp_conf.default.extdata_member.replace(' ', '').split( '\n' ) ]
-    else :
-        exp_conf.default.extdata_member_list = [ '' ]
+    def app(self) :
+        """
+        Check if app variable has been configure correctly
+        """
+        for section in list(self.exp_cfg.keys( ) ) :
+            if self.exp_cfg[ section ].get( 'app' ) :
+                for app in self.exp_cfg[ section ].get( 'app' ).split('\n') :
+                    try :
+                        app_tag, app_type, app_value = app.split( '|' )
+                    except ValueError:
+                        raise Exception( "ERROR: 'app' variable in section '%s' is wrong." % section )
+                    app_type = app_type.strip()
+                    if app_type not in ( 'bundle', 'command' ) :
+                        logging.error( "ERROR: '%s' app type does not exist in section '%s'." % ( app_type, section ) )
+                        self.total_errors += 1
+
+    def member(self) :
+        """
+        Check if there are multible members 
+        """
+        # member tag | member number | initial month number
+        if self.exp_cfg.default.extdata_member :
+            exp_conf.default.extdata_member_list = [ member for member in  exp_conf.default.extdata_member.replace(' ', '').split( '\n' ) ]
+        else :
+            exp_conf.default.extdata_member_list = [ '' ]
 
     ##
     # Check namelist configuration for multicombinations
@@ -186,6 +223,14 @@ def sanity_check( exp_conf ) :
             for nml_elem in nml_conf_val :
                 values.append( nml_elem.strip( ',' ).split( ',' ) )
             exp_conf.default.namelist_dict[ nml_conf_key ] = values
+    if exp_conf.default.namelist_label_comb :
+        exp_conf.default.namelist_label_comb = exp_conf.default.namelist_label_comb.\
+                                               replace(' ', '').split( '|' )
+    else :
+        exp_conf.default.namelist_label_comb = [ '' ]
+    ensemble
+    if total_errors :
+        raise Exception( "Please review your experiment configuration" )
     return exp_conf
 
 def save_exp_pkl( obj_config, directory ) :
