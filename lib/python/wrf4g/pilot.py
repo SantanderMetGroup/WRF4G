@@ -26,9 +26,9 @@ from wrf4g.utils.time     import ( dateiso2datetime, datewrf2datetime,
 from wrf4g.utils.file     import WRFFile
 from wrf4g.utils.namelist import wps2wrf, fix_ptop
 from wrf4g.utils.vcplib   import VCPURL, copy_file
-from wrf4g.config         import load_exp_pkl
+from wrf4g.config         import load_pkl
 
-__version__  = '2.0.0'
+__version__  = '2.1.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
@@ -155,11 +155,12 @@ class PilotParams( object ):
     """
     pilot_wrf           = os.path.abspath( sys.argv[0] )
     root_path           = os.path.dirname( os.path.dirname( pilot_wrf ) )
-    exp_conf            = load_exp_pkl( root_path )
+    exp_conf            = load_pkl( root_path, 'realization.pkl' )
     # Find if there is a specific section for this resource
-    resource_name  = os.environ.get( 'GW_HOSTNAME' )
-    if resource_name in exp_conf :
-        resource_exp_conf = exp_conf[ resource_name ]
+    resource_name    = os.environ.get( 'GW_HOSTNAME' )
+    resource_section = 'resource/' + resource_name
+    if resource_section in exp_conf :
+        resource_exp_conf = exp_conf[ resource_section ]
     else :
         resource_exp_conf = exp_conf[ 'default' ]
     output_path          = resource_exp_conf[ 'output_path' ]
@@ -167,15 +168,15 @@ class PilotParams( object ):
     app                  = resource_exp_conf[ 'app' ]
     preprocessor         = resource_exp_conf[ 'preprocessor' ]
     postprocessor        = resource_exp_conf[ 'postprocessor' ]
-    clean_after_run      = resource_exp_conf[ 'clean_after_run' ]
+    clean_after_run      = resource_exp_conf.get( 'clean_after_run', 'no' )
     max_dom              = int( resource_exp_conf[ 'max_dom' ] )
-    save_wps             = resource_exp_conf[ 'save_wps' ]
-    wrfout_name_end_date = resource_exp_conf[ 'wrfout_name_end_date' ]
-    timestep_dxfactor    = resource_exp_conf[ 'timestep_dxfactor' ]
+    save_wps             = resource_exp_conf.get( 'save_wps', 'no' )
+    wrfout_name_end_date = resource_exp_conf.get( 'wrfout_name_end_date' , 'no' )
+    timestep_dxfactor    = resource_exp_conf.get( 'timestep_dxfactor', '6' )
     extdata_interval     = int( resource_exp_conf[ 'extdata_interval' ] )
     extdata_vtable       = resource_exp_conf[ 'extdata_vtable' ]
     extdata_path         = resource_exp_conf[ 'extdata_path' ]
-    constants_name       = resource_exp_conf[ 'constants_name' ]
+    constants_name       = resource_exp_conf.get( 'constants_name', '' )
     job_id               = int( os.environ.get( 'GW_JOB_ID' ) )
     restarted_id         = int( os.environ.get( 'GW_RESTARTED' ) )
     exp_name             = sys.argv[1]
@@ -199,14 +200,12 @@ class PilotParams( object ):
     # Multi member
     ##
     try :    
-        member_tag  = sys.argv[ 8 ]           
-        for member in resource_exp_conf[ 'extdata_member_list' ] :
-            if member_tag in member :
-                try :
-                    member_number, initial_month_number = member.split( '|' )[ 1: ]
-                except :
-                    member_number        = member.split( '|' )[ 1 ]
-                    initial_month_number = realization_sdate.month
+        try :
+            member_number, initial_month_number = resource_exp_conf[ 'extdata_member' ].\
+                                                  replace(' ', '').split( '|' )
+        except :
+            member_number        = resource_exp_conf[ 'extdata_member' ].replace(' ', '')
+            initial_month_number = realization_sdate.month
     except :
         member_number        = ''
         initial_month_number = ''
@@ -223,7 +222,7 @@ class PilotParams( object ):
     parallel_real        = resource_exp_conf[ 'parallel_real' ]
     parallel_wrf         = resource_exp_conf[ 'parallel_wrf' ]
     
-    parallel_env         = ParallelEnvironment.launcher_map.get( exp_conf.default.parallel_environment )
+    parallel_env         = ParallelEnvironment.launcher_map.get( resource_exp_conf[ 'parallel_env' ] )
     parallel_run         = "%s %s %s " % ( parallel_env.launcher, parallel_env.np, os.environ.get( 'GW_NP' ) ) 
     parallel_run_pernode = "%s %s" % ( parallel_env.launcher, parallel_env.npernode )
         
@@ -445,7 +444,7 @@ def launch_pilot( params ):
         ##
         logging.info( "Copy configured files to '%s'" % params.output_path )
 
-        for conf_file in [ "db.conf", "experiment.wrf4g", "experiment.pkl", "namelist.input" ] :
+        for conf_file in [ "db.conf", "experiment.wrf4g", "realization.pkl", "namelist.input" ] :
             oring = join( params.root_path, conf_file )
             dest  = join( params.rea_output_path , conf_file )
             try :

@@ -13,7 +13,7 @@ np                   = 1
 requirements         = ARCH="x86_64"
 clean_after_run      = yes
 save_wps             = no
-parallel_enviroment  = MPIRUN
+parallel_env         = MPIRUN
 parallel_real        = yes
 parallel_wrf         = yes
 # Input data
@@ -33,3 +33,5 @@ namelist_version     = 3.4.1
 namelist_label_comb  =
 namelist_values      =
 
+[ensemble/%(exp_name)s]
+# Add your experiment configuration

@@ -3,7 +3,7 @@ from datetime  import datetime, timedelta
 import re
 import calendar
 
-__version__  = '2.0.0'
+__version__  = '2.1.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

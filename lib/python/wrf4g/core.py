@@ -1,4 +1,4 @@
-__version__  = '2.0.0'
+__version__  = '2.1.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
@@ -6,6 +6,7 @@ import os
 import re
 import glob
 import time
+import copy
 import tarfile
 import shutil
 import datetime
@@ -15,17 +16,16 @@ from fortran_namelist       import coerce_value_list
 from sqlalchemy             import ( Column, INTEGER, 
                                      VARCHAR, SMALLINT, 
                                      DATETIME, ForeignKey,
-                                     create_engine, func, 
-                                     and_, or_ )
+                                     create_engine, func,
+                                     PickleType, and_, or_ )
 from sqlalchemy.orm         import relationship
 from sqlalchemy.orm.exc     import NoResultFound
 from os.path                import ( exists, expandvars, 
                                      expanduser, isdir, 
-                                     join )
+                                     join, abspath )
 from datetime               import datetime, timedelta 
 from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
-from wrf4g.config           import ( get_conf, save_exp_pkl, 
-                                     load_exp_pkl )
+from wrf4g.config           import get_conf, save_pkl
 from wrf4g.db               import Base
 from wrf4g.utils            import Enumerate, dict_compare 
 from wrf4g.utils.archive    import extract
@@ -42,17 +42,10 @@ class Experiment( Base ):
     __tablename__         = 'experiment'
     
     # Columns
-    id                    = Column('id', INTEGER, primary_key=True, nullable=False)
-    name                  = Column('name', VARCHAR(length=512), nullable=False)  
-    calendar              = Column('calendar', VARCHAR(length=300))
+    id                    = Column('id',             INTEGER, primary_key=True, nullable=False)
+    name                  = Column('name',           VARCHAR(length=512), nullable=False)  
     home_dir              = Column('home_directory', VARCHAR(length=300))
-    np                    = Column('np', INTEGER)
-    requirements          = Column('requirements', VARCHAR(length=1024)) 
-    environment           = Column('environment', VARCHAR(length=1024)) 
-    namelist_version      = Column('namelist_version', VARCHAR(length=1024)) 
-    max_dom               = Column('max_dom', INTEGER)
-    namelist              = Column('namelist', VARCHAR(length=1024))
-
+    
     # Realtionships
     realization           = relationship("Realization", back_populates="experiment", lazy='dynamic')
 
@@ -86,29 +79,24 @@ class Experiment( Base ):
         Edit experiment.wrf4g file.
         """
         edit_file( join( self.home_dir, 'experiment.wrf4g' )  )
- 
-    def _is_reconfigurable(self, modified_variables ) :
-        """
-        Check if the experiment can be updated
-        """
-        for elem_modified in modified_variables :
-            if elem_modified in ( 'calendar', 'max_dom' ) :
-                return False
-        return True
 
-    def _is_parcial_reconfigurable(self, modified_variables ) :
+    def _copy_namelist_template( self, namelist_version ):
         """
-        Check if the experiment can be updated without update the database. 
+        Copy the namelist from the template directory 
         """
-        if modified_variables :
-            for elem_modified in modified_variables :
-                if not elem_modified in ( 'np', 'requirements', 'environment', 'clean_after_run', 'save_wps',
-                                          'parallel_real', 'parallel_wrf', 'parallel_environment', 'domain_path', 
-                                          'preprocessor', 'extdata_path', 'postprocessor', 'app', 'output_path' ) :
-                    return False
-        return True
+        logging.info( "Preparing namelist %s version ... " % namelist_version )
+        namelist_template = join( WRF4G_DIR, 'etc', 'templates', 'namelist',
+                                  'namelist.input-%s' % namelist_version )
+        namelist_input    = join( self.home_dir, 'namelist.input' )
+        try :
+            logging.debug( "Copying '%s' to '%s'" % ( namelist_template, namelist_input ) )
+            shutil.copyfile( namelist_template, namelist_input )
+        except :
+            raise Exception( "There is not a namelist template for WRF '%s'"
+                             "(File namelist.input does not exist)" % namelist_template )
+        return namelist_input
 
-    def check_db(self, name, start_date, end_date, chunk_size_h):
+    def check_db(self, name, start_date, end_date, chunk_size_h, calendar):
         """ 
         Check if there is a realization with the same no reconfigurable field. 
         If there is not a realization with the same no reconfigurable fields => error
@@ -121,12 +109,14 @@ class Experiment( Base ):
             return None
         else :
             #Check if there is a realization with the same no reconfigurable fields
-            if rea.chunk_size_h == chunk_size_h and rea.end_date != end_date :
+            if ( rea.chunk_size_h == chunk_size_h and \
+                 rea.calendar == calendar and rea.end_date != end_date ) :
                 logging.debug( '\t\tUpdating realization on the database...' )
                 rea.end_date = end_date
                 rea.status   = Realization.Status.PREPARED
                 return rea
-            elif rea.chunk_size_h == chunk_size_h and rea.end_date == end_date :
+            elif ( rea.chunk_size_h == chunk_size_h and \
+                   rea.end_date == end_date and rea.calendar == calendar ) :
                 return rea
             else :                                 
                 #if rea does not exist (no realization with the same no reconfigurable fields)
@@ -140,33 +130,14 @@ class Experiment( Base ):
         if update :
             directory = self.home_dir
         # Read experiment.wrf4g file
-        exp_conf = get_conf( directory )
-
-        if self.name != exp_conf.default.name :
+        exp_cfg = get_conf( directory )
+        if self.name != exp_cfg[ 'default'][ 'name' ] :
             raise Exception( "ERROR: experiment.wrf4g file has a different experiment name." )
         
         # Update experiment variables
-        self.name             = exp_conf.default.name
-        self.calendar         = exp_conf.default.calendar
-        self.home_dir         = exp_conf.default.home_dir
-        self.np               = exp_conf.default.np
-        self.requirements     = exp_conf.default.requirements
-        self.environment      = exp_conf.default.environment 
-        self.namelist_version = exp_conf.default.namelist_version
-        self.max_dom          = exp_conf.default.max_dom
-        self.namelist         = exp_conf.default.namelist_values
-        self.datetime_list    = exp_conf.default.datetime_list
- 
-        # Check if the experiment can be updated
-        if update :
-            if not exists( join( directory, 'experiment.pkl' ) ) :
-                raise Exception( "ERROR: There is not an 'experiment.pkl' file to update this experiment" )
-            old_exp_conf = load_exp_pkl( directory )
-            added, removed, modified, same = dict_compare( old_exp_conf['default'], exp_conf[ 'default' ] )
-
-            if not self._is_reconfigurable( modified ) :
-                raise Exception( "ERROR: Experiment with the same name "
-                                 "and no reconfigurable fields already exists." )
+        self.name     = exp_cfg[ 'default' ][ 'name' ]
+        self.home_dir = abspath( directory ) 
+   
         if not self.dryrun :
             exp_sub_dir = join( WRF4G_DIR, 'var', 'submission', self.name )
             if not isdir( exp_sub_dir ) :
@@ -176,25 +147,10 @@ class Experiment( Base ):
                 except Exception :
                     raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )
           
-        if ( update and not self._is_parcial_reconfigurable( modified ) ) or ( not update ) :
-            # Copy the namelist from the template directory 
-            logging.info( "Preparing namelist..." )
-            namelist_template   = join( WRF4G_DIR , 'etc', 'templates', 'namelist', 
-                                       'namelist.input-%s' % self.namelist_version )
-            self.namelist_input = join( directory, 'namelist.input' )
-            try :
-                logging.debug( "Copying '%s' to '%s'" % (namelist_template, self.namelist_input) )
-                shutil.copyfile(namelist_template, self.namelist_input )
-            except :
-                raise Exception( "There is not a namelist template for WRF '%s'"
-                                 "(File namelist.input does not exist)" % namelist_template )
-            # Cycle to create a realization per combination
-            self.cycle_realizations( exp_conf.default.extdata_member_list,
-                                     exp_conf.default.namelist_label_comb, 
-                                     exp_conf.default.namelist_dict )
+        # Cycle to create a realization per combination
+        self.cycle_realizations( exp_cfg )
+        
         if not self.dryrun :
-            # Save current configuration in the experiment.pkl file 
-            save_exp_pkl( exp_conf, directory )
             # Copy configure files before submission
             self._copy_experiment_files( exp_sub_dir  )
             # Create software bundles to use on the WN
@@ -295,90 +251,113 @@ class Experiment( Base ):
         with open(dest_path, 'w') as f :
             f.writelines( data_updated )
 
-    def cycle_realizations( self, extdata_member, combinations, namelist_combinations ):
+    def cycle_realizations( self, exp_cfg ) :
         """
         Create realizations for each member and namelist combinations.
         """
-        for member in extdata_member :
-            rea_name_member = "%s_%s" % ( self.name, member.split( '|' )[ 0 ] ) if member else self.name
-            for comb, physic_label in enumerate( combinations ) :
-                rea_name_member_physic = "%s_%s" % ( rea_name_member, physic_label ) if physic_label else rea_name_member
-                ##
-                # Update namelist values
-                ##
-                nmli = fn.WrfNamelist( self.namelist_input )
-                logging.debug( "Updating parameter 'max_dom' in the namelist" )
-                nmli.setValue( "max_dom", self.max_dom )
-                for mnl_variable, mnl_values in list(namelist_combinations.items()) :
-                    # Update the namelist per each combination
-                    logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
-                    # Modify the namelist with the parameters available in the namelist description
-                    if '.' in mnl_variable :
-                        section, val = mnl_variable.split( '.' )
-                    else :
-                        section, val = "",  mnl_variable
-                    if val.startswith( "max_dom:" ) :
-                        val = val[ 8: ]
-                        if not val in nmli.MAX_DOM_VARIABLES : 
-                            nmli.MAX_DOM_VARIABLES.extend( val  )
-                    elif val.startswith( "single:" ) :
-                        val = val[ 7: ]
-                        if val in nmli.MAX_DOM_VARIABLES : 
-                            nmli.MAX_DOM_VARIABLES.remove( val  )
-                    try :                        
-                        nmli.setValue( val, coerce_value_list( mnl_values[ comb ] ), section )
-                    except IndexError:
-                        raise Exception( "'%s' does not have values for all namelist combinations." % mnl_variable )
-                nmli.trimMaxDom()
-                nmli.extendMaxDomVariables()
-                if nmli.wrfCheck() :
-                    raise Exception( "Please review 'namelist_values' variable." ) 
-                ##
-                for start_date, end_date, simult_interval_h, simult_length_h, chunk_size_h, restart_interval in self.datetime_list :
-                    # Update restart_interval in the namelist 
-                    logging.debug( "Updating parameter 'restart_interval' in the namelist" )
-                    nmli.setValue( "restart_interval", restart_interval )
-                    if not self.dryrun :
-                        nmli.overWriteNamelist()
-                    # Define which calendar is going to be used
-                    exp_calendar   = Calendar( self.calendar )
-                    rea_start_date = start_date
-                    while rea_start_date < end_date :
-                        rea_end_date = exp_calendar.add_hours(rea_start_date, simult_length_h )
-                        if rea_end_date > end_date :
-                            rea_end_date = end_date
-                        rea_name = "%s_%s" % ( rea_name_member_physic, rea_start_date.strftime( "%Y%m%dT%H%M%S" ) )
-                        logging.info( "---> Realization %s: start date %s end date %s" % ( 
-                                       rea_name, rea_start_date, rea_end_date ) )
-                        # Check realization on the database
-                        rea = self.check_db( name = rea_name, start_date = rea_start_date,
-                                             end_date = rea_end_date, chunk_size_h = chunk_size_h ) 
-                        if not rea :
-                            # Create a realization 
-                            rea = Realization( name          = rea_name, 
-                                               start_date    = rea_start_date,
-                                               end_date      = rea_end_date,
-                                               chunk_size_h  = chunk_size_h,
-                                               current_date  = rea_start_date,
-                                               status        = Realization.Status.PREPARED,
-                                               current_chunk = 1,
-                                               member_label  = member.split( '|' )[ 0 ],
-                                               physic_label  = physic_label )
-                            # Add realization to the experiment 
-                            self.realization.append( rea )
-                        # Check storage
-                        if not self.dryrun :   
-                            rea._prepare_sub_files()
-                        rea.cycle_chunks()
-                        rea_start_date = exp_calendar.add_hours( rea_start_date, simult_interval_h ) 
+        for section in list( exp_cfg.keys() ) :
+            if section.startswith( "ensemble" ) :
+                try :
+                    realization_name = self.name + '_' + section.split( "/" )[ 1 ]
+                    # Copy the namelist from the template directory 
+                    namelist_input = self._copy_namelist_template(  exp_cfg[ section ][ 'namelist_version' ] )
+                    ##
+                    # Update namelist values
+                    ##
+                    nmli = fn.WrfNamelist( namelist_input )
+                    logging.debug( "Updating parameter 'max_dom' in the namelist" )
+                    nmli.setValue( "max_dom", int( exp_cfg[ section ][ 'max_dom' ] ) )
+                    for mnl_variable, mnl_values in exp_cfg[ section ][ 'namelist_values' ] :
+                        # Update the namelist per each combination
+                        logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
+                        # Modify the namelist with the parameters available in the namelist description
+                        if '.' in mnl_variable :
+                            nml_section, val = mnl_variable.split( '.' )
+                        else :
+                            nml_section, val = "",  mnl_variable
+                        if val.startswith( "max_dom:" ) :
+                            val = val[ 8: ]
+                            if not val in nmli.MAX_DOM_VARIABLES : 
+                                nmli.MAX_DOM_VARIABLES.extend( val  )
+                        elif val.startswith( "single:" ) :
+                            val = val[ 7: ]
+                            if val in nmli.MAX_DOM_VARIABLES : 
+                                nmli.MAX_DOM_VARIABLES.remove( val  )
+                        try :                        
+                            nmli.setValue( val, coerce_value_list( mnl_values ), nml_section )
+                        except IndexError:
+                            raise Exception( "'%s' does not have values for all namelist combinations." % mnl_variable )
+                    nmli.trimMaxDom()
+                    nmli.extendMaxDomVariables()
+                    if nmli.wrfCheck() :
+                        raise Exception( "Please review 'namelist_values' variable." ) 
+                    ##
+                    # Clycle time
+                    ##
+                    for ( start_date, end_date, simult_interval_h, 
+                          simult_length_h, chunk_size_h, restart_interval ) in exp_cfg[ section ][ 'date_time' ] :
+                        # Update restart_interval in the namelist 
+                        logging.debug( "Updating parameter 'restart_interval' in the namelist" )
+                        nmli.setValue( "restart_interval", restart_interval )
+                        if not self.dryrun :
+                            nmli.overWriteNamelist()
+                        # Define which calendar is going to be used
+                        exp_calendar   = Calendar( exp_cfg[ section ][ 'calendar' ] )
+                        rea_start_date = start_date
+                        while rea_start_date < end_date :
+                            rea_end_date = exp_calendar.add_hours(rea_start_date, simult_length_h )
+                            if rea_end_date > end_date :
+                                rea_end_date = end_date
+                            rea_name = "%s_%s" % ( realization_name, rea_start_date.strftime( "%Y%m%dT%H%M%S" ) )
+                            logging.info( "---> Realization %s: start date %s end date %s" % ( 
+                                           rea_name, rea_start_date, rea_end_date ) )
+                            # Check realization on the database
+                            rea = self.check_db( name = rea_name, start_date = rea_start_date, end_date = rea_end_date, 
+                                                 chunk_size_h = chunk_size_h, calendar = exp_cfg[ section ][ 'calendar' ] ) 
+                            if not rea :
+                                # Create a realization 
+                                rea = Realization( name             = rea_name, 
+                                                   start_date       = rea_start_date,
+                                                   end_date         = rea_end_date,
+                                                   chunk_size_h     = chunk_size_h,
+                                                   current_date     = rea_start_date,
+                                                   status           = Realization.Status.PREPARED,
+                                                   current_chunk    = 1,
+                                                   calendar         = exp_cfg[ section ][ 'calendar' ],
+                                                   max_dom          = exp_cfg[ section ][ 'max_dom' ],
+                                                   np               = int( exp_cfg[ section ].get( 'np', 1 ) ),
+                                                   namelist_version = exp_cfg[ section ][ 'namelist_version' ],
+                                                   parallel_real    = exp_cfg[ section ][ 'parallel_real' ],
+                                                   parallel_wrf     = exp_cfg[ section ][ 'parallel_wrf' ],
+                                                   parallel_env     = exp_cfg[ section ][ 'parallel_env' ],
+                                                   domain_path      = exp_cfg[ section ][ 'domain_path' ],
+                                                   preprocessor     = exp_cfg[ section ][ 'preprocessor' ],
+                                                   extdata_path     = exp_cfg[ section ][ 'extdata_path' ],
+                                                   postprocessor    = exp_cfg[ section ][ 'postprocessor' ],
+                                                   requirements     = exp_cfg[ section ].get( 'requirements', ''),
+                                                   environment      = exp_cfg[ section ].get( 'environment', ''),
+                                                   app              = exp_cfg[ section ][ 'app' ],
+                                                   output_path      = exp_cfg[ section ][ 'output_path' ],
+                                                   namelist_values  = exp_cfg[ section ][ 'namelist_values' ] )
+                                # Add realization to the experiment 
+                                self.realization.append( rea )
+                            # Check storage
+                            if not self.dryrun :
+                                exp_cfg[ 'default' ] = exp_cfg[ section ]
+                                save_pkl( exp_cfg, self.home_dir, "realization.pkl" ) 
+                                rea._prepare_sub_files()
+                            rea.cycle_chunks()
+                            rea_start_date = exp_calendar.add_hours( rea_start_date, simult_interval_h ) 
+                except KeyError as err :
+                    logging.error( "%s is a mandatory variable."
+                                   " Please add this variable to experiment.wrf4g file" % str(err) )
 
     def _copy_experiment_files(self, exp_sub_dir ):
         """
         Copy configure files before submission.
         """    
         for file in [ join( WRF4G_DIR, "etc", "db.conf" ),
-                      join( self.home_dir, "experiment.wrf4g" ),
-                      join( self.home_dir, "experiment.pkl" ) ] :
+                      join( self.home_dir, "experiment.wrf4g" ) ] :
             if not exists ( expandvars( file ) ) :
                 raise Exception( "'%s' is not available" % file )
             else :
@@ -434,31 +413,46 @@ class Realization( Base ):
     """
     A class to mange WRF4G realizations
     """
-    __tablename__   = 'realization'
+    __tablename__    = 'realization'
     
     # Columns
-    id              = Column('id',INTEGER, primary_key=True, nullable=False)
-    exp_id          = Column('exp_id',INTEGER, ForeignKey('experiment.id')) 
-    name            = Column('name',VARCHAR(length=1024),nullable=False)
-    start_date      = Column('start_date',DATETIME())
-    end_date        = Column('end_date',DATETIME())
-    chunk_size_h    = Column('chunk_size_h', INTEGER)
-    restart         = Column('restart',DATETIME()) 
-    status          = Column('status',VARCHAR(length=20))
-    current_date    = Column('current_date',DATETIME())
-    current_chunk   = Column('current_chunk',INTEGER)
-    nchunks         = Column('nchunks',INTEGER)
-    member_label    = Column('member_label',VARCHAR(length=100))
-    physic_label    = Column('physic_label',VARCHAR(length=100)) 
+    id               = Column('id',               INTEGER, primary_key=True, nullable=False)
+    exp_id           = Column('exp_id',           INTEGER, ForeignKey('experiment.id')) 
+    name             = Column('name',             VARCHAR(length=1024), nullable=False)
+    start_date       = Column('start_date',       DATETIME())
+    end_date         = Column('end_date',         DATETIME())
+    chunk_size_h     = Column('chunk_size_h',     INTEGER)
+    restart          = Column('restart',          DATETIME()) 
+    status           = Column('status',           VARCHAR(length=20))
+    current_date     = Column('current_date',     DATETIME())
+    current_chunk    = Column('current_chunk',    INTEGER)
+    nchunks          = Column('nchunks',          INTEGER)
+    calendar         = Column('calendar',         VARCHAR(length=300))
+    max_dom          = Column('max_dom',          INTEGER)
+    np               = Column('np',               INTEGER)
+    requirements     = Column('requirements',     VARCHAR(length=1024))
+    environment      = Column('environment',      VARCHAR(length=1024))
+    parallel_real    = Column('parallel_real',    VARCHAR(length=3))
+    parallel_wrf     = Column('parallel_wrf',     VARCHAR(length=3))
+    parallel_env     = Column('parallel_env',     VARCHAR(length=20))
+    domain_path      = Column('domain_path',      VARCHAR(length=1024))
+    preprocessor     = Column('preprocessor',     VARCHAR(length=1024))
+    extdata_path     = Column('extdata_path',     VARCHAR(length=1024))
+    postprocessor    = Column('postprocessor',    VARCHAR(length=1024))
+    app              = Column('app',              VARCHAR(length=2048))
+    output_path      = Column('output_path',      VARCHAR(length=1024))
+    extdata_member   = Column('extdata_member',   VARCHAR(length=1024))
+    namelist_version = Column('namelist_version', VARCHAR(length=10))
+    namelist_values  = Column('namelist_values',  PickleType) 
 
     # Realtionships
-    experiment      = relationship("Experiment", back_populates="realization")
-    chunk           = relationship("Chunk", back_populates= "realization", lazy='dynamic')
+    experiment       = relationship("Experiment", back_populates = "realization")
+    chunk            = relationship("Chunk",      back_populates = "realization", lazy='dynamic')
 
-    dryrun          = False
+    dryrun           = False
 
-    Status          = Enumerate( 'PREPARED', 'SUBMITTED', 'RUNNING',
-                                 'PENDING', 'FAILED', 'FINISHED' )
+    Status           = Enumerate( 'PREPARED', 'SUBMITTED', 'RUNNING',
+                                  'PENDING', 'FAILED', 'FINISHED' )
         
     def run(self, first_chunk_run = None , last_chunk_run = None, rerun = False, priority = 0 ):
         """ 
@@ -536,17 +530,18 @@ class Realization( Base ):
         """
         Prepare the files needed to submit the realization. 
         """
-        rea_submission_dir = join( WRF4G_DIR, 'var', 'submission', self.experiment.name, self.name )
-        if not isdir( rea_submission_dir ) :
+        rea_submission_path = join( WRF4G_DIR, 'var', 'submission', self.experiment.name, self.name )
+        if not isdir( rea_submission_path ) :
             try :
-                os.makedirs( rea_submission_dir )
+                os.makedirs( rea_submission_path )
             except Exception :
-                raise Exception( "Couldn't be created '%s' directory" % rea_submission_dir )
-        file_name = expandvars( join( self.experiment.home_dir, "namelist.input" ) )
-        if not exists ( file_name ) :
-            raise Exception( "'%s' is not available" % file_name )
-        else :
-            shutil.copy( file_name , rea_submission_dir )
+                raise Exception( "Couldn't be created '%s' directory" % rea_submission_path )
+        for file_name in [ join( self.experiment.home_dir, "namelist.input" ),
+                           join( self.experiment.home_dir, "realization.pkl" ) ] :
+            if not exists( file_name ) :
+                raise Exception( "'%s' is not available" % file_name )
+            else :
+                shutil.copy( file_name , rea_submission_path )
 
     def check_db(self, rea_id, chunk_start_date, chunk_end_date, chunk_id ):
         """ 
@@ -588,7 +583,7 @@ class Realization( Base ):
         Create chunks the needed for a realization 
         """
         # Define which calendar is going to be used
-        exp_calendar = Calendar(self.experiment.calendar)
+        exp_calendar = Calendar( self.calendar )
         chunk_id = 1
         chunk_start_date = self.start_date
         while chunk_start_date < self.end_date :
@@ -721,13 +716,13 @@ class Chunk( Base ):
     __tablename__   = 'chunk'
 
     # Columns
-    id              = Column('id', INTEGER, primary_key = True, nullable = False)
-    rea_id          = Column('rea_id', INTEGER, ForeignKey('realization.id'))
+    id              = Column('id',         INTEGER, primary_key = True, nullable = False)
+    rea_id          = Column('rea_id',     INTEGER, ForeignKey('realization.id'))
     start_date      = Column('start_date', DATETIME())
-    end_date        = Column('end_date', DATETIME())
-    wps             = Column('wps', INTEGER) 
-    status          = Column('status', VARCHAR(length=20))
-    chunk_id        = Column('chunk_id', INTEGER)
+    end_date        = Column('end_date',   DATETIME())
+    wps             = Column('wps',        INTEGER) 
+    chunk_id        = Column('chunk_id',   INTEGER)
+    status          = Column('status',     VARCHAR(length=20))
 
     # Relationships
     realization     = relationship("Realization", back_populates = "chunk")
@@ -757,7 +752,7 @@ class Chunk( Base ):
         inputsandbox  = "file://%s,"                  % wrf4g_package
         inputsandbox += "file://%s/db.conf,"          % exp_path
         inputsandbox += "file://%s/experiment.wrf4g," % exp_path
-        inputsandbox += "file://%s/experiment.pkl,"   % exp_path
+        inputsandbox += "file://%s/realization.pkl,"  % rea_path  
         inputsandbox += "file://%s/namelist.input"    % rea_path  
         # Add input file if it is exist
         input_files = join( exp_path , 'wrf4g_files.tar.gz' )
@@ -765,21 +760,20 @@ class Chunk( Base ):
             inputsandbox += ",file://%s" % ( input_files )
         # files to add for the outputsandbox
         outputsandbox = "log_%d_${JOB_ID}.tar.gz" % self.chunk_id
-        arguments = '%s %s %d %s %s %s %d %s' % ( exp_name,
-                                                  rea_name,                                     
-                                                  self.chunk_id,
-                                                  datetime2datewrf( self.start_date ),
-                                                  datetime2datewrf( self.end_date ),
-                                                  datetime2datewrf( self.realization.start_date ),
-                                                  1 if rerun else 0,
-                                                  self.realization.member_label )
+        arguments = '%s %s %d %s %s %s %d' % ( exp_name,
+                                               rea_name,                                     
+                                               self.chunk_id,
+                                               datetime2datewrf( self.start_date ),
+                                               datetime2datewrf( self.end_date ),
+                                               datetime2datewrf( self.realization.start_date ),
+                                               1 if rerun else 0 )
         # Create the job template
         file_template = gw_job.create_template( name          = rea_name,
                                                 directory     = rea_path,
                                                 arguments     = arguments,
-                                                np            = self.realization.experiment.np,
-                                                req           = self.realization.experiment.requirements,
-                                                environ       = self.realization.experiment.environment,
+                                                np            = int( self.realization.np ),
+                                                req           = self.realization.requirements,
+                                                environ       = self.realization.environment,
                                                 inputsandbox  = inputsandbox,
                                                 outputsandbox = outputsandbox )
         # Submit the template
@@ -871,13 +865,13 @@ class Job( Base ):
     __tablename__   = 'job'
 
     # Columns
-    id              = Column('id', INTEGER, primary_key=True, nullable=False)
-    gw_job          = Column('gw_job', INTEGER)
+    id              = Column('id',           INTEGER, primary_key=True, nullable=False)
+    gw_job          = Column('gw_job',       INTEGER)
     gw_restarted    = Column('gw_restarted', INTEGER)  
-    chunk_id        = Column('chunck_id', INTEGER, ForeignKey('chunk.id'))
-    resource        = Column('resource', VARCHAR(length=45))
-    status          = Column('status', VARCHAR(length=20))
-    exitcode        = Column('exitcode', VARCHAR(length=20))
+    chunk_id        = Column('chunck_id',    INTEGER, ForeignKey('chunk.id'))
+    resource        = Column('resource',     VARCHAR(length=45))
+    status          = Column('status',       VARCHAR(length=20))
+    exitcode        = Column('exitcode',     VARCHAR(length=20))
 
     # Relationship
     chunk           = relationship("Chunk", back_populates = "job")
@@ -958,10 +952,10 @@ class Events( Base ):
     __tablename__   = 'events'   
  
     # Columns
-    id              = Column('id',INTEGER, primary_key=True, nullable=False)
-    job_id          = Column('job_id',INTEGER, ForeignKey('job.id'))
-    job_status      = Column('job_status',VARCHAR(length=20))
-    timestamp       = Column('timestamp',DATETIME())
+    id              = Column('id',         INTEGER, primary_key=True, nullable=False)
+    job_id          = Column('job_id',     INTEGER, ForeignKey('job.id'))
+    job_status      = Column('job_status', VARCHAR(length=20))
+    timestamp       = Column('timestamp',  DATETIME())
 
     # Relationship
     job             = relationship("Job", back_populates = "events")

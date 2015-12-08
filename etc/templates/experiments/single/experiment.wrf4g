@@ -1,6 +1,8 @@
 [DEFAULT]
 # Experiment configuration
 name                 = %(exp_name)s
+
+[ensemble/single]
 # Simulation domain
 max_dom              = 1
 # Experiment time-specification
@@ -13,7 +15,7 @@ np                   = 1
 requirements         = ARCH = "x86_64"
 clean_after_run      = yes
 save_wps             = no
-parallel_environment = MPIRUN
+parallel_env         = MPIRUN
 parallel_real        = yes
 parallel_wrf         = yes
 # Input data
@@ -42,3 +44,5 @@ namelist_values      = spec_bdy_width     | 10
 		       radt               | 15
 		       ra_lw_physics      | 3
 		       ra_sw_physics      | 3
+
+

@@ -6,7 +6,7 @@ from os.path             import dirname, abspath, join, exists
 from wrf4g               import WRF4G_DEPLOYMENT_DIR, WRF4G_DIR
 from wrf4g.utils.command import exec_cmd
 
-__version__  = '2.0.0'
+__version__  = '2.1.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

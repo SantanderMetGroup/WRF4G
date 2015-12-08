@@ -21,7 +21,7 @@ Supported protocols:
     FTP             ftp://www.meteo.unican.es/work/WRF4G.tar.gz
     SFTP            sftp://www.meteo.unican.es/work/WRF4G.tar.gz
 """
-__version__  = '2.0.0'
+__version__  = '2.1.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
