@@ -255,7 +255,15 @@ class Experiment( Base ):
         """
         Create realizations for each member and namelist combinations.
         """
-        for section in list( exp_cfg.keys() ) :
+        l_sections = list( exp_cfg.keys() ) 
+        number_ensembles = 0
+        for section in l_sections :
+            if section.startswith( "ensemble" ) :
+                number_ensembles += 1
+        # If there is not any ensemble sections, it will be created ones
+        if not number_ensembles :
+            exp_cfg[ "ensemble/default" ] = exp_cfg[ "default" ]
+        for section in l_sections :
             if section.startswith( "ensemble" ) :
                 try :
                     realization_name = self.name + '_' + section.split( "/" )[ 1 ]
