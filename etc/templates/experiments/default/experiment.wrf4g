@@ -33,5 +33,3 @@ namelist_version     = 3.4.1
 namelist_label_comb  =
 namelist_values      =
 
-[ensemble/%(exp_name)s]
-# Add your experiment configuration

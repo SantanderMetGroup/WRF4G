@@ -263,7 +263,7 @@ class Experiment( Base ):
         # If there is not any ensemble sections, it will be created ones
         if not number_ensembles :
             exp_cfg[ "ensemble/default" ] = exp_cfg[ "default" ]
-        for section in l_sections :
+        for section in list( exp_cfg.keys() ) :
             if section.startswith( "ensemble" ) :
                 try :
                     realization_name = self.name + '_' + section.split( "/" )[ 1 ]

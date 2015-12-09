@@ -2,7 +2,6 @@
 # Experiment configuration
 name                 = %(exp_name)s
 
-[ensemble/single]
 # Simulation domain
 max_dom              = 1
 # Experiment time-specification
