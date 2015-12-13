@@ -24,7 +24,7 @@ class GWJob( object ):
         f = open(ftemplate,'w')
         template="""NAME = %s
 EXECUTABLE   = /usr/bin/env python 
-ARGUMENTS    = ./bin/pilot_wrf.py %s
+ARGUMENTS    = ./bin/wrf_wrapper.py %s
 INPUT_FILES  = %s
 OUTPUT_FILES = %s
 REQUIREMENTS = %s

@@ -8,7 +8,7 @@ Required Software
 WRF4G needs the following software preinstalled both in the UI and the CR:
 
  * x86_64 Linux
- * Python, version >= 2.5 and < 3.0.
+ * Python, version >= 2.6 and >= 3.3
 
 Platform Notes
 

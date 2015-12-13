@@ -130,12 +130,12 @@ class Experiment( Base ):
         if update :
             directory = self.home_dir
         # Read experiment.wrf4g file
-        exp_cfg = get_conf( directory )
-        if self.name != exp_cfg[ 'default'][ 'name' ] :
+        cfg = get_conf( directory )
+        if self.name != cfg[ 'default'][ 'name' ] :
             raise Exception( "ERROR: experiment.wrf4g file has a different experiment name." )
         
         # Update experiment variables
-        self.name     = exp_cfg[ 'default' ][ 'name' ]
+        self.name     = cfg[ 'default' ][ 'name' ]
         self.home_dir = abspath( directory ) 
    
         if not self.dryrun :
@@ -148,7 +148,7 @@ class Experiment( Base ):
                     raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )
           
         # Cycle to create a realization per combination
-        self.cycle_realizations( exp_cfg )
+        self.cycle_realizations( cfg )
         
         if not self.dryrun :
             # Copy configure files before submission
@@ -251,31 +251,31 @@ class Experiment( Base ):
         with open(dest_path, 'w') as f :
             f.writelines( data_updated )
 
-    def cycle_realizations( self, exp_cfg ) :
+    def cycle_realizations( self, cfg ) :
         """
         Create realizations for each member and namelist combinations.
         """
-        l_sections = list( exp_cfg.keys() ) 
+        l_sections = list( cfg.keys() ) 
         number_ensembles = 0
         for section in l_sections :
             if section.startswith( "ensemble" ) :
                 number_ensembles += 1
         # If there is not any ensemble sections, it will be created ones
         if not number_ensembles :
-            exp_cfg[ "ensemble/default" ] = exp_cfg[ "default" ]
-        for section in list( exp_cfg.keys() ) :
+            cfg[ "ensemble/default" ] = cfg[ "default" ]
+        for section in list( cfg.keys() ) :
             if section.startswith( "ensemble" ) :
                 try :
                     realization_name = self.name + '_' + section.split( "/" )[ 1 ]
                     # Copy the namelist from the template directory 
-                    namelist_input = self._copy_namelist_template(  exp_cfg[ section ][ 'namelist_version' ] )
+                    namelist_input = self._copy_namelist_template(  cfg[ section ][ 'namelist_version' ] )
                     ##
                     # Update namelist values
                     ##
                     nmli = fn.WrfNamelist( namelist_input )
                     logging.debug( "Updating parameter 'max_dom' in the namelist" )
-                    nmli.setValue( "max_dom", int( exp_cfg[ section ][ 'max_dom' ] ) )
-                    for mnl_variable, mnl_values in exp_cfg[ section ][ 'namelist_values' ] :
+                    nmli.setValue( "max_dom", int( cfg[ section ][ 'max_dom' ] ) )
+                    for mnl_variable, mnl_values in cfg[ section ][ 'namelist_values' ] :
                         # Update the namelist per each combination
                         logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
                         # Modify the namelist with the parameters available in the namelist description
@@ -303,14 +303,14 @@ class Experiment( Base ):
                     # Clycle time
                     ##
                     for ( start_date, end_date, simult_interval_h, 
-                          simult_length_h, chunk_size_h, restart_interval ) in exp_cfg[ section ][ 'date_time' ] :
+                          simult_length_h, chunk_size_h, restart_interval ) in cfg[ section ][ 'date_time' ] :
                         # Update restart_interval in the namelist 
                         logging.debug( "Updating parameter 'restart_interval' in the namelist" )
                         nmli.setValue( "restart_interval", restart_interval )
                         if not self.dryrun :
                             nmli.overWriteNamelist()
                         # Define which calendar is going to be used
-                        exp_calendar   = Calendar( exp_cfg[ section ][ 'calendar' ] )
+                        exp_calendar   = Calendar( cfg[ section ][ 'calendar' ] )
                         rea_start_date = start_date
                         while rea_start_date < end_date :
                             rea_end_date = exp_calendar.add_hours(rea_start_date, simult_length_h )
@@ -321,7 +321,7 @@ class Experiment( Base ):
                                            rea_name, rea_start_date, rea_end_date ) )
                             # Check realization on the database
                             rea = self.check_db( name = rea_name, start_date = rea_start_date, end_date = rea_end_date, 
-                                                 chunk_size_h = chunk_size_h, calendar = exp_cfg[ section ][ 'calendar' ] ) 
+                                                 chunk_size_h = chunk_size_h, calendar = cfg[ section ][ 'calendar' ] ) 
                             if not rea :
                                 # Create a realization 
                                 rea = Realization( name             = rea_name, 
@@ -331,28 +331,28 @@ class Experiment( Base ):
                                                    current_date     = rea_start_date,
                                                    status           = Realization.Status.PREPARED,
                                                    current_chunk    = 1,
-                                                   calendar         = exp_cfg[ section ][ 'calendar' ],
-                                                   max_dom          = exp_cfg[ section ][ 'max_dom' ],
-                                                   np               = int( exp_cfg[ section ].get( 'np', 1 ) ),
-                                                   namelist_version = exp_cfg[ section ][ 'namelist_version' ],
-                                                   parallel_real    = exp_cfg[ section ][ 'parallel_real' ],
-                                                   parallel_wrf     = exp_cfg[ section ][ 'parallel_wrf' ],
-                                                   parallel_env     = exp_cfg[ section ][ 'parallel_env' ],
-                                                   domain_path      = exp_cfg[ section ][ 'domain_path' ],
-                                                   preprocessor     = exp_cfg[ section ][ 'preprocessor' ],
-                                                   extdata_path     = exp_cfg[ section ][ 'extdata_path' ],
-                                                   postprocessor    = exp_cfg[ section ][ 'postprocessor' ],
-                                                   requirements     = exp_cfg[ section ].get( 'requirements', ''),
-                                                   environment      = exp_cfg[ section ].get( 'environment', ''),
-                                                   app              = exp_cfg[ section ][ 'app' ],
-                                                   output_path      = exp_cfg[ section ][ 'output_path' ],
-                                                   namelist_values  = exp_cfg[ section ][ 'namelist_values' ] )
+                                                   calendar         = cfg[ section ][ 'calendar' ],
+                                                   max_dom          = cfg[ section ][ 'max_dom' ],
+                                                   np               = int( cfg[ section ].get( 'np', 1 ) ),
+                                                   namelist_version = cfg[ section ][ 'namelist_version' ],
+                                                   parallel_real    = cfg[ section ][ 'parallel_real' ],
+                                                   parallel_wrf     = cfg[ section ][ 'parallel_wrf' ],
+                                                   parallel_env     = cfg[ section ][ 'parallel_env' ],
+                                                   domain_path      = cfg[ section ][ 'domain_path' ],
+                                                   preprocessor     = cfg[ section ][ 'preprocessor' ],
+                                                   extdata_path     = cfg[ section ][ 'extdata_path' ],
+                                                   postprocessor    = cfg[ section ][ 'postprocessor' ],
+                                                   requirements     = cfg[ section ].get( 'requirements', ''),
+                                                   environment      = cfg[ section ].get( 'environment', ''),
+                                                   app              = cfg[ section ][ 'app' ],
+                                                   output_path      = cfg[ section ][ 'output_path' ],
+                                                   namelist_values  = cfg[ section ][ 'namelist_values' ] )
                                 # Add realization to the experiment 
                                 self.realization.append( rea )
                             # Check storage
                             if not self.dryrun :
-                                exp_cfg[ 'default' ] = exp_cfg[ section ]
-                                save_pkl( exp_cfg, self.home_dir, "realization.pkl" ) 
+                                cfg[ 'default' ] = cfg[ section ]
+                                save_pkl( cfg, self.home_dir, "realization.pkl" ) 
                                 rea._prepare_sub_files()
                             rea.cycle_chunks()
                             rea_start_date = exp_calendar.add_hours( rea_start_date, simult_interval_h ) 

@@ -153,8 +153,8 @@ class PilotParams( object ):
     """
     Class to define the parameters of the experiment 
     """
-    pilot_wrf           = os.path.abspath( sys.argv[0] )
-    root_path           = os.path.dirname( os.path.dirname( pilot_wrf ) )
+    wrf_wrapper         = os.path.abspath( sys.argv[0] )
+    root_path           = os.path.dirname( os.path.dirname( wrf_wrapper ) )
     exp_conf            = load_pkl( root_path, 'realization.pkl' )
     # Find if there is a specific section for this resource
     resource_name    = os.environ.get( 'GW_HOSTNAME' )
@@ -373,9 +373,9 @@ def wrf_monitor( job_db, log_wrf, params ):
         clean_wrf_files( job_db, params )
         time.sleep( 600 ) # 10 minutes
 
-def launch_pilot( params ):
+def launch_wrapper( params ):
     """
-    Prepare and launch the job pilot
+    Prepare and launch the job wrapper
     """
     ##
     # Create log directory

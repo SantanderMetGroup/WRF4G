@@ -45,17 +45,17 @@ def get_conf( directory = './' ):
     sanity_check.namelist()
     if sanity_check.total_errors :
         raise Exception( "Please review your experiment configuration" )
-    return sanity_check.exp_cfg_final
+    return sanity_check.cfg_final
 
 class SanityCheck():
     """
     Chenck if experiment variables are written well
     """
 
-    def __init__(self, exp_cfg) :
+    def __init__(self, cfg) :
       
-        self.exp_cfg       = copy.deepcopy( exp_cfg )
-        self.exp_cfg_final = copy.deepcopy( exp_cfg )
+        self.cfg       = copy.deepcopy( cfg )
+        self.cfg_final = copy.deepcopy( cfg )
         self.total_errors  = 0
         logging.info( "Checking the variables in experiment.wrf4g file"  )
         
@@ -63,8 +63,8 @@ class SanityCheck():
         """
         Check the experiment name 
         """
-        if self.exp_cfg[ 'default' ].get( 'name' ) :
-            validate_name( self.exp_cfg[ 'default' ][ 'name' ] )
+        if self.cfg[ 'default' ].get( 'name' ) :
+            validate_name( self.cfg[ 'default' ][ 'name' ] )
         else :
             logging.error( "ERROR: 'name' variable is mandatory" )
             self.total_errors += 1
@@ -73,14 +73,14 @@ class SanityCheck():
         """
         Check if yes/no variables are right 
         """
-        for section in list( self.exp_cfg.keys( ) ) :
+        for section in list( self.cfg.keys( ) ) :
             for key in YES_NO_VARIABLES :
-                if self.exp_cfg[ section ].get( key ) : 
-                    val = self.exp_cfg[ section ][ key ].lower()
+                if self.cfg[ section ].get( key ) : 
+                    val = self.cfg[ section ][ key ].lower()
                     if val in ( 'y', 'yes' ) :
-                        self.exp_cfg_final[ section ][ key ] = 'yes'
+                        self.cfg_final[ section ][ key ] = 'yes'
                     elif val in ( 'n', 'no' ) :
-                        self.exp_cfg_final[ section ][ key ] = 'no'            
+                        self.cfg_final[ section ][ key ] = 'no'            
                     else :
                         logging.error( "ERROR: '%s' variable should be 'yes' or 'no'" % key ) 
                         self.total_errors += 1
@@ -89,20 +89,20 @@ class SanityCheck():
         """
         Check calendar type
         """
-        for section in list( self.exp_cfg.keys( ) ) :
-            if self.exp_cfg[ section ].get( 'calendar' ) :
-                if not self.exp_cfg[ section ][ 'calendar' ] in Calendar.available_types :
-                    logging.error( "'%s' calendar type is not avariable" % self.exp_cfg[ default ][ 'calendar' ] )
+        for section in list( self.cfg.keys( ) ) :
+            if self.cfg[ section ].get( 'calendar' ) :
+                if not self.cfg[ section ][ 'calendar' ] in Calendar.available_types :
+                    logging.error( "'%s' calendar type is not avariable" % self.cfg[ default ][ 'calendar' ] )
                     self.total_errors += 1
     
     def dates(self):
         """
         Check strart and end dates
         """
-        for section in list( self.exp_cfg.keys( ) ) :
-            if self.exp_cfg[ section ].get( 'date_time' ) :
-                self.exp_cfg_final[ section ][ 'date_time' ] = []
-                for rea_dates in self.exp_cfg[ section ][ 'date_time' ].split( '\n' ) :
+        for section in list( self.cfg.keys( ) ) :
+            if self.cfg[ section ].get( 'date_time' ) :
+                self.cfg_final[ section ][ 'date_time' ] = []
+                for rea_dates in self.cfg[ section ][ 'date_time' ].split( '\n' ) :
                     # Delete whitespaces and obtain each element
                     elems = rea_dates.replace( ' ', '' ).split( '|' )
                     if len( elems ) != 5 and len( elems ) != 3 :
@@ -129,11 +129,11 @@ class SanityCheck():
                                                  ( chunk_size_h, simult_length_h ) )
                     # Defining restart_interval
                     # To avoid chunk restart we add 1 hour to restart_interval variable
-                    if self.exp_cfg[ section ].get( 'chunk_restart' ) or self.exp_cfg[ section ].get( 'chunk_restart' ) == 'no' :
+                    if self.cfg[ section ].get( 'chunk_restart' ) or self.cfg[ section ].get( 'chunk_restart' ) == 'no' :
                         restart_interval = ( chunk_size_h + 1 ) * 60 
                     else :
                         restart_interval = chunk_size_h * 60  
-                    self.exp_cfg_final[ section ][ 'date_time' ].append( [ start_date, end_date, 
+                    self.cfg_final[ section ][ 'date_time' ].append( [ start_date, end_date, 
                                                          simult_interval_h, simult_length_h, 
                                                          chunk_size_h, restart_interval ] )
 
@@ -141,19 +141,19 @@ class SanityCheck():
         """
         Check parallel enviroment
         """
-        for section in list( self.exp_cfg.keys( ) ) :
-            if self.exp_cfg[ section ].get( 'parallel_env' ) :
-                if self.exp_cfg[ section ][ 'parallel_env' ] not in ParallelEnvironment.launcher_map :
-                    logging.error( "ERROR: '%s' does not exist" % self.exp_cfg[ section ][ 'parallel_env' ] )
+        for section in list( self.cfg.keys( ) ) :
+            if self.cfg[ section ].get( 'parallel_env' ) :
+                if self.cfg[ section ][ 'parallel_env' ] not in ParallelEnvironment.launcher_map :
+                    logging.error( "ERROR: '%s' does not exist" % self.cfg[ section ][ 'parallel_env' ] )
                     self.total_errors += 1
 
     def app(self) :
         """
         Check if app variable has been configure correctly
         """
-        for section in list(self.exp_cfg.keys( ) ) :
-            if self.exp_cfg[ section ].get( 'app' ) :
-                for app in self.exp_cfg[ section ].get( 'app' ).split('\n') :
+        for section in list(self.cfg.keys( ) ) :
+            if self.cfg[ section ].get( 'app' ) :
+                for app in self.cfg[ section ].get( 'app' ).split('\n') :
                     try :
                         app_tag, app_type, app_value = app.split( '|' )
                     except ValueError:
@@ -167,16 +167,16 @@ class SanityCheck():
         """
         Check namelist configuration
         """
-        for section in list(self.exp_cfg.keys( ) ) :
-            if self.exp_cfg[ section ].get( 'namelist_values' ) :
-                self.exp_cfg_final[ section ] [ 'namelist_values' ] = []
+        for section in list(self.cfg.keys( ) ) :
+            if self.cfg[ section ].get( 'namelist_values' ) :
+                self.cfg_final[ section ] [ 'namelist_values' ] = []
                 # Delete whitespaces
-                for nml_val in self.exp_cfg[ section ][ 'namelist_values' ].\
+                for nml_val in self.cfg[ section ][ 'namelist_values' ].\
                                replace(' ', '').replace('\t', '').split( '\n' ):
                     if nml_val.startswith('#'): 
                         continue
                     nml_conf_key, nml_conf_val = nml_val.split( '|' )
-                    self.exp_cfg_final[ section ][ 'namelist_values' ].\
+                    self.cfg_final[ section ][ 'namelist_values' ].\
                        append( [ nml_conf_key, nml_conf_val.strip( ',' ).split( ',' ) ] )
         
 def save_pkl( obj_config, directory, file_name ) :
