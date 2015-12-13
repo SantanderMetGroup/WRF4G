@@ -287,7 +287,7 @@ def clean_wrf_files( job_db, params, clean_all = False ):
           
                         if not which( "postprocessor.%s" % params.postprocessor ) :
                             raise JobError( "Postprocessor '%s' does not exist" % params.postprocessor, 
-                                   Job._ERROR[ 'POSTPROCESSOR_FAILED' ] )
+                                   Job.CodeError.POSTPROCESSOR_FAILED )
                         post_log = join( params.log_path, 'postprocessor.%s.log' % params.postprocessor )
                         code, output = exec_cmd( "postprocessor.%s %s &>> %s" % (
                                                     params.postprocessor, file_name, post_log ) )
