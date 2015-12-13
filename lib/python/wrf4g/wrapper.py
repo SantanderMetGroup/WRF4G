@@ -153,30 +153,30 @@ class PilotParams( object ):
     """
     Class to define the parameters of the experiment 
     """
-    wrf_wrapper         = os.path.abspath( sys.argv[0] )
-    root_path           = os.path.dirname( os.path.dirname( wrf_wrapper ) )
-    exp_conf            = load_pkl( root_path, 'realization.pkl' )
+    wrf_wrapper          = os.path.abspath( sys.argv[0] )
+    root_path            = os.path.dirname( os.path.dirname( wrf_wrapper ) )
+    cfg                  = load_pkl( root_path, 'realization.pkl' )
     # Find if there is a specific section for this resource
-    resource_name    = os.environ.get( 'GW_HOSTNAME' )
-    resource_section = 'resource/' + resource_name
-    if resource_section in exp_conf :
-        resource_exp_conf = exp_conf[ resource_section ]
+    resource_name        = os.environ.get( 'GW_HOSTNAME' )
+    resource_section     = 'resource/' + resource_name
+    if resource_section in cfg :
+        resource_cfg = cfg[ resource_section ]
     else :
-        resource_exp_conf = exp_conf[ 'default' ]
-    output_path          = resource_exp_conf[ 'output_path' ]
-    domain_path          = resource_exp_conf[ 'domain_path' ]
-    app                  = resource_exp_conf[ 'app' ]
-    preprocessor         = resource_exp_conf[ 'preprocessor' ]
-    postprocessor        = resource_exp_conf[ 'postprocessor' ]
-    clean_after_run      = resource_exp_conf.get( 'clean_after_run', 'no' )
-    max_dom              = int( resource_exp_conf[ 'max_dom' ] )
-    save_wps             = resource_exp_conf.get( 'save_wps', 'no' )
-    wrfout_name_end_date = resource_exp_conf.get( 'wrfout_name_end_date' , 'no' )
-    timestep_dxfactor    = resource_exp_conf.get( 'timestep_dxfactor', '6' )
-    extdata_interval     = int( resource_exp_conf[ 'extdata_interval' ] )
-    extdata_vtable       = resource_exp_conf[ 'extdata_vtable' ]
-    extdata_path         = resource_exp_conf[ 'extdata_path' ]
-    constants_name       = resource_exp_conf.get( 'constants_name', '' )
+        resource_cfg = cfg[ 'default' ]
+    output_path          = resource_cfg[ 'output_path' ]
+    domain_path          = resource_cfg[ 'domain_path' ]
+    app                  = resource_cfg[ 'app' ]
+    preprocessor         = resource_cfg[ 'preprocessor' ]
+    postprocessor        = resource_cfg[ 'postprocessor' ]
+    clean_after_run      = resource_cfg( 'clean_after_run', 'no' )
+    max_dom              = int( resource_cfg[ 'max_dom' ] )
+    save_wps             = resource_cfg.get( 'save_wps', 'no' )
+    wrfout_name_end_date = resource_cfg.get( 'wrfout_name_end_date' , 'no' )
+    timestep_dxfactor    = resource_cfg.get( 'timestep_dxfactor', '6' )
+    extdata_interval     = int( resource_cfg[ 'extdata_interval' ] )
+    extdata_vtable       = resource_cfg[ 'extdata_vtable' ]
+    extdata_path         = resource_cfg[ 'extdata_path' ]
+    constants_name       = resource_cfg.get( 'constants_name', '' )
     job_id               = int( os.environ.get( 'GW_JOB_ID' ) )
     restarted_id         = int( os.environ.get( 'GW_RESTARTED' ) )
     exp_name             = sys.argv[1]
@@ -201,14 +201,13 @@ class PilotParams( object ):
     ##
     try :    
         try :
-            member_number, initial_month_number = resource_exp_conf[ 'extdata_member' ].\
+            member_number, initial_month_number = resource_cfg[ 'extdata_member' ].\
                                                   replace(' ', '').split( '|' )
         except :
-            member_number        = resource_exp_conf[ 'extdata_member' ].replace(' ', '')
+            member_number        = resource_cfg[ 'extdata_member' ].replace(' ', '')
             initial_month_number = realization_sdate.month
     except :
-        member_number        = ''
-        initial_month_number = ''
+        member_number = initial_month_number = ''
     ##
     # Local path
     ##
@@ -219,10 +218,10 @@ class PilotParams( object ):
         local_path = root_path
 
     # Parallel enviroment
-    parallel_real        = resource_exp_conf[ 'parallel_real' ]
-    parallel_wrf         = resource_exp_conf[ 'parallel_wrf' ]
+    parallel_real        = resource_cfg[ 'parallel_real' ]
+    parallel_wrf         = resource_cfg[ 'parallel_wrf' ]
     
-    parallel_env         = ParallelEnvironment.launcher_map.get( resource_exp_conf[ 'parallel_env' ] )
+    parallel_env         = ParallelEnvironment.launcher_map.get( resource_cfg[ 'parallel_env' ] )
     parallel_run         = "%s %s %s " % ( parallel_env.launcher, parallel_env.np, os.environ.get( 'GW_NP' ) ) 
     parallel_run_pernode = "%s %s" % ( parallel_env.launcher, parallel_env.npernode )
         
