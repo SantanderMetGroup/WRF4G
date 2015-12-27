@@ -1,5 +1,5 @@
 """
-Check DRM4G and MySQL daemons and ssh-agent. 
+Check DRM4G daemon and ssh-agent. 
     
 Usage: 
     wrf4g status [ --dbg ] 
@@ -13,7 +13,6 @@ __revision__ = "$Id$"
 
 import logging
 import sys
-from wrf4g.db             import MySQLDB
 from drm4g.commands       import Daemon, Agent
 
 def run( arg ) :
@@ -23,7 +22,6 @@ def run( arg ) :
                          stream = sys.stdout )
         Daemon().status()
         Agent().status()
-        MySQLDB().status()
     except KeyboardInterrupt :
         pass
     except Exception as err :

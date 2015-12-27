@@ -1,17 +1,13 @@
 """
-Start DRM4G and MySQL daemons and ssh-agent. 
+Start DRM4G daemon and ssh-agent. 
     
 Usage: 
     wrf4g start [ --dbg ] [ --clear-conf ] [ --disc-jobs ] 
-                [ --ext-db ] [ --db-port=port ] [ --db-host=hostname ]
-   
+            
 Options:
    --dbg                Debug mode.
    --clear-conf         Clear WRF4G's settings stored in .wrf4g directory.
    --disc-jobs          All available jobs on WRF4G will be discared. 
-   --ext-db             It will be used an external MySQL database.
-   --db-port=port       Port number to use for MySQL connection [default: 25000].     
-   --db-host=hostname   Hostname for MySQL connection.
 """
 __version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
@@ -24,9 +20,9 @@ import logging
 from os.path              import exists, join
 from drm4g                import DRM4G_DIR
 from drm4g.commands       import Daemon, Agent
-from wrf4g                import ( WRF4G_DIR, WRF4G_DEPLOYMENT_DIR, 
+from wrf4g                import ( WRF4G_DIR, WRF4G_DEPLOYMENT_DIR,
                                    DB4G_CONF, WRF4G_LOGGER )
-from wrf4g.db             import DEFAULT_DB_CONF, MySQLDB
+from wrf4g.db             import DEFAULT_DB_CONF
 
 def run( arg ) :
     try:
@@ -37,7 +33,7 @@ def run( arg ) :
             from shutil import copytree, rmtree
             if exists( WRF4G_DIR ) :
                 logging.debug( "Removing WRF4G local configuration in '%s'" %  WRF4G_DIR )
-                rmtree( WRF4G_DIR   ) 
+                rmtree( WRF4G_DIR   )
             logging.debug( "Creating a WRF4G local configuration in '%s'" %  WRF4G_DIR )
             for directory in [  'log', 'submission', 'acct' ] :
                 abs_dir = join ( DRM4G_DIR , 'var' , directory )
@@ -48,17 +44,15 @@ def run( arg ) :
             logging.debug( "Coping from '%s' to '%s'" % ( src , dest ) )
             copytree( src , dest )
         if arg[ '--disc-jobs' ] :
-            Daemon().clear() 
-        else : 
+            Daemon().clear()
+        else :
             Daemon().start()
         Agent().start()
         # Update database configuration
         with open( DB4G_CONF , 'w') as f :
-            f.write( DEFAULT_DB_CONF % { "port"     : arg[ '--db-port' ] ,
-                                         "hostname" : arg[ '--db-host' ] if arg[ '--db-host' ] else socket.gethostname() } )
-        if not arg[ '--ext-db' ] :
-            MySQLDB( int( arg[ '--db-port' ] ) ).start()
+           f.write( DEFAULT_DB_CONF % { "WRF4G_DIR" : WRF4G_DIR } )
     except KeyboardInterrupt :
         pass
     except Exception as err :
         logging.error( err )
+
