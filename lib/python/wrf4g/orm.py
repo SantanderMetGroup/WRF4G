@@ -11,7 +11,7 @@ __revision__ = "$Id$"
 
 Base = declarative_base()
 
-class Experiment( Base ):
+class ExperimentORM( Base ):
 
     __tablename__    = 'experiment'
 
@@ -21,9 +21,9 @@ class Experiment( Base ):
     home_dir         = Column('home_directory', VARCHAR(length=300))
 
     # Realtionships
-    realization      = relationship("Realization", back_populates="experiment", lazy='dynamic')
+    realization      = relationship("RealizationORM", back_populates="experiment", lazy='dynamic')
 
-class Realization( Base ):
+class RealizationORM( Base ):
 
     __tablename__    = 'realization'
 
@@ -58,10 +58,10 @@ class Realization( Base ):
     namelist_values  = Column('namelist_values',  PickleType)
 
     # Realtionships
-    experiment       = relationship("Experiment", back_populates = "realization")
-    chunk            = relationship("Chunk",      back_populates = "realization", lazy='dynamic')
+    experiment       = relationship("ExperimentORM", back_populates = "realization")
+    chunk            = relationship("ChunkORM",      back_populates = "realization", lazy='dynamic')
 
-class Chunk( Base ):
+class ChunkORM( Base ):
     __tablename__   = 'chunk'
 
     # Columns
@@ -74,10 +74,10 @@ class Chunk( Base ):
     status           = Column('status',     VARCHAR(length=20))
 
     # Relationships
-    realization      = relationship("Realization", back_populates = "chunk")
-    job              = relationship("Job", back_populates = "chunk", lazy = "dynamic")
+    realization      = relationship("RealizationORM", back_populates = "chunk")
+    job              = relationship("JobORM", back_populates = "chunk", lazy = "dynamic")
 
-class Job( Base ):
+class JobORM( Base ):
     """
     A class to manage WRF4G jobs
     """
@@ -93,10 +93,10 @@ class Job( Base ):
     exitcode         = Column('exitcode',     VARCHAR(length=20))
 
     # Relationship
-    chunk            = relationship("Chunk", back_populates = "job")
-    events           = relationship("Events", back_populates = "job", lazy = 'dynamic')
+    chunk            = relationship("ChunkORM", back_populates = "job")
+    events           = relationship("EventsORM", back_populates = "job", lazy = 'dynamic')
 
-class Events( Base ):
+class EventsORM( Base ):
 
     __tablename__    = 'events'
 
@@ -107,6 +107,6 @@ class Events( Base ):
     timestamp        = Column('timestamp',  DATETIME())
 
     # Relationship
-    job              = relationship("Job", back_populates = "events")
+    job              = relationship("JobORM", back_populates = "events")
 
 

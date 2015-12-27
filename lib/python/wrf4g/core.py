@@ -23,10 +23,8 @@ from os.path                import ( exists, expandvars,
 from datetime               import datetime, timedelta 
 from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
 from wrf4g.config           import get_conf, save_json
-from wrf4g.orm              import Experiment as ExperimentORM
-from wrf4g.orm              import Realization as RealizationORM
-from wrf4g.orm              import Chunk as ChunkORM
-from wrf4g.orm              import Job as JobORM
+from wrf4g.orm              import ( ExperimentORM, RealizationORM,
+                                     ChunkORM, JobORM )
 from wrf4g.utils            import Enumerate, dict_compare 
 from wrf4g.utils.archive    import extract
 from wrf4g.utils.time       import datetime2datewrf, Calendar
