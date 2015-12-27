@@ -15,9 +15,8 @@ __version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-
 DEFAULT_DB_CONF = """[DEFAULT]
-URL = mysql+pymysql://wrf4guser:Meteo2011@%(hostname)s:%(port)s/WRF4GDB
+URL = sqlite:////%(WRF4G_DIR)s/etc/wrf4g.db
 """
 
 def process_is_runnig( pid ):
