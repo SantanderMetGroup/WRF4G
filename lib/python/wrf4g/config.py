@@ -1,7 +1,7 @@
 import os
 import re
 import copy
-import pickle
+import json
 import logging
 from os.path          import expandvars, expanduser, exists, join, abspath
 from wrf4g.utils      import dict2obj
@@ -179,23 +179,23 @@ class SanityCheck():
                     self.cfg_final[ section ][ 'namelist_values' ].\
                        append( [ nml_conf_key, nml_conf_val.strip( ',' ).split( ',' ) ] )
         
-def save_pkl( obj_config, directory, file_name ) :
+def save_json( obj_config, directory, file_name ) :
     """
-    Save a python object into a pickle file.
+    Save a python object into a json file.
     """
     f = open( join( directory, file_name ), "w" )
     try :
-        pickle.dump( obj_config, f )
+        json.dump( obj_config, f )
     finally :
         f.close()
 
-def load_pkl( directory, file_name ) :
+def load_json( directory, file_name ) :
     """
-    Load a python object back from the pickle file.
+    Load a python object back from the json file.
     """
     f = open( join( directory, file_name ), "r" )
     try :
-        return pickle.load( f )
+        return json.load( f )
     finally :
         f.close()
 
