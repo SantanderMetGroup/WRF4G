@@ -13,11 +13,8 @@ import datetime
 import logging
 import fortran_namelist as fn
 from fortran_namelist       import coerce_value_list
-from sqlalchemy             import ( Column, INTEGER, 
-                                     VARCHAR, SMALLINT, 
-                                     DATETIME, ForeignKey,
-                                     create_engine, func,
-                                     PickleType, and_, or_ )
+from sqlalchemy             import ( create_engine, func,
+                                     and_, or_ )
 from sqlalchemy.orm         import relationship
 from sqlalchemy.orm.exc     import NoResultFound
 from os.path                import ( exists, expandvars, 
@@ -26,7 +23,10 @@ from os.path                import ( exists, expandvars,
 from datetime               import datetime, timedelta 
 from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
 from wrf4g.config           import get_conf, save_json
-from wrf4g.db               import Base
+from wrf4g.orm              import Experiment as ExperimentORM
+from wrf4g.orm              import Realization as RealizationORM
+from wrf4g.orm              import Chunk as ChunkORM
+from wrf4g.orm              import Job as JobORM
 from wrf4g.utils            import Enumerate, dict_compare 
 from wrf4g.utils.archive    import extract
 from wrf4g.utils.time       import datetime2datewrf, Calendar
@@ -35,20 +35,10 @@ from wrf4g.utils.command    import exec_cmd
 from wrf4g.utils.vcplib     import VCPURL
 from wrf4g.utils.gridwaylib import GWJob
 
-class Experiment( Base ):
+class Experiment( ExperimentORM ):
     """ 
     Manage WRF4G experiments
     """
-    __tablename__         = 'experiment'
-    
-    # Columns
-    id                    = Column('id',             INTEGER, primary_key=True, nullable=False)
-    name                  = Column('name',           VARCHAR(length=512), nullable=False)  
-    home_dir              = Column('home_directory', VARCHAR(length=300))
-    
-    # Realtionships
-    realization           = relationship("Realization", back_populates="experiment", lazy='dynamic')
-
     dryrun                = False
     
     def run(self, rerun = False, rea_pattern = False, rea_status = False, priority = 0 ):
@@ -366,7 +356,7 @@ class Experiment( Base ):
         """    
         for file in [ join( WRF4G_DIR, "etc", "db.conf" ),
                       join( self.home_dir, "experiment.wrf4g" ) ] :
-            if not exists ( expandvars( file ) ) :
+            if not exists( expandvars( file ) ) :
                 raise Exception( "'%s' is not available" % file )
             else :
                 shutil.copy( expandvars( file ) , exp_sub_dir )
@@ -383,7 +373,7 @@ class Experiment( Base ):
             os.remove( wrf4g_package )
         current_path = os.getcwd()
         try :
-            tar = tarfile.open( wrf4g_package , "w:gz" )
+            tar = tarfile.open( wrf4g_package, "w:gz" )
             os.chdir( WRF4G_DEPLOYMENT_DIR )
             logging.debug( "Creating '%s' package" % wrf4g_package )
             [ tar.add( dir ) for dir in [ "bin", "lib" ] ]
@@ -417,46 +407,10 @@ class Experiment( Base ):
                              filter( Realization.status == status )
         return l_realizations
     
-class Realization( Base ):
+class Realization( RealizationORM ):
     """
     A class to mange WRF4G realizations
     """
-    __tablename__    = 'realization'
-    
-    # Columns
-    id               = Column('id',               INTEGER, primary_key=True, nullable=False)
-    exp_id           = Column('exp_id',           INTEGER, ForeignKey('experiment.id')) 
-    name             = Column('name',             VARCHAR(length=1024), nullable=False)
-    start_date       = Column('start_date',       DATETIME())
-    end_date         = Column('end_date',         DATETIME())
-    chunk_size_h     = Column('chunk_size_h',     INTEGER)
-    restart          = Column('restart',          DATETIME()) 
-    status           = Column('status',           VARCHAR(length=20))
-    current_date     = Column('current_date',     DATETIME())
-    current_chunk    = Column('current_chunk',    INTEGER)
-    nchunks          = Column('nchunks',          INTEGER)
-    calendar         = Column('calendar',         VARCHAR(length=300))
-    max_dom          = Column('max_dom',          INTEGER)
-    np               = Column('np',               INTEGER)
-    requirements     = Column('requirements',     VARCHAR(length=1024))
-    environment      = Column('environment',      VARCHAR(length=1024))
-    parallel_real    = Column('parallel_real',    VARCHAR(length=3))
-    parallel_wrf     = Column('parallel_wrf',     VARCHAR(length=3))
-    parallel_env     = Column('parallel_env',     VARCHAR(length=20))
-    domain_path      = Column('domain_path',      VARCHAR(length=1024))
-    preprocessor     = Column('preprocessor',     VARCHAR(length=1024))
-    extdata_path     = Column('extdata_path',     VARCHAR(length=1024))
-    postprocessor    = Column('postprocessor',    VARCHAR(length=1024))
-    app              = Column('app',              VARCHAR(length=2048))
-    output_path      = Column('output_path',      VARCHAR(length=1024))
-    extdata_member   = Column('extdata_member',   VARCHAR(length=1024))
-    namelist_version = Column('namelist_version', VARCHAR(length=10))
-    namelist_values  = Column('namelist_values',  PickleType) 
-
-    # Realtionships
-    experiment       = relationship("Experiment", back_populates = "realization")
-    chunk            = relationship("Chunk",      back_populates = "realization", lazy='dynamic')
-
     dryrun           = False
 
     Status           = Enumerate( 'PREPARED', 'SUBMITTED', 'RUNNING',
@@ -647,7 +601,7 @@ class Realization( Base ):
         """                
         #Select parameters:job_status,rea_status,resource,exitcode,nchunks
         #Last job of current chunk
-        resource, exitcode, gw_job = '-', '-' , '-'
+        resource, exitcode, gw_job = '-', '-', '-'
         if self.status == Realization.Status.PREPARED :
             status             = Realization.Status.PREPARED
             chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
@@ -717,29 +671,14 @@ class Realization( Base ):
                 chunk.dryrun = self.dryrun
                 chunk.set_priority( priority )
  
-class Chunk( Base ):
+class Chunk( ChunkORM ):
     """ 
     A class to manage WRF4G chunks
     """
-    __tablename__   = 'chunk'
+    dryrun = False 
 
-    # Columns
-    id              = Column('id',         INTEGER, primary_key = True, nullable = False)
-    rea_id          = Column('rea_id',     INTEGER, ForeignKey('realization.id'))
-    start_date      = Column('start_date', DATETIME())
-    end_date        = Column('end_date',   DATETIME())
-    wps             = Column('wps',        INTEGER) 
-    chunk_id        = Column('chunk_id',   INTEGER)
-    status          = Column('status',     VARCHAR(length=20))
-
-    # Relationships
-    realization     = relationship("Realization", back_populates = "chunk")
-    job             = relationship("Job", back_populates = "chunk", lazy = "dynamic")
-
-    dryrun          = False 
-
-    Status          = Enumerate( 'PREPARED', 'SUBMITTED', 'RUNNING',
-                                 'PENDING', 'FAILED', 'FINISHED' )
+    Status = Enumerate( 'PREPARED', 'SUBMITTED', 'RUNNING',
+                        'PENDING', 'FAILED', 'FINISHED' )
  
     #METHODS
     def run (self, index, rerun = False, priority = 0 ):
@@ -763,8 +702,8 @@ class Chunk( Base ):
         inputsandbox += "file://%s/realization.json," % rea_path  
         inputsandbox += "file://%s/namelist.input"    % rea_path  
         # Add input file if it is exist
-        input_files = join( exp_path , 'wrf4g_files.tar.gz' )
-        if exists( input_files ) :
+        input_files = join( exp_path, 'wrf4g_files.tar.gz' )
+        if exists( input_files ):
             inputsandbox += ",file://%s" % ( input_files )
         # files to add for the outputsandbox
         outputsandbox = "log_%d_${JOB_ID}.tar.gz" % self.chunk_id
@@ -866,33 +805,18 @@ class JobCodeError():
     POSTPROCESSOR_FAILED = 21
     COPY_OUTPUT_FILE     = 22
    
-class Job( Base ):
+class Job( JobORM ):
     """
     A class to manage WRF4G jobs
     """
-    __tablename__   = 'job'
+    dryrun    = False
 
-    # Columns
-    id              = Column('id',           INTEGER, primary_key=True, nullable=False)
-    gw_job          = Column('gw_job',       INTEGER)
-    gw_restarted    = Column('gw_restarted', INTEGER)  
-    chunk_id        = Column('chunck_id',    INTEGER, ForeignKey('chunk.id'))
-    resource        = Column('resource',     VARCHAR(length=45))
-    status          = Column('status',       VARCHAR(length=20))
-    exitcode        = Column('exitcode',     VARCHAR(length=20))
+    Status    = Enumerate( 'UNKNOWN', 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 
+                           'CANCEL', 'FAILED', 'FINISHED', 'CREATE_OUTPUT_PATH', 
+                           'CONF_APP', 'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB', 
+                           'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF' )
 
-    # Relationship
-    chunk           = relationship("Chunk", back_populates = "job")
-    events          = relationship("Events", back_populates = "job", lazy = 'dynamic')
-
-    dryrun          = False
-
-    Status          = Enumerate( 'UNKNOWN', 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 
-                                 'CANCEL', 'FAILED', 'FINISHED', 'CREATE_OUTPUT_PATH', 
-                                 'CONF_APP', 'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB', 
-                                 'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF' )
-
-    CodeError       = JobCodeError()
+    CodeError = JobCodeError()
 
     def set_status(self, status):
         """ 
@@ -953,17 +877,3 @@ class Job( Base ):
         if not self.dryrun :
             GWJob().set_priority( self.gw_job, priority )
 
-class Events( Base ):
-    """
-    A class to keep track of workflow events
-    """
-    __tablename__   = 'events'   
- 
-    # Columns
-    id              = Column('id',         INTEGER, primary_key=True, nullable=False)
-    job_id          = Column('job_id',     INTEGER, ForeignKey('job.id'))
-    job_status      = Column('job_status', VARCHAR(length=20))
-    timestamp       = Column('timestamp',  DATETIME())
-
-    # Relationship
-    job             = relationship("Job", back_populates = "events")

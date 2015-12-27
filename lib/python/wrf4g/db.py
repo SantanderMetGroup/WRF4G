@@ -3,11 +3,7 @@ import socket
 import signal
 import time
 import logging
-from sqlalchemy                 import ( Column, INTEGER, 
-                                         VARCHAR, SMALLINT, 
-                                         DATETIME, ForeignKey,
-                                         create_engine )
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy                 import create_engine 
 from sqlalchemy.pool            import NullPool
 from sqlalchemy.orm             import relationship, sessionmaker
 from os.path                    import join, exists
@@ -15,8 +11,7 @@ from wrf4g                      import DB4G_CONF, WRF4G_DIR, MYSQL_DIR
 from wrf4g.utils.command        import exec_cmd_advance as exec_cmd
 from wrf4g.utils.file           import VarEnv
 
-
-__version__  = '2.1.0'
+__version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
@@ -24,6 +19,7 @@ __revision__ = "$Id$"
 DEFAULT_DB_CONF = """[DEFAULT]
 URL = mysql+pymysql://wrf4guser:Meteo2011@%(hostname)s:%(port)s/WRF4GDB
 """
+
 def process_is_runnig( pid ):
     """
     Check is a process is running given a file
@@ -119,6 +115,4 @@ def get_session():
     Session = sessionmaker(bind = engine)
     # create a Session
     return Session()
-
-Base = declarative_base()
 
