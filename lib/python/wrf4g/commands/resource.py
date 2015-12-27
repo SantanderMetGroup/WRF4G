@@ -12,7 +12,7 @@ Commands:
     edit      Configure resouces.
     check     Check out if configured resources are accessible.
 """
-__version__  = '2.1.0'
+__version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

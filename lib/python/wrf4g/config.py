@@ -9,7 +9,7 @@ from wrf4g.utils.mpi  import ParallelEnvironment
 from wrf4g.utils.time import datewrf2datetime, Calendar
 from wrf4g.utils.file import VarEnv, make_writeable, validate_name
 
-__version__  = '2.1.0'
+__version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

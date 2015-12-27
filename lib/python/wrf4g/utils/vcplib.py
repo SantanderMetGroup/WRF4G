@@ -5,7 +5,7 @@ from re                  import match, search
 from os.path             import abspath, isdir, isfile, basename, dirname, join
 from wrf4g.utils.command import exec_cmd
 
-__version__  = '2.1.0'
+__version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
