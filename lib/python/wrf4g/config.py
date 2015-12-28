@@ -183,9 +183,12 @@ def save_json( obj_config, directory, file_name ) :
     """
     Save a python object into a json file.
     """
+    def date_handler(obj):
+        return obj.isoformat() if hasattr(obj, 'isoformat') else obj
+
     f = open( join( directory, file_name ), "w" )
     try :
-        json.dump( obj_config, f )
+        json.dump( obj_config, f , default=date_handler )
     finally :
         f.close()
 
