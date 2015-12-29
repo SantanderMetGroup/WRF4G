@@ -12,3 +12,5 @@ WRF4G_DEPLOYMENT_DIR = dirname( dirname( dirname( dirname( abspath( __file__ ) )
 MYSQL_DIR            = join( WRF4G_DEPLOYMENT_DIR , 'opt' , 'mysql-5.5' )
 DB4G_CONF            = os.environ.get( 'DB4G_CONF' ,  join( WRF4G_DIR , 'etc' , 'db.conf' ) )
 WRF4G_LOGGER         = join( WRF4G_DIR , 'etc' , 'logger.conf')
+
+import wrf4g.orm

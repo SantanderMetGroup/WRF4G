@@ -15,7 +15,7 @@ import fortran_namelist as fn
 from fortran_namelist       import coerce_value_list
 from sqlalchemy             import ( create_engine, func,
                                      and_, or_ )
-from sqlalchemy.orm         import relationship
+from sqlalchemy.orm         import relationship, mapper
 from sqlalchemy.orm.exc     import NoResultFound
 from os.path                import ( exists, expandvars, 
                                      expanduser, isdir, 
@@ -23,8 +23,6 @@ from os.path                import ( exists, expandvars,
 from datetime               import datetime, timedelta 
 from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
 from wrf4g.config           import get_conf, save_json
-from wrf4g.orm              import ( ExperimentORM, RealizationORM,
-                                     ChunkORM, JobORM )
 from wrf4g.utils            import Enumerate, dict_compare 
 from wrf4g.utils.archive    import extract
 from wrf4g.utils.time       import datetime2datewrf, Calendar
@@ -33,11 +31,11 @@ from wrf4g.utils.command    import exec_cmd
 from wrf4g.utils.vcplib     import VCPURL
 from wrf4g.utils.gridwaylib import GWJob
 
-class Experiment( ExperimentORM ):
+class Experiment(object):
     """ 
     Manage WRF4G experiments
     """
-    dryrun                = False
+    dryrun = False
     
     def run(self, rerun = False, rea_pattern = False, rea_status = False, priority = 0 ):
         """
@@ -66,7 +64,7 @@ class Experiment( ExperimentORM ):
         """
         Edit experiment.wrf4g file.
         """
-        edit_file( join( self.home_dir, 'experiment.wrf4g' )  )
+        edit_file( join( self.home_directory, 'experiment.wrf4g' )  )
 
     def _copy_namelist_template( self, namelist_version ):
         """
@@ -75,7 +73,7 @@ class Experiment( ExperimentORM ):
         logging.info( "Preparing namelist %s version ... " % namelist_version )
         namelist_template = join( WRF4G_DIR, 'etc', 'templates', 'namelist',
                                   'namelist.input-%s' % namelist_version )
-        namelist_input    = join( self.home_dir, 'namelist.input' )
+        namelist_input    = join( self.home_directory, 'namelist.input' )
         try :
             logging.debug( "Copying '%s' to '%s'" % ( namelist_template, namelist_input ) )
             shutil.copyfile( namelist_template, namelist_input )
@@ -116,15 +114,15 @@ class Experiment( ExperimentORM ):
         Prepare all realizations and chunks needed to submit a WRF4G experiment.
         """
         if update :
-            directory = self.home_dir
+            directory = self.home_directory
         # Read experiment.wrf4g file
         cfg = get_conf( directory )
         if self.name != cfg[ 'default'][ 'name' ] :
             raise Exception( "ERROR: experiment.wrf4g file has a different experiment name." )
         
         # Update experiment variables
-        self.name     = cfg[ 'default' ][ 'name' ]
-        self.home_dir = abspath( directory ) 
+        self.name           = cfg[ 'default' ][ 'name' ]
+        self.home_directory = abspath( directory ) 
    
         if not self.dryrun :
             exp_sub_dir = join( WRF4G_DIR, 'var', 'submission', self.name )
@@ -312,35 +310,36 @@ class Experiment( ExperimentORM ):
                                                  chunk_size_h = chunk_size_h, calendar = cfg[ section ][ 'calendar' ] ) 
                             if not rea :
                                 # Create a realization 
-                                rea = Realization( name             = rea_name, 
-                                                   start_date       = rea_start_date,
-                                                   end_date         = rea_end_date,
-                                                   chunk_size_h     = chunk_size_h,
-                                                   current_date     = rea_start_date,
-                                                   status           = Realization.Status.PREPARED,
-                                                   current_chunk    = 1,
-                                                   calendar         = cfg[ section ][ 'calendar' ],
-                                                   max_dom          = cfg[ section ][ 'max_dom' ],
-                                                   np               = int( cfg[ section ].get( 'np', 1 ) ),
-                                                   namelist_version = cfg[ section ][ 'namelist_version' ],
-                                                   parallel_real    = cfg[ section ][ 'parallel_real' ],
-                                                   parallel_wrf     = cfg[ section ][ 'parallel_wrf' ],
-                                                   parallel_env     = cfg[ section ][ 'parallel_env' ],
-                                                   domain_path      = cfg[ section ][ 'domain_path' ],
-                                                   preprocessor     = cfg[ section ][ 'preprocessor' ],
-                                                   extdata_path     = cfg[ section ][ 'extdata_path' ],
-                                                   postprocessor    = cfg[ section ][ 'postprocessor' ],
-                                                   requirements     = cfg[ section ].get( 'requirements', ''),
-                                                   environment      = cfg[ section ].get( 'environment', ''),
-                                                   app              = cfg[ section ][ 'app' ],
-                                                   output_path      = cfg[ section ][ 'output_path' ],
-                                                   namelist_values  = cfg[ section ][ 'namelist_values' ] )
+                                rea = Realization( )
+                                rea.name = rea_name
+                                rea.start_date       = rea_start_date
+                                rea.end_date         = rea_end_date
+                                rea.chunk_size_h     = chunk_size_h
+                                rea.current_date     = rea_start_date
+                                rea.status           = Realization.Status.PREPARED
+                                rea.current_chunk    = 1
+                                rea.calendar         = cfg[ section ][ 'calendar' ]
+                                rea.max_dom          = cfg[ section ][ 'max_dom' ]
+                                rea.np               = int( cfg[ section ].get( 'np', 1 ) )
+                                rea.namelist_version = cfg[ section ][ 'namelist_version' ]
+                                rea.parallel_real    = cfg[ section ][ 'parallel_real' ]
+                                rea.parallel_wrf     = cfg[ section ][ 'parallel_wrf' ]
+                                rea.parallel_env     = cfg[ section ][ 'parallel_env' ]
+                                rea.domain_path      = cfg[ section ][ 'domain_path' ]
+                                rea.preprocessor     = cfg[ section ][ 'preprocessor' ]
+                                rea.extdata_path     = cfg[ section ][ 'extdata_path' ]
+                                rea.postprocessor    = cfg[ section ][ 'postprocessor' ]
+                                rea.requirements     = cfg[ section ].get( 'requirements', '')
+                                rea.environment      = cfg[ section ].get( 'environment', '')
+                                rea.app              = cfg[ section ][ 'app' ]
+                                rea.output_path      = cfg[ section ][ 'output_path' ]
+                                rea.namelist_values  = cfg[ section ][ 'namelist_values' ] 
                                 # Add realization to the experiment 
                                 self.realization.append( rea )
                             # Check storage
                             if not self.dryrun :
                                 cfg[ 'default' ] = cfg[ section ]
-                                save_json( cfg, self.home_dir, "realization.json" ) 
+                                save_json( cfg, self.home_directory, "realization.json" ) 
                                 rea._prepare_sub_files()
                             rea.cycle_chunks()
                             rea_start_date = exp_calendar.add_hours( rea_start_date, simult_interval_h ) 
@@ -353,7 +352,7 @@ class Experiment( ExperimentORM ):
         Copy configure files before submission.
         """    
         for file in [ join( WRF4G_DIR, "etc", "db.conf" ),
-                      join( self.home_dir, "experiment.wrf4g" ) ] :
+                      join( self.home_directory, "experiment.wrf4g" ) ] :
             if not exists( expandvars( file ) ) :
                 raise Exception( "'%s' is not available" % file )
             else :
@@ -378,7 +377,7 @@ class Experiment( ExperimentORM ):
         finally :
             tar.close()
         # wrf4g_files bundle
-        wrf4g_files_dir = join( self.home_dir, 'wrf4g_files' )
+        wrf4g_files_dir = join( self.home_directory, 'wrf4g_files' )
         if isdir( wrf4g_files_dir ):
             logging.debug( "Create a wrf4g_files.tar.gz bundle to use on the worker node..." )
             wrf4g_files_package = join ( exp_sub_dir , "wrf4g_files.tar.gz" )
@@ -405,14 +404,14 @@ class Experiment( ExperimentORM ):
                              filter( Realization.status == status )
         return l_realizations
     
-class Realization( RealizationORM ):
+class Realization( object ):
     """
     A class to mange WRF4G realizations
     """
-    dryrun           = False
+    dryrun = False
 
-    Status           = Enumerate( 'PREPARED', 'SUBMITTED', 'RUNNING',
-                                  'PENDING', 'FAILED', 'FINISHED' )
+    Status = Enumerate( 'PREPARED', 'SUBMITTED', 'RUNNING',
+                        'PENDING', 'FAILED', 'FINISHED' )
         
     def run(self, first_chunk_run = None , last_chunk_run = None, rerun = False, priority = 0 ):
         """ 
@@ -496,8 +495,8 @@ class Realization( RealizationORM ):
                 os.makedirs( rea_submission_path )
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % rea_submission_path )
-        for file_name in [ join( self.experiment.home_dir, "namelist.input" ),
-                           join( self.experiment.home_dir, "realization.json" ) ] :
+        for file_name in [ join( self.experiment.home_directory, "namelist.input" ),
+                           join( self.experiment.home_directory, "realization.json" ) ] :
             if not exists( file_name ) :
                 raise Exception( "'%s' is not available" % file_name )
             else :
@@ -562,13 +561,13 @@ class Realization( RealizationORM ):
                                                        datetime2datewrf(chunk_start_date),
                                                        datetime2datewrf(chunk_end_date) ) )
                 # Create Chunk
-                ch = Chunk( rea_id     = self.id, 
-                            start_date = chunk_start_date, 
-                            end_date   = chunk_end_date,
-                            wps        = 0, 
-                            chunk_id   = chunk_id,
-                            status     = Chunk.Status.PREPARED
-                          )
+                ch = Chunk( )
+                ch.rea_id     = self.id
+                ch.start_date = chunk_start_date
+                ch.end_date   = chunk_end_date
+                ch.wps        = 0
+                ch.chunk_id   = chunk_id
+                ch.status     = Chunk.Status.PREPARED
                 # Add realization to the experiment 
                 self.chunk.append( ch )
             chunk_start_date = chunk_end_date 
@@ -669,7 +668,7 @@ class Realization( RealizationORM ):
                 chunk.dryrun = self.dryrun
                 chunk.set_priority( priority )
  
-class Chunk( ChunkORM ):
+class Chunk( object ):
     """ 
     A class to manage WRF4G chunks
     """
@@ -803,16 +802,16 @@ class JobCodeError():
     POSTPROCESSOR_FAILED = 21
     COPY_OUTPUT_FILE     = 22
    
-class Job( JobORM ):
+class Job( object ):
     """
     A class to manage WRF4G jobs
     """
-    dryrun    = False
+    dryrun = False
 
-    Status    = Enumerate( 'UNKNOWN', 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 
-                           'CANCEL', 'FAILED', 'FINISHED', 'CREATE_OUTPUT_PATH', 
-                           'CONF_APP', 'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB', 
-                           'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF' )
+    Status = Enumerate( 'UNKNOWN', 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 
+                        'CANCEL', 'FAILED', 'FINISHED', 'CREATE_OUTPUT_PATH', 
+                        'CONF_APP', 'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB', 
+                        'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF' )
 
     CodeError = JobCodeError()
 
@@ -874,4 +873,11 @@ class Job( JobORM ):
         logging.info('\t\t---> Setting priority Job %d' % self.gw_job )
         if not self.dryrun :
             GWJob().set_priority( self.gw_job, priority )
+
+class Events( object ) :
+    """
+    A class to manage job events
+    """
+    pass
+
 

@@ -168,7 +168,7 @@ class PilotParams( object ):
     app                  = resource_cfg[ 'app' ]
     preprocessor         = resource_cfg[ 'preprocessor' ]
     postprocessor        = resource_cfg[ 'postprocessor' ]
-    clean_after_run      = resource_cfg( 'clean_after_run', 'no' )
+    clean_after_run      = resource_cfg.get( 'clean_after_run', 'no' )
     max_dom              = int( resource_cfg[ 'max_dom' ] )
     save_wps             = resource_cfg.get( 'save_wps', 'no' )
     wrfout_name_end_date = resource_cfg.get( 'wrfout_name_end_date' , 'no' )

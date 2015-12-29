@@ -1,112 +1,102 @@
-from sqlalchemy                 import ( Column, INTEGER,
-                                         VARCHAR, SMALLINT,
-                                         DATETIME, ForeignKey,
-                                         PickleType )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm             import relationship, sessionmaker
+from sqlalchemy     import ( Column, INTEGER,
+                             VARCHAR, SMALLINT,
+                             DATETIME, ForeignKey,
+                             PickleType, MetaData,
+                             Table )
+from sqlalchemy.orm import relationship, mapper
+from wrf4g.core     import ( Experiment, Realization,
+                             Chunk, Job, Events )
 
 __version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-Base = declarative_base()
+metadata = MetaData()
 
-class ExperimentORM( Base ):
+experiment = Table( 'experiment', metadata,
+                    Column('id',             INTEGER, primary_key=True, nullable=False),
+                    Column('name',           VARCHAR(length=512), nullable=False),
+                    Column('home_directory', VARCHAR(length=300))
+                  )                                           
 
-    __tablename__    = 'experiment'
+realization = Table( 'realization', metadata,
+                     Column('id',               INTEGER, primary_key=True, nullable=False),
+                     Column('exp_id',           INTEGER, ForeignKey('experiment.id')),
+                     Column('name',             VARCHAR(length=1024), nullable=False),
+                     Column('start_date',       DATETIME()),
+                     Column('end_date',         DATETIME()),
+                     Column('chunk_size_h',     INTEGER),
+                     Column('restart',          DATETIME()),
+                     Column('status',           VARCHAR(length=20)),
+                     Column('current_date',     DATETIME()),
+                     Column('current_chunk',    INTEGER),
+                     Column('nchunks',          INTEGER),
+                     Column('calendar',         VARCHAR(length=300)),
+                     Column('max_dom',          INTEGER),
+                     Column('np',               INTEGER),
+                     Column('requirements',     VARCHAR(length=1024)),
+                     Column('environment',      VARCHAR(length=1024)),
+                     Column('parallel_real',    VARCHAR(length=3)),
+                     Column('parallel_wrf',     VARCHAR(length=3)),
+                     Column('parallel_env',     VARCHAR(length=20)),
+                     Column('domain_path',      VARCHAR(length=1024)),
+                     Column('preprocessor',     VARCHAR(length=1024)),
+                     Column('extdata_path',     VARCHAR(length=1024)),
+                     Column('postprocessor',    VARCHAR(length=1024)),
+                     Column('app',              VARCHAR(length=2048)),
+                     Column('output_path',      VARCHAR(length=1024)),
+                     Column('extdata_member',   VARCHAR(length=1024)),
+                     Column('namelist_version', VARCHAR(length=10)),
+                     Column('namelist_values',  PickleType)
+                   )
 
-    # Columns
-    id               = Column('id',             INTEGER, primary_key=True, nullable=False)
-    name             = Column('name',           VARCHAR(length=512), nullable=False)
-    home_dir         = Column('home_directory', VARCHAR(length=300))
+chunk = Table( 'chunk', metadata,
+                Column('id',         INTEGER, primary_key = True, nullable = False),
+                Column('rea_id',     INTEGER, ForeignKey('realization.id')),
+                Column('start_date', DATETIME()),
+                Column('end_date',   DATETIME()),
+                Column('wps',        INTEGER),
+                Column('chunk_id',   INTEGER),
+                Column('status',     VARCHAR(length=20)),
+              )
 
-    # Realtionships
-    realization      = relationship("RealizationORM", back_populates="experiment", lazy='dynamic')
+job = Table( 'job', metadata,
+             Column('id',           INTEGER, primary_key=True, nullable=False),
+             Column('gw_job',       INTEGER),
+             Column('gw_restarted', INTEGER),
+             Column('chunck_id',    INTEGER, ForeignKey('chunk.id')),
+             Column('resource',     VARCHAR(length=45)),
+             Column('status',       VARCHAR(length=20)),
+             Column('exitcode',     VARCHAR(length=20))
+           )
 
-class RealizationORM( Base ):
+events = Table( 'events', metadata, 
+                Column('id',         INTEGER, primary_key=True, nullable=False),
+                Column('job_id',     INTEGER, ForeignKey('job.id')),
+                Column('job_status', VARCHAR(length=20)),
+                Column('timestamp',  DATETIME())
+              )
 
-    __tablename__    = 'realization'
+mapper(Experiment, experiment, properties={
+      "realization" : relationship(Realization, back_populates="experiment", lazy='dynamic')
+})
 
-    # Columns
-    id               = Column('id',               INTEGER, primary_key=True, nullable=False)
-    exp_id           = Column('exp_id',           INTEGER, ForeignKey('experiment.id'))
-    name             = Column('name',             VARCHAR(length=1024), nullable=False)
-    start_date       = Column('start_date',       DATETIME())
-    end_date         = Column('end_date',         DATETIME())
-    chunk_size_h     = Column('chunk_size_h',     INTEGER)
-    restart          = Column('restart',          DATETIME())
-    status           = Column('status',           VARCHAR(length=20))
-    current_date     = Column('current_date',     DATETIME())
-    current_chunk    = Column('current_chunk',    INTEGER)
-    nchunks          = Column('nchunks',          INTEGER)
-    calendar         = Column('calendar',         VARCHAR(length=300))
-    max_dom          = Column('max_dom',          INTEGER)
-    np               = Column('np',               INTEGER)
-    requirements     = Column('requirements',     VARCHAR(length=1024))
-    environment      = Column('environment',      VARCHAR(length=1024))
-    parallel_real    = Column('parallel_real',    VARCHAR(length=3))
-    parallel_wrf     = Column('parallel_wrf',     VARCHAR(length=3))
-    parallel_env     = Column('parallel_env',     VARCHAR(length=20))
-    domain_path      = Column('domain_path',      VARCHAR(length=1024))
-    preprocessor     = Column('preprocessor',     VARCHAR(length=1024))
-    extdata_path     = Column('extdata_path',     VARCHAR(length=1024))
-    postprocessor    = Column('postprocessor',    VARCHAR(length=1024))
-    app              = Column('app',              VARCHAR(length=2048))
-    output_path      = Column('output_path',      VARCHAR(length=1024))
-    extdata_member   = Column('extdata_member',   VARCHAR(length=1024))
-    namelist_version = Column('namelist_version', VARCHAR(length=10))
-    namelist_values  = Column('namelist_values',  PickleType)
+mapper(Realization, realization, properties={
+      "experiment" : relationship(Experiment, back_populates = "realization" ),
+      "chunk"      : relationship(Chunk,      back_populates = "realization", lazy='dynamic')
+})
 
-    # Realtionships
-    experiment       = relationship("ExperimentORM", back_populates = "realization")
-    chunk            = relationship("ChunkORM",      back_populates = "realization", lazy='dynamic')
+mapper(Chunk, chunk, properties={
+      "realization" : relationship(Realization, back_populates = "chunk"),
+      "job"         : relationship(Job,         back_populates = "chunk", lazy = "dynamic")
+})
 
-class ChunkORM( Base ):
-    __tablename__   = 'chunk'
+mapper(Job, job, properties={
+       "chunk"  : relationship(Chunk,  back_populates = "job"),
+       "events" : relationship(Events, back_populates = "job", lazy = 'dynamic')
+})
 
-    # Columns
-    id               = Column('id',         INTEGER, primary_key = True, nullable = False)
-    rea_id           = Column('rea_id',     INTEGER, ForeignKey('realization.id'))
-    start_date       = Column('start_date', DATETIME())
-    end_date         = Column('end_date',   DATETIME())
-    wps              = Column('wps',        INTEGER)
-    chunk_id         = Column('chunk_id',   INTEGER)
-    status           = Column('status',     VARCHAR(length=20))
-
-    # Relationships
-    realization      = relationship("RealizationORM", back_populates = "chunk")
-    job              = relationship("JobORM", back_populates = "chunk", lazy = "dynamic")
-
-class JobORM( Base ):
-    """
-    A class to manage WRF4G jobs
-    """
-    __tablename__    = 'job'
-
-    # Columns
-    id               = Column('id',           INTEGER, primary_key=True, nullable=False)
-    gw_job           = Column('gw_job',       INTEGER)
-    gw_restarted     = Column('gw_restarted', INTEGER)
-    chunk_id         = Column('chunck_id',    INTEGER, ForeignKey('chunk.id'))
-    resource         = Column('resource',     VARCHAR(length=45))
-    status           = Column('status',       VARCHAR(length=20))
-    exitcode         = Column('exitcode',     VARCHAR(length=20))
-
-    # Relationship
-    chunk            = relationship("ChunkORM", back_populates = "job")
-    events           = relationship("EventsORM", back_populates = "job", lazy = 'dynamic')
-
-class EventsORM( Base ):
-
-    __tablename__    = 'events'
-
-    # Columns
-    id               = Column('id',         INTEGER, primary_key=True, nullable=False)
-    job_id           = Column('job_id',     INTEGER, ForeignKey('job.id'))
-    job_status       = Column('job_status', VARCHAR(length=20))
-    timestamp        = Column('timestamp',  DATETIME())
-
-    # Relationship
-    job              = relationship("JobORM", back_populates = "events")
-
+mapper(Events, events, properties={
+       "job" : relationship(Job, back_populates = "events")
+})
 
