@@ -11,6 +11,15 @@ __version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
+#
+#  WRF4G database is composed of the following tables:
+#  experiment
+#  realization
+#  chunk
+#  job
+#  events
+#
+
 metadata = MetaData()
 
 experiment = Table( 'experiment', metadata,
@@ -78,24 +87,20 @@ events = Table( 'events', metadata,
               )
 
 mapper(Experiment, experiment, properties={
-      "realization" : relationship(Realization, back_populates="experiment", lazy='dynamic')
+       "realization" : relationship(Realization, back_populates="experiment", lazy='dynamic')
 })
-
 mapper(Realization, realization, properties={
-      "experiment" : relationship(Experiment, back_populates = "realization" ),
-      "chunk"      : relationship(Chunk,      back_populates = "realization", lazy='dynamic')
+       "experiment" : relationship(Experiment, back_populates = "realization" ),
+       "chunk"      : relationship(Chunk,      back_populates = "realization", lazy='dynamic')
 })
-
 mapper(Chunk, chunk, properties={
-      "realization" : relationship(Realization, back_populates = "chunk"),
-      "job"         : relationship(Job,         back_populates = "chunk", lazy = "dynamic")
+       "realization" : relationship(Realization, back_populates = "chunk"),
+       "job"         : relationship(Job,         back_populates = "chunk", lazy = "dynamic")
 })
-
 mapper(Job, job, properties={
        "chunk"  : relationship(Chunk,  back_populates = "job"),
        "events" : relationship(Events, back_populates = "job", lazy = 'dynamic')
 })
-
 mapper(Events, events, properties={
        "job" : relationship(Job, back_populates = "events")
 })
