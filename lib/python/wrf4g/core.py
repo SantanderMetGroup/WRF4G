@@ -868,7 +868,7 @@ class Job( object ):
 
     def set_priority(self, priority = 0 ):
         """
-        Delete a job
+        Set job priority
         """
         logging.info('\t\t---> Setting priority Job %d' % self.gw_job )
         if not self.dryrun :
