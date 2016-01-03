@@ -5,7 +5,7 @@ _wrf4g()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 1 ]; then
-        COMPREPLY=( $( compgen -W '--version -h --help status resource exp stop job vcp start host conf rea id' -- $cur) )
+        COMPREPLY=( $( compgen -W '--version -h --help status resource syncdb exp stop job vcp start host conf rea id' -- $cur) )
     else
         case ${COMP_WORDS[1]} in
             status)
@@ -13,6 +13,9 @@ _wrf4g()
         ;;
             resource)
             _wrf4g_resource
+        ;;
+            syncdb)
+            _wrf4g_syncdb
         ;;
             exp)
             _wrf4g_exp
@@ -66,6 +69,15 @@ _wrf4g_resource()
     fi
 }
 
+_wrf4g_syncdb()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 2 ]; then
+        COMPREPLY=( $( compgen -W '--dbg' -- $cur) )
+    fi
+}
 
 _wrf4g_exp()
 {

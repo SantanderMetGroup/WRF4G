@@ -6,6 +6,7 @@ import logging
 from sqlalchemy                 import create_engine 
 from sqlalchemy.pool            import NullPool
 from sqlalchemy.orm             import relationship, sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
 from os.path                    import join, exists
 from wrf4g                      import DB4G_CONF, WRF4G_DIR, MYSQL_DIR
 from wrf4g.utils.command        import exec_cmd_advance as exec_cmd
@@ -115,3 +116,14 @@ def get_session():
     # create a Session
     return Session()
 
+def init_db():
+    """
+    Create WRF4G database tables
+    """
+    logging.debug( "Reading database configuration from '%s' file" % DB4G_CONF  )
+    engine = create_engine( VarEnv( DB4G_CONF ).get_var( 'URL' ) )
+    Session = sessionmaker( bind = engine )
+    session = Session()
+    from wrf4g.orm import metadata
+    logging.debug( "Creating WRF4G tables" )
+    metadata.create_all( engine )

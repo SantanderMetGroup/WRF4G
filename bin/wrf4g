@@ -12,9 +12,10 @@ Options:
     --dbg      Debug mode.
     
 wrf4g commands are:
-   start       Start DRM4G daemon, MySQL database and ssh-agent.
-   stop        Stop  DRM4G daemon, MySQL database and ssh-agent.
-   status      Check DRM4G daemon, MySQL database and ssh-agent.
+   start       Start DRM4G daemon and ssh-agent.
+   stop        Stop  DRM4G daemon and ssh-agent.
+   status      Check DRM4G daemon and ssh-agent.
+   syncdb      Create WRF4G database tables on the configured database.  
    conf        Configure DRM4G daemon and scheduler, MySQL database and logger parameters.
    exp         Manage WRF4G experiments.
    rea         Manage WRF4G realizations.
@@ -34,7 +35,7 @@ from docopt import docopt
 if __name__ == "__main__":
     args = docopt( __doc__, version = __version__ , options_first = True )
     argv = [ args[ '<command>' ] ] + args[ '<args>' ]
-    if args['<command>'] in "start stop status conf resource host job id rea exp vcp".split() :
+    if args['<command>'] in "start stop status syncdb conf resource host job id rea exp vcp".split() :
         command = getattr( __import__( "wrf4g.commands.%s" %  args['<command>'] ).commands, args['<command>'] )
         arg = docopt( command.__doc__ , argv = argv )
         try :
