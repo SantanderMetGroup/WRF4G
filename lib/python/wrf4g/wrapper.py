@@ -26,7 +26,7 @@ from wrf4g.utils.time     import ( dateiso2datetime, datewrf2datetime,
 from wrf4g.utils.file     import WRFFile
 from wrf4g.utils.namelist import wps2wrf, fix_ptop
 from wrf4g.utils.vcplib   import VCPURL, copy_file
-from wrf4g.config         import load_pkl
+from wrf4g.config         import load_json
 
 __version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
@@ -155,7 +155,7 @@ class PilotParams( object ):
     """
     wrf_wrapper          = os.path.abspath( sys.argv[0] )
     root_path            = os.path.dirname( os.path.dirname( wrf_wrapper ) )
-    cfg                  = load_pkl( root_path, 'realization.pkl' )
+    cfg                  = load_json( root_path, 'realization.json' )
     # Find if there is a specific section for this resource
     resource_name        = os.environ.get( 'GW_HOSTNAME' )
     resource_section     = 'resource/' + resource_name
@@ -443,7 +443,7 @@ def launch_wrapper( params ):
         ##
         logging.info( "Copy configured files to '%s'" % params.output_path )
 
-        for conf_file in [ "db.conf", "experiment.wrf4g", "realization.pkl", "namelist.input" ] :
+        for conf_file in [ "db.conf", "experiment.wrf4g", "realization.json", "namelist.input" ] :
             oring = join( params.root_path, conf_file )
             dest  = join( params.rea_output_path , conf_file )
             try :

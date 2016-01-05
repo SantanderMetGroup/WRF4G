@@ -22,7 +22,7 @@ from os.path                import ( exists, expandvars,
                                      join, abspath )
 from datetime               import datetime, timedelta 
 from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
-from wrf4g.config           import get_conf, save_pkl
+from wrf4g.config           import get_conf, save_json
 from wrf4g.utils            import Enumerate, dict_compare 
 from wrf4g.utils.archive    import extract
 from wrf4g.utils.time       import datetime2datewrf, Calendar
@@ -339,7 +339,7 @@ class Experiment(object):
                             # Check storage
                             if not self.dryrun :
                                 cfg[ 'default' ] = cfg[ section ]
-                                save_pkl( cfg, self.home_directory, "realization.pkl" ) 
+                                save_json( cfg, self.home_directory, "realization.json" ) 
                                 rea._prepare_sub_files()
                             rea.cycle_chunks()
                             rea_start_date = exp_calendar.add_hours( rea_start_date, simult_interval_h ) 
@@ -496,7 +496,7 @@ class Realization( object ):
             except Exception :
                 raise Exception( "Couldn't be created '%s' directory" % rea_submission_path )
         for file_name in [ join( self.experiment.home_directory, "namelist.input" ),
-                           join( self.experiment.home_directory, "realization.pkl" ) ] :
+                           join( self.experiment.home_directory, "realization.json" ) ] :
             if not exists( file_name ) :
                 raise Exception( "'%s' is not available" % file_name )
             else :
@@ -696,7 +696,7 @@ class Chunk( object ):
         inputsandbox  = "file://%s,"                  % wrf4g_package
         inputsandbox += "file://%s/db.conf,"          % exp_path
         inputsandbox += "file://%s/experiment.wrf4g," % exp_path
-        inputsandbox += "file://%s/realization.pkl," % rea_path  
+        inputsandbox += "file://%s/realization.json," % rea_path  
         inputsandbox += "file://%s/namelist.input"    % rea_path  
         # Add input file if it is exist
         input_files = join( exp_path, 'wrf4g_files.tar.gz' )

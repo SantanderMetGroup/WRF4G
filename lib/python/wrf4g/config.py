@@ -199,3 +199,27 @@ def load_pkl( directory, file_name ) :
     finally :
         f.close()
 
+def save_json( obj_config, directory, file_name ) :
+    """
+    Save a python object into a json file.
+    """
+    # datetime objects have to be converted 
+    def date_handler(obj):
+        return obj.isoformat() if hasattr(obj, 'isoformat') else obj
+
+    f = open( join( directory, file_name ), "w" )
+    try :
+        json.dump( obj_config, f , default=date_handler )
+    finally :
+        f.close()
+
+def load_json( directory, file_name ) :
+    """
+    Load a python object back from the json file.
+    """
+    f = open( join( directory, file_name ), "r" )
+    try :
+        return json.load( f )
+    finally :
+        f.close()
+
