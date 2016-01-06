@@ -261,30 +261,33 @@ class Experiment(object):
                     nmli = fn.WrfNamelist( namelist_input )
                     logging.debug( "Updating parameter 'max_dom' in the namelist" )
                     nmli.setValue( "max_dom", int( cfg[ section ][ 'max_dom' ] ) )
+                    max_dom = single = False
                     for mnl_variable, mnl_values in cfg[ section ][ 'namelist_values' ] :
                         # Update the namelist per each combination
                         logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
                         # Modify the namelist with the parameters available in the namelist description
+                        if mnl_variable.startswith( "max_dom:" ) :
+                            mnl_variable = mnl_variable[ 8: ]
+                            max_dom      = True
+                        elif mnl_variable.startswith( "single:" ) :
+                            mnl_variable = mnl_variable[ 7: ]
+                            single       = True
                         if '.' in mnl_variable :
                             nml_section, val = mnl_variable.split( '.' )
                         else :
                             nml_section, val = "",  mnl_variable
-                        if val.startswith( "max_dom:" ) :
-                            val = val[ 8: ]
-                            if not val in nmli.MAX_DOM_VARIABLES : 
-                                nmli.MAX_DOM_VARIABLES.extend( val  )
-                        elif val.startswith( "single:" ) :
-                            val = val[ 7: ]
-                            if val in nmli.MAX_DOM_VARIABLES : 
-                                nmli.MAX_DOM_VARIABLES.remove( val  )
-                        try :                        
+                        if max_dom and not val in nmli.MAX_DOM_VARIABLES :
+                            nmli.MAX_DOM_VARIABLES.extend( val  )
+                        if single and val in nmli.MAX_DOM_VARIABLES :
+                            nmli.MAX_DOM_VARIABLES.remove( val  )
+                        try :
                             nmli.setValue( val, coerce_value_list( mnl_values ), nml_section )
                         except IndexError:
                             raise Exception( "'%s' does not have values for all namelist combinations." % mnl_variable )
                     nmli.trimMaxDom()
                     nmli.extendMaxDomVariables()
                     if nmli.wrfCheck() :
-                        raise Exception( "Please review 'namelist_values' variable." ) 
+                        raise Exception( "Please review 'namelist_values' variable." )
                     ##
                     # Clycle time
                     ##
