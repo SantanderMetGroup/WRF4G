@@ -1,6 +1,7 @@
 import os
 import re
 import copy
+import json
 import pickle
 import logging
 from os.path          import expandvars, expanduser, exists, join, abspath
@@ -13,8 +14,8 @@ __version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-YES_NO_VARIABLES    = ( 'clean_after_run', 'save_wps', 'parallel_real', 
-                        'parallel_wrf' , 'wrfout_name_end_date', 'chunk_restart' )
+YES_NO_VARIABLES = ( 'clean_after_run', 'save_wps', 'parallel_real', 
+                     'parallel_wrf' , 'wrfout_name_end_date', 'chunk_restart' )
 
 def get_conf( directory = './' ):
     """
@@ -41,6 +42,7 @@ def get_conf( directory = './' ):
     sanity_check.calendar()
     sanity_check.dates()
     sanity_check.parallel_env() 
+    sanity_check.files_to_save()
     sanity_check.app()
     sanity_check.namelist()
     if sanity_check.total_errors :
@@ -146,6 +148,20 @@ class SanityCheck():
                 if self.cfg[ section ][ 'parallel_env' ] not in ParallelEnvironment.launcher_map :
                     logging.error( "ERROR: '%s' does not exist" % self.cfg[ section ][ 'parallel_env' ] )
                     self.total_errors += 1
+    
+    def files_to_save(self) :
+        """
+        Check files to save during simulation        
+        """
+        files_to_save = [ 'wrfout', 'wrfzout', 'wrfz2out', 
+                          'wrfrst', 'wrfrain', 'wrfxtrm', 
+                          'wrf24hc' ]
+        for section in list( self.cfg.keys( ) ) :
+            if self.cfg[ section ].get( 'files_to_save' ) :
+                self.cfg_final[ section ] = self.cfg[ section ].get( 'files_to_save' ).\
+                                            replace(' ', '').split( ',' )
+            else :
+                self.cfg_final[ section ] = files_to_save
 
     def app(self) :
         """
@@ -170,7 +186,7 @@ class SanityCheck():
         for section in list(self.cfg.keys( ) ) :
             if self.cfg[ section ].get( 'namelist_values' ) :
                 self.cfg_final[ section ] [ 'namelist_values' ] = []
-                self.cfg_final[ section ][ 'multiple_phys' ] = False
+                self.cfg_final[ section ] [ 'multiple_phys' ] = False
                 # Delete whitespaces
                 for nml_val in self.cfg[ section ][ 'namelist_values' ].\
                                replace(' ', '').replace('\t', '').split( '\n' ):

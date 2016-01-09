@@ -169,9 +169,10 @@ class PilotParams( object ):
     preprocessor         = resource_cfg[ 'preprocessor' ]
     postprocessor        = resource_cfg[ 'postprocessor' ]
     clean_after_run      = resource_cfg.get( 'clean_after_run', 'no' )
+    files_to_save        = resource_cfg[ 'files_to_save' ]
     max_dom              = int( resource_cfg[ 'max_dom' ] )
     save_wps             = resource_cfg.get( 'save_wps', 'no' )
-    wrfout_name_end_date = resource_cfg.get( 'wrfout_name_end_date' , 'no' )
+    wrfout_name_end_date = resource_cfg.get( 'wrfout_name_end_date', 'no' )
     timestep_dxfactor    = resource_cfg.get( 'timestep_dxfactor', '6' )
     extdata_interval     = int( resource_cfg[ 'extdata_interval' ] )
     extdata_vtable       = resource_cfg[ 'extdata_vtable' ]
@@ -257,7 +258,7 @@ def clean_wrf_files( job_db, params, clean_all = False ):
     Postprocess wrfout files and copy files to the output path 
     """
     with lock :
-        for patt in [ "wrfout", "wrfzout", "wrfz2out", "wrfrst", "wrfrain", "wrfxtrm", "wrf24hc" ] :
+        for patt in params.files_to_save :
             all_files_patt = glob.glob( join( params.wrf_run_path, patt + '*' ) )
             if not clean_all :
                 if len( all_files_patt ) >= ( 2 * params.max_dom ) :
