@@ -170,14 +170,20 @@ class SanityCheck():
         for section in list(self.cfg.keys( ) ) :
             if self.cfg[ section ].get( 'namelist_values' ) :
                 self.cfg_final[ section ] [ 'namelist_values' ] = []
+                self.cfg_final[ section ][ 'multiple_phys' ] = False
                 # Delete whitespaces
                 for nml_val in self.cfg[ section ][ 'namelist_values' ].\
                                replace(' ', '').replace('\t', '').split( '\n' ):
-                    if nml_val.startswith('#'): 
+                    if nml_val.startswith('#'):
                         continue
-                    nml_conf_key, nml_conf_val = nml_val.split( '|' )
+                    nml_line = nml_val.split( '|' )
+                    nml_conf_key  = nml_line[0]
+                    nml_conf_vals = [ elem.strip( ',' ).split( ',' ) for elem in nml_line[1:] ]
+                    self.cfg_final[ section ][ 'i_phys' ] = len( nml_line ) - 1
+                    if self.cfg_final[ section ][ 'i_phys' ] > 0 :
+                        self.cfg_final[ section ][ 'multiple_phys' ] = True
                     self.cfg_final[ section ][ 'namelist_values' ].\
-                       append( [ nml_conf_key, nml_conf_val.strip( ',' ).split( ',' ) ] )
+                       append( [ nml_conf_key, nml_conf_vals ] )
         
 def save_pkl( obj_config, directory, file_name ) :
     """

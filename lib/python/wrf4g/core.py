@@ -241,7 +241,7 @@ class Experiment(object):
         """
         Create realizations for each member and namelist combinations.
         """
-        l_sections = list( cfg.keys() ) 
+        l_sections = list( cfg.keys() )
         number_ensembles = 0
         for section in l_sections :
             if section.startswith( "ensemble" ) :
@@ -252,104 +252,108 @@ class Experiment(object):
         for section in list( cfg.keys() ) :
             if section.startswith( "ensemble" ) :
                 try :
-                    realization_name = self.name + '_' + section.split( "/" )[ 1 ]
-                    # Copy the namelist from the template directory 
-                    namelist_input = self._copy_namelist_template(  cfg[ section ][ 'namelist_version' ] )
-                    ##
-                    # Update namelist values
-                    ##
-                    nmli = fn.WrfNamelist( namelist_input )
-                    logging.debug( "Updating parameter 'max_dom' in the namelist" )
-                    nmli.setValue( "max_dom", int( cfg[ section ][ 'max_dom' ] ) )
-                    max_dom = single = False
-                    for mnl_variable, mnl_values in cfg[ section ][ 'namelist_values' ] :
-                        # Update the namelist per each combination
-                        logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
-                        # Modify the namelist with the parameters available in the namelist description
-                        if mnl_variable.startswith( "max_dom:" ) :
-                            mnl_variable = mnl_variable[ 8: ]
-                            max_dom      = True
-                        elif mnl_variable.startswith( "single:" ) :
-                            mnl_variable = mnl_variable[ 7: ]
-                            single       = True
-                        if '.' in mnl_variable :
-                            nml_section, val = mnl_variable.split( '.' )
-                        else :
-                            nml_section, val = "",  mnl_variable
-                        if max_dom and not val in nmli.MAX_DOM_VARIABLES :
-                            nmli.MAX_DOM_VARIABLES.extend( val  )
-                        if single and val in nmli.MAX_DOM_VARIABLES :
-                            nmli.MAX_DOM_VARIABLES.remove( val  )
-                        try :
-                            nmli.setValue( val, coerce_value_list( mnl_values ), nml_section )
-                        except IndexError:
-                            raise Exception( "'%s' does not have values for all namelist combinations." % mnl_variable )
-                    nmli.trimMaxDom()
-                    nmli.extendMaxDomVariables()
-                    if nmli.wrfCheck() :
-                        raise Exception( "Please review 'namelist_values' variable." )
-                    ##
-                    # Clycle time
-                    ##
-                    for ( start_date, end_date, simult_interval_h, 
-                          simult_length_h, chunk_size_h, restart_interval ) in cfg[ section ][ 'date_time' ] :
-                        # Update restart_interval in the namelist 
-                        logging.debug( "Updating parameter 'restart_interval' in the namelist" )
-                        nmli.setValue( "restart_interval", restart_interval )
-                        if not self.dryrun :
-                            nmli.overWriteNamelist()
-                        # Define which calendar is going to be used
-                        exp_calendar   = Calendar( cfg[ section ][ 'calendar' ] )
-                        rea_start_date = start_date
-                        while rea_start_date < end_date :
-                            rea_end_date = exp_calendar.add_hours(rea_start_date, simult_length_h )
-                            if rea_end_date > end_date :
-                                rea_end_date = end_date
-                            rea_name = "%s_%s" % ( realization_name, rea_start_date.strftime( "%Y%m%dT%H%M%S" ) )
-                            logging.info( "---> Realization %s: start date %s end date %s" % ( 
-                                           rea_name, rea_start_date, rea_end_date ) )
-                            # Check realization on the database
-                            rea = self.check_db( name = rea_name, start_date = rea_start_date, end_date = rea_end_date, 
-                                                 chunk_size_h = chunk_size_h, calendar = cfg[ section ][ 'calendar' ] ) 
-                            if not rea :
-                                # Create a realization 
-                                rea = Realization( )
-                                rea.name = rea_name
-                                rea.start_date       = rea_start_date
-                                rea.end_date         = rea_end_date
-                                rea.chunk_size_h     = chunk_size_h
-                                rea.current_date     = rea_start_date
-                                rea.status           = Realization.Status.PREPARED
-                                rea.current_chunk    = 1
-                                rea.calendar         = cfg[ section ][ 'calendar' ]
-                                rea.max_dom          = cfg[ section ][ 'max_dom' ]
-                                rea.np               = int( cfg[ section ].get( 'np', 1 ) )
-                                rea.namelist_version = cfg[ section ][ 'namelist_version' ]
-                                rea.parallel_real    = cfg[ section ][ 'parallel_real' ]
-                                rea.parallel_wrf     = cfg[ section ][ 'parallel_wrf' ]
-                                rea.parallel_env     = cfg[ section ][ 'parallel_env' ]
-                                rea.domain_path      = cfg[ section ][ 'domain_path' ]
-                                rea.preprocessor     = cfg[ section ][ 'preprocessor' ]
-                                rea.extdata_path     = cfg[ section ][ 'extdata_path' ]
-                                rea.postprocessor    = cfg[ section ][ 'postprocessor' ]
-                                rea.requirements     = cfg[ section ].get( 'requirements', '')
-                                rea.environment      = cfg[ section ].get( 'environment', '')
-                                rea.app              = cfg[ section ][ 'app' ]
-                                rea.output_path      = cfg[ section ][ 'output_path' ]
-                                rea.namelist_values  = cfg[ section ][ 'namelist_values' ] 
-                                # Add realization to the experiment 
-                                self.realization.append( rea )
-                            # Check storage
+                    for i_phy in xrange( cfg[ section ][ 'i_phys' ] ) :
+                        realization_name = self.name + '_' + section.split( "/" )[ 1 ]
+                        if cfg[ section ][ 'multiple_phys' ] :
+                            realization_name = realization_name + '_' + 'phy%d' % i_phy
+                        # Copy the namelist from the template directory 
+                        namelist_input = self._copy_namelist_template(  cfg[ section ][ 'namelist_version' ] )
+                        ##
+                        # Update namelist values
+                        ##
+                        nmli = fn.WrfNamelist( namelist_input )
+                        logging.debug( "Updating parameter 'max_dom' in the namelist" )
+                        nmli.setValue( "max_dom", int( cfg[ section ][ 'max_dom' ] ) )
+                        max_dom = single = False
+                        for mnl_variable, mnl_values in cfg[ section ][ 'namelist_values' ] :
+                            mnl_value = mnl_values[ i_phy ]
+                            # Update the namelist per each combination
+                            logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
+                            # Modify the namelist with the parameters available in the namelist description
+                            if mnl_variable.startswith( "max_dom:" ) :
+                                mnl_variable = mnl_variable[ 8: ]
+                                max_dom = True
+                            elif mnl_variable.startswith( "single:" ) :
+                                mnl_variable = mnl_variable[ 7: ]
+                                single = True
+                            if '.' in mnl_variable :
+                                nml_section, val = mnl_variable.split( '.' )
+                            else :
+                                nml_section, val = "",  mnl_variable
+                            if max_dom and not val in nmli.MAX_DOM_VARIABLES :
+                                nmli.MAX_DOM_VARIABLES.extend( val  )
+                            if single and val in nmli.MAX_DOM_VARIABLES :
+                                nmli.MAX_DOM_VARIABLES.remove( val  )
+                            try :
+                                nmli.setValue( val, coerce_value_list( mnl_value ), nml_section )
+                            except IndexError:
+                                raise Exception( "'%s' does not have values for all namelist combinations." % mnl_variable )
+                        nmli.trimMaxDom()
+                        nmli.extendMaxDomVariables()
+                        if nmli.wrfCheck() :
+                            raise Exception( "Please review 'namelist_values' variable." )
+                        ##
+                        # Clycle time
+                        ##
+                        for ( start_date, end_date, simult_interval_h,
+                              simult_length_h, chunk_size_h, restart_interval ) in cfg[ section ][ 'date_time' ] :
+                            # Update restart_interval in the namelist 
+                            logging.debug( "Updating parameter 'restart_interval' in the namelist" )
+                            nmli.setValue( "restart_interval", restart_interval )
                             if not self.dryrun :
-                                cfg[ 'default' ] = cfg[ section ]
-                                save_json( cfg, self.home_directory, "realization.json" ) 
-                                rea._prepare_sub_files()
-                            rea.cycle_chunks()
-                            rea_start_date = exp_calendar.add_hours( rea_start_date, simult_interval_h ) 
+                                nmli.overWriteNamelist()
+                            # Define which calendar is going to be used
+                            exp_calendar   = Calendar( cfg[ section ][ 'calendar' ] )
+                            rea_start_date = start_date
+                            while rea_start_date < end_date :
+                                rea_end_date = exp_calendar.add_hours(rea_start_date, simult_length_h )
+                                if rea_end_date > end_date :
+                                    rea_end_date = end_date
+                                rea_name = "%s_%s" % ( realization_name, rea_start_date.strftime( "%Y%m%dT%H%M%S" ) )
+                                logging.info( "---> Realization %s: start date %s end date %s" % (
+                                               rea_name, rea_start_date, rea_end_date ) )
+                                # Check realization on the database
+                                rea = self.check_db( name = rea_name, start_date = rea_start_date, end_date = rea_end_date,
+                                                     chunk_size_h = chunk_size_h, calendar = cfg[ section ][ 'calendar' ] )
+                                if not rea :
+                                    # Create a realization 
+                                    rea = Realization( )
+                                    rea.name = rea_name
+                                    rea.start_date       = rea_start_date
+                                    rea.end_date         = rea_end_date
+                                    rea.chunk_size_h     = chunk_size_h
+                                    rea.current_date     = rea_start_date
+                                    rea.status           = Realization.Status.PREPARED
+                                    rea.current_chunk    = 1
+                                    rea.calendar         = cfg[ section ][ 'calendar' ]
+                                    rea.max_dom          = cfg[ section ][ 'max_dom' ]
+                                    rea.np               = int( cfg[ section ].get( 'np', 1 ) )
+                                    rea.namelist_version = cfg[ section ][ 'namelist_version' ]
+                                    rea.parallel_real    = cfg[ section ][ 'parallel_real' ]
+                                    rea.parallel_wrf     = cfg[ section ][ 'parallel_wrf' ]
+                                    rea.parallel_env     = cfg[ section ][ 'parallel_env' ]
+                                    rea.domain_path      = cfg[ section ][ 'domain_path' ]
+                                    rea.preprocessor     = cfg[ section ][ 'preprocessor' ]
+                                    rea.extdata_path     = cfg[ section ][ 'extdata_path' ]
+                                    rea.postprocessor    = cfg[ section ][ 'postprocessor' ]
+                                    rea.requirements     = cfg[ section ].get( 'requirements', '')
+                                    rea.environment      = cfg[ section ].get( 'environment', '')
+                                    rea.app              = cfg[ section ][ 'app' ]
+                                    rea.output_path      = cfg[ section ][ 'output_path' ]
+                                    rea.namelist_values  = cfg[ section ][ 'namelist_values' ]
+                                    # Add realization to the experiment 
+                                    self.realization.append( rea )
+                                # Check storage
+                                if not self.dryrun :
+                                    cfg[ 'default' ] = cfg[ section ]
+                                    save_json( cfg, self.home_directory, "realization.json" )
+                                    rea._prepare_sub_files()
+                                rea.cycle_chunks()
+                                rea_start_date = exp_calendar.add_hours( rea_start_date, simult_interval_h )
                 except KeyError as err :
                     logging.error( "%s is a mandatory variable."
                                    " Please add this variable to experiment.wrf4g file" % str(err) )
-
+ 
     def _copy_experiment_files(self, exp_sub_dir ):
         """
         Copy configure files before submission.
