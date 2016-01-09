@@ -158,10 +158,10 @@ class SanityCheck():
                           'wrf24hc' ]
         for section in list( self.cfg.keys( ) ) :
             if self.cfg[ section ].get( 'files_to_save' ) :
-                self.cfg_final[ section ] = self.cfg[ section ].get( 'files_to_save' ).\
+                self.cfg_final[ section ] [ 'files_to_save' ] = self.cfg[ section ].get( 'files_to_save' ).\
                                             replace(' ', '').split( ',' )
             else :
-                self.cfg_final[ section ] = files_to_save
+                self.cfg_final[ section ] [ 'files_to_save' ] = files_to_save
 
     def app(self) :
         """
