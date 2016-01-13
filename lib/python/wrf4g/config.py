@@ -38,7 +38,7 @@ def get_conf( directory = './' ):
     # Checking experinment.wrf4g file    
     sanity_check = SanityCheck( exp_conf_dict )
     sanity_check.experiment_name()
-    sanity_check.yesno_vars()
+    sanity_check.yes_no_vars()
     sanity_check.calendar()
     sanity_check.dates()
     sanity_check.parallel_env() 
@@ -71,7 +71,7 @@ class SanityCheck():
             logging.error( "ERROR: 'name' variable is mandatory" )
             self.total_errors += 1
   
-    def yesno_vars(self):
+    def yes_no_vars(self):
         """
         Check if yes/no variables are right 
         """
@@ -148,7 +148,13 @@ class SanityCheck():
                 if self.cfg[ section ][ 'parallel_env' ] not in ParallelEnvironment.launcher_map :
                     logging.error( "ERROR: '%s' does not exist" % self.cfg[ section ][ 'parallel_env' ] )
                     self.total_errors += 1
-    
+                if 'DUMMY' in self.cfg[ section ][ 'parallel_env' ] :
+                    if ( not 'parallel_run' in self.cfg[ section ] ) or \
+                       ( not 'parallel_run_pernode' in self.cfg[ section ] ) :
+                        logging.error( "ERROR: TO use DUMMY value you have to define "
+                                       "'parallel_run' and 'parallel_run_pernode' variables" )
+                        self.total_errors += 1  
+ 
     def files_to_save(self) :
         """
         Check files to save during simulation        

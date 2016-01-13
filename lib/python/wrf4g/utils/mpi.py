@@ -24,10 +24,14 @@ class ParallelEnvironment():
         npernode = '-npernode'
         ppn      = '-pernode'
         np       = '-np'
+ 
+    class Dummy():
+        pass
 
     launcher_map = {
         'POE'   : Poe,
         'SRUN'  : Srun,
         'MPIRUN': MpiRun,
+        'DUMMY' : Dummy
     }
 
