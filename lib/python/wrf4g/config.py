@@ -14,9 +14,6 @@ __version__  = '2.2.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-YES_NO_VARIABLES = ( 'clean_after_run', 'save_wps', 'parallel_real', 
-                     'parallel_wrf' , 'wrfout_name_end_date', 'chunk_restart' )
-
 def get_conf( directory = './' ):
     """
     Read the experiment configuration from experiment.wrf4g file.
@@ -30,13 +27,16 @@ def get_conf( directory = './' ):
     make_writeable( exp_file )
     logging.debug( "Reading '%s' file" % exp_file )
     exp_env = VarEnv( exp_file )
-    exp_conf_dict = dict()
-    exp_conf_dict[ 'default' ] = exp_env.defaults()
+    exp_cfg_dict = dict()
+    exp_cfg_dict[ 'default' ] = exp_env.defaults()
+    section_startswith_ensemble = 0   
     for section in exp_env.sections() :
-        exp_conf_dict[ section ] = dict( exp_env.items( section ) )
-    
+        exp_cfg_dict[ section ] = dict( exp_env.items( section ) )
+        section_startswith_ensemble += 1
+    if not section_startswith_ensemble :
+        exp_cfg_dict[ 'ensemble/default' ] = exp_env.defaults()
     # Checking experinment.wrf4g file    
-    sanity_check = SanityCheck( exp_conf_dict )
+    sanity_check = SanityCheck( exp_cfg_dict )
     sanity_check.experiment_name()
     sanity_check.yes_no_vars()
     sanity_check.calendar()
@@ -44,7 +44,7 @@ def get_conf( directory = './' ):
     sanity_check.parallel_env() 
     sanity_check.files_to_save()
     sanity_check.app()
-    sanity_check.namelist()
+    sanity_check.ensembles()
     if sanity_check.total_errors :
         raise Exception( "Please review your experiment configuration" )
     return sanity_check.cfg_final
@@ -56,8 +56,8 @@ class SanityCheck():
 
     def __init__(self, cfg) :
       
-        self.cfg       = copy.deepcopy( cfg )
-        self.cfg_final = copy.deepcopy( cfg )
+        self.cfg           = cfg
+        self.cfg_final     = copy.deepcopy( cfg )
         self.total_errors  = 0
         logging.info( "Checking the variables in experiment.wrf4g file"  )
         
@@ -71,13 +71,16 @@ class SanityCheck():
             logging.error( "ERROR: 'name' variable is mandatory" )
             self.total_errors += 1
   
+    _YES_NO_VARIABLES = ( 'clean_after_run', 'save_wps', 'parallel_real',
+                          'parallel_wrf' , 'wrfout_name_end_date', 'chunk_restart'
+
     def yes_no_vars(self):
         """
         Check if yes/no variables are right 
         """
         for section in list( self.cfg.keys( ) ) :
-            for key in YES_NO_VARIABLES :
-                if self.cfg[ section ].get( key ) : 
+            for key in self._YES_NO_VARIABLES :
+                if self.cfg[ section ].get( key ) and section.startswith( 'ensemble/' ) : 
                     val = self.cfg[ section ][ key ].lower()
                     if val in ( 'y', 'yes' ) :
                         self.cfg_final[ section ][ key ] = 'yes'
@@ -92,7 +95,7 @@ class SanityCheck():
         Check calendar type
         """
         for section in list( self.cfg.keys( ) ) :
-            if self.cfg[ section ].get( 'calendar' ) :
+            if self.cfg[ section ].get( 'calendar' ) and section.startswith( 'ensemble/' ) :
                 if not self.cfg[ section ][ 'calendar' ] in Calendar.available_types :
                     logging.error( "'%s' calendar type is not avariable" % self.cfg[ default ][ 'calendar' ] )
                     self.total_errors += 1
@@ -102,7 +105,7 @@ class SanityCheck():
         Check strart and end dates
         """
         for section in list( self.cfg.keys( ) ) :
-            if self.cfg[ section ].get( 'date_time' ) :
+            if self.cfg[ section ].get( 'date_time' ) and section.startswith( 'ensemble/' ) :
                 self.cfg_final[ section ][ 'date_time' ] = []
                 for rea_dates in self.cfg[ section ][ 'date_time' ].split( '\n' ) :
                     # Delete whitespaces and obtain each element
@@ -155,19 +158,20 @@ class SanityCheck():
                                        "'parallel_run' and 'parallel_run_pernode' variables" )
                         self.total_errors += 1  
  
+    _files_to_save = [ 'wrfout', 'wrfzout', 'wrfz2out',
+                       'wrfrst', 'wrfrain', 'wrfxtrm',
+                       'wrf24hc' ]
+
     def files_to_save(self) :
         """
         Check files to save during simulation        
         """
-        files_to_save = [ 'wrfout', 'wrfzout', 'wrfz2out', 
-                          'wrfrst', 'wrfrain', 'wrfxtrm', 
-                          'wrf24hc' ]
         for section in list( self.cfg.keys( ) ) :
             if self.cfg[ section ].get( 'files_to_save' ) :
                 self.cfg_final[ section ] [ 'files_to_save' ] = self.cfg[ section ].get( 'files_to_save' ).\
                                             replace(' ', '').split( ',' )
             else :
-                self.cfg_final[ section ] [ 'files_to_save' ] = files_to_save
+                self.cfg_final[ section ] [ 'files_to_save' ] = self._files_to_save
 
     def app(self) :
         """
@@ -185,69 +189,64 @@ class SanityCheck():
                         logging.error( "ERROR: '%s' app type does not exist in section '%s'." % ( app_type, section ) )
                         self.total_errors += 1
 
-    def namelist(self) :
+    def ensembles(self) :
         """
-        Check namelist configuration
+        Create ensembles for multi preprocessor_optargs and multi namelist_values        
         """
-        for section in list(self.cfg.keys( ) ) :
-            if self.cfg[ section ].get( 'namelist_values' ) :
-                self.cfg_final[ section ] [ 'namelist_values' ] = []
-                self.cfg_final[ section ] [ 'multiple_phys' ] = False
-                # Delete whitespaces
-                for nml_val in self.cfg[ section ][ 'namelist_values' ].\
-                               replace(' ', '').replace('\t', '').split( '\n' ):
-                    if nml_val.startswith('#'):
-                        continue
-                    nml_line = nml_val.split( '|' )
-                    nml_conf_key  = nml_line[0]
-                    nml_conf_vals = [ elem.strip( ',' ).split( ',' ) for elem in nml_line[1:] ]
-                    self.cfg_final[ section ][ 'i_phys' ] = len( nml_line ) - 1
-                    if self.cfg_final[ section ][ 'i_phys' ] > 0 :
-                        self.cfg_final[ section ][ 'multiple_phys' ] = True
-                    self.cfg_final[ section ][ 'namelist_values' ].\
-                       append( [ nml_conf_key, nml_conf_vals ] )
-        
+        def create_ensemble_sections( key_value, tag ) :
+            for section in list( self.cfg.keys( ) ) :
+                if self.cfg[ section ].get( key_value ) and section.startswith( 'ensemble/' ) :
+                    no_comb = self.cfg[ section ][ key_value ].split( '\n' ) [ 0 ].count( '|' ) 
+                    if no_comb > 1 :
+                        section_name = [ section + '_' + tag + '_' + elem for elem in range( 1, no_comb + 1 ) ]
+                        for new_section in section_names :
+                            self.cfg_final[ new_section ] = self.cfg[ section ]
+                            self.cfg_final[ new_section ] [ key_value ] = []
+                        del self.cfg_final[ section ]
+                    else :
+                        section_names = [ section ]
+                        self.cfg_final[ section ] [ key_value ] = []
+                    # Delete whitespaces
+                    for line in self.cfg[ section ][ key_value ].replace(' ', '').replace('\t', '').split( '\n' ):
+                        if line.startswith('#') : continue        
+                        key  = line.split( '|' ) [ 0 ]
+                        vals = line.split( '|' ) [ 1: ]
+                        if len( vals ) != no_comb : [ vals.append() for elem in range( no_comb - len( vals ) ) ]
+                        for i, new_section in enumerate( section_names ) :
+                            self.cfg_final[ new_section ][ key_value ].append( [ key, vals[ i ] ] )
+
+        create_ensemble_sections( 'preprocessor_optargs', 'prep_arg' )
+        create_ensemble_sections( 'namelist_values', 'nml' ) 
+       
 def save_pkl( obj_config, directory, file_name ) :
     """
     Save a python object into a pickle file.
     """
-    f = open( join( directory, file_name ), "w" )
-    try :
+    with open( join( directory, file_name ), "w" ) as f :
         pickle.dump( obj_config, f )
-    finally :
-        f.close()
 
 def load_pkl( directory, file_name ) :
     """
     Load a python object back from the pickle file.
     """
-    f = open( join( directory, file_name ), "r" )
-    try :
+    with open( join( directory, file_name ), "r" ) as f :
         return pickle.load( f )
-    finally :
-        f.close()
 
 def save_json( obj_config, directory, file_name ) :
     """
     Save a python object into a json file.
     """
     # datetime objects have to be converted 
-    def date_handler(obj):
+    def date_handler( obj ):
         return obj.isoformat() if hasattr(obj, 'isoformat') else obj
 
-    f = open( join( directory, file_name ), "w" )
-    try :
-        json.dump( obj_config, f , default=date_handler )
-    finally :
-        f.close()
+    with open( join( directory, file_name ), "w" ) as f :
+        json.dump( obj_config, f, default=date_handler )
 
 def load_json( directory, file_name ) :
     """
     Load a python object back from the json file.
     """
-    f = open( join( directory, file_name ), "r" )
-    try :
+    with open( join( directory, file_name ), "r" ) as f :
         return json.load( f )
-    finally :
-        f.close()
 

@@ -156,13 +156,12 @@ class PilotParams( object ):
     wrf_wrapper          = os.path.abspath( sys.argv[0] )
     root_path            = os.path.dirname( os.path.dirname( wrf_wrapper ) )
     cfg                  = load_json( root_path, 'realization.json' )
+    resource_cfg         = cfg[ 'ensemble/default' ].copy()
     # Find if there is a specific section for this resource
     resource_name        = os.environ.get( 'GW_HOSTNAME' )
     resource_section     = 'resource/' + resource_name
     if resource_section in cfg :
-        resource_cfg = cfg[ resource_section ]
-    else :
-        resource_cfg = cfg[ 'default' ]
+        resource_cfg.update( resource_section )
     output_path          = resource_cfg[ 'output_path' ]
     domain_path          = resource_cfg[ 'domain_path' ]
     app                  = resource_cfg[ 'app' ]
@@ -198,17 +197,18 @@ class PilotParams( object ):
     rerun                = int( sys.argv[7] )
 
     ##
-    # Multi member
+    # Preprocessor parameters
     ##
-    try :    
-        try :
-            member_number, initial_month_number = resource_cfg[ 'extdata_member' ].\
-                                                  replace(' ', '').split( '|' )
-        except :
-            member_number        = resource_cfg[ 'extdata_member' ].replace(' ', '')
-            initial_month_number = realization_sdate.month
-    except :
-        member_number = initial_month_number = ''
+    if 'preprocessor_optargs' in resource_cfg :
+       member = runtime = False
+       preprocessor_optargs = ""
+       for arg, value in resource_cfg[ 'preprocessor_optargs' ] :
+           preprocessor_optargs = preprocessor_optargs + value
+           if 'member'  in arg : member  = True  
+           if 'runtime' in arg : runtime = True
+       if member and not runtime :
+           preprocessor_optargs = preprocessor_optargs + realization_sdate.month
+    
     ##
     # Local path
     ##
@@ -223,8 +223,12 @@ class PilotParams( object ):
     parallel_wrf         = resource_cfg[ 'parallel_wrf' ]
     
     parallel_env         = ParallelEnvironment.launcher_map.get( resource_cfg[ 'parallel_env' ] )
-    parallel_run         = "%s %s %s " % ( parallel_env.launcher, parallel_env.np, os.environ.get( 'GW_NP' ) ) 
-    parallel_run_pernode = "%s %s" % ( parallel_env.launcher, parallel_env.npernode )
+    if parallel_env == 'DUMMY' :
+        parallel_run         = resource_cfg[ 'parallel_run' ]
+        parallel_run_pernode = resource_cfg[ 'parallel_run_pernode' ]
+    else :
+        parallel_run         = "%s %s %s " % ( parallel_env.launcher, parallel_env.np, os.environ.get( 'GW_NP' ) ) 
+        parallel_run_pernode = "%s %s" % ( parallel_env.launcher, parallel_env.npernode )
         
     # WRF path variables
     wps_path             = join( local_path, 'WPS')
