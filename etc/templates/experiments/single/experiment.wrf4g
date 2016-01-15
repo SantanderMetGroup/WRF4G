@@ -14,9 +14,6 @@ np                   = 1
 requirements         = ARCH = "x86_64"
 clean_after_run      = yes
 save_wps             = no
-parallel_env         = MPIRUN
-parallel_real        = yes
-parallel_wrf         = yes
 # Input data
 domain_path          = %(WRF4G_DEPLOYMENT_DIR)s/repository/domains/Santander_50km
 # Vtables must exist as Vtable.[input_extdata]
@@ -28,7 +25,10 @@ preprocessor         = default
 # Output
 output_path          = %(WRF4G_EXPERIMENT_HOME)s/output
 postprocessor        = SFC
-# app
+# app setup
+parallel_env         = MPIRUN
+parallel_real        = yes
+parallel_wrf         = yes
 app                  = wrf_all_in_one | bundle | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/WRF/WRFbin-3.4.1_r2265_gfortran.tar.gz
 # WRF-namelist parameters. Override namelist.input variables here
 namelist_version     = 3.4.1
