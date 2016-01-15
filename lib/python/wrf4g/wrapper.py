@@ -199,9 +199,9 @@ class PilotParams( object ):
     ##
     # Preprocessor parameters
     ##
+    preprocessor_optargs = ""
     if 'preprocessor_optargs' in resource_cfg :
        member = runtime = False
-       preprocessor_optargs = ""
        for arg, value in resource_cfg[ 'preprocessor_optargs' ] :
            preprocessor_optargs = preprocessor_optargs + value
            if 'member'  in arg : member  = True  
@@ -496,11 +496,8 @@ def launch_wrapper( params ):
                     extract( dest, to_path = params.root_path )
             elif 'command' in app_type :
                 logging.info( 'Configuring source script for %s' % app_tag )
-                try :
-                    f = open( 'easy_source.sh', 'w' )
+                with open( 'easy_source.sh', 'w' ) as f :
                     f.write( app_value )
-                finally :
-                    f.close()
                 code, output = exec_cmd( ". ./easy_source.sh && env" )
                 if code :
                     logging.info( output )
@@ -728,11 +725,10 @@ def launch_wrapper( params ):
                 if not which( "preprocessor.%s" % pp ) :
                    raise JobError( "Preprocessor '%s' does not exist" % pp, Job.CodeError.PREPROCESSOR_FAILED )
                 preprocessor_log = join( params.log_path, 'preprocessor.%s.log' %  pp )
-                code, output = exec_cmd( "preprocessor.%s %s %s %s %s %s &> %s" % (
+                code, output = exec_cmd( "preprocessor.%s %s %s %s %s &> %s" % (
                                             pp, datetime2datewrf( params.chunk_rdate ) , 
                                             datetime2datewrf( params.chunk_edate ), epath, 
-                                            params.member_number, params.initial_month_number, 
-                                            preprocessor_log ) )
+                                            params.preprocessor_optargs, preprocessor_log ) )
                 if code :
                     logging.info( output )
                     raise JobError( "Preprocessor '%s' has failed" % pp,

@@ -55,7 +55,6 @@ class SanityCheck():
     """
 
     def __init__(self, cfg) :
-      
         self.cfg           = cfg
         self.cfg_final     = copy.deepcopy( cfg )
         self.total_errors  = 0
@@ -72,7 +71,7 @@ class SanityCheck():
             self.total_errors += 1
   
     _YES_NO_VARIABLES = ( 'clean_after_run', 'save_wps', 'parallel_real',
-                          'parallel_wrf' , 'wrfout_name_end_date', 'chunk_restart'
+                          'parallel_wrf' , 'wrfout_name_end_date', 'chunk_restart' )
 
     def yes_no_vars(self):
         """
@@ -158,9 +157,9 @@ class SanityCheck():
                                        "'parallel_run' and 'parallel_run_pernode' variables" )
                         self.total_errors += 1  
  
-    _files_to_save = [ 'wrfout', 'wrfzout', 'wrfz2out',
+    _files_to_save = ( 'wrfout', 'wrfzout', 'wrfz2out',
                        'wrfrst', 'wrfrain', 'wrfxtrm',
-                       'wrf24hc' ]
+                       'wrf24hc' )
 
     def files_to_save(self) :
         """
@@ -193,30 +192,30 @@ class SanityCheck():
         """
         Create ensembles for multi preprocessor_optargs and multi namelist_values        
         """
-        def create_ensemble_sections( key_value, tag ) :
+        for key_value, tag in [ ( 'preprocessor_optargs', 'prep_arg' ) ,
+                                ( 'namelist_values', 'nml' )  ] :
+            self.cfg = copy.deepcopy( self.cfg_final )
             for section in list( self.cfg.keys( ) ) :
                 if self.cfg[ section ].get( key_value ) and section.startswith( 'ensemble/' ) :
-                    no_comb = self.cfg[ section ][ key_value ].split( '\n' ) [ 0 ].count( '|' ) 
+                    no_comb = max( [ line.count( '|' ) for line in self.cfg[ section ][ key_value ].split( '\n' ) ] )
                     if no_comb > 1 :
-                        section_name = [ section + '_' + tag + '_' + elem for elem in range( 1, no_comb + 1 ) ]
+                        section_names = [ section + '_' + tag + str( elem ) for elem in range( 1, no_comb + 1 ) ]
                         for new_section in section_names :
-                            self.cfg_final[ new_section ] = self.cfg[ section ]
-                            self.cfg_final[ new_section ] [ key_value ] = []
-                        del self.cfg_final[ section ]
+                            self.cfg_final[ new_section ] = copy.deepcopy( self.cfg[ section ] )
+                            self.cfg_final[ new_section ] [ key_value ] = dict()
                     else :
                         section_names = [ section ]
-                        self.cfg_final[ section ] [ key_value ] = []
+                        self.cfg_final[ section ] [ key_value ] = dict()
                     # Delete whitespaces
                     for line in self.cfg[ section ][ key_value ].replace(' ', '').replace('\t', '').split( '\n' ):
-                        if line.startswith('#') : continue        
+                        if line.startswith('#') : continue
                         key  = line.split( '|' ) [ 0 ]
                         vals = line.split( '|' ) [ 1: ]
-                        if len( vals ) != no_comb : [ vals.append() for elem in range( no_comb - len( vals ) ) ]
+                        if len( vals ) != no_comb :
+                            [ vals.append( vals[-1] ) for elem in range( no_comb - len( vals ) ) ]
                         for i, new_section in enumerate( section_names ) :
-                            self.cfg_final[ new_section ][ key_value ].append( [ key, vals[ i ] ] )
-
-        create_ensemble_sections( 'preprocessor_optargs', 'prep_arg' )
-        create_ensemble_sections( 'namelist_values', 'nml' ) 
+                            self.cfg_final[ new_section ][ key_value ] [ key ] = vals[i]
+                    if no_comb > 1 : del self.cfg_final[ section ]
        
 def save_pkl( obj_config, directory, file_name ) :
     """

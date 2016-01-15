@@ -241,7 +241,7 @@ class Experiment(object):
         """
         Create realizations.
         """
-        for section in list( cfg.keys() ) :
+        for section in sorted( list( cfg.keys() ) ) :
             if section.startswith( "ensemble" ) :
                 try :
                     realization_name = self.name + '_' + section.split( "/" )[ 1 ]
@@ -254,7 +254,7 @@ class Experiment(object):
                     logging.debug( "Updating parameter 'max_dom' in the namelist" )
                     nmli.setValue( "max_dom", int( cfg[ section ][ 'max_dom' ] ) )
                     max_dom = single = False
-                    for mnl_variable, mnl_values in cfg[ section ][ 'namelist_values' ] :
+                    for mnl_variable, mnl_values in cfg[ section ][ 'namelist_values' ].items() :
                         # Update the namelist per each combination
                         logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
                         # Modify the namelist with the parameters available in the namelist description
