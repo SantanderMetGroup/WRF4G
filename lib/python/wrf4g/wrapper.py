@@ -199,15 +199,16 @@ class PilotParams( object ):
     ##
     # Preprocessor parameters
     ##
+    ##
+    # Preprocessor parameters
+    ##
     preprocessor_optargs = ""
     if 'preprocessor_optargs' in resource_cfg :
-       member = runtime = False
-       for arg, value in resource_cfg[ 'preprocessor_optargs' ] :
-           preprocessor_optargs = preprocessor_optargs + value
-           if 'member'  in arg : member  = True  
-           if 'runtime' in arg : runtime = True
-       if member and not runtime :
-           preprocessor_optargs = preprocessor_optargs + realization_sdate.month
+       for arg, value in resource_cfg[ 'preprocessor_optargs' ].items() :
+           preprocessor_optargs = preprocessor_optargs + ' ' +  value
+       if ( 'member' in resource_cfg[ 'preprocessor_optargs' ] ) and \
+          (  not 'runtime' in resource_cfg[ 'preprocessor_optargs' ] ) :
+           preprocessor_optargs = preprocessor_optargs + ' ' + realization_sdate.month
     
     ##
     # Local path
