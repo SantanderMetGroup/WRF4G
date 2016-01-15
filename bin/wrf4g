@@ -16,7 +16,7 @@ wrf4g commands are:
    stop        Stop  DRM4G daemon and ssh-agent.
    status      Check DRM4G daemon and ssh-agent.
    syncdb      Create WRF4G database tables on the configured database.  
-   conf        Configure DRM4G daemon and scheduler, MySQL database and logger parameters.
+   conf        Configure DRM4G daemon and scheduler, database and logger parameters.
    exp         Manage WRF4G experiments.
    rea         Manage WRF4G realizations.
    resource    Manage computing resources.
