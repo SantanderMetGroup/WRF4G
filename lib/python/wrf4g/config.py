@@ -7,7 +7,8 @@ import logging
 from os.path          import expandvars, expanduser, exists, join, abspath
 from wrf4g.utils      import dict2obj
 from wrf4g.utils.mpi  import ParallelEnvironment 
-from wrf4g.utils.time import datewrf2datetime, Calendar
+from wrf4g.utils.time import ( datewrf2datetime, Calendar, 
+                               str2timedelta, timedelta_total_seconds )
 from wrf4g.utils.file import VarEnv, make_writeable, validate_name
 
 __version__  = '2.2.0'
@@ -101,7 +102,7 @@ class SanityCheck():
     
     def dates(self):
         """
-        Check strart and end dates
+        Check start and end dates
         """
         for section in list( self.cfg.keys( ) ) :
             if self.cfg[ section ].get( 'date_time' ) and section.startswith( 'ensemble/' ) :
@@ -118,28 +119,26 @@ class SanityCheck():
                     if start_date >= end_date :
                         logging.error( "ERROR: '%s' is not earlier than the '%s'" % ( elems[ 0 ] , elems[ 1 ] )  )
                         self.total_errors += 1
-                    # chunk_size_h
-                    chunk_size_h = int( elems[ 2 ] )
-                    # simulation_interval_h and simulation_length_h 
+                    # chunk_size
+                    chunk_size = str2timedelta( elems[ 2 ] )
+                    # simulation_interval and simulation_length
                     if len( elems ) == 5 :
-                        simult_interval_h = int( elems[ 3 ] )
-                        simult_length_h   = int( elems[ 4 ] )
+                        simult_interval = str2timedelta( elems[ 3 ] )
+                        simult_length   = str2timedelta( elems[ 4 ] )
                     else :
                         td = end_date - start_date
-                        total_seconds = ( td.microseconds + ( td.seconds + td.days * 24 * 3600) * 10**6 ) / 10**6
-                        simult_interval_h = simult_length_h = total_seconds / 3600
-                    if chunk_size_h > simult_length_h :
+                        simult_interval = simult_length = td
+                    if chunk_size > simult_length :
                         logging.warn( "WARNING: %d 'chunk_size' is bigger than %d 'simulation_length'" %
-                                                 ( chunk_size_h, simult_length_h ) )
+                                                 ( chunk_size, simult_length ) )
                     # Defining restart_interval
                     # To avoid chunk restart we add 1 hour to restart_interval variable
+                    restart_interval = timedelta_total_seconds( chunk_size ) * 60
                     if self.cfg[ section ].get( 'chunk_restart' ) or self.cfg[ section ].get( 'chunk_restart' ) == 'no' :
-                        restart_interval = ( chunk_size_h + 1 ) * 60 
-                    else :
-                        restart_interval = chunk_size_h * 60  
+                        restart_interval = restart_interval + 3600
                     self.cfg_final[ section ][ 'date_time' ].append( [ start_date, end_date, 
-                                                         simult_interval_h, simult_length_h, 
-                                                         chunk_size_h, restart_interval ] )
+                                                         simult_interval, simult_length, 
+                                                         chunk_size, restart_interval ] )
 
     def parallel_env(self) : 
         """
@@ -213,6 +212,7 @@ class SanityCheck():
                         vals = line.split( '|' ) [ 1: ]
                         if len( vals ) != no_comb :
                             [ vals.append( vals[-1] ) for elem in range( no_comb - len( vals ) ) ]
+                            logging.warn( "WARNING: Extending '%s' with this value '%s'" % ( key, vals[-1] ) )
                         for i, new_section in enumerate( section_names ) :
                             self.cfg_final[ new_section ][ key_value ] [ key ] = vals[i]
                     if no_comb > 1 : del self.cfg_final[ section ]

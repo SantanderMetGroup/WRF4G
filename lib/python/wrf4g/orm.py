@@ -1,8 +1,8 @@
 from sqlalchemy     import ( Column, INTEGER,
                              VARCHAR, SMALLINT,
                              DATETIME, ForeignKey,
-                             PickleType, MetaData,
-                             Table )
+                             Interval, PickleType, 
+                             MetaData, Table )
 from sqlalchemy.orm import relationship, mapper
 from wrf4g.core     import ( Experiment, Realization,
                              Chunk, Job, Events )
@@ -34,7 +34,7 @@ realization = Table( 'realization', metadata,
                      Column('name',             VARCHAR(length=1024), nullable=False),
                      Column('start_date',       DATETIME()),
                      Column('end_date',         DATETIME()),
-                     Column('chunk_size_h',     INTEGER),
+                     Column('chunk_size',       Interval),
                      Column('restart',          DATETIME()),
                      Column('status',           VARCHAR(length=20)),
                      Column('current_date',     DATETIME()),

@@ -188,27 +188,19 @@ class PilotParams( object ):
     ##
     chunk_sdate          = datewrf2datetime( sys.argv[4] )
     chunk_edate          = datewrf2datetime( sys.argv[5] )
-    realization_sdate    = datewrf2datetime( sys.argv[6] )
     chunk_rdate          = chunk_sdate
 
     ##
     # Varieble to rerun the chunk
     ##
-    rerun                = int( sys.argv[7] )
+    rerun                = int( sys.argv[6] )
 
     ##
     # Preprocessor parameters
     ##
-    ##
-    # Preprocessor parameters
-    ##
-    preprocessor_optargs = ""
+    preprocessor_optargs = dict()
     if 'preprocessor_optargs' in resource_cfg :
-       for arg, value in resource_cfg[ 'preprocessor_optargs' ].items() :
-           preprocessor_optargs = preprocessor_optargs + ' ' +  value
-       if ( 'member' in resource_cfg[ 'preprocessor_optargs' ] ) and \
-          (  not 'runtime' in resource_cfg[ 'preprocessor_optargs' ] ) :
-           preprocessor_optargs = preprocessor_optargs + ' ' + realization_sdate.month
+        preprocessor_optargs = resource_cfg[ 'preprocessor_optargs' ]
     
     ##
     # Local path
@@ -703,9 +695,9 @@ def launch_wrapper( params ):
             ##
             logging.info( "Run preprocessors and ungrib" )
 
-            for vt, pp, epath in zip( params.extdata_vtable.replace(' ', '').split( ',' ), 
-                                      params.preprocessor.replace(' ', '').split( ',' ), 
-                                      params.extdata_path.replace(' ', '').split( ',' ) ) :
+            for i, ( vt, pp, epath ) in enumerate( zip( params.extdata_vtable.replace(' ', '').split( ',' ), 
+                                                        params.preprocessor.replace(' ', '').split( ',' ), 
+                                                        params.extdata_path.replace(' ', '').split( ',' ) ) ) :
                 try :
                     nmlw = fn.FortranNamelist( params.namelist_wps )
                     nmlw.setValue( "prefix", vt, "ungrib" )
@@ -725,11 +717,14 @@ def launch_wrapper( params ):
                 
                 if not which( "preprocessor.%s" % pp ) :
                    raise JobError( "Preprocessor '%s' does not exist" % pp, Job.CodeError.PREPROCESSOR_FAILED )
+                optargs = ""
+                for arg in params.preprocessor_optargs.values() : 
+                    optargs += arg.split( ',' )[ i ]
                 preprocessor_log = join( params.log_path, 'preprocessor.%s.log' %  pp )
                 code, output = exec_cmd( "preprocessor.%s %s %s %s %s &> %s" % (
                                             pp, datetime2datewrf( params.chunk_rdate ) , 
                                             datetime2datewrf( params.chunk_edate ), epath, 
-                                            params.preprocessor_optargs, preprocessor_log ) )
+                                            optargs, preprocessor_log ) )
                 if code :
                     logging.info( output )
                     raise JobError( "Preprocessor '%s' has failed" % pp,

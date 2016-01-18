@@ -29,6 +29,19 @@ def datetime2datewrf( date_object ):
 def datetime2dateiso( date_object ):
     return date_object.strftime("%Y%m%dT%H%M%SZ")
 
+def str2timedelta( input_str ):
+    keys = [ "years", "months", "days", "hours", "minutes" ]
+    regex = "".join(["((?P<%s>\d+) %s ?)?" % (k, k[0]) for k in keys])
+    kwargs = {}
+    for key, val in re.match( regex, input_str ).groupdict( default = "0" ).items():
+        kwargs[ key ] = int( val )
+    return timedelta( **kwargs )
+
+def timedelta_total_seconds( timedelta ):
+    return (
+        timedelta.microseconds + 0.0 +
+        (timedelta.seconds + timedelta.days * 24 * 3600) * 10 ** 6) / 10 ** 6
+
 class Calendar( object ):
     """
     Class to manage calendars like 'standard' and 'no_leap' 
@@ -41,7 +54,7 @@ class Calendar( object ):
         else :
             self.type = type
 
-    def sub(self, date1, date2 ):
+    def sub_dates(self, date1, date2 ):
         """
         Subtract two dates returning a timedelta object
         """
@@ -51,25 +64,26 @@ class Calendar( object ):
         else :
             return date1 - date2
 
-    def add_hours(self, date, hours):
+    def add(self, date, tdatetime):
         """
-        Add hours to a date returning a datetime object
+        Add time to a date returning a datetime object
         """
+        total_time = date + tdatetime
         if self.type == 'no_leap' :
             hours_to_add = 0
-            date_add = date + timedelta(hours=hours)
+            date_add = date + tdatetime
             for year in range( date.year, date_add.year + 1 ) :
                 if calendar.isleap( year ) : 
                     if date < datetime( year, 2, 29 ) < date_add :
                         hours_to_add += 24
-            return date + timedelta( hours=hours+hours_to_add ) 
-        else :
-            return date + timedelta( hours=hours )
+            total_time += timedelta( hours = hours_to_add ) 
+        return total_time
 
     def sub_hours(self, date, hours):
         """
-        Subtract hours to a date returning a datetime object
+        Subtract time to a date returning a datetime object
         """
+        total_time = date - tdatetime
         if self.type == 'no_leap' :
             hours_to_sub = 0
             date_add = date + timedelta(hours=hours)
@@ -77,9 +91,8 @@ class Calendar( object ):
                 if calendar.isleap( year ) :     
                     if date < datetime( year, 2, 29 ) < date_add :
                         hours_to_sub -= 24
-            return date - timedelta( hours=hours-hours_to_sub )
-        else :
-            return date - timedelta( hours=hours )
+            total_time -= timedelta( hours = hours_to_sub )
+        return total_time
 
     def _no_leap_day(self, date):
         year        = date.year
