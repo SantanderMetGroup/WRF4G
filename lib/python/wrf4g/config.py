@@ -125,12 +125,11 @@ class SanityCheck():
                     if len( elems ) == 5 :
                         simult_interval = str2timedelta( elems[ 3 ] )
                         simult_length   = str2timedelta( elems[ 4 ] )
+                        if chunk_size > simult_length :
+                            logging.warn( "WARNING: %d 'chunk_size' is bigger than %d 'simulation_length'" %
+                                                  ( chunk_size, simult_length ) )
                     else :
-                        td = end_date - start_date
-                        simult_interval = simult_length = td
-                    if chunk_size > simult_length :
-                        logging.warn( "WARNING: %d 'chunk_size' is bigger than %d 'simulation_length'" %
-                                                 ( chunk_size, simult_length ) )
+                        simult_interval = simult_length = end_date - start_date
                     # Defining restart_interval
                     # To avoid chunk restart we add 1 hour to restart_interval variable
                     restart_interval = timedelta_total_seconds( chunk_size ) * 60
@@ -236,11 +235,22 @@ def save_json( obj_config, directory, file_name ) :
     Save a python object into a json file.
     """
     # datetime objects have to be converted 
-    def date_handler( obj ):
-        return obj.isoformat() if hasattr(obj, 'isoformat') else obj
+    from datetime               import datetime, date, timedelta
+    from dateutil.relativedelta import relativedelta
+    class DatetimeEncoder(json.JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, datetime):
+                return obj.strftime('%Y-%m-%dT%H:%M:%SZ')
+            elif isinstance(obj, date):
+                return obj.strftime('%Y-%m-%d')
+            elif isinstance(obj, timedelta):
+                return str(obj)
+            elif isinstance(obj, relativedelta):
+                return str(obj)
+            return json.JSONEncoder.default(self, obj)
 
     with open( join( directory, file_name ), "w" ) as f :
-        json.dump( obj_config, f, default=date_handler )
+        json.dump( obj_config, f , cls = DatetimeEncoder)
 
 def load_json( directory, file_name ) :
     """

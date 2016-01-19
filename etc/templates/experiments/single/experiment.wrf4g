@@ -5,8 +5,8 @@ name                 = %(exp_name)s
 # Simulation domain
 max_dom              = 1
 # Experiment time-specification
-#                      start_date          | end_date            | chunk_size_h
-date_time            = 2011-08-28_12:00:00 | 2011-08-30_00:00:00 | 12
+#                      start_date          | end_date            | chunk_size
+date_time            = 2011-08-28_12:00:00 | 2011-08-30_00:00:00 | 12 hours
 calendar             = standard
 timestep_dxfactor    = 6
 # Running options 

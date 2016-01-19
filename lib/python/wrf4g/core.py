@@ -235,7 +235,7 @@ class Experiment(object):
         with open(dest_path, 'w') as f :
             f.writelines( data_updated )
  
-    def update_namelist( namelist_input ):
+    def update_namelist( self, namelist_input, section ):
         """
         Update namelist values
         """
@@ -272,7 +272,7 @@ class Experiment(object):
         if not self.dryrun :
             nmli.overWriteNamelist()
 
-    def _update_member( realization_start_date ) :
+    def _update_member( self, realization_start_date ) :
         """
         If the member is not indicated the initialized month will be the 
         month of the realization
@@ -282,10 +282,11 @@ class Experiment(object):
             runtime.append( str( realization_start_date.month ) )
         self.cfg[ section ] [ 'preprocessor_optargs' ] [ 'runtime' ] = ','.join( runtime )
 
-    def cycle_time( namelist_input, section ) :
+    def cycle_time( self, namelist_input, section ) :
         """
         Clycle realization time
         """
+        realization_name = self.name + '_' + section.split( "/" )[ 1 ]
         for ( start_date, end_date, simult_interval,
               simult_length, chunk_size, restart_interval ) in self.cfg[ section ][ 'date_time' ] :
             # Update restart_interval in the namelist 
@@ -353,11 +354,10 @@ class Experiment(object):
         for section in sorted( list( self.cfg.keys() ) ) :
             if section.startswith( "ensemble" ) :
                 try :
-                    realization_name = self.name + '_' + section.split( "/" )[ 1 ]
                     # Copy the namelist from the template directory 
                     namelist_input = self._copy_namelist_template(  self.cfg[ section ][ 'namelist_version' ] )
-                    self.update_namelist( namelist_input )
-                    self.clycle_time( namelist_input, section )
+                    self.update_namelist( namelist_input, section )
+                    self.cycle_time( namelist_input, section )
                 except KeyError as err :
                     logging.error( "%s is a mandatory variable."
                                    " Please add this variable to experiment.wrf4g file" % str(err) )
@@ -718,12 +718,10 @@ class Chunk( object ):
             inputsandbox += ",file://%s" % ( input_files )
         # files to add for the outputsandbox
         outputsandbox = "log_%d_${JOB_ID}.tar.gz" % self.chunk_id
-        arguments = '%s %s %d %s %s %s %d' % ( exp_name,
-                                               rea_name,                                     
-                                               self.chunk_id,
-                                               datetime2datewrf( self.start_date ),
-                                               datetime2datewrf( self.end_date ),
-                                               1 if rerun else 0 )
+        arguments = '%s %s %d %s %s %d' % ( exp_name, rea_name, self.chunk_id,
+                                            datetime2datewrf( self.start_date ),
+                                            datetime2datewrf( self.end_date ),
+                                            1 if rerun else 0 )
         # Create the job template
         file_template = gw_job.create_template( name          = rea_name,
                                                 directory     = rea_path,

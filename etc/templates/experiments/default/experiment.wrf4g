@@ -5,7 +5,7 @@ name                 = %(exp_name)s
 max_dom              = 1
 # Experiment time-specification
 #                      start_date              | end_date                | chunk_size | interval | length 
-date_time            = Year-Month-Day_HH:MM:SS | Year-Month-Day_HH:MM:SS | H          | H        | H
+date_time            = Year-Month-Day_HH:MM:SS | Year-Month-Day_HH:MM:SS |            |          | 
 timestep_dxfactor    = 6
 calendar             = standard
 # Running options 
