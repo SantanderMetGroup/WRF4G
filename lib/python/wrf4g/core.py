@@ -792,26 +792,6 @@ class Chunk( object ):
                 job.dryrun = self.dryrun
                 job.set_priority( priority )
  
-    def statistics( self ) :
-        """
-        """
-        l_jobs = self.job.filter( Job.status == Job.Status.FINISHED ).all()
-        for job in l_jobs :
-            job.set_priority( priority )
-
-Job.Status.RUNNING
-Job.Status.CREATE_OUTPUT_PATH 
-Job.Status.CONF_APP 
-Job.Status.DOWN_RESTART 
-Job.Status.DOWN_WPS 
-Job.Status.DOWN_BOUND 
-Job.Status.UNGRIB 
-Job.Status.METGRID 
-Job.Status.REAL 
-Job.Status.UPLOAD_WPS 
-Job.Status.WRF 
-Job.Status.FINISHED
-
 class JobCodeError():
     LOG_PATH             = 1
     COPY_APP             = 2
