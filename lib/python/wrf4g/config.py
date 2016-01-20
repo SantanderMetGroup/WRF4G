@@ -132,7 +132,7 @@ class SanityCheck():
                         simult_interval = simult_length = end_date - start_date
                     # Defining restart_interval
                     # To avoid chunk restart we add 1 hour to restart_interval variable
-                    restart_interval = timedelta_total_seconds( chunk_size ) * 60
+                    restart_interval = timedelta_total_seconds( chunk_size ) / 60
                     if self.cfg[ section ].get( 'chunk_restart' ) or self.cfg[ section ].get( 'chunk_restart' ) == 'no' :
                         restart_interval = restart_interval + 3600
                     self.cfg_final[ section ][ 'date_time' ].append( [ start_date, end_date, 
@@ -240,9 +240,9 @@ def save_json( obj_config, directory, file_name ) :
     class DatetimeEncoder(json.JSONEncoder):
         def default(self, obj):
             if isinstance(obj, datetime):
-                return obj.strftime('%Y-%m-%dT%H:%M:%SZ')
+                return obj.strftime('%s')
             elif isinstance(obj, date):
-                return obj.strftime('%Y-%m-%d')
+                return obj.strftime('%s')
             elif isinstance(obj, timedelta):
                 return str(obj)
             elif isinstance(obj, relativedelta):
