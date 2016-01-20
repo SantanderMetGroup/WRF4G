@@ -310,8 +310,9 @@ class Experiment(object):
                                      calendar = self.cfg[ section ][ 'calendar' ] )
                 if not rea :
                     # If there is not runtime we have to add the start month of the realization
-                    if ( 'member' in self.cfg[ section ] [ 'preprocessor_optargs' ] ) and \
-                        (  not 'runtime' in self.cfg[ section ] [ 'preprocessor_optargs' ] ) :
+                    if ( 'preprocessor_optargs' in  self.cfg[ section ] ) and \
+                       ( 'member' in self.cfg[ section ] [ 'preprocessor_optargs' ] ) and \
+                       (  not 'runtime' in self.cfg[ section ] [ 'preprocessor_optargs' ] ) :
                         self._update_member( rea_start_date )
                     # Create a realization 
                     rea = Realization( )
@@ -628,6 +629,17 @@ class Realization( object ):
         logging.info( "%-60s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
                     self.name, self.status, chunk_distribution, resource, status, 
                     gw_job, exitcode, per ) )
+
+    def statistics( self ) :
+        """
+        """
+        l_chunks = self.chunk.filter( Chunk.status == Chunk.Status.FINISHED ).all()
+        if not ( l_chunks ):
+            logging.info( '\tThere are not chunks.' )
+        else :
+            for chunk in l_chunks :
+                chunk.statistics( )
+
   
     def get_log( self, chunk_id , directory ) :
         """
@@ -779,6 +791,26 @@ class Chunk( object ):
             for job in l_jobs :
                 job.dryrun = self.dryrun
                 job.set_priority( priority )
+ 
+    def statistics( self ) :
+        """
+        """
+        l_jobs = self.job.filter( Job.status == Job.Status.FINISHED ).all()
+        for job in l_jobs :
+            job.set_priority( priority )
+
+Job.Status.RUNNING
+Job.Status.CREATE_OUTPUT_PATH 
+Job.Status.CONF_APP 
+Job.Status.DOWN_RESTART 
+Job.Status.DOWN_WPS 
+Job.Status.DOWN_BOUND 
+Job.Status.UNGRIB 
+Job.Status.METGRID 
+Job.Status.REAL 
+Job.Status.UPLOAD_WPS 
+Job.Status.WRF 
+Job.Status.FINISHED
 
 class JobCodeError():
     LOG_PATH             = 1
