@@ -309,6 +309,10 @@ class Experiment(object):
                 rea = self.check_db( name = rea_name, start_date = rea_start_date, end_date = rea_end_date,
                                      calendar = self.cfg[ section ][ 'calendar' ] )
                 if not rea :
+                    # If there is not runtime we have to add the start month of the realization
+                    if ( 'member' in self.cfg[ section ] [ 'preprocessor_optargs' ] ) and \
+                        (  not 'runtime' in self.cfg[ section ] [ 'preprocessor_optargs' ] ) :
+                        self._update_member( rea_start_date )
                     # Create a realization 
                     rea = Realization( )
                     rea.name             = rea_name
@@ -318,31 +322,18 @@ class Experiment(object):
                     rea.current_date     = rea_start_date
                     rea.status           = Realization.Status.PREPARED
                     rea.current_chunk    = 1
-                    rea.calendar         = self.cfg[ section ][ 'calendar' ]
-                    rea.max_dom          = self.cfg[ section ][ 'max_dom' ]
-                    rea.np               = int( self.cfg[ section ].get( 'np', 1 ) )
-                    rea.namelist_version = self.cfg[ section ][ 'namelist_version' ]
-                    rea.parallel_real    = self.cfg[ section ][ 'parallel_real' ]
-                    rea.parallel_wrf     = self.cfg[ section ][ 'parallel_wrf' ]
-                    rea.parallel_env     = self.cfg[ section ][ 'parallel_env' ]
-                    rea.domain_path      = self.cfg[ section ][ 'domain_path' ]
-                    rea.preprocessor     = self.cfg[ section ][ 'preprocessor' ]
-                    rea.extdata_path     = self.cfg[ section ][ 'extdata_path' ]
-                    rea.postprocessor    = self.cfg[ section ][ 'postprocessor' ]
-                    rea.requirements     = self.cfg[ section ].get( 'requirements', '')
-                    rea.environment      = self.cfg[ section ].get( 'environment', '')
-                    rea.app              = self.cfg[ section ][ 'app' ]
-                    rea.output_path      = self.cfg[ section ][ 'output_path' ]
-                    rea.namelist_values  = self.cfg[ section ][ 'namelist_values' ]
+                    rea.cfg              = self.cfg[ section ]
                     # Add realization to the experiment 
                     self.realization.append( rea )
-                    if ( 'member' in self.cfg[ section ] [ 'preprocessor_optargs' ] ) and \
-                        (  not 'runtime' in self.cfg[ section ] [ 'preprocessor_optargs' ] ) :
-                        self._update_member( rea_start_date )
                 # Check storage
                 if not self.dryrun :
-                    self.cfg[ 'ensemble/default' ] = self.cfg[ section ]
-                    save_json( self.cfg, self.home_directory, "realization.json" )
+                    # Default section will be the current section
+                    realization_cfg = dict()
+                    realization_cfg[ 'ensemble/default' ] = copy.deepcopy( self.cfg[ section ] )
+                    for key, val in self.cfg[ section ].items() :
+                        if key.startswith( 'resource' ) :
+                            realization_cfg[ key ] = copy.deepcopy( val )
+                    save_json( realization_cfg, self.home_directory, "realization.json" )
                     rea._prepare_sub_files()
                 rea.cycle_chunks()
                 rea_start_date = exp_calendar.add( rea_start_date, simult_interval )
@@ -557,7 +548,7 @@ class Realization( object ):
         Create chunks the needed for a realization 
         """
         # Define which calendar is going to be used
-        exp_calendar = Calendar( self.calendar )
+        exp_calendar = Calendar( self.cfg[ 'calendar' ] )
         chunk_id = 1
         chunk_start_date = self.start_date
         while chunk_start_date < self.end_date :
@@ -726,9 +717,9 @@ class Chunk( object ):
         file_template = gw_job.create_template( name          = rea_name,
                                                 directory     = rea_path,
                                                 arguments     = arguments,
-                                                np            = int( self.realization.np ),
-                                                req           = self.realization.requirements,
-                                                environ       = self.realization.environment,
+                                                np            = int( self.realization.cfg.get( 'np', '1' ) ),
+                                                req           = self.realization.cfg.get( 'requirements', '' ),
+                                                environ       = self.realization.cfg.get( 'environment', '' ) ,
                                                 inputsandbox  = inputsandbox,
                                                 outputsandbox = outputsandbox )
         # Submit the template
