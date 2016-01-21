@@ -190,7 +190,7 @@ class SanityCheck():
         """
         Create ensembles for multi preprocessor_optargs and multi namelist_values        
         """
-        for key_value, tag in [ ( 'preprocessor_optargs', 'prep_arg' ) ,
+        for key_value, tag in [ ( 'preprocessor_optargs', 'arg' ) ,
                                 ( 'namelist_values', 'nml' )  ] :
             self.cfg = copy.deepcopy( self.cfg_final )
             for section in list( self.cfg.keys( ) ) :
