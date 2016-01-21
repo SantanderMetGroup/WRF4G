@@ -644,6 +644,8 @@ class Realization( object ):
         for key, val in self.cfg.items() :
            if 'date_time' in key : 
                continue
+           elif 'app' in key :
+               logging.info( "\t%s: %s" % ( key, val.replace( '\n', '\n\t\t' ) ) )
            elif type( val ) == dict :
                logging.info( "\t%s" % key )
                for key2, val2 in val.items() :
@@ -651,6 +653,7 @@ class Realization( object ):
            elif type( val ) == list or  type( val ) == tuple :
                logging.info( "\t%s: %s" % ( key, ' '.join( val ) ) )
            else :
+               if  'app' in key : val
                logging.info( "\t%s: %s" % ( key, val ) )
   
     def get_log( self, chunk_id , directory ) :
