@@ -630,16 +630,26 @@ class Realization( object ):
                     self.name, self.status, chunk_distribution, resource, status, 
                     gw_job, exitcode, per ) )
 
-    def statistics( self ) :
+    def information( self ) :
         """
+        Get information about all realization values
         """
-        l_chunks = self.chunk.filter( Chunk.status == Chunk.Status.FINISHED ).all()
-        if not ( l_chunks ):
-            logging.info( '\tThere are not chunks.' )
-        else :
-            for chunk in l_chunks :
-                chunk.statistics( )
-
+        logging.info( "Realization name %s" % self.name )
+        logging.info( "Start date %s" % self.start_date )
+        logging.info( "End  date %s" % self.end_date )
+        logging.info( "Chunk size %s" % self.chunk_size )     
+        logging.info( "Current date %s" % self.current_date )
+        logging.info( "Status %s" % self.status )
+        logging.info( "Configuration" )
+        for key, val in self.cfg.items() :
+           if 'date_time' in key : 
+               continue
+           elif type( val ) == dict :
+               logging.info( "\t%s" % key )
+               for key2, val2 in val.items() :
+                   logging.info( "\t\t%s %s" % ( key2, val2 ) )
+           else :
+               logging.info( "\t%s %s" % ( key, val ) )
   
     def get_log( self, chunk_id , directory ) :
         """

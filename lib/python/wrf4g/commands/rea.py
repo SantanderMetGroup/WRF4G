@@ -4,7 +4,8 @@ Manage WRF4G realizations.
 Usage: 
      wrf4g rea <name> submit       [ --dbg ] [ --dry-run ] [ --priority=<value> ] [ --rerun ] [ <first_ch> [ <last_ch> ] ]
      wrf4g rea <name> status       [ --dbg ] [ --delay=<seconds> ]
-     wrf4g rea <name> log          [ --dbg ] [ --dir=<directory> ] <chunk_id> 
+     wrf4g rea <name> info
+     wrf4g rea <name> log          [ --dbg ] [ --dir=<directory> ] <chunk_id>
      wrf4g rea <name> set-priority [ --dbg ] [ --dry-run ] <priority>
      wrf4g rea <name> cancel       [ --dbg ] [ --dry-run ] [ --hard ]
    
@@ -21,6 +22,7 @@ Commands:
     submit                 Submit the realization.       
     status                 Check the status of a realization showing computing resources, 
                            job identifier and exit codes (SEE EXIT CODES).
+    info                   Get information about configuration.
     log                    Get log files from a chunk.
     set-priority           Change the scheduling priority of any job releted to the realization. 
                            The priority must be in range [0,20], and the default value is 0. 
@@ -101,6 +103,8 @@ def run( arg ) :
                         pass
             elif arg[ 'log' ] :
                 rea.get_log( arg[ '<chunk_id>' ], arg[ '--dir' ] )
+            elif arg[ 'info' ] :
+                rea.information()
             elif arg[ 'set-priority' ] :
                 rea.set_priority( int( arg[ '<priority>' ] ) )
             else :

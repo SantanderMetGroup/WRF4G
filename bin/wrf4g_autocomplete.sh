@@ -350,7 +350,7 @@ _wrf4g_rea()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -W 'status cancel submit set-priority log ' -- $cur) )
+        COMPREPLY=( $( compgen -W 'status cancel submit set-priority info log ' -- $cur) )
     else
         case ${COMP_WORDS[3]} in
             status)
