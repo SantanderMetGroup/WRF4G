@@ -632,24 +632,26 @@ class Realization( object ):
 
     def information( self ) :
         """
-        Get information about all realization values
+        Get information about all realization values.
         """
-        logging.info( "Realization name %s" % self.name )
-        logging.info( "Start date %s" % self.start_date )
-        logging.info( "End  date %s" % self.end_date )
-        logging.info( "Chunk size %s" % self.chunk_size )     
-        logging.info( "Current date %s" % self.current_date )
-        logging.info( "Status %s" % self.status )
-        logging.info( "Configuration" )
+        logging.info( "Start date: %s" % self.start_date )
+        logging.info( "End date: %s" % self.end_date  )
+        logging.info( "Current date: %s" % self.current_date )
+        logging.info( "Chunk size: %s" % self.chunk_size )
+        logging.info( "Number of chunks: %s" % self.nchunks )
+        logging.info( "Status: %s" % self.status )
+        logging.info( "Configuration: " )
         for key, val in self.cfg.items() :
            if 'date_time' in key : 
                continue
            elif type( val ) == dict :
                logging.info( "\t%s" % key )
                for key2, val2 in val.items() :
-                   logging.info( "\t\t%s %s" % ( key2, val2 ) )
+                   logging.info( "\t\t%s: %s" % ( key2, val2 ) )
+           elif type( val ) == list or  type( val ) == tuple :
+               logging.info( "\t%s: %s" % ( key, ' '.join( val ) ) )
            else :
-               logging.info( "\t%s %s" % ( key, val ) )
+               logging.info( "\t%s: %s" % ( key, val ) )
   
     def get_log( self, chunk_id , directory ) :
         """
