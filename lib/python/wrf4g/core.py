@@ -9,18 +9,14 @@ import time
 import copy
 import tarfile
 import shutil
-import datetime
 import logging
 import fortran_namelist as fn
 from fortran_namelist       import coerce_value_list
-from sqlalchemy             import ( create_engine, func,
-                                     and_, or_ )
-from sqlalchemy.orm         import relationship, mapper
-from sqlalchemy.orm.exc     import NoResultFound
+from sqlalchemy             import and_, or_
 from os.path                import ( exists, expandvars, 
                                      expanduser, isdir, 
                                      join, abspath )
-from datetime               import datetime, timedelta 
+from datetime               import datetime
 from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
 from wrf4g.config           import get_conf, save_json
 from wrf4g.utils            import Enumerate, dict_compare 
