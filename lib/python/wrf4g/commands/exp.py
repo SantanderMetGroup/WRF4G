@@ -9,6 +9,7 @@ Usage:
     wrf4g exp <name> update       [ --dbg ] [ --dry-run ] 
     wrf4g exp <name> submit       [ --dbg ] [ --dry-run ] [ --priority=<value> ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --rerun ] 
     wrf4g exp <name> status       [ --dbg ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --delay=<seconds> ]  
+    wrf4g exp <name> statistics   [ --dbg ]
     wrf4g exp <name> cancel       [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --hard ]
     wrf4g exp <name> set-priority [ --dbg ] [ --dry-run ] [ --pattern=<name> ] <priority>
     wrf4g exp <name> delete       [ --dbg ] [ --dry-run ] 
@@ -147,6 +148,8 @@ def run( arg ) :
                         exp.cancel( arg[ '--pattern' ], arg[ '--rea-state' ], arg[ '--hard' ] )
                     elif arg[ 'set-priority' ] :
                         exp.set_priority( arg[ '--pattern' ], int( arg[ '<priority>' ] ) )
+                    elif arg[ 'statistics' ] :
+                        exp.statistics()
                     elif arg[ 'delete' ] :
                         exp.delete( )
                         session.delete( exp )

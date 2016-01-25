@@ -89,7 +89,7 @@ _wrf4g_exp()
     fi
 
     if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -W ' status edit cancel create update submit delete define set-priority' -- $cur) )
+        COMPREPLY=( $( compgen -W ' status edit cancel create update submit statistics delete define set-priority' -- $cur) )
     else
         case ${COMP_WORDS[3]} in
             status)

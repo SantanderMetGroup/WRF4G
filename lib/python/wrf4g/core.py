@@ -185,6 +185,22 @@ class Experiment(object):
                 rea.dryrun = self.dryrun
                 rea.cancel( hard )
 
+    def statistics(self):
+        """
+        Get statistics from the database 
+        """
+        #list of realization of the experiment
+
+        l_realizations_finished = self.realization.\
+                                  filter( Realization.status == Realization.Status.FINISHED  )
+        if not ( l_realizations_finished ):
+            logging.info( 'There are not finished realizations to get statistics.' )
+        else :
+            logging.info( "Job ID;Realization Name;Chunk ID;Resource Name;Execution Time;"
+                          "Waiting Time;REAL Execution Time;WRF Execution Time" )
+            for rea in l_realizations_finished :
+                rea.statistics( )
+
     def set_priority(self, rea_pattern = False, priority = 0 ):
         """
         Setting priority to jobs 
@@ -660,7 +676,7 @@ class Realization( object ):
 
     def cancel(self, hard = False ):
         """
-        Delete chunks which status is running or submitted 
+        Delete chunks which status is running or submitted.
         """
         l_chunks = self.chunk.filter( or_( Chunk.status == Chunk.Status.SUBMITTED,
                                            Chunk.status == Chunk.Status.PENDING,
@@ -674,7 +690,22 @@ class Realization( object ):
             for chunk in l_chunks :
                 chunk.dryrun = self.dryrun
                 chunk.cancel( hard )
-   
+
+    def statistics(self):
+        """
+        Get statistics from jobs.
+        """
+        for chunk in self.chunk.all() :
+            finished_job = chunk.job.filter( Job.status != Job.Status.FINISHED ) [ -1 ]
+            date_SUBMITTED    = finished_job.events.filter( Events.job_status == Job.Status.SUBMITTED ).one().timestamp
+            date_RUNNING      = finished_job.events.filter( Events.job_status == Job.Status.RUNNING ).one().timestamp
+            date_REAL         = finished_job.events.filter( Events.job_status == Job.Status.REAL ).one().timestamp
+            date_WRF          = finished_job.events.filter( Events.job_status == Job.Status.WRF ).one().timestamp
+            date_FINISHED     = finished_job.events.filter( Events.job_status == Job.Status.FINISHED ).one().timestamp
+            logging.info("%d;%d;%s;%s;%s;%s;%s;%s" % ( finished_job.gw_job, self.name, chunk.chunk_id, finished_job.resource,
+                                                       str( date_FINISHED - date_RUNNING ), str( date_RUNNING - date_SUBMITTED ),
+                                                       str( date_WRF - date_REAL ), str( date_FINISHED - date_WRF ) )
+
     def set_priority(self, priority = 0 ):
         """
         Setting priority to chunks which status is submitted.
