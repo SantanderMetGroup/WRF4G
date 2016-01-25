@@ -6,7 +6,6 @@ import logging
 from sqlalchemy                 import create_engine 
 from sqlalchemy.pool            import NullPool
 from sqlalchemy.orm             import relationship, sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
 from os.path                    import join, exists
 from wrf4g                      import DB4G_CONF, WRF4G_DIR, MYSQL_DIR
 from wrf4g.utils.command        import exec_cmd_advance as exec_cmd
