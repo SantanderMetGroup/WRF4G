@@ -132,8 +132,17 @@ class Experiment(object):
                     raise Exception( "Couldn't be created '%s' directory" % exp_sub_dir )
           
         # Cycle to create a realization per combination
-        self.cycle_realizations( )
-        
+        for section in sorted( list( self.cfg.keys() ) ) :
+            if section.startswith( "ensemble" ) :
+                try :
+                    # Copy the namelist from the template directory 
+                    namelist_input = self._copy_namelist_template( self.cfg[ section ][ 'namelist_version' ] )
+                    self.update_namelist( namelist_input, section )
+                    self.cycle_time( namelist_input, section )
+                except KeyError as err :
+                    logging.error( "%s is a mandatory variable."
+                                   " Please add this variable to experiment.wrf4g file" % str(err) )
+
         if not self.dryrun :
             # Copy configure files before submission
             self._copy_experiment_files( exp_sub_dir  )
@@ -339,21 +348,6 @@ class Experiment(object):
                 rea.cycle_chunks()
                 rea_start_date = exp_calendar.add( rea_start_date, simult_interval )
 
-    def cycle_realizations( self ) :
-        """
-        Create realizations.
-        """
-        for section in sorted( list( self.cfg.keys() ) ) :
-            if section.startswith( "ensemble" ) :
-                try :
-                    # Copy the namelist from the template directory 
-                    namelist_input = self._copy_namelist_template(  self.cfg[ section ][ 'namelist_version' ] )
-                    self.update_namelist( namelist_input, section )
-                    self.cycle_time( namelist_input, section )
-                except KeyError as err :
-                    logging.error( "%s is a mandatory variable."
-                                   " Please add this variable to experiment.wrf4g file" % str(err) )
- 
     def _copy_experiment_files(self, exp_sub_dir ):
         """
         Copy configure files before submission.
