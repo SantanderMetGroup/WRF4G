@@ -753,7 +753,7 @@ class Chunk( object ):
         if exists( input_files ):
             inputsandbox += ",file://%s" % ( input_files )
         # files to add for the outputsandbox
-        outputsandbox = "log_%d_${JOB_ID}.tar.gz" % self.chunk_id
+        outputsandbox = "log_%d_${JOB_ID}.tar.gz, events.pkl" % self.chunk_id
         arguments = '%s %s %d %s %s %d' % ( exp_name, rea_name, self.chunk_id,
                                             datetime2datewrf( self.start_date ),
                                             datetime2datewrf( self.end_date ),
@@ -862,7 +862,7 @@ class Job( object ):
 
     CodeError = JobCodeError()
 
-    def set_status(self, status):
+    def set_status(self, status, timestamp = False ):
         """ 
         Save the status of the job and if it is a jobstatus of CHUNK STATUS and REALIZATION STATUS,
         change the status of the Chunk and the Realization and add an event. 
@@ -888,7 +888,10 @@ class Job( object ):
         #Add event
         events            = Events()
         events.job_status = status
-        events.timestamp  = datetime.utcnow()
+        if not timestamp :
+            events.timestamp  = datetime.utcnow()
+        else :
+            events.timestamp  = timestamp
         self.events.append( events ) 
         
     def run(self, rerun = False):

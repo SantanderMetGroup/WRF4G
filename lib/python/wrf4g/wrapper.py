@@ -10,11 +10,13 @@ import tarfile
 import glob
 import threading
 import fortran_namelist as fn
+from datetime             import datetime
 from os.path              import ( exists, join, 
                                    dirname, isfile, 
                                    basename, expandvars )
 from wrf4g.db             import get_session
 from wrf4g.core           import Job
+from wrf4g.config         import save_pkl
 from wrf4g.utils.mpi      import ParallelEnvironment
 from wrf4g.utils.osinfo   import ( get_hostname, os_release, 
                                    cpu_info, mem_info, 
@@ -55,6 +57,7 @@ class JobError( Exception ):
 class JobDB( object ) :
 
     def __init__(self, job_id) :
+        self.events = []
         try :
             self.session = get_session()
         except :
@@ -84,6 +87,8 @@ class JobDB( object ) :
                 except :
                     logging.warning( "Error updating status '%s' on the database" % status )
                     self.session.rollback()
+            else :
+                self.events.append( ( status, datetime.utcnow() ) )
         except :
             logging.warning( "Error setting job status" )
 
@@ -145,9 +150,10 @@ class JobDB( object ) :
         except :
             logging.warning( "Error updating exit code" )
 
-    def close(self) :
+    def close(self, directory ) :
         if self.session :
            self.session.close()
+        save_pkl( self.events, directory, 'events.pkl' )     
 
 class PilotParams( object ):
     """
@@ -961,5 +967,5 @@ def launch_wrapper( params ):
         # Close the connection with the database
         ##
         job_db.set_exit_code( exit_code )
-        job_db.close()
+        job_db.close( params.root_path  )
         sys.exit( exit_code )

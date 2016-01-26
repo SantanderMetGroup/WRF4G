@@ -9,7 +9,7 @@ from drm4g.utils.url       import urlparse
 from drm4g.utils.dynamic   import ThreadPool
 from drm4g.core.configure  import Configuration
 from drm4g.utils.message   import Send
-
+from wrf4g.config          import load_pkl
 from wrf4g.db              import get_session
 from wrf4g.core            import Job
 
@@ -182,35 +182,42 @@ class GwTmMad (object):
         finally:
             with self._lock2 :
                 try:
-                    if 'stdout.wrapper' in DST_URL : 
-                        # Connect with the database to update the exitcode
+                    if 'stdout.wrapper' in DST_URL or 'events.pkl' in DST_URL : 
+                        # Connect with the database 
                         try :
                             session   = get_session()
                             query_job = session.query(Job).\
                                         filter( Job.gw_job == JID ).\
                                         order_by( Job.id ).all()[-1]
-                            if query_job.exitcode == '-' :
-                                try :
-                                    with open( DST_URL[7:], 'r') as file :
-                                        lines = file.readlines()
-                                except :
-                                    query_job.set_status( Job.Status.FAILED )
-                                else :
-                                    all_lines = ''.join( lines )
-                                    re_exit_status = re.compile( "EXIT_STATUS=(-?\d*)" )
-                                    mo = re_exit_status.search(all_lines)
-                                    if mo : 
-                                        exit_code = mo.group( 1 ) 
-                                        query_job.exitcode = exit_code
-                                        if exit_code == '0' :
-                                            query_job.chunk.realization.current_date = query_job.chunk.end_date
-                                            query_job.job.chunk.realization.restart  = query_job.chunk.end_date
-                                        else :
-                                            query_job.set_status( Job.Status.FAILED )
-                                    else :
-                                        query_job.exitcode = 22
+                            if 'events.pkl' in DST_URL :
+                                # Update events
+                                events = load_pkl( DST_URL[7:-10], DST_URL[-10:] )           
+                                for status, timestamp in events :
+                                    query_job.set_status( status, timestamp )
+                            if 'stdout.wrapper' in DST_URL :
+                                # Update exit code
+                                if query_job.exitcode == '-' :
+                                    try :
+                                        with open( DST_URL[7:], 'r') as file :
+                                            lines = file.readlines()
+                                    except :
                                         query_job.set_status( Job.Status.FAILED )
-                                session.commit()
+                                    else :
+                                        all_lines = ''.join( lines )
+                                        re_exit_status = re.compile( "EXIT_STATUS=(-?\d*)" )
+                                        mo = re_exit_status.search(all_lines)
+                                        if mo : 
+                                            exit_code = mo.group( 1 ) 
+                                            query_job.exitcode = exit_code
+                                            if exit_code == '0' :
+                                                query_job.chunk.realization.current_date = query_job.chunk.end_date
+                                                query_job.chunk.realization.restart      = query_job.chunk.end_date
+                                            else :
+                                                query_job.set_status( Job.Status.FAILED )
+                                        else :
+                                            query_job.exitcode = 22
+                                            query_job.set_status( Job.Status.FAILED )
+                            session.commit()
                         except Exception , err :
                             session.rollback()
                             self.logger.error( str( err ) )
