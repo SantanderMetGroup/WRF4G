@@ -704,7 +704,7 @@ class Realization( object ):
             date_FINISHED     = finished_job.events.filter( Events.job_status == Job.Status.FINISHED ).one().timestamp
             logging.info("%d;%d;%s;%s;%s;%s;%s;%s" % ( finished_job.gw_job, self.name, chunk.chunk_id, finished_job.resource,
                                                        str( date_FINISHED - date_RUNNING ), str( date_RUNNING - date_SUBMITTED ),
-                                                       str( date_WRF - date_REAL ), str( date_FINISHED - date_WRF ) )
+                                                       str( date_WRF - date_REAL ), str( date_FINISHED - date_WRF ) ) )
 
     def set_priority(self, priority = 0 ):
         """
