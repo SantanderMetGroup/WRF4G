@@ -136,7 +136,7 @@ class GwEmMad (object):
                 session.commit()
             except Exception , err :
                 session.rollback()
-                logger.error( str( err ) )
+                self.logger.error( str( err ) )
             finally:
                 session.close()
             self._job_list.put( JID , job )
