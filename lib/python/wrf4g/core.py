@@ -283,6 +283,8 @@ class Experiment(object):
                 nmli.setValue( val, coerce_value_list( mnl_values.strip( ',' ).split( ',' ) ), nml_section )
             except IndexError:
                 raise Exception( "'%s' does not have values for all namelist combinations." % mnl_variable )
+            except Exception as err:
+                raise Exception( err )
         nmli.trimMaxDom()
         nmli.extendMaxDomVariables()
         if nmli.wrfCheck() :
