@@ -30,10 +30,11 @@ def get_conf( directory = './' ):
     exp_env = VarEnv( exp_file )
     exp_cfg_dict = dict()
     exp_cfg_dict[ 'default' ] = exp_env.defaults()
-    section_startswith_ensemble = 0   
+    section_startswith_ensemble = 0  
     for section in exp_env.sections() :
-        exp_cfg_dict[ section ] = dict( exp_env.items( section ) )
-        section_startswith_ensemble += 1
+        if section.startswith( 'ensemble' ) :
+            exp_cfg_dict[ section ] = dict( exp_env.items( section ) )
+            section_startswith_ensemble += 1
     if not section_startswith_ensemble :
         exp_cfg_dict[ 'ensemble/default' ] = exp_env.defaults()
     # Checking experinment.wrf4g file    
