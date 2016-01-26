@@ -127,8 +127,7 @@ class SanityCheck():
                         simult_interval = str2timedelta( elems[ 3 ] )
                         simult_length   = str2timedelta( elems[ 4 ] )
                         if chunk_size > simult_length :
-                            logging.warn( "WARNING: %d 'chunk_size' is bigger than %d 'simulation_length'" %
-                                                  ( chunk_size, simult_length ) )
+                            logging.warn( "WARNING: 'chunk_size' is bigger than 'simulation_length'" )
                     else :
                         simult_interval = simult_length = end_date - start_date
                     # Defining restart_interval
