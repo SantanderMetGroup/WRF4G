@@ -91,12 +91,12 @@ class Experiment(object):
             return None
         else :
             #Check if there is a realization with the same no reconfigurable fields
-            if rea.calendar == calendar and rea.end_date != end_date :
+            if rea.cfg[ 'calendar' ] == calendar and rea.end_date != end_date :
                 logging.debug( '\t\tUpdating realization on the database...' )
                 rea.end_date = end_date
                 rea.status   = Realization.Status.PREPARED
                 return rea
-            elif rea.end_date == end_date and rea.calendar == calendar :
+            elif rea.end_date == end_date and rea.cfg[ 'calendar' ] == calendar :
                 return rea
             else :                                 
                 #if rea does not exist (no realization with the same no reconfigurable fields)
