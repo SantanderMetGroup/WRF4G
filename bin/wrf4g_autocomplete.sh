@@ -110,6 +110,9 @@ _wrf4g_exp()
             submit)
             _wrf4g_exp_submit
         ;;
+            statistics)
+            _wrf4g_exp_statistics
+        ;;
             delete)
             _wrf4g_exp_delete
         ;;
@@ -184,6 +187,17 @@ _wrf4g_exp_submit()
         COMPREPLY=( $( compgen -W '--dbg -n --dry-run --rerun -p --pattern -s --rea-state -P --priority' -- $cur) )
     fi
 }
+
+_wrf4g_exp_statistics()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 4 ]; then
+        COMPREPLY=( $( compgen -W '-p --pattern ' -- $cur) )
+    fi
+}
+
 
 _wrf4g_exp_delete()
 {
