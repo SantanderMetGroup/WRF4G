@@ -725,7 +725,7 @@ def launch_wrapper( params ):
                    raise JobError( "Preprocessor '%s' does not exist" % pp, Job.CodeError.PREPROCESSOR_FAILED )
                 optargs = ""
                 for arg in params.preprocessor_optargs.values() : 
-                    optargs += arg.split( ',' )[ i ]
+                    optargs = optargs + " " + arg.split( ',' )[ i ]
                 preprocessor_log = join( params.log_path, 'preprocessor.%s.log' %  pp )
                 code, output = exec_cmd( "preprocessor.%s %s %s %s %s &> %s" % (
                                             pp, datetime2datewrf( params.chunk_rdate ) , 
