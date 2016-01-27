@@ -172,7 +172,7 @@ class PilotParams( object ):
     domain_path          = resource_cfg[ 'domain_path' ]
     app                  = resource_cfg[ 'app' ]
     preprocessor         = resource_cfg[ 'preprocessor' ]
-    postprocessor        = resource_cfg[ 'postprocessor' ]
+    postprocessor        = resource_cfg.get( 'postprocessor', '' )
     clean_after_run      = resource_cfg.get( 'clean_after_run', 'no' )
     files_to_save        = resource_cfg[ 'files_to_save' ]
     max_dom              = int( resource_cfg[ 'max_dom' ] )
@@ -547,14 +547,14 @@ def launch_wrapper( params ):
             code, output = exec_cmd( "%s mkdir -p %s" % ( params.parallel_run_pernode, params.local_path ) )
             if code :
                 logging.info( output )
-                raise JobError( "Error copying files to all WNs", Job.CodeError.COPY_NODES ) 
+                raise JobError( "Error copying files to all WNs", Job.CodeError.COPY_FILE ) 
             for directory in [ 'WPS' , 'WRFV3' ] :
                 code, output = exec_cmd( "%s cp -r %s %s" % ( params.parallel_run_pernode, 
                                           join( params.root_path, directory ) , params.local_path ) )
                 if code :
                     logging.info( output )
                     raise JobError( "Error copying '%s' directory to all WNs" % directory, 
-                                    Job.CodeError.COPY_NODES )
+                                    Job.CodeError.COPY_FILE )
 
         ##
         # Binaries for execution  
@@ -644,7 +644,7 @@ def launch_wrapper( params ):
                 logging.info( "Downloading file 'namelist.wps'" )
                 copy_file( orig, dest )
             except :
-                raise JobError( "'namelist.wps' has not copied", Job.CodeError.COPY_NAMELIST_WPS )
+                raise JobError( "'namelist.wps' has not copied", Job.CodeError.COPY_FILE )
             wps2wrf( params.namelist_wps, params.namelist_input, params.chunk_rdate, 
                         params.chunk_edate, params.max_dom, chunk_rerun, params.timestep_dxfactor)
             job_db.set_job_status( Job.Status.DOWN_WPS )
@@ -819,7 +819,7 @@ def launch_wrapper( params ):
                                   bk_namelist, params.namelist_input ) )
                 if code :
                     logging.info( output )
-                    raise JobError( "Error copying namelist to all WNs", Job.CodeError.COPY_NODES )
+                    raise JobError( "Error copying namelist to all WNs", Job.CodeError.COPY_FILE )
 
             logging.info( "Run real" )
             job_db.set_job_status( Job.Status.REAL )

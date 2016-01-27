@@ -31,15 +31,15 @@ Commands:
     cancel                 Cancel the realization by killing its jobs.
 
 EXIT CODES
-    1  : Error creating directory to simulate
-    2  : Error creating log directory        
-    3  : Error copying apps            
-    4  : Error app type does not exist            
-    5  : Error executing source script       
-    6  : Job already executed  
+    1  : Error creating log directory        
+    2  : Error copying apps            
+    3  : Error app type does not exist            
+    4  : Error executing source script       
+    5  : Job already executed 
+    6  : Error creating directory to simulate 
     7  : Error copying restart files        
     8  : There is a mismatch in the restart date   
-    9  : Error copying namelist.wps    
+    9  : Error copying files    
     10 : Error downloading WPS files    
     11 : Error copying boundaries           
     12 : Error modifying namelist

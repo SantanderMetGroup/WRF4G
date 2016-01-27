@@ -78,7 +78,7 @@ class Experiment(object):
                              "(File namelist.input does not exist)" % namelist_template )
         return namelist_input
 
-    def check_db(self, name, start_date, end_date, calendar):
+    def check_db(self, name, start_date, end_date, cfg ):
         """ 
         Check if there is a realization with the same no reconfigurable field. 
         If there is not a realization with the same no reconfigurable fields => error
@@ -91,12 +91,13 @@ class Experiment(object):
             return None
         else :
             #Check if there is a realization with the same no reconfigurable fields
-            if rea.cfg[ 'calendar' ] == calendar and rea.end_date != end_date :
+            if rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] and rea.end_date != end_date :
                 logging.debug( '\t\tUpdating realization on the database...' )
                 rea.end_date = end_date
                 rea.status   = Realization.Status.PREPARED
                 return rea
-            elif rea.end_date == end_date and rea.cfg[ 'calendar' ] == calendar :
+            elif rea.end_date == end_date and rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] :
+                rea.cfg = cfg
                 return rea
             else :                                 
                 #if rea does not exist (no realization with the same no reconfigurable fields)
@@ -327,7 +328,7 @@ class Experiment(object):
                                rea_name, rea_start_date, rea_end_date ) )
                 # Check realization on the database
                 rea = self.check_db( name = rea_name, start_date = rea_start_date, end_date = rea_end_date,
-                                     calendar = self.cfg[ section ][ 'calendar' ] )
+                                     cfg = self.cfg[ section ] )
                 if not rea :
                     # If there is not runtime we have to add the start month of the realization
                     if ( 'preprocessor_optargs' in  self.cfg[ section ] ) and \
@@ -832,24 +833,23 @@ class JobCodeError():
     COPY_APP             = 2
     APP_ERROR            = 3
     SOURCE_SCRIPT        = 4
-    LOCAL_PATH           = 5
-    COPY_NODES           = 6
-    JOB_SHOULD_NOT_RUN   = 7
-    COPY_RST_FILE        = 8
-    RESTART_MISMATCH     = 9
-    COPY_NAMELIST_WPS    = 10
-    COPY_REAL_FILE       = 11
-    COPY_BOUND           = 12
-    NAMELIST_FAILED      = 13
-    PREPROCESSOR_FAILED  = 14
-    LINK_GRIB_FAILED     = 15
-    UNGRIB_FAILED        = 16
-    METGRID_FAILED       = 17
-    REAL_FAILED          = 18
-    COPY_UPLOAD_WPS      = 19
-    WRF_FAILED           = 20
-    POSTPROCESSOR_FAILED = 21
-    COPY_OUTPUT_FILE     = 22
+    JOB_SHOULD_NOT_RUN   = 5
+    LOCAL_PATH           = 6
+    COPY_RST_FILE        = 7
+    RESTART_MISMATCH     = 8
+    COPY_FILE            = 9
+    COPY_REAL_FILE       = 10
+    COPY_BOUND           = 11
+    NAMELIST_FAILED      = 12
+    PREPROCESSOR_FAILED  = 13
+    LINK_GRIB_FAILED     = 14
+    UNGRIB_FAILED        = 15
+    METGRID_FAILED       = 16
+    REAL_FAILED          = 17
+    COPY_UPLOAD_WPS      = 18
+    WRF_FAILED           = 19
+    POSTPROCESSOR_FAILED = 20
+    COPY_OUTPUT_FILE     = 21
    
 class Job( object ):
     """
