@@ -170,7 +170,7 @@ class PilotParams( object ):
         resource_cfg.update( resource_section )
     output_path          = resource_cfg[ 'output_path' ]
     domain_path          = resource_cfg[ 'domain_path' ]
-    app                  = resource_cfg[ 'app' ]
+    app                  = resource_cfg.get( 'app', '' )
     preprocessor         = resource_cfg[ 'preprocessor' ]
     postprocessor        = resource_cfg.get( 'postprocessor', '' )
     clean_after_run      = resource_cfg.get( 'clean_after_run', 'no' )
