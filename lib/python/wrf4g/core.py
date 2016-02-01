@@ -21,7 +21,8 @@ from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
 from wrf4g.config           import get_conf, save_json
 from wrf4g.utils            import Enumerate, dict_compare 
 from wrf4g.utils.archive    import extract
-from wrf4g.utils.time       import datetime2datewrf, Calendar
+from wrf4g.utils.time       import ( datetime2datewrf, Calendar, 
+                                     timedelta_total_seconds )
 from wrf4g.utils.file       import validate_name, edit_file
 from wrf4g.utils.command    import exec_cmd
 from wrf4g.utils.vcplib     import VCPURL
@@ -194,8 +195,8 @@ class Experiment(object):
         l_realizations  = self._filter_realizations( rea_pattern, False )
         l_realizations_finished = l_realizations.\
                                   filter( Realization.status == Realization.Status.FINISHED  )
-        logging.info( "Job ID;Realization Name;Chunk ID;Resource Name;Execution Time;"
-                      "Waiting Time;REAL Execution Time;WRF Execution Time" )
+        logging.info( "Job ID;Realization Name;Chunk ID;Resource Name;Execution Time (s);"
+                      "Waiting Time (s);REAL Execution Time (s);WRF Execution Time (s)" )
         for rea in l_realizations_finished :
             rea.statistics( )
 
@@ -702,9 +703,11 @@ class Realization( object ):
             date_REAL         = finished_job.events.filter( Events.job_status == Job.Status.REAL ).one().timestamp
             date_WRF          = finished_job.events.filter( Events.job_status == Job.Status.WRF ).one().timestamp
             date_FINISHED     = finished_job.events.filter( Events.job_status == Job.Status.FINISHED ).one().timestamp
-            logging.info("%d;%d;%s;%s;%s;%s;%s;%s" % ( finished_job.gw_job, chunk.chunk_id, self.name, finished_job.resource,
-                                                       str( date_FINISHED - date_RUNNING ), str( date_RUNNING - date_SUBMITTED ),
-                                                       str( date_WRF - date_REAL ), str( date_FINISHED - date_WRF ) ) )
+            logging.info("%d;%d;%s;%s;%d;%d;%d;%d" % ( finished_job.gw_job, chunk.chunk_id, self.name, finished_job.resource,
+                                                       timedelta_total_seconds( date_FINISHED - date_RUNNING ), 
+                                                       timedelta_total_seconds( date_RUNNING - date_SUBMITTED ),
+                                                       timedelta_total_seconds( date_WRF - date_REAL ),
+                                                       timedelta_total_seconds( date_FINISHED - date_WRF ) ) )
 
     def set_priority(self, priority = 0 ):
         """
