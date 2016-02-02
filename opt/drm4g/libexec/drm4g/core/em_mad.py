@@ -133,14 +133,14 @@ class GwEmMad (object):
                 query_job.resource     = HOST
                 query_job.gw_restarted = gw_restarted
                 session.commit()
-            except Exception , err :
+                self._job_list.put( JID , job )
+                out = 'SUBMIT %s SUCCESS %s:%s' % ( JID , HOST , job.JobId )
+            except Exception as err :
                 session.rollback()
-                self.logger.error( str( err ) )
+                out = 'SUBMIT %s FAILURE %s' % ( JID , str( err ) )
             finally:
                 session.close()
-            self._job_list.put( JID , job )
-            out = 'SUBMIT %s SUCCESS %s:%s' % ( JID , HOST , job.JobId )
-        except Exception, err:
+        except Exception as err:
             out = 'SUBMIT %s FAILURE %s' % ( JID , str( err ) )
         self.message.stdout(out)
         self.logger.debug(out , exc_info=1 )
@@ -170,7 +170,7 @@ class GwEmMad (object):
                 out = 'POLL %s SUCCESS %s' % ( JID , status )
             else:
                 out = 'POLL %s FAILURE Job not submitted' % (JID) 
-        except Exception, err:
+        except Exception as err:
             out = 'POLL %s FAILURE %s' % ( JID , str( err ) )
         self.message.stdout( out )
         self.logger.debug( out )
@@ -190,7 +190,7 @@ class GwEmMad (object):
             job.refreshJobStatus( )
             self._job_list.put( JID , job )
             out = 'RECOVER %s SUCCESS %s' % ( JID , job.getStatus( ) )
-        except Exception, err:
+        except Exception as err:
             out = 'RECOVER %s FAILURE %s' % ( JID , str( err ) )    
         self.message.stdout(out)
         self.logger.debug(out , exc_info=1 )
@@ -211,7 +211,7 @@ class GwEmMad (object):
         while True:
             time.sleep( self._callback_interval )
             self.logger.debug( "CALLBACK new iteration ..." )
-            for JID , job  in self._job_list.items( ):
+            for JID, job  in self._job_list.items( ):
                 try:
                     oldStatus = job.getStatus( )
                     job.refreshJobStatus( )
@@ -238,7 +238,7 @@ class GwEmMad (object):
                         out = 'CALLBACK %s SUCCESS %s' % ( JID, newStatus )
                         self.message.stdout( out )
                         self.logger.debug( out )
-                except Exception, err:
+                except Exception as err:
                     out = 'CALLBACK %s FAILURE %s' % ( JID , str( err ) )
                     self.message.stdout( out )
                     self.logger.debug( out, exc_info=1 )
@@ -256,7 +256,7 @@ class GwEmMad (object):
                 out = 'CANCEL %s SUCCESS -' % (JID)
             else:
                 out = 'CANCEL %s FAILURE Job not submitted' % (JID)
-        except Exception, e:
+        except Exception as e:
             out = 'CANCEL %s FAILURE %s' % (JID, str(e))    
         self.message.stdout(out)
         self.logger.debug(out)
@@ -292,7 +292,7 @@ class GwEmMad (object):
                     out = 'WRONG COMMAND'
                     self.message.stdout(out)
                     self.logger.debug(out)
-        except Exception, err:
+        except Exception as err:
             self.logger.warning( str( err ) )
     
     def _update_resource(self, host):
