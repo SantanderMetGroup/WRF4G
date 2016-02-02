@@ -57,28 +57,35 @@ class JobError( Exception ):
 class JobDB( object ) :
 
     def __init__(self, job_id) :
-        self.events = []
-        try :
-            self.session = get_session()
-        except :
-            self.session = None
-            logging.warning( "Error creating database session" )
-        else :
+        self.events  = []
+        self.session = None
+        self.job     = None
+
+    def check_db(self):
+        if not self.session and not self.job :
             try :
-                self.job = self.session.query( Job ).\
-                           filter( Job.gw_job == job_id ).\
-                           order_by( Job.id ).all()[-1]
-            except :
-                self.job = None
-                logging.warning( "Error finding job '%s' on the database" % job_id )
+                self.session = get_session()
+            except Exception as err :
+                self.session = None
+                logging.warning( "Error creating database session: %s" % str( err ) )
+            else :
+                try :
+                    self.job = self.session.query( Job ).\
+                               filter( Job.gw_job == job_id ).\
+                               order_by( Job.id ).all()[-1]
+                except :
+                    self.job = None
+                    logging.warning( "Error finding job '%s' on the database" % job_id )
 
     def get_job_status(self):
+        self.check_db()
         if self.session and self.job :
             return self.job.status
         else :
             return Job.Status.UNKNOWN
 
     def set_job_status(self, status):
+        self.check_db()
         try :
             if self.session and self.job :
                 self.job.set_status( status )
@@ -93,16 +100,20 @@ class JobDB( object ) :
             logging.warning( "Error setting job status" )
 
     def get_restart_date(self):
+        self.check_db()
         if self.session and self.job :
             return self.job.chunk.realization.restart
+        return None
 
     def has_wps(self):
+        self.check_db()
         if self.session and self.job :
             return self.job.chunk.wps
         else :
             return 0
 
     def set_wps(self):
+        self.check_db()
         try :
             if self.session and self.job :
                 self.job.chunk.wps = 1
@@ -115,6 +126,7 @@ class JobDB( object ) :
             logging.warning( "Error updating wps on the database" )
 
     def set_restart_date(self, restart_date ):
+        self.check_db()
         try :
             if self.session and self.job :
                 self.job.chunk.realization.restart = restart_date
@@ -127,6 +139,7 @@ class JobDB( object ) :
             logging.warning( "Error updating restart date '%s' on the database" % restart_date )
 
     def set_current_date(self, current_date):
+        self.check_db()
         try :
             if self.session and self.job :
                 self.job.chunk.realization.current_date = current_date
@@ -139,6 +152,7 @@ class JobDB( object ) :
             logging.warning( "Error updating current date '%s' on the database" % current_date )
 
     def set_exit_code(self, exit_code ):
+        self.check_db()
         try :
             if self.session and self.job :
                 self.job.exitcode = exit_code
