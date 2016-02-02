@@ -227,7 +227,7 @@ class PilotParams( object ):
         parallel_run_pernode = resource_cfg[ 'parallel_run_pernode' ]
     else :
         parallel_run         = "%s %s %s " % ( parallel_env.launcher, parallel_env.np, os.environ.get( 'GW_NP' ) ) 
-        parallel_run_pernode = "%s %s" % ( parallel_env.launcher, parallel_env.npernode )
+        parallel_run_pernode = "%s %s " % ( parallel_env.launcher, parallel_env.pernode )
         
     # WRF path variables
     wps_path             = join( local_path, 'WPS')

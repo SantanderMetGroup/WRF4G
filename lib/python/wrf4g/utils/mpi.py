@@ -9,20 +9,20 @@ class ParallelEnvironment():
     """
     class Poe():
         launcher = 'poe'
-        npernode = '-tasks_per_node 1'
+        pernode = '-tasks_per_node 1'
         ppn      = '-tasks_per_node'
         np       = '-procs'
     
     class Srun():
         launcher = 'srun'
-        npernode = '--ntasks-per-node 1'
+        pernode = '--ntasks-per-node 1'
         ppn      = '--ntasks-per-node'
         np       = '--ntasks'
     
     class MpiRun():
         launcher = 'mpirun'
-        npernode = '-npernode'
-        ppn      = '-pernode'
+        pernode  = '-pernode'
+        ppn      = '-npernode'
         np       = '-np'
  
     class Dummy():
