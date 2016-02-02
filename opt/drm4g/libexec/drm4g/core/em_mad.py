@@ -1,4 +1,3 @@
-from __future__              import with_statement
 import sys
 import re
 import time
@@ -225,7 +224,6 @@ class GwEmMad (object):
                                 q_job   = session.query( Job ).\
                                           filter( Job.gw_job == JID ).\
                                           order_by( Job.id ).all()[-1]
-                                self.logger.info( states[ newStatus ]  )
                                 if not q_job.status in avoid_states :
                                     q_job.set_status( states[ newStatus ] )
                                     session.commit()
