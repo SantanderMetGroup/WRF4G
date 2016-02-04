@@ -633,7 +633,7 @@ class Realization( object ):
                 resource       = last_job.resource
                 exitcode       = last_job.exitcode
                 status         = last_job.status
-                gw_job         = str( last_job.gw_job )
+                gw_job         = last_job.gw_job
             chunk_distribution = '%d/%d' % ( self.current_chunk, self.nchunks )
         #Format chunks run / chunks total
         runt   = int( self.current_date.strftime("%s") ) - int( self.start_date.strftime("%s") ) 
@@ -665,7 +665,7 @@ class Realization( object ):
                logging.info( "\t%s" % key )
                for key2, val2 in val.items() :
                    logging.info( "\t\t%s: %s" % ( key2, val2 ) )
-           elif type( val ) == list or  type( val ) == tuple :
+           elif type( val ) == list or type( val ) == tuple :
                logging.info( "\t%s: %s" % ( key, ' '.join( val ) ) )
            else :
                if  'app' in key : val
@@ -718,17 +718,17 @@ class Realization( object ):
         Get statistics from jobs.
         """
         for chunk in self.chunk.all() :
-            finished_job = chunk.job.filter( Job.status == Job.Status.FINISHED ) [ -1 ]
-            date_SUBMITTED    = finished_job.events.filter( Events.job_status == Job.Status.SUBMITTED ).one().timestamp
-            date_RUNNING      = finished_job.events.filter( Events.job_status == Job.Status.RUNNING ).one().timestamp
-            date_REAL         = finished_job.events.filter( Events.job_status == Job.Status.REAL ).one().timestamp
-            date_WRF          = finished_job.events.filter( Events.job_status == Job.Status.WRF ).one().timestamp
-            date_FINISHED     = finished_job.events.filter( Events.job_status == Job.Status.FINISHED ).one().timestamp
-            logging.info("%d;%d;%s;%s;%d;%d;%d;%d" % ( finished_job.gw_job, chunk.chunk_id, self.name, finished_job.resource,
-                                                       timedelta_total_seconds( date_FINISHED - date_RUNNING ), 
-                                                       timedelta_total_seconds( date_RUNNING - date_SUBMITTED ),
-                                                       timedelta_total_seconds( date_WRF - date_REAL ),
-                                                       timedelta_total_seconds( date_FINISHED - date_WRF ) ) )
+            finished_job   = chunk.job.filter( Job.status == Job.Status.FINISHED ) [ -1 ]
+            date_SUBMITTED = finished_job.events.filter( Events.job_status == Job.Status.SUBMITTED ).one().timestamp
+            date_RUNNING   = finished_job.events.filter( Events.job_status == Job.Status.RUNNING ).one().timestamp
+            date_REAL      = finished_job.events.filter( Events.job_status == Job.Status.REAL ).one().timestamp
+            date_WRF       = finished_job.events.filter( Events.job_status == Job.Status.WRF ).one().timestamp
+            date_FINISHED  = finished_job.events.filter( Events.job_status == Job.Status.FINISHED ).one().timestamp
+            logging.info( "%d;%d;%s;%s;%d;%d;%d;%d" % ( finished_job.gw_job, chunk.chunk_id, self.name, finished_job.resource,
+                                                        timedelta_total_seconds( date_FINISHED - date_RUNNING ), 
+                                                        timedelta_total_seconds( date_RUNNING - date_SUBMITTED ),
+                                                        timedelta_total_seconds( date_WRF - date_REAL ),
+                                                        timedelta_total_seconds( date_FINISHED - date_WRF ) ) )
 
     def set_priority(self, priority = 0 ):
         """
@@ -822,8 +822,7 @@ class Chunk( object ):
         """
         logging.info('\t---> Canceling Chunk %d %s %s' % ( self.chunk_id,
                                                            datetime2datewrf(self.start_date),
-                                                           datetime2datewrf(self.end_date) ) 
-                                                          )
+                                                           datetime2datewrf(self.end_date) ) )
         l_jobs = self.job.filter( and_( Job.status != Job.Status.PREPARED, 
                                         Job.status != Job.Status.FINISHED,
                                         Job.status != Job.Status.FAILED,
@@ -842,8 +841,7 @@ class Chunk( object ):
         """
         logging.info('\t---> Setting priority Chunk %d %s %s' % ( self.chunk_id,
                                                                   datetime2datewrf(self.start_date),
-                                                                  datetime2datewrf(self.end_date) )
-                                                          )
+                                                                  datetime2datewrf(self.end_date) ) )
         l_jobs = self.job.filter( Job.status == Job.Status.SUBMITTED ).all()
         if not ( l_jobs ):
             logging.info( '\t\tThere are not jobs to set priority.' )
