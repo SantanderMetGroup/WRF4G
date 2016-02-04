@@ -2,7 +2,6 @@
 Submit, get status and history and cancel jobs.
 
 Usage: 
-    wrf4g job submit  [ --dbg ] [ --dep <job_id> ... ] <template> 
     wrf4g job list    [ --dbg ] [ --delay=<seconds> ] [ <job_id> ] 
     wrf4g job cancel  [ --dbg ] [ --hard ] <job_id>  
     wrf4g job log     [ --dbg ] <job_id>
@@ -10,16 +9,13 @@ Usage:
    
 Arguments:
    <job_id>               Job identifier.
-   <template>             Job template.
 
 Options:
    --dbg                  Debug mode.
-   --dep=<job_id> ...     Define the job dependency list of the job.
    --delay=<seconds>      Refresh experiment information every delay seconds.
    --hard                 Remove jobs from without synchronizing.
     
 Commands:
-   submit                 Command for submitting jobs.
    list                   Monitor jobs previously submitted.
    cancel                 Cancel jobs.
    log                    Keep track of a job.
@@ -66,9 +62,7 @@ def run( arg ) :
         if not daemon.is_alive() :
             raise Exception( 'DRM4G is stopped. ')
         gw_job = GWJob()
-        if arg['submit']:
-            gw_job.submit( dep = ' '.join( arg['--dep'] ), file_template = arg['<template>'] )
-        elif arg['list']:
+        if arg['list']:
             if not arg[ '--delay' ] :
                 gw_job.list( None if not arg['<job_id>'] else arg['<job_id>'] )   
             else :
