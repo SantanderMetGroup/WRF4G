@@ -35,7 +35,7 @@ NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np
         return ftemplate
     
     def submit(self, dep = None, priority = 0, type_dep = "afterok", file_template = "job.gw" ):
-        depend = "-d %s -r %s" % ( dep, type_dep ) if dep != None else ''
+        depend = "-d %s -r %s" % ( dep, type_dep ) if dep != None else '-o '
         cmd = "%s/gwsubmit -p %d -v %s -t %s" % (DRM4G_BIN, priority, 
                                                   depend, file_template )
         code, out = exec_cmd( cmd )
