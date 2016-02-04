@@ -191,7 +191,8 @@ class Experiment(object):
         """
         Check created job to be release
         """
-        for rea in self.realization.all() :
+        l_realizations  = self._filter_realizations( False, Realization.Status.SUBMITTED )
+        for rea in l_realizations :
             rea.release( ) 
 
     def statistics(self, rea_pattern = False ):
@@ -703,9 +704,14 @@ class Realization( object ):
         """
         Check created job to be release
         """
-        job = self.chunk.first().job.filter( Job.status == Job.Status.SUBMITTED )[ -1 ]
-        logging.debug( "Releasing job %s" % job.gw_job )
-        GWJob().release( job.gw_job  )
+        l_jobs = self.chunk.first().job.filter( Job.status == Job.Status.SUBMITTED )
+        try :
+            job = l_jobs[ -1 ]
+        except :
+            pass
+        else :
+            logging.debug( "Releasing job %s" % job.gw_job )
+            GWJob().release( job.gw_job  )
 
     def statistics(self):
         """
