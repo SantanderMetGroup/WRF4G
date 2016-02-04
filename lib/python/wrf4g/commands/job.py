@@ -1,5 +1,5 @@
 """
-Submit, get status and history and cancel jobs.
+Get status and history and cancel jobs.
 
 Usage: 
     wrf4g job list    [ --dbg ] [ --delay=<seconds> ] [ <job_id> ] 

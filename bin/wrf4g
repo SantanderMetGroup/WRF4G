@@ -22,7 +22,7 @@ wrf4g commands are:
    resource    Manage computing resources.
    id          Manage identities for resources.
    host        Print information about the DCI hosts.
-   job         Submit, get status and history and cancel jobs.
+   job         Get status and history and cancel jobs.
  
 See 'wrf4g <command> --help' for more information on a specific command.
 """
