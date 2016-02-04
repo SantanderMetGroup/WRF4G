@@ -161,12 +161,14 @@ def run( arg ) :
                 session.rollback()
             else :
                 session.commit()
+                if arg[ 'submit' ] :
+                    exp.release()
         except OperationalError as err :
             logging.error( err.message )
         except KeyboardInterrupt :
             session.rollback()
         except Exception as err :
             session.rollback()
-            logging.error( str( err ), exc_info=0 )
+            logging.error( str( err ) )
         finally:
             session.close()

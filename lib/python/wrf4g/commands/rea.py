@@ -113,6 +113,8 @@ def run( arg ) :
                 session.rollback()
             else :
                 session.commit()
+                if arg[ 'submit' ] :
+                    rea.release()
     except OperationalError as err :
         logging.error( err.message )
     except KeyboardInterrupt :
