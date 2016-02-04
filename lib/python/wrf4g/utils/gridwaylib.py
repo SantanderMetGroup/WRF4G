@@ -68,6 +68,12 @@ NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np
         code, out = exec_cmd( cmd )
         logging.info( out )
 
+    def release(self, job_id ):
+        cmd = "%s/gwkill -l %s" % ( DRM4G_BIN, str( job_id ) )
+        code, out = exec_cmd( cmd )
+        if code :
+            logging.info( out )
+
     def kill(self, job_id, hard = False ):
         cmd = "%s/gwkill %s %s" % ( DRM4G_BIN, '-9' if hard else '', str( job_id ) )
         code, out = exec_cmd( cmd )
@@ -75,7 +81,7 @@ NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np
             logging.info( out )
                 
     def set_priority(self, job_id, priority ):
-        cmd = "%s/gwkill -9 -p %d %s" % (DRM4G_BIN, priority, str(job_id ) )
+        cmd = "%s/gwkill -p %d %s" % (DRM4G_BIN, priority, str(job_id ) )
         code, out = exec_cmd( cmd )
         logging.info( out )
 

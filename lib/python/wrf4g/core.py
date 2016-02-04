@@ -48,7 +48,7 @@ class Experiment(object):
         else:
             #if there are realizations to run
             for rea in l_realizations :
-                logging.info("---> Submitting Realization %s" % rea.name )
+                logging.info( "---> Submitting Realization %s" % rea.name )
                 #Run every realization
                 rea.dryrun = self.dryrun
                 if rerun :
@@ -186,6 +186,13 @@ class Experiment(object):
             for rea in l_realizations :
                 rea.dryrun = self.dryrun
                 rea.cancel( hard )
+ 
+    def release(self):
+        """
+        Check created job to be release
+        """
+        for rea in self.realization.all() :
+            rea.release( ) 
 
     def statistics(self, rea_pattern = False ):
         """
@@ -474,7 +481,7 @@ class Realization( object ):
                              and first_chunk.chunk_id != first_chunk_run ):
                             raise Exception( 'Use the option --rerun.' )
                         else : 
-                            first_chunk_run = self.current_chunk  = first_chunk.chunk_id
+                            first_chunk_run = self.current_chunk = first_chunk.chunk_id
             #search last chunk to run
             if not last_chunk_run :
                 #run every chunk
@@ -691,6 +698,14 @@ class Realization( object ):
             for chunk in l_chunks :
                 chunk.dryrun = self.dryrun
                 chunk.cancel( hard )
+
+    def release(self):
+        """
+        Check created job to be release
+        """
+        job = self.chunk.first().job.filter( Job.status == Job.Status.SUBMITTED )[ -1 ]
+        logging.debug( "Releasing job %s" % job.gw_job )
+        GWJob().release( job.gw_job  )
 
     def statistics(self):
         """
