@@ -624,12 +624,12 @@ class Realization( object ):
             status             = Realization.Status.PREPARED
             chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
         else :
-            current_chunk      = self.chunk.filter( Chunk.chunk_id == self.current_chunk ).one()
-            l_jobs             = current_chunk.job.all()
-            if len( l_jobs)  == 0 :
+            current_chunk      = self.chunk.filter( Chunk.chunk_id == self.current_chunk ).first()
+            try :
+                last_job       = current_chunk.job[ -1 ]
+            except :
                 status         = Realization.Status.PREPARED
             else :
-                last_job       = l_jobs[ -1 ]
                 resource       = last_job.resource
                 exitcode       = last_job.exitcode
                 status         = last_job.status
