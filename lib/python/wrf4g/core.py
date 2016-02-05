@@ -625,7 +625,7 @@ class Realization( object ):
             chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
         else :
             current_chunk      = self.chunk.filter( Chunk.chunk_id == self.current_chunk ).one()
-            l_jobs             = current_chunk.job.order_by( Job.id ).all()
+            l_jobs             = current_chunk.job.all()
             if len( l_jobs)  == 0 :
                 status         = Realization.Status.PREPARED
             else :
