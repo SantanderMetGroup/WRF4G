@@ -59,6 +59,7 @@ class JobDB( object ) :
     def __init__(self, job_id) :
         self.events  = []
         self.session = None
+        self.job_id  = job_id
         self.job     = None
 
     def check_db(self):
@@ -71,11 +72,11 @@ class JobDB( object ) :
             else :
                 try :
                     self.job = self.session.query( Job ).\
-                               filter( Job.gw_job == job_id ).\
+                               filter( Job.gw_job == self.job_id ).\
                                order_by( Job.id ).all()[-1]
                 except :
                     self.job = None
-                    logging.warning( "Error finding job '%s' on the database" % job_id )
+                    logging.warning( "Error finding job '%s' on the database" % self.job_id )
 
     def get_job_status(self):
         self.check_db()
