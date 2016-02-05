@@ -704,7 +704,8 @@ class Realization( object ):
         """
         Check created job to be release
         """
-        l_jobs = self.chunk.first().job.filter( Job.status == Job.Status.SUBMITTED )
+        current_ck = self.chunk.filter( Chunk.chunk_id == self.current_chunk ).first()
+        l_jobs     = current_ck.job.filter( Job.status == Job.Status.SUBMITTED )
         try :
             job = l_jobs[ -1 ]
         except :
