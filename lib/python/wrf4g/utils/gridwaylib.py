@@ -72,7 +72,7 @@ NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np
         cmd = "%s/gwkill -l %s" % ( DRM4G_BIN, str( job_id ) )
         code, out = exec_cmd( cmd )
         if code :
-            logging.debug( out )
+            logging.info( out )
 
     def kill(self, job_id, hard = False ):
         cmd = "%s/gwkill %s %s" % ( DRM4G_BIN, '-9' if hard else '', str( job_id ) )

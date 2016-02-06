@@ -115,12 +115,13 @@ def run( arg ) :
                 session.commit()
                 if arg[ 'submit' ] :
                     rea.release()
+                    session.commit()
     except OperationalError as err :
         logging.error( err.message )
     except KeyboardInterrupt :
         session.rollback()
     except Exception as err :
         session.rollback()
-        logging.error( str( err ) )
+        logging.error( str( err ), exc_info = 1 )
     finally:
         session.close()

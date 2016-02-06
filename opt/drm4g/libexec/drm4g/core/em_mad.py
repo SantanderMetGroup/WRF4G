@@ -133,8 +133,6 @@ class GwEmMad (object):
                 query_job              = session.query(Job).filter( Job.gw_job == JID ).all()[-1]
                 query_job.resource     = HOST
                 query_job.gw_restarted = gw_restarted
-                # Update status
-                query_job.set_status( Job.Status.SUBMITTED )
                 session.commit()
                 out = 'SUBMIT %s SUCCESS %s:%s' % ( JID , HOST , job.JobId )
             except Exception as err :

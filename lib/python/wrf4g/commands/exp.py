@@ -100,7 +100,7 @@ def run( arg ) :
             if arg[ 'list' ] :
                 l_exps = session.query( Experiment )
                 if arg[ '--pattern' ] :
-                    l_exps  = l_exps.filter( Experiment.name.like( arg[ '--pattern' ].replace('*','%') ) )
+                    l_exps  = l_exps.filter( l_exps.name.like( arg[ '--pattern' ].replace('*','%') ) )
                 if not l_exps.all() :
                     logging.info( "There are not experiments" )
                 else :
@@ -111,7 +111,7 @@ def run( arg ) :
             else :
                 try :
                     exp = session.query( Experiment ).\
-                            filter( Experiment.name == arg[ '<name>' ] ).one()
+                            filter_by( name = arg[ '<name>' ] ).one()
                     exp.dryrun = arg[ '--dry-run' ]
                 except NoResultFound :
                     if arg[ 'create' ] :
@@ -163,6 +163,7 @@ def run( arg ) :
                 session.commit()
                 if arg[ 'submit' ] :
                     exp.release()
+                    session.commit()
         except OperationalError as err :
             logging.error( err.message )
         except KeyboardInterrupt :

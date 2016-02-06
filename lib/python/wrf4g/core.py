@@ -623,17 +623,16 @@ class Realization( object ):
             status             = Realization.Status.PREPARED
             chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
         else :
-            for chunk in self.chunk.all():
-                if chunk.chunk_id == self.current_chunk :
-                    try :
-                        last_job       = chunk.job.all()[ -1 ]
-                    except :
-                        status         = Realization.Status.PREPARED
-                    else :
-                        resource       = last_job.resource
-                        exitcode       = last_job.exitcode
-                        status         = last_job.status
-                        gw_job         = last_job.gw_job
+            chunk = self.chunk.filter_by( chunk_id = self.current_chunk ).first()
+            try :
+                last_job       = chunk.job[ -1 ]
+            except :
+                status         = Realization.Status.PREPARED
+            else :
+                resource       = last_job.resource
+                exitcode       = last_job.exitcode
+                status         = last_job.status
+                gw_job         = last_job.gw_job
             chunk_distribution = '%d/%d' % ( self.current_chunk, self.nchunks )
         #Format chunks run / chunks total
         runt   = int( self.current_date.strftime("%s") ) - int( self.start_date.strftime("%s") ) 
@@ -715,6 +714,7 @@ class Realization( object ):
         else :
             logging.debug( "Releasing job %s" % job.gw_job )
             GWJob().release( job.gw_job  )
+            job.set_status( Job.Status.RELEASED )
 
     def statistics(self):
         """
@@ -883,7 +883,7 @@ class Job( object ):
     """
     dryrun = False
 
-    Status = Enumerate( 'UNKNOWN', 'PREPARED', 'SUBMITTED', 'RUNNING', 'PENDING', 
+    Status = Enumerate( 'UNKNOWN', 'PREPARED', 'SUBMITTED', 'RELEASED', 'RUNNING', 'PENDING', 
                         'CANCEL', 'FAILED', 'FINISHED', 'CREATE_OUTPUT_PATH', 
                         'CONF_APP', 'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB', 
                         'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF' )
