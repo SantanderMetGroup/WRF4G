@@ -87,7 +87,7 @@ class Experiment(object):
         """
         #Check if exists the realization
         try :
-            rea = self.realization.filter( Realization.name == name ).one()
+            rea = self.realization.filter( name = name ).one()
         except Exception :
             return None
         else :
@@ -202,7 +202,7 @@ class Experiment(object):
         #list of realization of the experiment
         l_realizations  = self._filter_realizations( rea_pattern, False )
         l_realizations_finished = l_realizations.\
-                                  filter( Realization.status == Realization.Status.FINISHED  )
+                                  filter_by( status = Realization.Status.FINISHED  )
         logging.info( "Job ID;Realization Name;Chunk ID;Resource Name;Execution Time (s);"
                       "Waiting Time (s);REAL Execution Time (s);WRF Execution Time (s)" )
         for rea in l_realizations_finished :
@@ -423,7 +423,7 @@ class Experiment(object):
                              filter( Realization.name.like( pattern.replace('*','%') ) ) 
         if status :
             l_realizations = l_realizations.\
-                             filter( Realization.status == status )
+                             filter_by( status = status )
         return l_realizations
     
 class Realization( object ):
@@ -624,7 +624,7 @@ class Realization( object ):
             status             = Realization.Status.PREPARED
             chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
         else :
-            current_chunk      = self.chunk.filter( Chunk.chunk_id == self.current_chunk ).first()
+            current_chunk      = self.chunk.filter_by( chunk_id = self.current_chunk ).first()
             try :
                 last_job       = current_chunk.job[ -1 ]
             except :
@@ -704,8 +704,8 @@ class Realization( object ):
         """
         Check created job to be release
         """
-        current_ck = self.chunk.filter( Chunk.chunk_id == self.current_chunk ).first()
-        l_jobs     = current_ck.job.filter( Job.status == Job.Status.SUBMITTED )
+        current_ck = self.chunk.filter_by( chunk_id = self.current_chunk ).first()
+        l_jobs     = current_ck.job.filter_by( status = Job.Status.SUBMITTED )
         try :
             job = l_jobs[ -1 ]
         except :
@@ -719,12 +719,12 @@ class Realization( object ):
         Get statistics from jobs.
         """
         for chunk in self.chunk.all() :
-            finished_job   = chunk.job.filter( Job.status == Job.Status.FINISHED ) [ -1 ]
-            date_SUBMITTED = finished_job.events.filter( Events.job_status == Job.Status.SUBMITTED ).one().timestamp
-            date_RUNNING   = finished_job.events.filter( Events.job_status == Job.Status.RUNNING ).one().timestamp
-            date_REAL      = finished_job.events.filter( Events.job_status == Job.Status.REAL ).one().timestamp
-            date_WRF       = finished_job.events.filter( Events.job_status == Job.Status.WRF ).one().timestamp
-            date_FINISHED  = finished_job.events.filter( Events.job_status == Job.Status.FINISHED ).one().timestamp
+            finished_job   = chunk.job.filter_by( status = Job.Status.FINISHED ) [ -1 ]
+            date_SUBMITTED = finished_job.events.filter_by( job_status = Job.Status.SUBMITTED ).one().timestamp
+            date_RUNNING   = finished_job.events.filter_by( job_status = Job.Status.RUNNING ).one().timestamp
+            date_REAL      = finished_job.events.filter_by( job_status = Job.Status.REAL ).one().timestamp
+            date_WRF       = finished_job.events.filter_by( job_status = Job.Status.WRF ).one().timestamp
+            date_FINISHED  = finished_job.events.filter_by( job_status = Job.Status.FINISHED ).one().timestamp
             logging.info( "%d;%d;%s;%s;%d;%d;%d;%d" % ( finished_job.gw_job, chunk.chunk_id, self.name, finished_job.resource,
                                                         timedelta_total_seconds( date_FINISHED - date_RUNNING ), 
                                                         timedelta_total_seconds( date_RUNNING - date_SUBMITTED ),
@@ -737,7 +737,7 @@ class Realization( object ):
         """
         if priority < 0 or priority > 20 :
             raise Exception( "'%d' priority is out of the range [0, 20]" % priority )      
-        l_chunks = self.chunk.filter( Chunk.status == Chunk.Status.SUBMITTED ).all()
+        l_chunks = self.chunk.filter( status = Chunk.Status.SUBMITTED ).all()
         logging.info( '---> Setting priority Realization %s' % self.name )
         if not ( l_chunks ):
             logging.info( '\tThere are not chunks to set priority.' )
@@ -804,13 +804,14 @@ class Chunk( object ):
         else:
             # if the chunk is not the first of the realization, 
             # gwsubmit has an argument, gw_job of the job before
-            chunk_before  = self.realization.chunk.\
-                            filter( Chunk.chunk_id == self.chunk_id - 1 ).one()
-            job_before    = chunk_before.job.order_by( Job.id )[-1]
-            id_job_before = job_before.id          
-            gw_job_before = job_before.gw_job
-            job.gw_job    = gw_job.submit( dep = gw_job_before, priority = priority,
-                                           file_template = file_template )
+            chunk_before_id = self.chunk_id - 1
+            chunk_before    = self.realization.chunk.\
+                              filter_by( chunk_id = chunk_before_id ).one()
+            job_before      = chunk_before.job.order_by( Job.id )[-1]
+            id_job_before   = job_before.id          
+            gw_job_before   = job_before.gw_job
+            job.gw_job      = gw_job.submit( dep = gw_job_before, priority = priority,
+                                             file_template = file_template )
         job.chunk_id = self.chunk_id
         job.run( rerun ) 
         self.job.append( job )
@@ -843,7 +844,7 @@ class Chunk( object ):
         logging.info('\t---> Setting priority Chunk %d %s %s' % ( self.chunk_id,
                                                                   datetime2datewrf(self.start_date),
                                                                   datetime2datewrf(self.end_date) ) )
-        l_jobs = self.job.filter( Job.status == Job.Status.SUBMITTED ).all()
+        l_jobs = self.job.filter( status = Job.Status.SUBMITTED ).all()
         if not ( l_jobs ):
             logging.info( '\t\tThere are not jobs to set priority.' )
         else :

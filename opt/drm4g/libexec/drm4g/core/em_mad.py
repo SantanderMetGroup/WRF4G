@@ -130,7 +130,7 @@ class GwEmMad (object):
             # Connect with the database to update resource and gw_restarted
             try :
                 session                = get_session()
-                query_job              = session.query(Job).filter( Job.gw_job == JID ).order_by( Job.id ).all()[-1]
+                query_job              = session.query(Job).filter( Job.gw_job == JID ).all()[-1]
                 query_job.resource     = HOST
                 query_job.gw_restarted = gw_restarted
                 # Update status
@@ -225,8 +225,7 @@ class GwEmMad (object):
                             try :
                                 session = get_session()
                                 q_job   = session.query( Job ).\
-                                          filter( Job.gw_job == JID ).\
-                                          order_by( Job.id ).all()[-1]
+                                          filter( Job.gw_job == JID ).all()[-1]
                                 if not q_job.status in avoid_states :
                                     q_job.set_status( states[ newStatus ] )
                                     session.commit()
