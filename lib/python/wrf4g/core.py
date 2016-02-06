@@ -478,8 +478,7 @@ class Realization( object ):
                     except : 
                         raise Exception( 'There are not chunks to run.' )
                     else:
-                        if ( first_chunk_run 
-                             and first_chunk.chunk_id != first_chunk_run ):
+                        if first_chunk_run and first_chunk.chunk_id != first_chunk_run :
                             raise Exception( 'Use the option --rerun.' )
                         else : 
                             first_chunk_run = self.current_chunk = first_chunk.chunk_id
@@ -624,16 +623,17 @@ class Realization( object ):
             status             = Realization.Status.PREPARED
             chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
         else :
-            current_chunk      = self.chunk.filter_by( chunk_id = self.current_chunk ).first()
-            try :
-                last_job       = current_chunk.job[ -1 ]
-            except :
-                status         = Realization.Status.PREPARED
-            else :
-                resource       = last_job.resource
-                exitcode       = last_job.exitcode
-                status         = last_job.status
-                gw_job         = last_job.gw_job
+            for chunk in self.chunk.all():
+                if chunk.chunk_id == self.current_chunk :
+                    try :
+                        last_job       = chunk.job.all()[ -1 ]
+                    except :
+                        status         = Realization.Status.PREPARED
+                    else :
+                        resource       = last_job.resource
+                        exitcode       = last_job.exitcode
+                        status         = last_job.status
+                        gw_job         = last_job.gw_job
             chunk_distribution = '%d/%d' % ( self.current_chunk, self.nchunks )
         #Format chunks run / chunks total
         runt   = int( self.current_date.strftime("%s") ) - int( self.start_date.strftime("%s") ) 
@@ -704,7 +704,9 @@ class Realization( object ):
         """
         Check created job to be release
         """
-        current_ck = self.chunk.filter_by( chunk_id = self.current_chunk ).first()
+        current_ck = self.chunk.filter( and_( Chunk.chunk_id == self.current_chunk,
+                                              Chunk.status   == Chunk.Status.SUBMITTED )
+                                      ).first()
         l_jobs     = current_ck.job.filter_by( status = Job.Status.SUBMITTED )
         try :
             job = l_jobs[ -1 ]
@@ -727,8 +729,8 @@ class Realization( object ):
             date_FINISHED  = finished_job.events.filter_by( job_status = Job.Status.FINISHED ).one().timestamp
             logging.info( "%d;%d;%s;%s;%d;%d;%d;%d" % ( finished_job.gw_job, chunk.chunk_id, self.name, finished_job.resource,
                                                         timedelta_total_seconds( date_FINISHED - date_RUNNING ), 
-                                                        timedelta_total_seconds( date_RUNNING - date_SUBMITTED ),
-                                                        timedelta_total_seconds( date_WRF - date_REAL ),
+                                                        timedelta_total_seconds( date_RUNNING  - date_SUBMITTED ),
+                                                        timedelta_total_seconds( date_WRF      - date_REAL ),
                                                         timedelta_total_seconds( date_FINISHED - date_WRF ) ) )
 
     def set_priority(self, priority = 0 ):
@@ -806,7 +808,7 @@ class Chunk( object ):
             # gwsubmit has an argument, gw_job of the job before
             chunk_before_id = self.chunk_id - 1
             chunk_before    = self.realization.chunk.\
-                              filter_by( chunk_id = chunk_before_id ).one()
+                              filter( Chunk.chunk_id == chunk_before_id ).one()
             job_before      = chunk_before.job.order_by( Job.id )[-1]
             id_job_before   = job_before.id          
             gw_job_before   = job_before.gw_job
