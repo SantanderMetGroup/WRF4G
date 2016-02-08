@@ -169,7 +169,7 @@ class Experiment(object):
         if not ( l_realizations ):
             raise Exception ( 'There are not realizations to check.' )
         Realization.status_header()
-        for rea in l_realizations.all() :
+        for rea in l_realizations.order_by( Realization.name ).all() :
             #Print information of each realization
             rea.get_status( )
     
@@ -531,10 +531,10 @@ class Realization( object ):
         """
         #Check if there is a chunk with the same fields
         try:
-            ch = self.chunk.filter( Chunk.rea_id     == rea_id,
-                                    Chunk.chunk_id   == chunk_id,
-                                    Chunk.start_date == chunk_start_date,
-                                    Chunk.end_date   == chunk_end_date,
+            ch = self.chunk.filter_by( rea_id     = rea_id,
+                                       chunk_id   = chunk_id,
+                                       start_date = chunk_start_date,
+                                       end_date   = chunk_end_date,
                                    ).one()
         except Exception :
             #There will be an exception for the last chunk of a realization.
