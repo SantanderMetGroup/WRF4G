@@ -619,21 +619,19 @@ class Realization( object ):
         #Select parameters:job_status,rea_status,resource,exitcode,nchunks
         #Last job of current chunk
         resource, exitcode, gw_job = '-', '-', '-'
-        if self.status == Realization.Status.PREPARED :
-            status             = Realization.Status.PREPARED
-            chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
-        else :
-            chunk = self.chunk.filter_by( chunk_id = self.current_chunk ).one()
+        status = Realization.Status.PREPARED
+        if self.status != Realization.Status.PREPARED :
+            ch = self.chunk.filter_by( chunk_id = self.current_chunk ).one()
             try :
-                last_job       = chunk.job[ -1 ]
+                last_job = ch.job[ -1 ]
             except :
-                status         = Realization.Status.PREPARED
+                pass
             else :
-                resource       = last_job.resource
-                exitcode       = last_job.exitcode
-                status         = last_job.status
-                gw_job         = last_job.gw_job
-            chunk_distribution = '%d/%d' % ( self.current_chunk, self.nchunks )
+                resource = last_job.resource
+                exitcode = last_job.exitcode
+                status   = last_job.status
+                gw_job   = last_job.gw_job
+        chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
         #Format chunks run / chunks total
         runt   = int( self.current_date.strftime("%s") ) - int( self.start_date.strftime("%s") ) 
         totalt = int( self.end_date.strftime("%s") )     - int( self.start_date.strftime("%s") )
