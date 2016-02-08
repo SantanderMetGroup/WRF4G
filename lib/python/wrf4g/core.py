@@ -87,7 +87,7 @@ class Experiment(object):
         """
         #Check if exists the realization
         try :
-            rea = self.realization.filter( name = name ).one()
+            rea = self.realization.filter_by( name = name ).one()
         except Exception :
             return None
         else :
@@ -497,7 +497,7 @@ class Realization( object ):
             #run chunks
             for index, chunk in enumerate( l_chunks ) :
                 #print data of chunks
-                logging.info('\t---> Submitting Chunk %d %s %s' % ( chunk.chunk_id, 
+                logging.info( '\t---> Submitting Chunk %d %s %s' % ( chunk.chunk_id, 
                                                               datetime2datewrf(chunk.start_date), 
                                                               datetime2datewrf(chunk.end_date) ) )
                 if not self.dryrun :
@@ -623,7 +623,7 @@ class Realization( object ):
             status             = Realization.Status.PREPARED
             chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
         else :
-            chunk = self.chunk.filter_by( chunk_id = self.current_chunk ).first()
+            chunk = self.chunk.filter_by( chunk_id = self.current_chunk ).one()
             try :
                 last_job       = chunk.job[ -1 ]
             except :
@@ -667,7 +667,7 @@ class Realization( object ):
            elif type( val ) == list or type( val ) == tuple :
                logging.info( "\t%s: %s" % ( key, ' '.join( val ) ) )
            else :
-               if  'app' in key : val
+               if 'app' in key : val
                logging.info( "\t%s: %s" % ( key, val ) )
   
     def get_log( self, chunk_id , directory ) :
@@ -680,7 +680,7 @@ class Realization( object ):
             raise Exception( 'There is not a log available for this chunk.' )
         for tar_file in all_tar_files :
             logging.info( "Unpacking %s file in the %s directory" % ( tar_file, directory ) )
-            extract(tar_file, expandvars( expanduser( directory ) ) )
+            extract( tar_file, expandvars( expanduser( directory ) ) )
 
     def cancel(self, hard = False ):
         """
@@ -691,7 +691,7 @@ class Realization( object ):
                                            Chunk.status == Chunk.Status.FAILED,
                                            Chunk.status == Chunk.Status.RUNNING ) 
                                     ).all()
-        logging.info('---> Canceling Realization %s' % self.name )
+        logging.info( '---> Canceling Realization %s' % self.name )
         if not ( l_chunks ):
             logging.info( '\tThere are not chunks to cancel.' )
         else :

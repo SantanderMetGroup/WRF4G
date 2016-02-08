@@ -100,7 +100,7 @@ def run( arg ) :
             if arg[ 'list' ] :
                 l_exps = session.query( Experiment )
                 if arg[ '--pattern' ] :
-                    l_exps  = l_exps.filter( l_exps.name.like( arg[ '--pattern' ].replace('*','%') ) )
+                    l_exps  = l_exps.filter( Experiment.name.like( arg[ '--pattern' ].replace('*','%') ) )
                 if not l_exps.all() :
                     logging.info( "There are not experiments" )
                 else :

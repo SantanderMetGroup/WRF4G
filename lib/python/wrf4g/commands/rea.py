@@ -75,7 +75,7 @@ def run( arg ) :
     # create a session to connect with the database
     session = get_session()
     try :
-        try : 
+        try :
             rea = session.query( Realization ).\
                     filter( Realization.name   == arg[ '<name>' ], 
                             Realization.exp_id != None ).one()
@@ -122,6 +122,6 @@ def run( arg ) :
         session.rollback()
     except Exception as err :
         session.rollback()
-        logging.error( str( err ), exc_info = 1 )
+        logging.error( str( err ) )
     finally:
         session.close()
