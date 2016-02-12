@@ -293,35 +293,34 @@ def clean_wrf_files( job_db, params, clean_all = False ):
                     # Skip the initial restart file
                     logging.info( "Skipping initial restart file %s" % file_name )
                     continue
-                else :
-                    if "wrfout" in file_name and params.postprocessor :
-                        code, output = exec_cmd( "ncdump -h %s" % file_name )
-                        if "WRF4G_postprocessor" in output :
-                            logging.info( "'%s' was already postprocessed" % file_name )
-                            continue
-                        ##
-                        # Execute postprocessor
-                        ##
-                        logging.info( "Running postprocessor.%s" % params.postprocessor )
+                elif "wrfout" in file_name and params.postprocessor :
+                    code, output = exec_cmd( "ncdump -h %s" % file_name )
+                    if "WRF4G_postprocessor" in output :
+                        logging.info( "'%s' was already postprocessed" % file_name )
+                        continue
+                    ##
+                    # Execute postprocessor
+                    ##
+                    logging.info( "Running postprocessor.%s" % params.postprocessor )
           
-                        if not which( "postprocessor.%s" % params.postprocessor ) :
-                            raise JobError( "Postprocessor '%s' does not exist" % params.postprocessor, 
-                                   Job.CodeError.POSTPROCESSOR_FAILED )
-                        post_log = join( params.log_path, 'postprocessor.%s.log' % params.postprocessor )
-                        code, output = exec_cmd( "postprocessor.%s %s &>> %s" % (
-                                                    params.postprocessor, file_name, post_log ) )
-                        if code :
-                            logging.info( output )
-                            raise JobError( "Error processing '%s' file" % file_name,
-                                    Job.CodeError.POSTPROCESSOR_FAILED )
-                        # The file will indicate that it has been postprocessed  
-                        exec_cmd( 'ncatted -O -a WRF4G_postprocessor,global,o,c,"%s" %s' % 
-                                                (params.postprocessor, file) )
+                    if not which( "postprocessor.%s" % params.postprocessor ) :
+                        raise JobError( "Postprocessor '%s' does not exist" % params.postprocessor, 
+                               Job.CodeError.POSTPROCESSOR_FAILED )
+                    post_log = join( params.log_path, 'postprocessor.%s.log' % params.postprocessor )
+                    code, output = exec_cmd( "postprocessor.%s %s &>> %s" % (
+                                                params.postprocessor, file_name, post_log ) )
+                    if code :
+                        logging.info( output )
+                        raise JobError( "Error processing '%s' file" % file_name,
+                                Job.CodeError.POSTPROCESSOR_FAILED )
+                    # The file will indicate that it has been postprocessed  
+                    exec_cmd( 'ncatted -O -a WRF4G_postprocessor,global,o,c,"%s" %s' % 
+                                            (params.postprocessor, file) )
 
-                    if "wrfrst" and "d01" in file_name :
-                        restart_date = WRFFile( file_name ).date_datetime()
-                        logging.info( "Setting restart date to '%s'" % restart_date )
-                        job_db.set_restart_date( restart_date )
+                elif "wrfrst" in file_name and "d01" in file_name :
+                    restart_date = WRFFile( file_name ).date_datetime()
+                    logging.info( "Setting restart date to '%s'" % restart_date )
+                    job_db.set_restart_date( restart_date )
 
                 ##
                 # Uploading "wrfout", "wrfrst", "wrfzout", "wrfz2out", "wrfrain", "wrfxtrm", "wrf24hc" files
@@ -337,7 +336,7 @@ def clean_wrf_files( job_db, params, clean_all = False ):
                         dest_file = WRFFile( file_name).file_name_iso()
                         logging.info( "Destination file will be %s" % dest_file )
                 else:
-                    dest_file = WRFFile( file_name).file_name_iso()
+                    dest_file = WRFFile( file_name ).file_name_iso()
         
                 if patt == "wrfrst" :
                     dest = join( params.rst_rea_output_path, dest_file )
