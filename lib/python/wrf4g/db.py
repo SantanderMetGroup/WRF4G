@@ -109,7 +109,7 @@ def get_session():
     logging.debug( "Reading database configuration from '%s' file" % DB4G_CONF  )
     db4g_urls = VarEnv( DB4G_CONF ).get_var( 'URL' )
     # an Engine, which the Session will use for connection
-    engine = create_engine( db4g_urls, poolclass = NullPool )
+    engine = create_engine( db4g_urls )
     # create a configured "Session" class
     Session = sessionmaker(bind = engine)
     # create a Session

@@ -364,7 +364,7 @@ _wrf4g_rea()
     cur="${COMP_WORDS[COMP_CWORD]}"
 
     if [ $COMP_CWORD -eq 3 ]; then
-        COMPREPLY=( $( compgen -W 'status cancel submit set-priority info log ' -- $cur) )
+        COMPREPLY=( $( compgen -W 'status cancel submit set-priority set-restart get-restart info log ' -- $cur) )
     else
         case ${COMP_WORDS[3]} in
             status)
@@ -379,6 +379,10 @@ _wrf4g_rea()
             set-priority)
             _wrf4g_rea_set_priority
         ;;
+           set-restart)
+            _wrf4g_rea_set_restart
+        ;;
+
             log)
             _wrf4g_rea_log
         ;;
@@ -424,6 +428,16 @@ _wrf4g_rea_set_priority()
 
     if [ $COMP_CWORD -ge 4 ]; then
         COMPREPLY=( $( compgen -W '--dbg -n --dry-run ' -- $cur) )
+    fi
+}
+
+_wrf4g_rea_set_restart()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    if [ $COMP_CWORD -ge 4 ]; then
+        COMPREPLY=( $( compgen -W '--dbg ' -- $cur) )
     fi
 }
 

@@ -21,7 +21,7 @@ from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
 from wrf4g.config           import get_conf, save_json
 from wrf4g.utils            import Enumerate, dict_compare 
 from wrf4g.utils.archive    import extract
-from wrf4g.utils.time       import ( datetime2datewrf, Calendar, 
+from wrf4g.utils.time       import ( datetime2datewrf, Calendar, datewrf2datetime, 
                                      timedelta_total_seconds )
 from wrf4g.utils.file       import validate_name, edit_file
 from wrf4g.utils.command    import exec_cmd
@@ -169,7 +169,7 @@ class Experiment(object):
         if not ( l_realizations ):
             raise Exception ( 'There are not realizations to check.' )
         Realization.status_header()
-        for rea in l_realizations.order_by( Realization.name ).all() :
+        for rea in l_realizations.order_by( Realization.name ) :
             #Print information of each realization
             rea.get_status( )
     
@@ -531,10 +531,10 @@ class Realization( object ):
         """
         #Check if there is a chunk with the same fields
         try:
-            ch = self.chunk.filter_by( rea_id     = rea_id,
-                                       chunk_id   = chunk_id,
-                                       start_date = chunk_start_date,
-                                       end_date   = chunk_end_date,
+            ch = self.chunk.filter( Chunk.rea_id     == rea_id,
+                                    Chunk.chunk_id   == chunk_id,
+                                    Chunk.start_date == chunk_start_date,
+                                    Chunk.end_date   == chunk_end_date,
                                    ).one()
         except Exception :
             #There will be an exception for the last chunk of a realization.
@@ -701,10 +701,10 @@ class Realization( object ):
         """
         Check created job to be release
         """
-        current_ck = self.chunk.filter( and_( Chunk.chunk_id == self.current_chunk,
+        current_ch = self.chunk.filter( and_( Chunk.chunk_id == self.current_chunk,
                                               Chunk.status   == Chunk.Status.SUBMITTED )
                                       ).first()
-        l_jobs     = current_ck.job.filter_by( status = Job.Status.SUBMITTED )
+        l_jobs     = current_ch.job.filter( Job.status == Job.Status.SUBMITTED )
         try :
             job = l_jobs[ -1 ]
         except :
@@ -737,7 +737,7 @@ class Realization( object ):
         """
         if priority < 0 or priority > 20 :
             raise Exception( "'%d' priority is out of the range [0, 20]" % priority )      
-        l_chunks = self.chunk.filter( status = Chunk.Status.SUBMITTED ).all()
+        l_chunks = self.chunk.filter_by( status = Chunk.Status.SUBMITTED ).all()
         logging.info( '---> Setting priority Realization %s' % self.name )
         if not ( l_chunks ):
             logging.info( '\tThere are not chunks to set priority.' )
@@ -745,6 +745,24 @@ class Realization( object ):
             for chunk in l_chunks :
                 chunk.dryrun = self.dryrun
                 chunk.set_priority( priority )
+   
+    def get_restart(self):
+        """
+        Get restart date.
+        """
+        logging.info( datetime2datewrf( self.restart ) )
+ 
+    def set_restart(self, restart_date ):
+        """
+        Setting restart date.
+        """
+        try :
+            datetime_restart_date = datewrf2datetime( restart_date ) 
+        except :
+            raise Exception( "ERROR: restart date is malformed" )
+        else :
+            logging.info( '---> Setting restart date %s' % datetime2datewrf( datetime_restart_date ) )
+            self.restart = datetime_restart_date
  
 class Chunk( object ):
     """ 
@@ -844,7 +862,7 @@ class Chunk( object ):
         logging.info('\t---> Setting priority Chunk %d %s %s' % ( self.chunk_id,
                                                                   datetime2datewrf(self.start_date),
                                                                   datetime2datewrf(self.end_date) ) )
-        l_jobs = self.job.filter( status = Job.Status.SUBMITTED ).all()
+        l_jobs = self.job.filter_by( status = Job.Status.SUBMITTED ).all()
         if not ( l_jobs ):
             logging.info( '\t\tThere are not jobs to set priority.' )
         else :

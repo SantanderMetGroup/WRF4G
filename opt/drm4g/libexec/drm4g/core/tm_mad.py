@@ -211,6 +211,7 @@ class GwTmMad (object):
                                             if exit_code == '0' :
                                                 query_job.chunk.realization.current_date = query_job.chunk.end_date
                                                 query_job.chunk.realization.restart      = query_job.chunk.end_date
+                                                query_job.set_status( Job.Status.FINISHED )
                                             else :
                                                 query_job.set_status( Job.Status.FAILED )
                                         else :

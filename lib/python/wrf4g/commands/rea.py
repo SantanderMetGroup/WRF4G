@@ -8,6 +8,8 @@ Usage:
      wrf4g rea <name> log          [ --dbg ] [ --dir=<directory> ] <chunk_id>
      wrf4g rea <name> set-priority [ --dbg ] [ --dry-run ] <priority>
      wrf4g rea <name> cancel       [ --dbg ] [ --dry-run ] [ --hard ]
+     wrf4g rea <name> set-restart  [ --dbg ] <date>
+     wrf4g rea <name> get-restart  
    
 Options:
     --dbg                  Debug mode.
@@ -29,6 +31,8 @@ Commands:
                            When a job gets a priority of 20, it becomes an urgent job, and it is 
                            dispatched as soon as possible passing all the scheduling policies. 
     cancel                 Cancel the realization by killing its jobs.
+    set-restart            Modify realization restart date.
+    get-restart            Show realization restart date.
 
 EXIT CODES
     1  : Error creating log directory        
@@ -107,6 +111,10 @@ def run( arg ) :
                 rea.information()
             elif arg[ 'set-priority' ] :
                 rea.set_priority( int( arg[ '<priority>' ] ) )
+            elif arg[ 'set-restart' ] :
+                rea.set_restart( arg[ '<date>' ] )
+            elif arg[ 'get-restart' ] :
+                rea.get_restart( )
             else :
                 rea.cancel( arg[ '--hard' ] )
             if arg[ '--dry-run' ] :

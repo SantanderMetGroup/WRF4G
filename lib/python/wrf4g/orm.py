@@ -79,11 +79,12 @@ mapper(Realization, realization, properties={
 })
 mapper(Chunk, chunk, properties={
        "realization" : relationship(Realization, back_populates = "chunk"),
-       "job"         : relationship(Job,         back_populates = "chunk", lazy = "dynamic")
+       "job"         : relationship(Job,         back_populates = "chunk", lazy='dynamic')
+       
 })
 mapper(Job, job, properties={
        "chunk"  : relationship(Chunk,  back_populates = "job"),
-       "events" : relationship(Events, back_populates = "job", lazy = 'dynamic')
+       "events" : relationship(Events, back_populates = "job", lazy='dynamic')
 })
 mapper(Events, events, properties={
        "job" : relationship(Job, back_populates = "events")
