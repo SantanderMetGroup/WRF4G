@@ -79,7 +79,7 @@ class Experiment(object):
                              "(File namelist.input does not exist)" % namelist_template )
         return namelist_input
 
-    def check_db(self, name, start_date, end_date, cfg ):
+    def check_db(self, name, start_date, end_date, cfg) :
         """ 
         Check if there is a realization with the same no reconfigurable field. 
         If there is not a realization with the same no reconfigurable fields => error
@@ -92,12 +92,12 @@ class Experiment(object):
             return None
         else :
             #Check if there is a realization with the same no reconfigurable fields
-            if rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] and rea.end_date != end_date :
+            if ( rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] and rea.end_date != end_date ) :
                 logging.debug( '\t\tUpdating realization on the database...' )
                 rea.end_date = end_date
                 rea.status   = Realization.Status.PREPARED
                 return rea
-            elif rea.end_date == end_date and rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] :
+            elif ( rea.end_date == end_date and rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] ) :
                 rea.cfg = cfg
                 return rea
             else :                                 
@@ -338,7 +338,10 @@ class Experiment(object):
                 # Check realization on the database
                 rea = self.check_db( name = rea_name, start_date = rea_start_date, end_date = rea_end_date,
                                      cfg = self.cfg[ section ] )
-                if not rea :
+                # Create chunks only if end date has been modified
+                if rea and rea.end_date != end_date :
+                    rea.cycle_chunks()
+                elif not rea :
                     # If there is not runtime we have to add the start month of the realization
                     if ( 'preprocessor_optargs' in  self.cfg[ section ] ) and \
                        ( 'member' in self.cfg[ section ] [ 'preprocessor_optargs' ] ) and \
@@ -356,6 +359,8 @@ class Experiment(object):
                     rea.cfg              = self.cfg[ section ]
                     # Add realization to the experiment 
                     self.realization.append( rea )
+                    # Create chunk for the realization
+                    rea.cycle_chunks()
                 # Check storage
                 if not self.dryrun :
                     # Default section will be the current section
@@ -366,7 +371,6 @@ class Experiment(object):
                             realization_cfg[ key ] = copy.deepcopy( val )
                     save_json( realization_cfg, self.home_directory, "realization.json" )
                     rea._prepare_sub_files()
-                rea.cycle_chunks()
                 rea_start_date = exp_calendar.add( rea_start_date, simult_interval )
 
     def _copy_experiment_files(self, exp_sub_dir ):
