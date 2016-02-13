@@ -79,7 +79,7 @@ class Experiment(object):
                              "(File namelist.input does not exist)" % namelist_template )
         return namelist_input
 
-    def check_db(self, name, start_date, end_date, cfg) :
+    def check_db(self, name, start_date, end_date, chunk_size, cfg) :
         """ 
         Check if there is a realization with the same no reconfigurable field. 
         If there is not a realization with the same no reconfigurable fields => error
@@ -92,12 +92,14 @@ class Experiment(object):
             return None
         else :
             #Check if there is a realization with the same no reconfigurable fields
-            if ( rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] and rea.end_date != end_date ) :
+            if ( rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] and rea.end_date != end_date and \
+                 timedelta_total_seconds( rea.chunk_size ) == timedelta_total_seconds( chunk_size ) ) :
                 logging.debug( '\t\tUpdating realization on the database...' )
                 rea.end_date = end_date
                 rea.status   = Realization.Status.PREPARED
                 return rea
-            elif ( rea.end_date == end_date and rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] ) :
+            elif ( rea.end_date == end_date and rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] and \
+                   timedelta_total_seconds( rea.chunk_size ) == timedelta_total_seconds( chunk_size ) ) :
                 rea.cfg = cfg
                 return rea
             else :                                 
@@ -337,7 +339,7 @@ class Experiment(object):
                                rea_name, rea_start_date, rea_end_date ) )
                 # Check realization on the database
                 rea = self.check_db( name = rea_name, start_date = rea_start_date, end_date = rea_end_date,
-                                     cfg = self.cfg[ section ] )
+                                     chunk_size = chunk_size, cfg = self.cfg[ section ] )
                 # Create chunks only if end date has been modified
                 if rea and rea.end_date != end_date :
                     rea.cycle_chunks()
