@@ -232,6 +232,8 @@ class GwEmMad (object):
                                 self.logger.error( str( err ) )
                             finally :
                                 session.close()
+                        if newStatus == 'FAILED' :
+                            self._job_list.get(JID).jobCancel()
                         if ( newStatus == 'DONE' or newStatus == 'FAILED' ) :
                             self._job_list.delete(JID)
                         time.sleep ( 0.1 )
@@ -253,6 +255,7 @@ class GwEmMad (object):
         try:
             if self._job_list.has_key(JID):
                 self._job_list.get(JID).jobCancel()
+                self._job_list.delete(JID)
                 out = 'CANCEL %s SUCCESS -' % (JID)
             else:
                 out = 'CANCEL %s FAILURE Job not submitted' % (JID)
