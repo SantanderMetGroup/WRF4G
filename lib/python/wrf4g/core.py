@@ -21,8 +21,8 @@ from wrf4g                  import WRF4G_DIR, WRF4G_DEPLOYMENT_DIR
 from wrf4g.config           import get_conf, save_json
 from wrf4g.utils            import Enumerate, dict_compare 
 from wrf4g.utils.archive    import extract
-from wrf4g.utils.time       import ( datetime2datewrf, Calendar, datewrf2datetime, 
-                                     timedelta_total_seconds )
+from wrf4g.utils.time       import ( datetime2datewrf, Calendar, 
+                                     datewrf2datetime, timedelta_total_seconds )
 from wrf4g.utils.file       import validate_name, edit_file
 from wrf4g.utils.command    import exec_cmd
 from wrf4g.utils.vcplib     import VCPURL
@@ -79,7 +79,7 @@ class Experiment(object):
                              "(File namelist.input does not exist)" % namelist_template )
         return namelist_input
 
-    def check_db(self, name, start_date, end_date, chunk_size, cfg) :
+    def check_db(self, name, start_date, end_date, cfg) :
         """ 
         Check if there is a realization with the same no reconfigurable field. 
         If there is not a realization with the same no reconfigurable fields => error
@@ -92,14 +92,12 @@ class Experiment(object):
             return None
         else :
             #Check if there is a realization with the same no reconfigurable fields
-            if ( rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] and rea.end_date != end_date and \
-                 timedelta_total_seconds( rea.chunk_size ) == timedelta_total_seconds( chunk_size ) ) :
+            if rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] and rea.end_date != end_date :
                 logging.debug( '\t\tUpdating realization on the database...' )
                 rea.end_date = end_date
                 rea.status   = Realization.Status.PREPARED
                 return rea
-            elif ( rea.end_date == end_date and rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] and \
-                   timedelta_total_seconds( rea.chunk_size ) == timedelta_total_seconds( chunk_size ) ) :
+            elif rea.end_date == end_date and rea.cfg[ 'calendar' ] == cfg[ 'calendar' ] :
                 rea.cfg = cfg
                 return rea
             else :                                 
@@ -339,7 +337,7 @@ class Experiment(object):
                                rea_name, rea_start_date, rea_end_date ) )
                 # Check realization on the database
                 rea = self.check_db( name = rea_name, start_date = rea_start_date, end_date = rea_end_date,
-                                     chunk_size = chunk_size, cfg = self.cfg[ section ] )
+                                     cfg = self.cfg[ section ] )
                 # Create chunks only if end date has been modified
                 if rea and rea.end_date != end_date :
                     rea.cycle_chunks()
