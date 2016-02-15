@@ -597,7 +597,7 @@ class Realization( object ):
                 # Add realization to the experiment 
                 self.chunk.append( ch )
             chunk_start_date = chunk_end_date 
-            chunk_id    = chunk_id + 1
+            chunk_id         = chunk_id + 1
         # Set the number of chunks of a relaization    
         self.nchunks = chunk_id - 1
 
@@ -931,7 +931,8 @@ class Job( object ):
                      self.chunk.chunk_id == self.chunk.realization.nchunks ) :
                     self.chunk.realization.status = Realization.Status.FINISHED
                 elif ( status == Job.Status.FINISHED and \
-                       self.chunk.realization.status != Realization.Status.FINISHED ) :
+                       self.chunk.realization.status != Realization.Status.FINISHED and \
+                       self.chunk.realization.status != Realization.Status.FAILED ) :
                     self.chunk.realization.current_chunk = self.chunk.chunk_id + 1
                 elif status != Job.Status.FINISHED :
                     self.chunk.realization.status = status
