@@ -554,14 +554,22 @@ def launch_wrapper( params ):
         if ( params.parallel_real == 'yes' or params.parallel_wrf == 'yes' ) and \
            ( params.local_path != params.root_path ) :
             logging.info( "Wiping the directory '%s' on all worker nodes" % params.local_path )
-            code, output = exec_cmd( "%s rm -rf %s" % ( params.parallel_run_pernode, 
+            code, output = exec_cmd( "%s rm -rf %s" % ( params.parallel_run_pernode,
                                                         params.local_path ) )
+            if code :
+                logging.info( output )
+                raise JobError( "Error wiping the directory '%s' on worker nodes" % (
+                                 params.local_path ), Job.CodeError.LOCAL_PATH )
+            code, output = exec_cmd( "%s mkdir -p %s" % ( params.parallel_run_pernode, params.local_path ) )
+            if code :
+                logging.info( output )
+                raise JobError( "Error copying files to all WNs", Job.CodeError.COPY_FILE )
             for directory in [ 'WPS' , 'WRFV3' ] :
-                code, output = exec_cmd( "%s cp -r %s %s" % ( params.parallel_run_pernode, 
-                                          join( params.root_path, directory ) , params.local_path ) )
+                code, output = exec_cmd( "%s cp -r %s %s" % ( params.parallel_run_pernode,
+                                          join( params.root_path, directory ) , join( params.local_path, directory ) ) )
                 if code :
-                    logging.info( output )
-                    raise JobError( "Error copying '%s' directory to all WNs" % directory, 
+                    logging.error( output )
+                    raise JobError( "Error copying '%s' directory to all WNs" % directory,
                                     Job.CodeError.COPY_FILE )
 
         ##
