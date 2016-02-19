@@ -266,6 +266,11 @@ class VCPURL(object):
            return True
         elif self.protocol == "sftp" and '*' in self.file :
            return True
+        elif self.protocol == "file" :
+           if isfile( self.file ) :
+               return True
+           else :
+               return False
         else:
            out = self.ls(self.file)
            if len(out) != 0 and basename(self.file) == out[0]:
