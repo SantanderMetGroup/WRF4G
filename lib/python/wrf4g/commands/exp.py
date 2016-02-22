@@ -51,23 +51,24 @@ EXIT CODES
     3  : Error app type does not exist            
     4  : Error executing source script       
     5  : Job already executed 
-    6  : Error creating directory to simulate 
-    7  : Error copying restart files        
-    8  : There is a mismatch in the restart date   
-    9  : Error copying files    
-    10 : Error downloading WPS files    
-    11 : Error copying boundaries           
-    12 : Error modifying namelist
-    13 : Error executing PREPROCESSOR
-    14 : Error linking GRIB files     
-    15 : Error executing UNGRIB
-    16 : Error executing METGRID       
-    17 : Error executing REAL
-    18 : Error uploading WPS files      
-    19 : Error executing WRF
-    20 : Error executing POSTPROCESSOR 
-    21 : Error copying output file    
-    22 : Job killed by the system 
+    6  : Error creating directory to simulate
+    7  : Error finding WRF binaries 
+    8  : Error copying restart files        
+    9  : There is a mismatch in the restart date   
+    10 : Error copying files    
+    11 : Error downloading WPS files    
+    12 : Error copying boundaries           
+    13 : Error modifying namelist
+    14 : Error executing PREPROCESSOR
+    15 : Error linking GRIB files     
+    16 : Error executing UNGRIB
+    17 : Error executing METGRID       
+    18 : Error executing REAL
+    19 : Error uploading WPS files      
+    20 : Error executing WRF
+    21 : Error executing POSTPROCESSOR 
+    22 : Error copying output file    
+    23 : Job killed by the system 
     255: Unexpected error
 """
 __version__  = '2.2.0'

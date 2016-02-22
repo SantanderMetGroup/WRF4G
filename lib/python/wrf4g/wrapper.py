@@ -563,18 +563,18 @@ def launch_wrapper( params ):
             code, output = exec_cmd( "%s mkdir -p %s" % ( params.parallel_run_pernode, params.local_path ) )
             if code :
                 logging.info( output )
-                raise JobError( "Error copying files to all WNs", Job.CodeError.COPY_FILE )
+                raise JobError( "Error creating direcory in all worker nodes", Job.CodeError.COPY_FILE )
             for directory in [ 'WPS' , 'WRFV3' ] :
-                code, output = exec_cmd( "%s cp -r %s %s" % ( params.parallel_run_pernode,
-                                          join( params.root_path, directory ) , join( params.local_path, directory ) ) )
-                if code :
-                    logging.error( output )
-                    raise JobError( "Error copying '%s' directory to all WNs" % directory,
+                exec_cmd( "%s cp -r %s %s" % ( params.parallel_run_pernode,
+                                          join( params.root_path, directory ), params.local_path ) ) 
+                if not exists( join( params.local_path, directory ) ) :
+                    raise JobError( "Error copying '%s' directory to all worker nodes" % directory,
                                     Job.CodeError.COPY_FILE )
 
         ##
         # Binaries for execution  
         ##
+        ungrib_exe = metgrid_exe = real_exe = wrf_exe = None
         if 'wrf_all_in_one' in params.app :
             ungrib_exe  = join( params.wps_path, 'ungrib', 'ungrib.exe' )
             metgrid_exe = join( params.wps_path, 'metgrid', 'metgrid.exe' )
@@ -585,7 +585,9 @@ def launch_wrapper( params ):
             metgrid_exe = which( 'metgrid.exe' )
             real_exe    = which( 'real.exe' )
             wrf_exe     = which( 'wrf.exe' )
-    
+        if not ungrib_exe or not metgrid_exe or not real_exe or not wrf_exe :
+            raise JobError( "Error finding WRF binaries", Job.CodeError.BINARY )
+         
         ##
         # Obtain information about the WN
         ##

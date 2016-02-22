@@ -142,8 +142,8 @@ class GwTmMad (object):
         OPERATION, JID, TID, EXE_MODE, SRC_URL, DST_URL = args.split()
         try:
             com = self._update_com( urlparse( SRC_URL ).host )
-            #if not com.checkOutLock( SRC_URL ) :            
-            #    com.rmDirectory( SRC_URL )
+            if not com.checkOutLock( SRC_URL ) :            
+                com.rmDirectory( SRC_URL )
             out = 'RMDIR %s - SUCCESS -' % ( JID )
         except Exception , err :
             out = 'RMDIR %s - FAILURE %s' % ( JID , str( err ) )
@@ -215,7 +215,7 @@ class GwTmMad (object):
                                             else :
                                                 query_job.set_status( Job.Status.FAILED )
                                         else :
-                                            query_job.exitcode = 22
+                                            query_job.exitcode = 23
                                             query_job.set_status( Job.Status.FAILED )
                             session.commit()
                         except Exception , err :

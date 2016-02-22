@@ -881,21 +881,22 @@ class JobCodeError():
     SOURCE_SCRIPT        = 4
     JOB_SHOULD_NOT_RUN   = 5
     LOCAL_PATH           = 6
-    COPY_RST_FILE        = 7
-    RESTART_MISMATCH     = 8
-    COPY_FILE            = 9
-    COPY_REAL_FILE       = 10
-    COPY_BOUND           = 11
-    NAMELIST_FAILED      = 12
-    PREPROCESSOR_FAILED  = 13
-    LINK_GRIB_FAILED     = 14
-    UNGRIB_FAILED        = 15
-    METGRID_FAILED       = 16
-    REAL_FAILED          = 17
-    COPY_UPLOAD_WPS      = 18
-    WRF_FAILED           = 19
-    POSTPROCESSOR_FAILED = 20
-    COPY_OUTPUT_FILE     = 21
+    BINARY               = 7
+    COPY_RST_FILE        = 8
+    RESTART_MISMATCH     = 9
+    COPY_FILE            = 10
+    COPY_REAL_FILE       = 11
+    COPY_BOUND           = 12
+    NAMELIST_FAILED      = 13
+    PREPROCESSOR_FAILED  = 14
+    LINK_GRIB_FAILED     = 15
+    UNGRIB_FAILED        = 16
+    METGRID_FAILED       = 17
+    REAL_FAILED          = 18
+    COPY_UPLOAD_WPS      = 19
+    WRF_FAILED           = 20
+    POSTPROCESSOR_FAILED = 21
+    COPY_OUTPUT_FILE     = 22
    
 class Job( object ):
     """
