@@ -237,7 +237,7 @@ class PilotParams( object ):
     parallel_wrf         = resource_cfg[ 'parallel_wrf' ]
     
     parallel_env         = ParallelEnvironment.launcher_map.get( resource_cfg[ 'parallel_env' ] )
-    if parallel_env == 'DUMMY' :
+    if resource_cfg[ 'parallel_env' ] == 'DUMMY' :
         parallel_run         = resource_cfg[ 'parallel_run' ]
         parallel_run_pernode = resource_cfg[ 'parallel_run_pernode' ]
     else :
