@@ -708,15 +708,16 @@ class Realization( object ):
         current_ch = self.chunk.filter( and_( Chunk.chunk_id == self.current_chunk,
                                               Chunk.status   == Chunk.Status.SUBMITTED )
                                       ).first()
-        l_jobs     = current_ch.job.filter( Job.status == Job.Status.SUBMITTED )
-        try :
-            job = l_jobs[ -1 ]
-        except :
-            pass
-        else :
-            logging.debug( "Releasing job %s" % job.gw_job )
-            GWJob().release( job.gw_job  )
-            job.set_status( Job.Status.RELEASED )
+        if current_ch :
+            l_jobs     = current_ch.job.filter( Job.status == Job.Status.SUBMITTED )
+            try :
+                job = l_jobs[ -1 ]
+            except :
+                pass
+            else :
+                logging.debug( "Releasing job %s" % job.gw_job )
+                GWJob().release( job.gw_job  )
+                job.set_status( Job.Status.RELEASED )
 
     def statistics(self):
         """
