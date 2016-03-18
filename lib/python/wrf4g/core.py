@@ -424,7 +424,8 @@ class Experiment(object):
         l_realizations = self.realization
         if pattern :
             l_realizations = l_realizations.\
-                             filter( Realization.name.like( pattern.replace('*','%') ) ) 
+                             filter( Realization.name.like( pattern.replace( '*', '%' )\
+                                                                   .replace( '?', '_' ) ) ) 
         if status :
             l_realizations = l_realizations.\
                              filter_by( status = status )
