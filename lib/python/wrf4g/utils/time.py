@@ -76,10 +76,9 @@ class Calendar( object ):
         total_time = date + trelativedelta
         if self.type == 'no_leap' :
             hours_to_add = 0
-            date_add = date + tdatetime
-            for year in range( date.year, date_add.year + 1 ) :
+            for year in range( date.year, total_time.year + 1 ) :
                 if calendar.isleap( year ) : 
-                    if date < datetime( year, 2, 29 ) < date_add :
+                    if date < datetime( year, 2, 29 ) < total_time :
                         hours_to_add += 24
             total_time += relativedelta( hours = hours_to_add ) 
         return total_time
@@ -91,10 +90,9 @@ class Calendar( object ):
         total_time = date - trelativedelta
         if self.type == 'no_leap' :
             hours_to_sub = 0
-            date_add = date + timedelta(hours=hours)
-            for year in range( date.year, date_add.year + 1 ) :
+            for year in range( date.year, total_time.year + 1 ) :
                 if calendar.isleap( year ) :     
-                    if date < datetime( year, 2, 29 ) < date_add :
+                    if date < datetime( year, 2, 29 ) < total_time :
                         hours_to_sub -= 24
             total_time -= relativedelta( hours = hours_to_sub )
         return total_time
