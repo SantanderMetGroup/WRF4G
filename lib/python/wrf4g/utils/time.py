@@ -37,7 +37,7 @@ def str2timedelta( input_str ):
         if key in input_str :
             match = True
     if not match :
-        raise Exception( "'%s' does not contain an argument. Please add an argument may be years, months, days, or hours." ) 
+        raise Exception( "'%s' does not contain an argument. Please add an argument may be years, months, days, or hours." % input_str ) 
     regex = "".join(["((?P<%s>\d+)%s ?)?" % (k, k[0]) for k in keys])
     kwargs = {}
     for key, val in re.match( regex, input_str ).groupdict( default = "0" ).items():
