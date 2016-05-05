@@ -4,7 +4,7 @@ import calendar
 from datetime                import datetime, timedelta
 from dateutil.relativedelta  import relativedelta
 
-__version__  = '2.2.0'
+__version__  = '2.2.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

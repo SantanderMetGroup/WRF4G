@@ -11,7 +11,7 @@ from wrf4g.utils.time import ( datewrf2datetime, Calendar,
                                str2timedelta, timedelta_total_seconds )
 from wrf4g.utils.file import VarEnv, make_writeable, validate_name
 
-__version__  = '2.2.0'
+__version__  = '2.2.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

@@ -3,7 +3,7 @@ import sys
 import logging
 from wrf4g.wrapper   import launch_wrapper, JobError, PilotParams
 
-__version__  = '2.1.0'
+__version__  = '2.2.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

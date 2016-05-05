@@ -60,7 +60,7 @@ EXIT CODES
     23 : Job killed by the system 
     255: Unexpected error
 """
-__version__  = '2.2.0'
+__version__  = '2.2.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

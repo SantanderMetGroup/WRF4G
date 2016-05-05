@@ -3,7 +3,7 @@ import logging
 import subprocess
 from distutils  import spawn
 
-__version__  = '2.2.0'
+__version__  = '2.2.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
