@@ -45,7 +45,7 @@ def str2timedelta( input_str ):
     return relativedelta( **kwargs )
 
 def timedelta_total_seconds( td ):
-    return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
+    return (td.microseconds + (td.seconds + td.hours * 3600 + td.days * 24 * 3600) * 10**6) / 10**6
 
 class Calendar( object ):
     """
