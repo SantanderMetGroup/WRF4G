@@ -42,6 +42,7 @@ def get_conf( directory = './' ):
     sanity_check.experiment_name()
     sanity_check.yes_no_vars()
     sanity_check.calendar()
+    sanity_check.log_level()
     sanity_check.dates()
     sanity_check.parallel_env() 
     sanity_check.files_to_save()
@@ -90,6 +91,16 @@ class SanityCheck():
                     else :
                         logging.error( "ERROR: '%s' variable should be 'yes' or 'no'" % key ) 
                         self.total_errors += 1
+
+    def log_level(self):
+        """
+        Check if log_level has a right value 
+        """
+        for section in list( self.cfg.keys( ) ) :
+            if self.cfg[ section ].get( 'log_level' ) and section.startswith( 'ensemble/' ) :
+                if not self.cfg[ section ].get( 'log_level' ) in [ 'ERROR', 'WARNING', 'INFO', 'DEBUG' ] :
+                    logging.error( "log_level variale has to be ERROR, WARNING, INFO or DEBUG" )
+                    self.total_errors += 1
 
     def calendar(self):
         """

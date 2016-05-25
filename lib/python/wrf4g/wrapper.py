@@ -254,6 +254,17 @@ class PilotParams( object ):
     ###
     log_path             = join( root_path, 'log' )
     log_file             = join( log_path,  'main.log' )
+ 
+    codes = { 'INFO'   : logging.INFO,
+              'DEBUG'  : logging.DEBUG,
+              'WARNING': logging.WARNING,
+              'ERROR'  : logging.ERROR
+            }
+
+    if resource_cfg.get( 'log_level' ) :
+        log_level = codes[ resource_cfg.get( 'log_level' ) ]
+    else :
+        log_level = logging.INFO
 
     ##
     # Namelists
@@ -408,7 +419,7 @@ def launch_wrapper( params ):
     # Logging configuration
     ##
     logging.basicConfig( format = '%(asctime)s %(message)s', 
-                         filename = params.log_file, level = logging.INFO )
+                         filename = params.log_file, level = params.log_level )
     ##
     # Show information about paths
     ## 
@@ -477,16 +488,24 @@ def launch_wrapper( params ):
         logging.info( 'Setting PATH and LD_LIBRARY_PATH variables' )
 
         root_bin_path = join( params.root_path, 'bin' )
-        os.environ[ 'PATH' ] = '%s:%s' % ( root_bin_path, os.environ.get( 'PATH' ) )
-        os.environ[ 'LD_LIBRARY_PATH' ] = '%s:%s:%s' % ( join( params.root_path, 'lib' ),
-                                                         join( params.root_path, 'lib64' ),
-                                                         os.environ.get( 'LD_LIBRARY_PATH' ) )
-        os.environ[ 'PYTHONPATH' ] = '%s:%s' % ( join( params.root_path, 'lib', 'python' ),
-                                                 os.environ.get( 'PYTHONPATH' ) )
+        PATH = '%s:%s' % ( root_bin_path, os.environ.get( 'PATH' ) )
+        logging.info( "PATH=%s" % PATH )
+        os.environ[ 'PATH' ] = PATH
+        LD_LIBRARY_PATH = '%s:%s:%s' % ( join( params.root_path, 'lib' ),
+                                         join( params.root_path, 'lib64' ),
+                                         os.environ.get( 'LD_LIBRARY_PATH' ) )
+        logging.info( "LD_LIBRARY_PATH=%s" % LD_LIBRARY_PATH )
+        os.environ[ 'LD_LIBRARY_PATH' ] = LD_LIBRARY_PATH
+        PYTHONPATH = '%s:%s' % ( join( params.root_path, 'lib', 'python' ),
+                                 os.environ.get( 'PYTHONPATH' ) )
+        logging.info( "PYTHONPATH=%s" % PYTHONPATH )
+        os.environ[ 'PYTHONPATH' ] = PYTHONPATH
 
         if 'wrf_all_in_one' in params.app :
-            os.environ[ 'OPAL_PREFIX' ] = params.root_path
-      
+            OPAL_PREFIX = params.root_path
+            logging.info( "OPAL_PREFIX=%s" % OPAL_PREFIX )
+            os.environ[ 'OPAL_PREFIX' ] = OPAL_PREFIX
+       
         ##
         # Configure app 
         ##
@@ -519,9 +538,13 @@ def launch_wrapper( params ):
                     raise JobError( "Error executing source script for %s" % app_tag, Job.CodeError.SOURCE_SCRIPT )
                 for line in output.split( '\n' ) :
                     if "=" in line and not "(" in line :
-                        try :    key, value = line.split( "=" )
-                        except : pass
-                        else :   os.environ[ key ] = value
+                        try :    
+                            key, value = line.split( "=" )
+                        except : 
+                            pass
+                        else :   
+                            logging.debug( "%s=%s" % ( key, value ) )
+                            os.environ[ key ] = value
             else :
                 raise JobError( "Error app type does not exist", Job.CodeError.APP_ERROR )              
         wrf4g_files = join( params.root_path, 'wrf4g_files.tar.gz' )
