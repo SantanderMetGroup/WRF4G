@@ -316,7 +316,7 @@ class Experiment(object):
         """
         Clycle realization time
         """
-        realization_name = self.name + '_' + section.split( "/" )[ 1 ]
+        realization_name = self.name + '-' + section.split( "/" )[ 1 ]
         for ( start_date, end_date, simult_interval,
               simult_length, chunk_size, restart_interval ) in self.cfg[ section ][ 'date_time' ] :
             # Update restart_interval in the namelist 
