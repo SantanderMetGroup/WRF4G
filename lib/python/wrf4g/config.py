@@ -206,7 +206,7 @@ class SanityCheck():
                 if self.cfg[ section ].get( key_value ) and section.startswith( 'ensemble/' ) :
                     no_comb = max( [ line.count( '|' ) for line in self.cfg[ section ][ key_value ].split( '\n' ) ] )
                     if no_comb > 1 :
-                        section_names = [ section + '_' + tag + str( elem ) for elem in range( 1, no_comb + 1 ) ]
+                        section_names = [ section + '-' + tag + str( elem ) for elem in range( 1, no_comb + 1 ) ]
                         for new_section in section_names :
                             self.cfg_final[ new_section ] = copy.deepcopy( self.cfg[ section ] )
                             self.cfg_final[ new_section ] [ key_value ] = dict()
