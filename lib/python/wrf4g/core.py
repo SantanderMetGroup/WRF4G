@@ -332,7 +332,7 @@ class Experiment(object):
                 rea_end_date = exp_calendar.add( rea_start_date, simult_length )
                 if rea_end_date > end_date :
                     rea_end_date = end_date
-                rea_name = "%s_%s" % ( realization_name, rea_start_date.strftime( "%Y%m%dT%H%M%S" ) )
+                rea_name = "%s-%s" % ( realization_name, rea_start_date.strftime( "%Y%m%dT%H%M%S" ) )
                 logging.info( "---> Realization %s: start date %s end date %s" % (
                                rea_name, rea_start_date, rea_end_date ) )
                 # Check realization on the database
