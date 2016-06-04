@@ -2,12 +2,14 @@ import os
 import re
 import sys
 import stat
+import glob
 import time
+import string
 import socket
 import shutil
 import logging
 import tarfile
-import glob
+import itertools
 import threading
 import fortran_namelist as fn
 from datetime             import datetime
@@ -777,13 +779,19 @@ def launch_wrapper( params ):
                     raise JobError( "Preprocessor '%s' has failed" % pp,
                             Job.CodeError.PREPROCESSOR_FAILED )
 
-                link_grib     = join( params.wps_path, 'link_grib.sh' ) 
-                os.chmod( link_grib, stat.S_IRWXU )
-                grb_data_path = join( params.wps_path, 'grbData') 
-                code, output  = exec_cmd( "%s %s/" % ( link_grib, grb_data_path ) )
-                if code :
-                    logging.info( output )
-                    raise JobError( "Error linking grib files", Job.CodeError.LINK_GRIB_FAILED )
+                grb_data_path = join( params.wps_path, 'grbData' )
+                for grib_file in glob.glob( join( params.wps_path, 'GRIBFILE.*' ) ):
+                    os.remove( grib_file )
+                try :
+                    for grib_file_to_link, suffixe in zip( glob.glob( join( grb_data_path, '*' ) ),
+                                                           list( map( ''.join, itertools.product( string.ascii_uppercase, repeat = 3 ) ) ) ) :
+                       try :
+                           os.symlink( grib_file_to_link, join( params.wps_path, "GRIBFILE." + suffixe ) )
+                       except :
+                           raise JobError( "Error linking grib files", Job.CodeError.LINK_GRIB_FAILED )
+                except :
+                    raise JobError( "Ran out of grib file suffixes", Job.CodeError.LINK_GRIB_FAILED )
+
                 ##
                 # Run Ungrib
                 ##
@@ -799,8 +807,7 @@ def launch_wrapper( params ):
                 else :
                     logging.info( "ungrib has successfully finished" )
                 shutil.rmtree( grb_data_path )
-                grib_files = glob.glob( join( params.wps_path, 'GRIBFILE.*' ) )
-                for grib_file in grib_files :
+                for grib_file in glob.glob( join( params.wps_path, 'GRIBFILE.*' ) ) :
                     os.remove( grib_file )
           
             ##
