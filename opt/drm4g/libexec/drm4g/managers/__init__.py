@@ -160,6 +160,7 @@ class Resource (object):
             host_info.Nodes      = value['attr']["GlueCEInfoTotalCPUs"]
             host_info.LrmsName   = value['attr']["GlueCEUniqueID"].split('/')[1].rsplit('-',1)[0]
             host_info.LrmsType   = value['attr']["GlueCEInfoLRMSType"]
+        host_info.addQueue( Queue() )
         # Second search    
         filt   = "(&(objectclass=GlueHostOperatingSystem)(GlueSubClusterName=%s))"  % ( host )
         attr   = '*'
@@ -196,6 +197,7 @@ class Resource (object):
             queue.MaxRunningJobs = max_jobs_running 
             queue.MaxJobsInQueue = max_jobs_in_queue
             host_info.addQueue( self.additional_queue_properties( queue ) )
+        host_info.addQueue( Queue() )
         host_info.LrmsName = self.features[ 'lrms' ]
         host_info.LrmsType = self.features[ 'lrms' ]
         return host_info.info()
@@ -284,7 +286,7 @@ class Job (object):
 class Queue( object ) :
     
     def __init__(self):
-        self.Name           = "NULL"
+        self.Name           = ""
         self.Nodes          = "0"
         self.FreeNodes      = "0"
         self.MaxTime        = "0"
@@ -312,7 +314,7 @@ class Queue( object ) :
 class HostInformation( object ) :
    
     def __init__(self):
-        self.Name       = "NULL"
+        self.Name       = ""
         self.Arch       = "NULL"
         self.Os         = "NULL"
         self.OsVersion  = "NULL"
