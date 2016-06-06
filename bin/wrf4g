@@ -35,7 +35,8 @@ from docopt import docopt
 if __name__ == "__main__":
     args = docopt( __doc__, version = __version__ , options_first = True )
     argv = [ args[ '<command>' ] ] + args[ '<args>' ]
-    if args['<command>'] in "start stop status syncdb conf resource host job id rea exp vcp".split() :
+    sub_commands = [ 'start', 'stop', 'status', 'syncdb', 'conf', 'resource', 'host', 'job', 'id', 'rea', 'exp', 'vcp' ]
+    if args['<command>'] in sub_commands :
         command = getattr( __import__( "wrf4g.commands.%s" %  args['<command>'] ).commands, args['<command>'] )
         arg = docopt( command.__doc__ , argv = argv )
         try :
@@ -43,5 +44,9 @@ if __name__ == "__main__":
         except Exception as err :
             exit( err )
     else:
-        exit( "%r is not a wrf4g command. See 'wrf4g --help'." % args[ '<command>' ] )
-
+        from wrf4g.commands import get_similar_commands
+        guess = get_similar_commands( args[ '<command>' ], sub_commands )
+        msg = 'Unknown command "%s"' % args[ '<command>' ]
+        if guess :
+            msg = msg + ' maybe you meant "%s"' % guess
+        exit( "%s.\nSee wrf4g --help" % msg )
