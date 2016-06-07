@@ -806,9 +806,6 @@ def launch_wrapper( params ):
                                 Job.CodeError.UNGRIB_FAILED )
                 else :
                     logging.info( "ungrib has successfully finished" )
-                shutil.rmtree( grb_data_path )
-                for grib_file in glob.glob( join( params.wps_path, 'GRIBFILE.*' ) ) :
-                    os.remove( grib_file )
           
             ##
             #  Update namelist.wps 
