@@ -1,7 +1,3 @@
-__version__  = '2.2.1'
-__author__   = 'Carlos Blanco'
-__revision__ = "$Id$"
-
 import os
 import re
 import glob
@@ -27,6 +23,10 @@ from wrf4g.utils.file       import validate_name, edit_file
 from wrf4g.utils.command    import exec_cmd
 from wrf4g.utils.vcplib     import VCPURL
 from wrf4g.utils.gridwaylib import GWJob
+
+__version__  = '2.2.2'
+__author__   = 'Carlos Blanco'
+__revision__ = "$Id$"
 
 class Experiment(object):
     """ 

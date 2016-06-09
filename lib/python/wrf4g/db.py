@@ -11,7 +11,7 @@ from wrf4g                      import DB4G_CONF, WRF4G_DIR, MYSQL_DIR
 from wrf4g.utils.command        import exec_cmd_advance as exec_cmd
 from wrf4g.utils.file           import VarEnv
 
-__version__  = '2.2.1'
+__version__  = '2.2.2'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

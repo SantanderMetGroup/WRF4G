@@ -1,11 +1,11 @@
-from os.path          import exists
-from wrf4g.utils.time import datetime2datewrf 
-
 import os
 import logging
 import fortran_namelist as fn
 
-__version__  = '2.2.1'
+from os.path          import exists
+from wrf4g.utils.time import datetime2datewrf
+
+__version__  = '2.2.2'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

@@ -1,4 +1,4 @@
-__version__  = '2.2.1'
+__version__  = '2.2.2'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

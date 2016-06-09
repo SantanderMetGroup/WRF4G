@@ -22,7 +22,7 @@ Host field information:
     MAXR          Max. running jobs.
     MAXQ          Max. queued jobs. 
 """
-__version__  = '2.2.1'
+__version__  = '2.2.2'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

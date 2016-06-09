@@ -9,7 +9,7 @@ Options:
    --clear-conf         Clear WRF4G's settings stored in .wrf4g directory.
    --disc-jobs          All available jobs on WRF4G will be discared. 
 """
-__version__  = '2.2.1'
+__version__  = '2.2.2'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

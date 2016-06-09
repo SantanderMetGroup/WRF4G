@@ -2,7 +2,7 @@ import os
 import socket
 from os.path              import exists, join, isfile
 
-__version__  = '2.2.1'
+__version__  = '2.2.2'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
