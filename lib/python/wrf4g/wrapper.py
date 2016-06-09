@@ -235,10 +235,10 @@ class PilotParams( object ):
         local_path = root_path
 
     # Parallel enviroment
-    parallel_real        = resource_cfg[ 'parallel_real' ]
-    parallel_wrf         = resource_cfg[ 'parallel_wrf' ]
+    parallel_real        = resource_cfg.get( 'parallel_real', "no" )
+    parallel_wrf         = resource_cfg.get( 'parallel_wrf', "yes" )
     
-    parallel_env         = ParallelEnvironment.launcher_map.get( resource_cfg[ 'parallel_env' ] )
+    parallel_env         = ParallelEnvironment.launcher_map.get( resource_cfg.get( 'parallel_env', "MPIRUN" ) )
     if resource_cfg[ 'parallel_env' ] == 'DUMMY' :
         parallel_run         = resource_cfg[ 'parallel_run' ]
         parallel_run_pernode = resource_cfg[ 'parallel_run_pernode' ]
