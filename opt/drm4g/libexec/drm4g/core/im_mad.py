@@ -6,7 +6,7 @@ from drm4g.core.configure  import Configuration
 from drm4g.managers        import HostInformation
 from drm4g.utils.message   import Send
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: im_mad.py 2352 2015-02-24 10:23:57Z carlos $"
 
@@ -81,10 +81,10 @@ class GwImMad (object):
                     self._resources[ resname ][ 'Resource' ].Communicator.connect()
                     hosts = hosts + " " + self._resources[ resname ] [ 'Resource' ].hosts()
                     self._resources[ resname ][ 'Resource' ].Communicator.close() 
-                except Exception , err :
+                except Exception as err :
                     self.logger.error( err , exc_info=1 )
             out = 'DISCOVER %s SUCCESS %s' % ( HID , hosts  )
-        except Exception , err :
+        except Exception as err :
             out = 'DISCOVER - FAILURE %s' % str( err )
         self.message.stdout( out )
         self.logger.debug( out , exc_info=1 )
@@ -98,7 +98,7 @@ class GwImMad (object):
         OPERATION, HID, HOST, ARGS = args.split()
         try:
             info = ""
-            for resname, resdict in self._resources.iteritems() :
+            for resname, resdict in self._resources.items() :
                 if self._config.resources[ resname ][ 'enable' ].lower() == 'false' and \
                    resname in HOST : 
                     raise Exception( "Resource '%s' is not enable" % resname )
@@ -108,7 +108,7 @@ class GwImMad (object):
                     break
             assert info, "Host '%s' is not available" % HOST
             out = 'MONITOR %s SUCCESS %s' % (HID , info )
-        except Exception , err :
+        except Exception as err :
             out = 'MONITOR %s FAILURE %s' % (HID , str( err ) )
         self.message.stdout(out)
         self.logger.debug( out , exc_info=1 )
@@ -139,12 +139,12 @@ class GwImMad (object):
                 input = sys.stdin.readline().split()
                 self.logger.debug(' '.join(input))
                 OPERATION = input[0].upper()
-                if len(input) == 4 and self.methods.has_key(OPERATION):
+                if len(input) == 4 and OPERATION in self.methods:
                     self.methods[OPERATION](self, ' '.join(input))
                 else:
                     out = 'WRONG COMMAND'
                     self.message.stdout(out)
                     self.logger.debug(out)
-        except Exception, e:
+        except Exception as e:
             self.logger.warning(str(e))
             

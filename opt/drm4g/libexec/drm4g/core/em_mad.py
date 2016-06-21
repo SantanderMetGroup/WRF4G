@@ -6,7 +6,10 @@ import logging
 
 from os.path                 import join, dirname
 from string                  import Template
-from Queue                   import Queue
+try :
+    from Queue               import Queue
+except :
+    from queue               import Queue
 from drm4g                   import REMOTE_JOBS_DIR
 from drm4g.utils.rsl2        import Rsl2Parser
 from drm4g.utils.list        import List 
@@ -17,7 +20,7 @@ from drm4g.utils.message     import Send
 from wrf4g.db                import get_session
 from wrf4g.core              import Job
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: em_mad.py 2352 2015-02-24 10:23:57Z carlos $"
 
@@ -99,16 +102,16 @@ class GwEmMad (object):
             # Parse rsl
             rsl                = Rsl2Parser(RSL).parser()
             
-            if job.resfeatures.has_key( 'project' ) :
+            if 'project' in job.resfeatures :
                 rsl['project']      = job.resfeatures[ 'project' ]
             
-            if job.resfeatures.has_key( 'parallel_env' ) :
+            if 'parallel_env' in job.resfeatures :
                 rsl['parallel_env'] = job.resfeatures[ 'parallel_env' ]
                 
-            if job.resfeatures.has_key( 'local_scratch' ) :
+            if 'local_scratch' in job.resfeatures :
                 rsl['environment']['WRF4G_LOCALSCP'] = job.resfeatures[ 'local_scratch' ]
              
-            if job.resfeatures.has_key( 'vo' ) :
+            if 'vo' in job.resfeatures :
                 _ , host                    = HOST.split('::')
                 job.resfeatures['host']     = host
                 job.resfeatures['jm']       = JM
@@ -227,7 +230,7 @@ class GwEmMad (object):
                                 if not q_job.status in avoid_states :
                                     q_job.set_status( states[ newStatus ] )
                                     session.commit()
-                            except Exception , err :
+                            except Exception as err :
                                 session.rollback()
                                 self.logger.error( str( err ) )
                             finally :
@@ -285,7 +288,7 @@ class GwEmMad (object):
                 input = sys.stdin.readline().split()
                 self.logger.debug(' '.join(input))
                 OPERATION = input[0].upper()
-                if len(input) == 4 and self.methods.has_key(OPERATION):
+                if len(input) == 4 and OPERATION in self.methods:
                     if OPERATION == 'FINALIZE' or OPERATION == 'INIT' or OPERATION == 'SUBMIT' \
                         or OPERATION == 'RECOVER':
                         self.methods[OPERATION](self, ' '.join(input))
@@ -306,14 +309,14 @@ class GwEmMad (object):
                 if errors :
                     self.logger.error ( ' '.join( errors ) )
                     raise Exception ( ' '.join( errors ) )
-            for resname, resdict in self._configure.resources.iteritems() :
+            for resname, resdict in self._configure.resources.items() :
                 if '::' in host :
                     _resname , _ = host.split( '::' )
                     if resname != _resname :
                         continue
                 elif resname != host : 
                     continue
-                if not self._communicators.has_key( resname ) :
+                if resname not in self._communicators :
                     self._communicators[ resname ] = self._configure.make_communicators()[resname]
                 job          = self._configure.make_resources()[ resname ]['Job']
                 communicator = self._communicators[ resname ]

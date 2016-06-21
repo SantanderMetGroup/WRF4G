@@ -12,7 +12,7 @@ from wrf4g.config          import load_pkl
 from wrf4g.db              import get_session
 from wrf4g.core            import Job
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: tm_mad.py 2352 2015-02-24 10:23:57Z carlos $"
 
@@ -128,7 +128,7 @@ class GwTmMad (object):
             com.rmDirectory( SRC_URL )
             com.mkDirectory( SRC_URL )
             out = 'MKDIR %s - SUCCESS -' % ( JID )
-        except Exception, err :
+        except Exception as err :
             out = 'MKDIR %s - FAILURE %s' % ( JID , str( err ) )
         self.message.stdout( out )
         self.logger.debug( out , exc_info=1 )
@@ -145,7 +145,7 @@ class GwTmMad (object):
             if not com.checkOutLock( SRC_URL ) :            
                 com.rmDirectory( SRC_URL )
             out = 'RMDIR %s - SUCCESS -' % ( JID )
-        except Exception , err :
+        except Exception as err :
             out = 'RMDIR %s - FAILURE %s' % ( JID , str( err ) )
         self.message.stdout( out )        
         self.logger.debug( out, exc_info=1 )
@@ -168,7 +168,7 @@ class GwTmMad (object):
             com = self._update_com( urlparse( url ).host )
             com.copy( SRC_URL , DST_URL , EXE_MODE )
             out = 'CP %s %s SUCCESS -' % ( JID , TID )
-        except Exception, err :
+        except Exception as err :
             self.logger.warning( 'Error copying from %s to %s : %s' %( SRC_URL , DST_URL, str( err ) ) )
             time.sleep( 60 )
             try:
@@ -176,7 +176,7 @@ class GwTmMad (object):
                 com = self._update_com( urlparse( SRC_URL ).host )
                 com.copy( SRC_URL , DST_URL , EXE_MODE )
                 out = 'CP %s %s SUCCESS -' % (JID, TID)
-            except Exception, err :
+            except Exception as err :
                 out = 'CP %s %s FAILURE %s' % ( JID , TID , str( err ) ) 
         finally:
             with self._lock2 :
@@ -218,12 +218,12 @@ class GwTmMad (object):
                                             query_job.exitcode = 23
                                             query_job.set_status( Job.Status.FAILED )
                             session.commit()
-                        except Exception , err :
+                        except Exception as err :
                             session.rollback()
                             self.logger.error( str( err ) )
                         finally:
                             session.close()  
-                except Exception, err :
+                except Exception as err :
                     self.logger.warning( err )
         self.message.stdout( out )
         self.logger.debug(out)
@@ -247,7 +247,7 @@ class GwTmMad (object):
                 input = sys.stdin.readline().split()
                 self.logger.debug(' '.join(input))
                 OPERATION = input[0].upper()
-                if len(input) == 6 and self.methods.has_key(OPERATION):
+                if len(input) == 6 and OPERATION in self.methods:
                     if OPERATION == 'FINALIZE' or OPERATION == 'INIT':
                         self.methods[OPERATION](self, ' '.join(input))
                     else: pool.add_task(self.methods[OPERATION], self,' '.join(input))
@@ -255,7 +255,7 @@ class GwTmMad (object):
                     out = 'WRONG COMMAND'
                     self.message.stdout(out)
                     self.logger.debug(out)
-        except Exception , err : 
+        except Exception as err : 
             self.logger.warning( str ( err ) , exc_info=1 )
     
     def _update_com(self, host):
@@ -266,13 +266,13 @@ class GwTmMad (object):
                 if errors :
                     self.logger.error ( ' '.join( errors ) )
                     raise Exception ( ' '.join( errors ) )
-            for resname, resdict in self._configure.resources.iteritems() :
+            for resname, resdict in self._configure.resources.items() :
                 if '::' in host :
                     _resname , _ = host.split( '::' )
                     if resname != _resname :
                         continue
                 elif resname != host :
                     continue
-                if not self._communicator.has_key( resname ): 
+                 if resname not in self._communicator: 
                     self._communicator[ resname ] = self._configure.make_communicators()[resname]
                 return self._communicator[ resname ]

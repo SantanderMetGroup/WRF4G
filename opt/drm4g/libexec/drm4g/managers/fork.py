@@ -2,9 +2,9 @@ import os
 import drm4g.managers 
 from string import Template
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: fork.py 2352 2015-02-24 10:23:57Z carlos $"
+__revision__ = "$Id: fork.py 2811 2015-09-22 11:33:32Z carlos $"
 
 SH = '/bin/bash'
 
@@ -40,7 +40,7 @@ class Job (drm4g.managers.Job):
 
     def jobTemplate(self, parameters):
         line  = '#!/bin/bash\n'
-        line += ''.join(['export %s=%s\n' % (k, v) for k, v in parameters['environment'].items()])
+        line += ''.join(['export %s=%s\n' % (k, v) for k, v in list(parameters['environment'].items())])
         line += '\n' 
         line += 'nohup $executable 2> $stderr > $stdout &\n' 
         line += 'echo $$!\n'

@@ -1,4 +1,3 @@
-from __future__      import with_statement
 import re
 import sys
 import logging
@@ -7,9 +6,9 @@ from os.path         import basename , dirname , exists, join
 from drm4g           import REMOTE_VOS_DIR
 from drm4g.managers  import JobException
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: cream.py 2352 2015-02-24 10:23:57Z carlos $"
+__revision__ = "$Id: cream.py 2811 2015-09-22 11:33:32Z carlos $"
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +82,7 @@ class Job (drm4g.managers.Job):
     def _renew_voms_proxy(self):
         output = "The proxy 'x509up.%s' has probably expired" %  self.resfeatures[ 'vo' ]  
         logger.debug( output )
-        if self.resfeatures.has_key( 'myproxy_server' ) :
+        if 'myproxy_server' in self.resfeatures :
             LOCAL_X509_USER_PROXY = "X509_USER_PROXY=%s" % join ( REMOTE_VOS_DIR , self.resfeatures[ 'myproxy_server' ] ) 
         else :
             LOCAL_X509_USER_PROXY = "X509_USER_PROXY=%s/${MYPROXY_SERVER}" % ( REMOTE_VOS_DIR )
@@ -213,23 +212,23 @@ class Job (drm4g.managers.Job):
         else :
             input_files = ''
         
-        self.output_files = output_sandbox + self.default_output_files
-        output_files = ','.join( [ '"%s"' % (f) for f in self.output_files ] )
+        self.default_output_files.extend( output_sandbox )
+        output_files = ','.join( [ '"%s"' % (f) for f in self.default_output_files ] )
                     
         requirements = ''
-        if parameters.has_key('maxWallTime'):  
+        if 'maxWallTime' in parameters: 
             requirements += '(other.GlueCEPolicyMaxWallClockTime <= %s)' % parameters['maxWallTime']
-        if parameters.has_key('maxCpuTime'):
+        if 'maxCpuTime' in parameters:
             if requirements: 
                 requirements += ' && '
             requirements += '(other.GlueCEPolicyMaxCPUTime <= %s)' % parameters['maxCpuTime']
-        if parameters.has_key('maxMemory'):
+        if 'maxMemory' in parameters:
             if requirements: 
                 requirements += ' && '
             requirements += ' (other.GlueHostMainMemoryRAMSize <= %s)' % parameters['maxMemory'] 
         Requirements = 'Requirements=%s;' % (requirements) if requirements else ''
         
-        env = ','.join(['"%s=%s"' %(k, v) for k, v in parameters['environment'].items()])
+        env = ','.join(['"%s=%s"' %(k, v) for k, v in list(parameters['environment'].items())])
             
         return """
 [
@@ -274,7 +273,7 @@ Environment = { %(env)s };
         """ 
         Get output files from the remote output_url
         """
-        for file in self.output_files :
+        for file in self.default_output_files :
             cmd = '%s %s file://%s' % ( 
                                        GLOBUS_CP % self.resfeatures[ 'vo' ],
                                        join( output_url , file ) ,

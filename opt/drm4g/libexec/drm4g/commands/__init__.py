@@ -10,7 +10,7 @@ import datetime
 from drm4g     import REMOTE_VOS_DIR, DRM4G_CONFIG_FILE, DRM4G_BIN, DRM4G_DIR
 from os.path   import expanduser, join, dirname, exists, basename, expandvars
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: __init__.py 2450 2015-05-12 12:24:52Z carlos $"
 
@@ -49,7 +49,7 @@ def yes_no_choice( message ,  default = 'y' ) :
     Ask for Yes/No questions
     """
     choices = 'Y/n' if default.lower() in ('y', 'yes') else 'y/N'
-    choice = raw_input("%s (%s) " % (message, choices))
+    choice = eval(input("%s (%s) " % (message, choices)))
     values = ('y', 'yes', '') if default == 'y' else ('y', 'yes')
     return choice.strip().lower() in values
 
@@ -248,14 +248,14 @@ class Resource( object ):
         """
         self.check( )
         communicators = self.config.make_communicators()
-        for resname, resdict in sorted( self.config.resources.iteritems() ) :
+        for resname, resdict in sorted( self.config.resources.items() ) :
             if resdict[ 'enable' ] == 'true' :
                 communicator = communicators.get( resname )
                 try :
                     communicator.connect()
                     logging.info( "Resource '%s' :" % ( resname ) )
                     logging.info( "--> The front-end '%s' is accessible\n" % communicator.frontend )
-                except Exception , err :
+                except Exception as err :
                     logging.error( "Resource '%s' :" % ( resname ) )
                     logging.error( "--> The front-end '%s' is not accessible\n" % communicator.frontend )
                             
@@ -273,7 +273,7 @@ class Resource( object ):
         """
         self.check( )
         logging.info( "\033[1;4m%-20.20s%-20.20s\033[0m" % ('RESOURCE', 'STATE' ) )
-        for resname, resdict in sorted( self.config.resources.iteritems() ) :
+        for resname, resdict in sorted( self.config.resources.items() ) :
             if resdict[ 'enable' ] == 'true' :
                 state = 'enabled'
             else :
@@ -285,9 +285,9 @@ class Resource( object ):
         List the features of a given resource.
         """
         self.check( )
-        for resname , resdict in sorted( self.config.resources.iteritems() ) :
+        for resname , resdict in sorted( self.config.resources.items() ) :
             logging.info( "Resource '%s' :" % ( resname ) )
-            for key , val in sorted( resdict.iteritems() ) :
+            for key , val in sorted( resdict.items() ) :
                 logging.info( " --> '%s' : '%s'" % ( key, val ) )         
     
     def check( self ) :
@@ -304,7 +304,7 @@ class Proxy( object ):
     def __init__( self, resource, communicator ):
         self.resource     = resource
         self.communicator = communicator
-        if self.resource.has_key( 'myproxy_server' ) :
+        if 'myproxy_server' in self.resource :
             self.prefix = "X509_USER_PROXY=%s MYPROXY_SERVER=%s " % (
                                                                  join( REMOTE_VOS_DIR , self.resource[ 'myproxy_server' ] ),
                                                                  self.resource[ 'myproxy_server' ]

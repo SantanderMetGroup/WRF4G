@@ -2,9 +2,9 @@ import re
 import drm4g.managers
 from string import Template
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: sge.py 2352 2015-02-24 10:23:57Z carlos $"
+__revision__ = "$Id: sge.py 2811 2015-09-22 11:33:32Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
@@ -64,7 +64,7 @@ class Job (drm4g.managers.Job):
 
     def jobStatus(self):
         out, err = self.Communicator.execCommand('%s | grep %s' % (QSTAT, self.JobId))
-        if not out :
+        if not out:
             return 'DONE'
         else:
             state = out.split()[4]
@@ -78,25 +78,21 @@ class Job (drm4g.managers.Job):
     def jobTemplate(self, parameters):
         args  = '#!/bin/bash\n'
         args += '#$ -N JID_%s\n' % (parameters['environment']['GW_JOB_ID'])
-        if parameters.has_key('project'): 
+        if 'project' in parameters : 
             args += '#$ -P $project\n'
         if parameters['queue'] != 'default':
             args += '#$ -q $queue\n'
         args += '#$ -o $stdout\n'
         args += '#$ -e $stderr\n'
-        if parameters.has_key('maxWallTime'): 
+        if 'maxWallTime' in parameters : 
             args += '#$ -l h_rt=$maxWallTime\n'
-        if parameters.has_key('maxCpuTime'): 
+        if 'maxCpuTime' in parameters : 
             args += '#$ -l cput=$maxCpuTime\n' 
-        if parameters.has_key('maxMemory'): 
+        if 'maxMemory' in parameters : 
             args += '#$ -l mem_free=$maxMemoryM\n'
         if int(parameters['count']) > 1:
             args += '#$ -pe $parallel_env $count\n'
-        args += '#$ -v %s\n' % (','.join(['%s=%s' %(k, v) for k, v in parameters['environment'].items()]))
+        args += '#$ -v %s\n' % (','.join(['%s=%s' %(k, v) for k, v in list(parameters['environment'].items())]))
         args += '\n'
         args += '$executable\n'
         return Template(args).safe_substitute(parameters)
-
-   
-            
-        

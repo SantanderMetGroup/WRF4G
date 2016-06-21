@@ -2,9 +2,9 @@ import re
 import drm4g.managers 
 from string import Template
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: slurm.py 2352 2015-02-24 10:23:57Z carlos $"
+__revision__ = "$Id: slurm.py 2811 2015-09-22 11:33:32Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
@@ -39,7 +39,7 @@ class Job (drm4g.managers.Job):
 
     def jobStatus(self):
         out, err = self.Communicator.execCommand('squeue -h -o %T -j ' + self.JobId)
-        if err or not out :
+        if err or not out:
             return 'DONE'
         else:
             return self.states_SLURM.setdefault(out.rstrip('\n'), 'UNKNOWN')
@@ -56,16 +56,16 @@ class Job (drm4g.managers.Job):
         args += '#SBATCH --error=$stderr\n'
         if parameters['queue'] != 'default':
             args += '#SBATCH -p $queue\n'
-        if parameters.has_key('maxWallTime'): 
+        if 'maxWallTime' in parameters : 
             args += '#SBATCH --time=%s\n' % (parameters['maxWallTime'])
-        if parameters.has_key('maxMemory'):
+        if 'maxMemory' in parameters :
             args += '#SBATCH --mem=%s\n' % (parameters['maxMemory'])
-        if parameters.has_key('ppn'): 
+        if 'ppn' in parameters : 
             args += '#SBATCH --ntasks-per-node=$ppn'
-        if parameters.has_key('nodes'): 
+        if 'nodes' in parameters :  
             args += '#SBATCH --nodes=$nodes'
         args += '#SBATCH --ntasks=$count\n'
-        args += ''.join(['export %s=%s\n' % (k, v) for k, v in parameters['environment'].items()])
+        args += ''.join(['export %s=%s\n' % (k, v) for k, v in list(parameters['environment'].items())])
         args += '\n'
         args += '$executable\n'
         return Template(args).safe_substitute(parameters)

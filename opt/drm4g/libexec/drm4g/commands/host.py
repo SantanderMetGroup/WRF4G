@@ -22,7 +22,7 @@ Host field information:
     MAXR          Max. running jobs.
     MAXQ          Max. queued jobs. 
 """
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: host.py 2352 2015-02-24 10:23:57Z carlos $"
 
@@ -45,6 +45,6 @@ def run( arg ):
         logger.info( out )
         if err :
             logger.info( err )
-    except Exception , err :
+    except Exception as err :
         logger.error( str( err ) )
 

@@ -2,9 +2,9 @@ import re
 import drm4g.managers 
 from string import Template
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: pbs.py 2352 2015-02-24 10:23:57Z carlos $"
+__revision__ = "$Id: pbs.py 2811 2015-09-22 11:33:32Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
@@ -80,28 +80,28 @@ class Job (drm4g.managers.Job):
     def jobTemplate(self, parameters):
         args  = '#!/bin/bash\n'
         args += '#PBS -N JID_%s\n' % (parameters['environment']['GW_JOB_ID'])
-        if parameters.has_key('project'):
+        if 'project' in parameters :
             args += '#PBS -P $project\n'
         if parameters['queue'] != 'default':
             args += '#PBS -q $queue\n'
         args += '#PBS -o $stdout\n'
         args += '#PBS -e $stderr\n'
-        if parameters.has_key('maxWallTime'): 
+        if 'maxWallTime' in parameters : 
             args += '#PBS -l walltime=$maxWallTime\n' 
-        if parameters.has_key('maxCpuTime'): 
+        if 'maxCpuTime' in parameters : 
             args += '#PBS -l cput=$maxCpuTime\n' 
-        if parameters.has_key('maxMemory'):
+        if 'maxMemory' in parameters :
             args += '#PBS -l vmem=$maxMemoryMB\n'
-        if parameters.has_key('ppn') and parameters.has_key('nodes') :
+        if 'ppn' in parameters and 'nodes' in parameters :
             args += '#PBS -l nodes=$nodes:ppn=$ppn\n'
-        elif parameters.has_key('ppn') :
+        elif 'ppn' in parameters :
             node_count = int(parameters['count']) / int(parameters['ppn'])
             if node_count == 0:
                 node_count = 1
             args += '#PBS -l nodes=%d:ppn=$ppn\n' % (node_count)
         else:
             args += '#PBS -l nodes=$count\n'
-        args += '#PBS -v %s\n' % (','.join(['%s=%s' %(k, v) for k, v in parameters['environment'].items()]))
+        args += '#PBS -v %s\n' % (','.join(['%s=%s' %(k, v) for k, v in list(parameters['environment'].items())]))
         args += '\n'
         args += '$executable\n'
         return Template(args).safe_substitute(parameters)

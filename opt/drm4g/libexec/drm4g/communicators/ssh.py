@@ -1,4 +1,3 @@
-from __future__             import with_statement
 import sys
 import platform
 from os.path     import dirname, abspath, join, expanduser, exists
@@ -11,15 +10,14 @@ try:
     else:
         crypto_package = 'Crypto_x86_64'
     sys.path.insert( 0, join( cryptos_path , crypto_package ) )
-    sys.path.insert( 0, join( GW_LOCATION , 'utils' ) )         
+    sys.path.insert( 0, join( GW_LOCATION , 'utils' ) )
 
     from paramiko.transport     import Transport
     from paramiko.agent         import Agent
     from paramiko.dsskey        import DSSKey
     from paramiko.rsakey        import RSAKey
     from scp                    import SCPClient
-
-except Exception, e:
+except Exception as e :
     exit( 'Caught exception: %s' % str(e) )
 
 import socket
@@ -31,7 +29,7 @@ from drm4g.communicators    import ComException, logger
 from drm4g                  import SFTP_CONNECTIONS, SSH_CONNECT_TIMEOUT  
 from drm4g.utils.url        import urlparse
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: ssh.py 2352 2015-02-24 10:23:57Z carlos $"
 
@@ -60,7 +58,7 @@ class Communicator (drm4g.communicators.Communicator):
                     logger.error( "Impossible to load '%s' key from the ssh-agent"  % self.private_key )
                     try:
                         status_ssh_agent = agent._conn
-                    except Exception, err :
+                    except Exception as err :
                         logger.warning("Probably you are using paramiko version <= 1.7.7.2 : %s " % str( err ) )
                         status_ssh_agent = agent.conn
                     if not status_ssh_agent:
@@ -115,7 +113,7 @@ class Communicator (drm4g.communicators.Communicator):
                     except socket.gaierror:
                         output = "Could not resolve hostname '%s' " % self.frontend
                         raise ComException( output )
-                    except Exception,  err :
+                    except Exception as err :
                         logger.warning( "Error connecting '%s': %s" % ( self.frontend , str ( err ) ) ) 
             if not self._trans :
                 output = "Authentication failed to '%s'. Try to execute `ssh -vvv -p %d %s@%s` and see the response." % ( self.frontend , self.port, self.username, self.frontend )
@@ -176,7 +174,7 @@ class Communicator (drm4g.communicators.Communicator):
         try : 
             if self._trans :
                 self._trans.close( )
-        except Exception, err: 
+        except Exception as err: 
             logger.warning( "Could not close the SSH connection to '%s': %s" % ( self.frontend , str( err ) ) )
             
     def __del__( self ) :

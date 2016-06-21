@@ -1,6 +1,6 @@
 import threading
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: list.py 2352 2015-02-24 10:23:57Z carlos $"
 
@@ -39,21 +39,21 @@ class List (object):
     def has_key(self, key):
         self._lock.acquire()
         try:
-            return self._map.has_key(key)
+            return key in self._map
         finally:
             self._lock.release()
 
     def values(self):
         self._lock.acquire()
         try:
-            return self._map.values()
+            return list(self._map.values())
         finally:
             self._lock.release()
 
     def items(self):
         self._lock.acquire()
         try:
-            return self._map.items()
+            return list(self._map.items())
         finally:
             self._lock.release()
 

@@ -3,9 +3,9 @@ import drm4g.managers.slurm
 from string         import Template
 from drm4g.managers import sec_to_H_M_S
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: neptuno.py 2352 2015-02-24 10:23:57Z carlos $"
+__revision__ = "$Id: neptuno.py 2811 2015-09-22 11:33:32Z carlos $"
 
 # The programs needed by these utilities. If they are not in a location
 # accessible by PATH, specify their location here.
@@ -31,8 +31,8 @@ class Job (drm4g.managers.slurm.Job):
         args += '#MOAB -o $stdout\n'
         args += '#MOAB -e $stderr\n'
         args += '#MOAB -l nodes=$count\n'
-        args += '#MOAB -V\n'
-        args += ''.join(['export %s=%s\n' % (k, v) for k, v in parameters['environment'].items()])
+        args += '#MOAB -V'
+        args += ''.join(['export %s=%s\n' % (k, v) for k, v in list(parameters['environment'].items())])
         args += '\n'
         args += '$executable\n'
         return Template(args).safe_substitute(parameters)

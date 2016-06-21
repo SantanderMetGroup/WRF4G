@@ -1,3 +1,4 @@
+import sys
 import subprocess
 import os
 import re
@@ -6,11 +7,16 @@ import drm4g.communicators
 from drm4g.communicators import ComException
 from drm4g.utils.url     import urlparse
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: local.py 2352 2015-02-24 10:23:57Z carlos $"
 
 logger  = logging.getLogger(__name__)
+
+if sys.version_info[0] == 2 :
+    execution_permissions = 0755
+else :
+    execution_permissions = 0o755
 
 class Communicator(drm4g.communicators.Communicator):
     """
@@ -56,7 +62,7 @@ class Communicator(drm4g.communicators.Communicator):
             logger.error( output )
             raise ComException( output )
         if execution_mode == 'X':
-            os.chmod(to_dir, 0755)#execution permissions
+            os.chmod(to_dir, execution_permissions )
             
     def rmDirectory(self, url):
         to_dir   = self._set_dir(urlparse(url).path)    

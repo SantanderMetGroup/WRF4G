@@ -7,7 +7,7 @@ Usage:
 Options:
    --dbg    Debug mode.
 """
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: status.py 2352 2015-02-24 10:23:57Z carlos $"
 
@@ -20,6 +20,6 @@ def run( arg ) :
             logger.setLevel(logging.DEBUG)
         Daemon().status()
         Agent().status()
-    except Exception , err :
+    except Exception as err :
         logger.error( str( err ) )
 

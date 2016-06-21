@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: drm4g_env.py 2352 2015-02-24 10:23:57Z carlos $"
 

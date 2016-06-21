@@ -14,7 +14,7 @@ try :
 except ImportError :
     import ConfigParser as configparser
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: configure.py 2448 2015-05-12 11:56:52Z carlos $"
 
@@ -59,7 +59,7 @@ class Configuration(object):
                 parser = configparser.RawConfigParser()
                 try:
                     parser.readfp( file , DRM4G_CONFIG_FILE )
-                except Exception, err:
+                except Exception as err:
                     output = "Configuration file '%s' is unreadable or malformed: %s" % ( DRM4G_CONFIG_FILE , str( err ) )
                     logger.error( output )
                     raise ConfigureException( output )
@@ -69,8 +69,8 @@ class Configuration(object):
                     logger.debug(" Reading configuration for resource '%s'." % name )
                     self.resources[ name ] = dict( parser.items( sectname ) )
                     logger.debug("Resource '%s' defined by: %s.",
-                             sectname, ', '.join([("%s=%s" % (k,v)) for k,v in sorted(self.resources[name].iteritems())]))
-            except Exception, err:
+                             sectname, ', '.join([("%s=%s" % (k,v)) for k,v in sorted(self.resources[name].items())]))
+            except Exception as err:
                 output = "Error reading '%s' file: %s" % (DRM4G_CONFIG_FILE, str(err)) 
                 logger.error( output )
                 raise ConfigureException( output )
@@ -84,9 +84,9 @@ class Configuration(object):
         Return a list with the errors.
         """
         errors = []
-        for resname, resdict in self.resources.iteritems() :
+        for resname, resdict in self.resources.items() :
             logger.debug("Checking resource '%s' ..." % resname)
-            reslist = resdict.keys( )
+            reslist = list(resdict.keys( ))
             for key in [ 'enable' , 'frontend' , 'lrms' , 'communicator' ] :
                 if not key in reslist :
                     output = "'%s' resource does not have '%s' key" % (resname, key)
@@ -115,15 +115,15 @@ class Configuration(object):
                 output = "'host_filter' key is only available for 'cream' lrms"
                 logger.error( output )
                 errors.append( output )
-            if not COMMUNICATORS.has_key( resdict[ 'communicator' ] ) :
+            if resdict[ 'communicator' ] not in COMMUNICATORS :
                 output = "'%s' has a wrong communicator: '%s'" % (resname , resdict[ 'communicator' ] )
                 logger.error( output )
                 errors.append( output )
-            if resdict[ 'communicator' ] == 'ssh' and not resdict.has_key( 'username' ) :
+            if resdict[ 'communicator' ] == 'ssh' and 'username' not in resdict :
                 output = "'username' key is mandatory for 'ssh' communicator, '%s' resource" % resname 
                 logger.error( output )
                 errors.append( output )
-            if not RESOURCE_MANAGERS.has_key( resdict[ 'lrms' ] ) :
+            if resdict[ 'lrms' ] not in RESOURCE_MANAGERS :
                 output = "'%s' has a wrong lrms: '%s'" % ( resname , resdict[ 'lrms' ] )
                 logger.error( output )
                 errors.append( output )
@@ -170,7 +170,7 @@ class Configuration(object):
         Return a dictionary, mapping the resource name into the corresponding objects.
         """
         communicators = dict()
-        for name, resdict in self.resources.iteritems():
+        for name, resdict in self.resources.items():
             try:
                 communicator              = import_module(COMMUNICATORS[ resdict[ 'communicator' ] ] )
                 com_object                = getattr( communicator , 'Communicator' ) ()
@@ -180,7 +180,7 @@ class Configuration(object):
                 com_object.public_key     = resdict.get( 'public_key' )
                 com_object.work_directory = resdict.get( 'scratch', REMOTE_JOBS_DIR ) 
                 communicators[name]       = com_object
-            except Exception, err:
+            except Exception as err:
                 output = "Failed creating communicator for resource '%s' : %s" % ( name, str( err ) )
                 logger.warning( output , exc_info=1 )
                 raise ConfigureException( output )
@@ -193,7 +193,7 @@ class Configuration(object):
         Return a dictionary, mapping the resource name into the corresponding objects.
         """
         resources = dict()
-        for name, resdict in self.resources.iteritems():
+        for name, resdict in self.resources.items():
             try:
                 resources[name]             = dict()
                 manager                     = import_module(RESOURCE_MANAGERS[ resdict[ 'lrms' ] ] )
@@ -204,10 +204,8 @@ class Configuration(object):
                 job_object.resfeatures      = resdict
                 resources[name]['Resource'] = resource_object
                 resources[name]['Job']      = job_object
-            except Exception, err:
+            except Exception as err:
                 output = "Failed creating objects for resource '%s' of type : %s" % ( name, str( err ) )
                 logger.warning( output , exc_info=1 )
                 raise ConfigureException( output )
         return resources
-
-

@@ -4,9 +4,9 @@ import os
 import subprocess
 import logging
 
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
-__revision__ = "$Id: __init__.py 2352 2015-02-24 10:23:57Z carlos $"
+__revision__ = "$Id: __init__.py 2811 2015-09-22 11:33:32Z carlos $"
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +17,9 @@ def sec_to_H_M_S( sec ):
     """
     Convert seconds into HH:MM:SS 
     """
-    m, s = divmod( int( sec ) , 60)
-    h, m = divmod( m , 60 ) 
-    return "%d:%02d:%02d" % ( h , m , s )
+    m, s = divmod( int( sec ), 60)
+    h, m = divmod( m, 60 ) 
+    return "%d:%02d:%02d" % ( h, m, s )
 
 class ResourceException(Exception): 
     pass 
@@ -38,7 +38,7 @@ class Resource (object):
 	self.Communicator   = None
 	self.host_list      = []
     
-    def ldapsearch( self , filt = '' , attr = '*', bdii = 'lcg-bdii.cern.ch:2170', base = 'Mds-Vo-name=local,o=grid' ) :
+    def ldapsearch(self, filt = '', attr = '*', bdii = 'lcg-bdii.cern.ch:2170', base = 'Mds-Vo-name=local,o=grid'):
 	""" 
 	Wrapper for ldapserch.
 	Input parameters:
@@ -79,7 +79,7 @@ class Resource (object):
 		    if index > 0:
 			attr = line[:index]
 			value = line[index + 1:].strip()
-			if record['attr'].has_key( attr ):
+			if attr in record['attr']:
 			    if type( record['attr'][attr] ) == type( [] ):
 				record['attr'][attr].append( value )
 			    else:
@@ -92,18 +92,18 @@ class Resource (object):
 	"""
 	It will return a string with the host available in the resource.
 	"""
-	if self.features.has_key( 'vo' ) :
+        if 'vo' in self.features and 'cream' in self.features :	
 	    self.host_list = self._hosts_vo( )
 	    return ' '.join( self.host_list )
 	else :
 	    self.host_list = [ self.name ]
 	    return self.name
 		
-    def host_properties(self , host ):
+    def host_properties(self, host ):
 	"""
 	Obtain the features of each host
 	"""
-	if self.features.has_key( 'vo' ) :
+        if 'vo' in self.features and 'cream' in self.features :	
 	    return self._host_vo_properties( host )
 	else :
 	    return self._host_properties( host ) 
@@ -118,12 +118,12 @@ class Resource (object):
 	attr      = 'GlueCEHostingCluster'
 	bdii      = self.features.get( 'bdii', '$LCG_GFAL_INFOSYS' )
         result    = []
-	if self.features.has_key( 'host_filter' ) :
+        if 'host_filter' in self.features :	
 	    for host in self.features[ 'host_filter' ].split( ',' ) :
                 ce_filter = '(GlueCEHostingCluster=%s))' % host.strip()
                 result.append( self.ldapsearch( filt + ce_filter , attr , bdii ) )               
         else :
-             result.append( self.ldapsearch( filt + ')' , attr , bdii ) )
+            result.append( self.ldapsearch( filt + ')' , attr , bdii ) )
         hosts = []
         for value in result :
             for each_host in value :
@@ -172,7 +172,7 @@ class Resource (object):
             host_info.OsVersion  = result[0]['attr'][ "GlueHostOperatingSystemVersion" ]
             host_info.Arch       = result[0]['attr'][ "GlueHostArchitecturePlatformType" ]
             host_info.CpuSmp     = result[0]['attr'][ "GlueHostArchitectureSMPSize" ]
-        except Exception, err:
+        except Exception as err:
             logger.error("The result of '%s' is wrong: %s " % ( filt , str( result ) ) ) 
   
         return host_info.info()
@@ -183,15 +183,15 @@ class Resource (object):
         """
         host_info       = HostInformation()
         host_info.Name  = host
-        host_info.Name, host_info.OsVersion, host_info.Arch, host_info.Os  = self.system_information()
+        host_info.Name, host_info.OsVersion, host_info.Arch, host_info.Os = self.system_information()
         
-        q_features = [ ( q_elem.strip() , jobr_elem.strip() , jobq_elem.strip() ) 
-                      for q_elem , jobr_elem , jobq_elem in zip( 
+        q_features = [ ( q_elem.strip(), jobr_elem.strip(), jobq_elem.strip() ) 
+                      for q_elem, jobr_elem, jobq_elem in zip( 
                                                   self.features[ 'queue' ].split( ',' ) , 
                                                   self.features[ 'max_jobs_running' ].split( ',' ) ,
                                                   self.features[ 'max_jobs_in_queue' ].split( ',' )
                                                   ) ]
-        for queue_name , max_jobs_running , max_jobs_in_queue in q_features  :
+        for queue_name, max_jobs_running, max_jobs_in_queue in q_features  :
             queue                = Queue()
             queue.Name           = queue_name
             queue.MaxRunningJobs = max_jobs_running 
@@ -253,7 +253,7 @@ class Job (object):
     def createWrapper(self, local_directory, template):
         try:
             f = open(local_directory, 'w')
-        except Exception, e:
+        except Exception as e:
             raise JobException('Error creating wrapper_drm4g :' + str(e))
         else:
             f.write(template)
@@ -267,7 +267,7 @@ class Job (object):
         destination_url = 'gsiftp://_/%s' % remote_directory
         try:
             self.Communicator.copy(source_url, destination_url, 'X')
-        except Exception, e:
+        except Exception as e:
             raise JobException("Error copying wrapper_drm4g : %s" % str(e) )
 
     # To overload 
@@ -338,7 +338,7 @@ class HostInformation( object ) :
     def showQueues(self):
         return self._queues
 
-    def info (self): 
+    def info(self): 
         """
         @return: the information of the host and the host queues
         @rtype: string 

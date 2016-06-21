@@ -46,7 +46,7 @@ Commands:
                             With delete, the identity is removed from the 
                             ssh-agent and the myproxy server.
 """
-__version__  = '2.3.1'
+__version__  = '2.4.1'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id: resource.py 2352 2015-02-24 10:23:57Z carlos $"
 
@@ -76,7 +76,7 @@ def run( arg ) :
             config.load( )
             if config.check( ) :
                 raise Exception( "Review the configuration of '%s'." % ( arg['<name>'] ) )
-            if not config.resources.has_key( arg['<name>'] ):
+            if arg['<name>'] not in config.resources :
                 raise Exception( "'%s' is not a configured resource." % ( arg['<name>'] ) )
             lrms         = config.resources.get( arg['<name>']  )[ 'lrms' ]
             communicator = config.resources.get( arg['<name>']  )[ 'communicator' ]
@@ -85,7 +85,7 @@ def run( arg ) :
             if lrms == 'cream' :
                 proxy = Proxy( config , arg['<name>'] )
             if communicator == 'ssh' :
-                if not config.resources.get( arg['<name>'] ).has_key( 'private_key' ) :
+                if 'private_key' not in config.resources.get( arg['<name>'] ) :
                     raise Exception( "'%s' does not have a 'private_key' value." % ( arg['<name>'] ) )
                 private_key = expandvars( expanduser( config.resources.get( arg['<name>'] )[ 'private_key' ] ) )
                 if not exists( private_key ) :
@@ -128,6 +128,6 @@ def run( arg ) :
                 if lrms == 'cream' :
                     logger.info( "--> Grid credentials" )
                     proxy.check( )
-    except Exception , err :
+    except Exception as err :
         logger.error( str( err ) )
 
