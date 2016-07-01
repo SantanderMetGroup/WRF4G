@@ -201,11 +201,9 @@ class Experiment(object):
         """
         #list of realization of the experiment
         l_realizations  = self._filter_realizations( rea_pattern, False )
-        l_realizations_finished = l_realizations.\
-                                  filter_by( status = Realization.Status.FINISHED  )
         logging.info( "Job ID;Realization Name;Chunk ID;Resource Name;Execution Time (s);"
                       "Waiting Time (s);REAL Execution Time (s);WRF Execution Time (s)" )
-        for rea in l_realizations_finished :
+        for rea in l_realizations :
             rea.statistics( )
 
     def set_priority(self, rea_pattern = False, priority = 0 ):
@@ -725,13 +723,14 @@ class Realization( object ):
         Get statistics from jobs.
         """
         for chunk in self.chunk.all() :
-            finished_job   = chunk.job.filter_by( status = Job.Status.FINISHED ) [ -1 ]
-            date_SUBMITTED = finished_job.events.filter_by( job_status = Job.Status.SUBMITTED ).one().timestamp
-            date_RUNNING   = finished_job.events.filter_by( job_status = Job.Status.RUNNING ).one().timestamp
-            date_REAL      = finished_job.events.filter_by( job_status = Job.Status.REAL ).one().timestamp
-            date_WRF       = finished_job.events.filter_by( job_status = Job.Status.WRF ).one().timestamp
-            date_FINISHED  = finished_job.events.filter_by( job_status = Job.Status.FINISHED ).one().timestamp
-            logging.info( "%d;%d;%s;%s;%d;%d;%d;%d" % ( finished_job.gw_job, chunk.chunk_id, self.name, finished_job.resource,
+            if chunk.job.all() [ -1 ].status == Job.Status.FINISHED :
+                finished_job   = chunk.job.filter_by( status = Job.Status.FINISHED ) [ -1 ]
+                date_SUBMITTED = finished_job.events.filter_by( job_status = Job.Status.SUBMITTED ).one().timestamp
+                date_RUNNING   = finished_job.events.filter_by( job_status = Job.Status.RUNNING ).one().timestamp
+                date_REAL      = finished_job.events.filter_by( job_status = Job.Status.REAL ).one().timestamp
+                date_WRF       = finished_job.events.filter_by( job_status = Job.Status.WRF ).one().timestamp
+                date_FINISHED  = finished_job.events.filter_by( job_status = Job.Status.FINISHED ).one().timestamp
+                logging.info( "%d;%d;%s;%s;%d;%d;%d;%d" % ( finished_job.gw_job, chunk.chunk_id, self.name, finished_job.resource,
                                                         timedelta_total_seconds( date_FINISHED - date_RUNNING ), 
                                                         timedelta_total_seconds( date_RUNNING  - date_SUBMITTED ),
                                                         timedelta_total_seconds( date_WRF      - date_REAL ),
