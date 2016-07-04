@@ -273,6 +273,6 @@ class GwTmMad (object):
                         continue
                 elif resname != host :
                     continue
-                 if resname not in self._communicator: 
+                if resname not in self._communicator: 
                     self._communicator[ resname ] = self._configure.make_communicators()[resname]
                 return self._communicator[ resname ]
