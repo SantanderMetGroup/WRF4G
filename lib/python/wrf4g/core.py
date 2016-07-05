@@ -458,6 +458,10 @@ class Realization( object ):
             logging.error( "\tERROR: The last chunk to run is '%d'." % last_chunk_run )
         elif ( last_chunk_run and first_chunk_run ) and last_chunk_run < first_chunk_run :
             logging.error( "\tERROR: The last chunk to run is greater than the fist one." )
+        elif last_chunk_run > self.nchunks :
+            logging.error( "\tERROR: The last chunk does not exist." )
+        elif first_chunk_run > self.nchunks :
+            logging.error( "\tERROR: The first chunk does not exist." )
         else :
             # search first chunk to run
             if rerun and first_chunk_run :
