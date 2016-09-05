@@ -337,9 +337,9 @@ class Experiment(object):
                 rea = self.check_db( name = rea_name, start_date = rea_start_date, end_date = rea_end_date,
                                      cfg = self.cfg[ section ] )
                 # Create chunks only if end date has been modified
-                if rea and rea.end_date != end_date :
+                if rea:
                     rea.cycle_chunks()
-                elif not rea :
+                elif not rea:
                     # If there is not runtime we have to add the start month of the realization
                     if ( 'preprocessor_optargs' in  self.cfg[ section ] ) and \
                        ( 'member' in self.cfg[ section ] [ 'preprocessor_optargs' ] ) and \
@@ -556,7 +556,7 @@ class Realization( object ):
                 except Exception :
                     return None
                 else :
-                    logging.debug( '\t\tUpdating chunk on the database...' )
+                    logging.debug( '\t\t\tUpdating chunk on the database...' )
                     ch2.end_date = chunk_end_date
                     return ch2
             else :
