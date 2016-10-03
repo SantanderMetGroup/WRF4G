@@ -26,7 +26,10 @@ DRM4G_DAEMON         = join( DRM4G_DIR , 'etc' , 'gwd.conf')
 DRM4G_SCHED          = join( DRM4G_DIR , 'etc' , 'sched.conf')
 
 # Read logger configuration file
-logging.config.fileConfig(DRM4G_LOGGER, {"WRF4G_DIR": DRM4G_DIR})
+try:
+    logging.config.fileConfig(DRM4G_LOGGER, {"WRF4G_DIR": DRM4G_DIR})
+except:
+    pass
 
 REMOTE_JOBS_DIR = "~/.wrf4g/jobs"
 REMOTE_VOS_DIR  = "~/.wrf4g/security"
