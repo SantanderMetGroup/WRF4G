@@ -935,7 +935,7 @@ def launch_wrapper( params ):
         job_db.set_job_status( Job.Status.WRF )
 
         if params.parallel_wrf == 'yes' :
-            cmd = "%s ./wrf_launcher.sh %s" % ( params.parallel_run, wrf_exe )                       
+            cmd = "%s wrf_launcher.sh %s" % ( params.parallel_run, wrf_exe )                       
             code, output = exec_cmd( cmd )
             if isfile( log_wrf ) :
                 wrf_rsl_path = join( params.log_path, 'rsl_wrf' ) 
@@ -944,7 +944,7 @@ def launch_wrapper( params ):
                 for rsl_file in rsl_files :
                     shutil.copyfile( rsl_file, join( wrf_rsl_path, basename( rsl_file ) ) )  
         else :
-            code, output = exec_cmd( "./wrf_launcher.sh %s > %s" % ( wrf_exe, log_wrf ) )
+            code, output = exec_cmd( "wrf_launcher.sh %s > %s" % ( wrf_exe, log_wrf ) )
         if code or not 'SUCCESS COMPLETE' in open( log_wrf, 'r' ).read() :
             logging.info( output )  
             raise JobError( "'%s' has failed" % wrf_exe, Job.CodeError.WRF_FAILED )
