@@ -514,7 +514,7 @@ def launch_wrapper( params ):
         logging.info( "Creating '%s' directory" % archives_path )
         os.makedirs( archives_path )
         for app in params.app.split('\n') :
-            app_tag, app_type, app_value = app.split( '|' )
+            app_tag, app_type, app_value = app.split( '|', 2 )
             if 'bundle' in app_type :
                 oring = app_value.strip()
                 dest  = join( archives_path, basename( app_value.strip() ) )
@@ -528,16 +528,15 @@ def launch_wrapper( params ):
                     extract( dest, to_path = params.root_path )
             elif 'command' in app_type :
                 logging.info( 'Configuring source script for %s' % app_tag )
-                with open( 'easy_source.sh', 'w' ) as f :
-                    f.write( app_value )
-                code, output = exec_cmd( ". ./easy_source.sh && env" )
+                app_cmd = "{ %s; } && env" % app_value.strip()
+                code, output = exec_cmd( app_cmd )
                 if code :
                     logging.info( output )
                     raise JobError( "Error executing source script for %s" % app_tag, Job.CodeError.SOURCE_SCRIPT )
-                for line in output.split( '\n' ) :
+                for line in output.splitlines() :
                     if "=" in line and not "(" in line :
                         try :    
-                            key, value = line.split( "=" )
+                            key, value = line.split( "=" , 1)
                         except : 
                             pass
                         else :   
