@@ -2,11 +2,13 @@ from setuptools import setup
 from setuptools import find_packages
 from setuptools.command.install import install
 from os import path
-import os
 import subprocess
+import urllib2
+import tarfile
 import glob
 import sys
 import ast
+import os
 
 #To ensure a script runs with a minimal version requirement of the Python interpreter
 #assert sys.version_info >= (2,5)
@@ -17,6 +19,12 @@ try:
     input = raw_input
 except NameError:
     pass
+
+try:
+    from urllib.request import urlopen # Python 3 - not verified
+except ImportError:
+    from urllib2 import urlopen # Python 2
+
 
 here = path.abspath(path.dirname(__file__))
 python_ver=sys.version[:3]
@@ -137,8 +145,28 @@ class Builder(object):
                         with open('{}/{}'.format(home,user_shell),'a') as f:
                             f.write('\n'+python_export_line+'\n'+path_export_line+'\n')
 
+    def download_repository(self):
+        response = urlopen('https://meteo.unican.es/work/WRF4G/wrf4g-2.2.1-x86_64.tar.gz')
+        tar_file = response.read()
+        #the disadvantage of this method is that the entire file is loaded into ram before being saved to disk
+        with open('repository.tar.gz','wb') as output:
+            output.write(tar_file)
+
+    def repository_files(self, members):
+        for tarinfo in members:
+            if "repository" in tarinfo.name:
+                yield tarinfo
+
+    def extract_repository(self):
+        self.download_repository()
+        with tarfile.open('repository.tar.gz', 'r') as tar:
+            tar.extractall(path=path.expanduser("~"),members=self.repository_files(tar))
+        os.remove('repository.tar.gz')
+
     def build(self):
         self.prefix_option()
+        self.extract_repository()
+
 
 class build_wrapper(install):
     def run(self):

@@ -29,16 +29,12 @@ def run( arg ) :
         logging.basicConfig( format = '%(message)s',
                          level  = logging.DEBUG if arg[ '--dbg' ] else logging.INFO,
                          stream = sys.stdout )
-        print("llego 1")
         if not exists( WRF4G_DIR ) or arg[ '--clear-conf' ] :
             from shutil import copytree, rmtree
-            print("llego 2")
             if exists( WRF4G_DIR ) :
-                print("llego 3")
                 logging.debug( "Removing WRF4G local configuration in '%s'" %  WRF4G_DIR )
                 rmtree( WRF4G_DIR   )
             logging.debug( "Creating a WRF4G local configuration in '%s'" %  WRF4G_DIR )
-            print("llego 4")
             for directory in [  'log', 'submission', 'acct' ] :
                 abs_dir = join ( WRF4G_DIR , 'var' , directory )
                 logging.debug( "Creating '%s' directory" % abs_dir )
