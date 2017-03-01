@@ -28,7 +28,6 @@ __revision__ = "$Id$"
 
 import logging
 import sys
-from drm4g                import DRM4G_BIN
 from drm4g.commands       import exec_cmd, Daemon
 
 def run( arg ) :
@@ -39,7 +38,7 @@ def run( arg ) :
         daemon = Daemon()
         if not daemon.is_alive() :
             raise Exception('DRM4G is stopped.')
-        cmd = '%s/gwhost '  % ( DRM4G_BIN )
+        cmd = 'gwhost '
         if arg[ '<hid>' ] :
             cmd = cmd + arg[ '<hid>' ]
         out , err = exec_cmd( cmd )

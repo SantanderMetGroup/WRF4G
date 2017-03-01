@@ -146,7 +146,7 @@ class Builder(object):
                             f.write('\n'+python_export_line+'\n'+path_export_line+'\n')
 
     def download_repository(self):
-        response = urlopen('https://meteo.unican.es/work/WRF4G/wrf4g-2.2.1-x86_64.tar.gz')
+        response = urlopen('https://meteo.unican.es/work/WRF4G/repository.tar.gz')
         tar_file = response.read()
         #the disadvantage of this method is that the entire file is loaded into ram before being saved to disk
         with open('repository.tar.gz','wb') as output:
@@ -160,7 +160,9 @@ class Builder(object):
     def extract_repository(self):
         self.download_repository()
         with tarfile.open('repository.tar.gz', 'r') as tar:
-            tar.extractall(path=path.expanduser("~"),members=self.repository_files(tar))
+            #tar.extractall(path=path.expanduser("~"),members=self.repository_files(tar))
+            repository_path = path.dirname( path.dirname( os.environ.get('_', '/usr/bin/python') ) )
+            tar.extractall(path=repository_path, members=self.repository_files(tar))
         os.remove('repository.tar.gz')
 
     def build(self):

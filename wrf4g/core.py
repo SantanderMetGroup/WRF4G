@@ -390,7 +390,7 @@ class Experiment(object):
         logging.debug( "Create a WRF4G software bundle to use on the worker node..." )
         wrf4g_package = join ( exp_sub_dir , "WRF4G.tar.gz" )
         if exists( wrf4g_package  ):
-            logging.debug( "Removing '%s' package" % wrf4g_package ) 
+            logging.debug( "Removing '%s' package" % wrf4g_package )
             os.remove( wrf4g_package )
         current_path = os.getcwd()
         try :
@@ -398,6 +398,8 @@ class Experiment(object):
             os.chdir( WRF4G_DEPLOYMENT_DIR )
             logging.debug( "Creating '%s' package" % wrf4g_package )
             [ tar.add( dir ) for dir in [ "bin", "lib" ] ]
+        except Exception as err:
+            logging.warn( err )
         finally :
             tar.close()
         # wrf4g_files bundle

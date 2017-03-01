@@ -5,6 +5,7 @@ import logging
 from os.path             import dirname, abspath, join, exists
 from wrf4g               import WRF4G_DEPLOYMENT_DIR, WRF4G_DIR
 from wrf4g.utils.command import exec_cmd
+from drm4g               import DRM4G_DIR
 
 __version__  = '2.2.2'
 __author__   = 'Carlos Blanco'
@@ -34,7 +35,7 @@ NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np
     
     def submit(self, dep = None, priority = 0, type_dep = "afterok", file_template = "job.gw" ):
         depend = "-d %s -r %s" % ( dep, type_dep ) if dep != None else '-o '
-        cmd = "gwsubmit -p %d -v %s -t %s" % (priority, 
+        cmd = "GW_LOCATION=%s gwsubmit -p %d -v %s -t %s" % ( DRM4G_DIR, priority, 
                                                   depend, file_template )
         code, out = exec_cmd( cmd )
         logging.debug( out )
@@ -43,7 +44,7 @@ NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np
         return out[ 8: ]
    
     def history(self, job_id ):
-        cmd = 'gwhistory %s' % ( job_id )
+        cmd = 'GW_LOCATION=%s gwhistory %s' % ( DRM4G_DIR, job_id )
         code, out = exec_cmd( cmd )
         logging.info( out )
 
@@ -60,26 +61,26 @@ NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np
         logging.info( out )
  
     def list(self, job_id = None ):
-        cmd = 'gwps -o Jsetxjh '   
+        cmd = 'GW_LOCATION=%s gwps -o Jsetxjh ' % DRM4G_DIR
         if job_id :
             cmd = cmd + job_id 
         code, out = exec_cmd( cmd )
         logging.info( out )
 
     def release(self, job_id ):
-        cmd = "gwkill -l %s" % ( str( job_id ) )
+        cmd = "GW_LOCATION=%s gwkill -l %s" % ( DRM4G_DIR, str( job_id ) )
         code, out = exec_cmd( cmd )
         if code :
             logging.info( out )
 
     def kill(self, job_id, hard = False ):
-        cmd = "gwkill %s %s" % ( '-9' if hard else '', str( job_id ) )
+        cmd = "GW_LOCATION=%s gwkill %s %s" % ( DRM4G_DIR, '-9' if hard else '', str( job_id ) )
         code, out = exec_cmd( cmd )
         if code :
             logging.info( out )
                 
     def set_priority(self, job_id, priority ):
-        cmd = "gwkill -p %d %s" % (priority, str(job_id ) )
+        cmd = "GW_LOCATION=%s gwkill -p %d %s" % ( DRM4G_DIR, priority, str(job_id ) )
         code, out = exec_cmd( cmd )
         logging.info( out )
 
