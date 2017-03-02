@@ -24,6 +24,7 @@ class GWJob( object ):
         template="""NAME = %s
 EXECUTABLE   = /usr/bin/env python 
 ARGUMENTS    = ./bin/wrf_wrapper.py %s
+WRAPPER      = etc/wrf4g_wrapper.sh
 INPUT_FILES  = %s
 OUTPUT_FILES = %s
 REQUIREMENTS = %s
