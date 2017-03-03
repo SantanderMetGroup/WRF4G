@@ -1,4 +1,24 @@
 #!/usr/bin/env python
+#
+# Copyright 2016 Universidad de Cantabria
+#
+# Licensed under the EUPL, Version 1.1 only (the
+# "Licence");
+# You may not use this work except in compliance with the
+# Licence.
+# You may obtain a copy of the Licence at:
+#
+# http://ec.europa.eu/idabc/eupl
+#
+# Unless required by applicable law or agreed to in
+# writing, software distributed under the Licence is
+# distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied.
+# See the Licence for the specific language governing
+# permissions and limitations under the Licence.
+#
+
 """
 WRF4G is a framework for the execution and monitoring of the WRF Modelling System 
 on DCIs. For additional information, see http://meteo.unican.es/trac/wiki/WRF4G.
@@ -26,7 +46,7 @@ wrf4g commands are:
  
 See 'wrf4g <command> --help' for more information on a specific command.
 """
-__version__  = '2.2.2'
+__version__  = '2.3.0'
 __author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 

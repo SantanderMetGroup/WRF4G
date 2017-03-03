@@ -1,4 +1,4 @@
-#!/bin/bash#
+#
 # Copyright 2016 Universidad de Cantabria
 #
 # Licensed under the EUPL, Version 1.1 only (the
@@ -18,5 +18,28 @@
 # permissions and limitations under the Licence.
 #
 
-ulimit -s unlimited 
-$@
+"""
+Stop DRM4G daemon and ssh-agent. 
+    
+Usage: 
+    wrf4g stop [ --dbg ] 
+   
+Options:
+   --dbg    Debug mode.
+"""
+
+import logging
+import sys
+from drm4g.commands    import Daemon, Agent
+
+def run( arg ) :
+    try:
+        logging.basicConfig( format = '%(message)s',
+                         level  = logging.DEBUG if arg[ '--dbg' ] else logging.INFO,
+                         stream = sys.stdout )
+        Daemon().stop()
+        Agent().stop()
+    except KeyboardInterrupt :
+        pass
+    except Exception as err :
+        logging.error( str( err ) )

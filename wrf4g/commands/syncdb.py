@@ -1,4 +1,4 @@
-#!/bin/bash#
+#
 # Copyright 2016 Universidad de Cantabria
 #
 # Licensed under the EUPL, Version 1.1 only (the
@@ -18,5 +18,28 @@
 # permissions and limitations under the Licence.
 #
 
-ulimit -s unlimited 
-$@
+"""
+Create WRF4G database tables on the configured database. 
+    
+Usage: 
+    wrf4g syncdb [ --dbg ]
+            
+Options:
+   --dbg     Debug mode.
+"""
+
+import sys
+import logging
+from wrf4g.db   import init_db
+
+def run( arg ) :
+    try:
+        logging.basicConfig( format = '%(message)s',
+                         level  = logging.DEBUG if arg[ '--dbg' ] else logging.INFO,
+                         stream = sys.stdout )
+        init_db()
+    except KeyboardInterrupt :
+        pass
+    except Exception as err :
+        logging.error( err )
+
