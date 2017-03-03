@@ -1,3 +1,27 @@
+#
+# Copyright 2016 Universidad de Cantabria
+#
+# Licensed under the EUPL, Version 1.1 only (the
+# "Licence");
+# You may not use this work except in compliance with the
+# Licence.
+# You may obtain a copy of the Licence at:
+#
+# http://ec.europa.eu/idabc/eupl
+#
+# Unless required by applicable law or agreed to in
+# writing, software distributed under the Licence is
+# distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied.
+# See the Licence for the specific language governing
+# permissions and limitations under the Licence.
+#
+
+__version__  = '2.3.0'
+__author__   = 'Jesus Fernandez and Carlos Blanco'
+__revision__ = "$Id$"
+
 from setuptools import setup
 from setuptools import find_packages
 from setuptools.command.install import install
@@ -32,11 +56,10 @@ user_shell=os.environ['SHELL']
 lib_dir=''
 path_dir=''
 
-#I consider bash a special case because of what is said here http://superuser.com/questions/49289/what-is-the-bashrc-file
 if 'bash' in user_shell:
     user_shell='.bashrc'
 else:
-    user_shell='.profile' #maybe for zsh it should be ~/.zprofile
+    user_shell='.profile'
 
 def get_conf_files(search_dir='etc'):
     if os.path.exists('./wrf4g'):
@@ -45,7 +68,6 @@ def get_conf_files(search_dir='etc'):
     search_dir += '/*'
     file_list = []
     if directory_list:
-        #directory_list += get_conf_files(search_dir)
         for f in directory_list:
             if os.path.isfile(f):
                 file_list.append(f)
@@ -160,7 +182,6 @@ class Builder(object):
     def extract_repository(self):
         self.download_repository()
         with tarfile.open('repository.tar.gz', 'r') as tar:
-            #tar.extractall(path=path.expanduser("~"),members=self.repository_files(tar))
             repository_path = path.dirname( path.dirname( os.environ.get('_', '/usr/bin/python') ) )
             tar.extractall(path=repository_path, members=self.repository_files(tar))
         os.remove('repository.tar.gz')
@@ -182,7 +203,7 @@ setup(
     name='wrf4g',
     packages=find_packages(),
     package_data={'wrf4g': get_conf_files()},
-    version='2.2.3',
+    version='2.3.0',
     author='Meteorology Group UC',
     author_email='josecarlos.blanco@unican.es',
     url='https://meteo.unican.es/trac/wiki/WRF4G2.0',

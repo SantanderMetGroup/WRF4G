@@ -1,3 +1,23 @@
+#
+# Copyright 2016 Universidad de Cantabria
+#
+# Licensed under the EUPL, Version 1.1 only (the
+# "Licence");
+# You may not use this work except in compliance with the
+# Licence.
+# You may obtain a copy of the Licence at:
+#
+# http://ec.europa.eu/idabc/eupl
+#
+# Unless required by applicable law or agreed to in
+# writing, software distributed under the Licence is
+# distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied.
+# See the Licence for the specific language governing
+# permissions and limitations under the Licence.
+#
+
 import os
 import socket
 import signal
@@ -10,10 +30,6 @@ from os.path                    import join, exists
 from wrf4g                      import DB4G_CONF, WRF4G_DIR
 from wrf4g.utils.command        import exec_cmd_advance as exec_cmd
 from wrf4g.utils.file           import VarEnv
-
-__version__  = '2.2.2'
-__author__   = 'Carlos Blanco'
-__revision__ = "$Id$"
 
 DEFAULT_DB_CONF = """[DEFAULT]
 URL = sqlite:////%(WRF4G_DIR)s/etc/wrf4g.db

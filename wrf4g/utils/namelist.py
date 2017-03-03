@@ -1,13 +1,28 @@
+#
+# Copyright 2016 Universidad de Cantabria
+#
+# Licensed under the EUPL, Version 1.1 only (the
+# "Licence");
+# You may not use this work except in compliance with the
+# Licence.
+# You may obtain a copy of the Licence at:
+#
+# http://ec.europa.eu/idabc/eupl
+#
+# Unless required by applicable law or agreed to in
+# writing, software distributed under the Licence is
+# distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied.
+# See the Licence for the specific language governing
+# permissions and limitations under the Licence.
+#
+
 import os
 import logging
 import fortran_namelist as fn
-
 from os.path          import exists
 from wrf4g.utils.time import datetime2datewrf
-
-__version__  = '2.2.2'
-__author__   = 'Carlos Blanco'
-__revision__ = "$Id$"
 
 def get_ptop():
     shcmd = "ncdump -v PRES $(\ls met_em.d??.????-??-??_??:00:00.nc | head -1) | tail -2 | head -1 | tr -d ',;' | awk '{printf $1}'"
