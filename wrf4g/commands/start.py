@@ -15,6 +15,7 @@ __revision__ = "$Id$"
 
 import os
 import sys
+import glob
 import socket
 import logging
 from os.path              import exists, join
@@ -39,9 +40,13 @@ def run( arg ) :
                 abs_dir = join ( WRF4G_DIR , 'var' , directory )
                 logging.debug( "Creating '%s' directory" % abs_dir )
                 os.makedirs( abs_dir )
-            src  = join ( WRF4G_DEPLOYMENT_DIR , 'etc' )
+            if 'VIRTUAL_ENV' in os.environ.keys():
+                deployment_dir = glob.glob( join( WRF4G_DEPLOYMENT_DIR, 'lib/python*/site-packages/wrf4g' ) )[0]
+            else:
+                deployment_dir = glob.glob( join( WRF4G_DEPLOYMENT_DIR, 'local/lib/python*/dist-packages/wrf4g' ) )[0]
+            src = join( deployment_dir , 'etc' )
             print src
-            dest = join ( WRF4G_DIR            , 'etc' )
+            dest = join( WRF4G_DIR, 'etc' )
             print dest
             logging.debug( "Coping from '%s' to '%s'" % ( src , dest ) )
             copytree( src , dest )
