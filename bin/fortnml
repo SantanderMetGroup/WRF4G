@@ -136,6 +136,6 @@ if __name__ == "__main__":
     nml.overWriteNamelist()
   elif not opt.quiet:
     if opt.thisrecord:
-      sys.stdout(nml.printNamelist(opt.thisrecord, sorted=opt.sort))
+      sys.stdout.write(nml.printNamelist(opt.thisrecord, sorted=opt.sort))
     else:
-      sys.stdout(nml.printNamelist(sorted=opt.sort))
+      sys.stdout.write(nml.printNamelist(sorted=opt.sort))
