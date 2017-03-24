@@ -32,14 +32,12 @@ Options:
 
 import os
 import sys
-import glob
 import socket
 import logging
-from os.path              import exists, join
+from os.path              import exists, join, abspath, join, dirname
 from drm4g                import DRM4G_DIR
 from drm4g.commands       import Daemon, Agent
-from wrf4g                import ( WRF4G_DIR, WRF4G_DEPLOYMENT_DIR,
-                                   DB4G_CONF, WRF4G_LOGGER )
+from wrf4g                import WRF4G_DIR, DB4G_CONF, WRF4G_LOGGER
 from wrf4g.db             import DEFAULT_DB_CONF
 
 def run( arg ) :
@@ -57,10 +55,7 @@ def run( arg ) :
                 abs_dir = join ( WRF4G_DIR , 'var' , directory )
                 logging.debug( "Creating '%s' directory" % abs_dir )
                 os.makedirs( abs_dir )
-            if 'VIRTUAL_ENV' in os.environ.keys():
-                deployment_dir = glob.glob( join( WRF4G_DEPLOYMENT_DIR, 'lib/python*/site-packages/wrf4g' ) )[0]
-            else:
-                deployment_dir = glob.glob( join( WRF4G_DEPLOYMENT_DIR, 'local/lib/python*/dist-packages/wrf4g' ) )[0]
+            deployment_dir = abspath( join ( abspath( dirname( __file__ ) ), '..' ) )
             src = join( deployment_dir , 'etc' )
             print src
             dest = join( WRF4G_DIR, 'etc' )
