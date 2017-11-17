@@ -1,4 +1,4 @@
-#!/bin/bash#
+#!/bin/bash
 # Copyright 2016 Universidad de Cantabria
 #
 # Licensed under the EUPL, Version 1.1 only (the
