@@ -914,6 +914,7 @@ class JobCodeError():
     PREPROCESSOR_FAILED  = 14
     LINK_GRIB_FAILED     = 15
     UNGRIB_FAILED        = 16
+    UNGRIB_PROCESSOR_FAILED  = 31
     METGRID_FAILED       = 17
     REAL_FAILED          = 18
     COPY_UPLOAD_WPS      = 19
