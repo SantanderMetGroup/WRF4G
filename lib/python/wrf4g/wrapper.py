@@ -190,6 +190,7 @@ class PilotParams( object ):
     app                  = resource_cfg.get( 'app', '' )
     preprocessor         = resource_cfg[ 'preprocessor' ]
     postprocessor        = resource_cfg.get( 'postprocessor', '' )
+    ungribprocessor      = resource_cfg.get( 'ungribprocessor', '' )
     clean_after_run      = resource_cfg.get( 'clean_after_run', 'no' )
     files_to_save        = resource_cfg[ 'files_to_save' ]
     max_dom              = int( resource_cfg[ 'max_dom' ] )
@@ -567,6 +568,8 @@ def launch_wrapper( params ):
             os.chmod( join( params.root_path, 'WPS', 'metgrid', 'metgrid.exe' ), stat.S_IRWXU )
             os.chmod( join( params.root_path, 'WRFV3', 'run', 'real.exe' ), stat.S_IRWXU )
             os.chmod( join( params.root_path, 'WRFV3', 'run', 'wrf.exe' ), stat.S_IRWXU )
+            os.chmod( join( params.root_path, 'WPS', 'util', 'src','calc_ecmwf_p.exe' ), stat.S_IRWXU )
+            os.chmod( join( params.root_path, 'WPS', 'util', 'src','avg_tsfc.exe' ), stat.S_IRWXU )
 
         ##
         # This is a little bit tricky prepare the pallalel environment.
@@ -820,7 +823,24 @@ def launch_wrapper( params ):
                 nmlw.overWriteNamelist()
             except Exception as err :
                 raise JobError( "Error modifying namelist: %s" % err, Job.CodeError.NAMELIST_FAILED )
-          
+            
+            ##
+            # Execute ungribprocessor AL:5-5-2017
+            ##
+            if params.ungribprocessor :
+                for pp in params.ungribprocessor.replace(' ', '').split( ',' ) :
+                    if pp != '' :
+                        logging.info( "Running ungribprocessor.%s" % pp )
+
+                        if not which( "ungribprocessor.%s" % pp ) :
+                            raise JobError( "UngribProcessor '%s' does not exist" % pp, Job.CodeError.UNGRIB_PROCESSOR_FAILED )
+                        preprocessor_log = join( params.log_path, 'ungribprocessor.%s.log' %  pp )
+                        code, output = exec_cmd( "ungribprocessor.%s >& %s" % ( pp, preprocessor_log ) )
+                        if code :
+                            logging.info( output )
+                            raise JobError( "UngribProcessor '%s' has failed" % pp,
+                                    Job.CodeError.UNGRIB_PROCESSOR_FAILED )
+ 
             ##
             # Run Metgrid
             ##
