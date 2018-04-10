@@ -673,31 +673,36 @@ def launch_wrapper( params ):
             
         #Copy namelist.input to wrf_run_path
         shutil.copyfile( join( params.root_path, 'namelist.input' ), params.namelist_input )
-        
+        rerun_wps=False
         if job_db.has_wps() :
-            logging.info( "The boundaries and initial conditions are available" )
-            orig = join( params.domain_path, basename( params.namelist_wps ) )
-            dest = params.namelist_wps
             try :
-                logging.info( "Downloading file 'namelist.wps'" )
-                copy_file( orig, dest )
-            except :
-                raise JobError( "'namelist.wps' has not copied", Job.CodeError.COPY_FILE )
-            wps2wrf( params.namelist_wps, params.namelist_input, params.chunk_rdate, 
-                        params.chunk_edate, params.max_dom, chunk_rerun, params.timestep_dxfactor)
-            job_db.set_job_status( Job.Status.DOWN_WPS )
-            pattern =  "wrf[lbif]*_d\d\d_" + datetime2dateiso( sdate ) + "*" 
-            for file_name in VCPURL( params.real_rea_output_path ).ls( pattern ):
-                orig = join( params.real_rea_output_path, file_name )
-                # From wrflowinp_d08_ we remove the _ at the end
-                dest = join( params.wrf_run_path, WRFFile(file_name).file_name[:-1] )
+                logging.info( "The boundaries and initial conditions are available" )
+                orig = join( params.domain_path, basename( params.namelist_wps ) )
+                dest = params.namelist_wps
                 try :
-                    logging.info( "Downloading file '%s'" % file_name )
+                    logging.info( "Downloading file 'namelist.wps'" )
                     copy_file( orig, dest )
                 except :
-                    raise JobError( "'%s' has not copied" % file_name, Job.CodeError.COPY_REAL_FILE )
-        else :
+                    raise JobError( "'namelist.wps' has not copied", Job.CodeError.COPY_FILE )
+                job_db.set_job_status( Job.Status.DOWN_WPS )
+                pattern =  "wrf[lbif]*_d\d\d_" + datetime2dateiso( sdate ) + "*" 
+                for file_name in VCPURL( params.real_rea_output_path ).ls( pattern ):
+                    orig = join( params.real_rea_output_path, file_name )
+                    # From wrflowinp_d08_ we remove the _ at the end
+                    dest = join( params.wrf_run_path, WRFFile(file_name).file_name[:-1] )
+                    try :
+                        logging.info( "Downloading file '%s'" % file_name )
+                        copy_file( orig, dest )
+                    except :
+                        raise JobError( "'%s' has not copied" % file_name, Job.CodeError.COPY_REAL_FILE )
+                wps2wrf( params.namelist_wps, params.namelist_input, params.chunk_rdate, 
+                        params.chunk_edate, params.max_dom, chunk_rerun, params.timestep_dxfactor)
+            except :
+                logging.error("There was a problem downloading the boundaries and initial conditions")
+                rerun_wps=True
+        if (not job_db.has_wps() or rerun_wps) :
             logging.info( "The boundaries and initial conditions are not available" )
+
 
             # Change the directory to wps path
             os.chdir( params.wps_path )
