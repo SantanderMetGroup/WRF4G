@@ -61,9 +61,9 @@ class Job (drm4g.managers.Job):
         if 'maxMemory' in parameters :
             args += '#SBATCH --mem=%s\n' % (parameters['maxMemory'])
         if 'ppn' in parameters : 
-            args += '#SBATCH --ntasks-per-node=$ppn'
+            args += '#SBATCH --ntasks-per-node=$ppn\n'
         if 'nodes' in parameters :  
-            args += '#SBATCH --nodes=$nodes'
+            args += '#SBATCH --nodes=$nodes\n'
         args += '#SBATCH --ntasks=$count\n'
         args += ''.join(['export %s=%s\n' % (k, v) for k, v in list(parameters['environment'].items())])
         args += '\n'
