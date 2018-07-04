@@ -892,9 +892,9 @@ def launch_wrapper( params ):
                 # The command: $ upload_file wps     1990-01-01_00:00:00
                 # will create in the repositore three files with the following format: wrfinput_d01_19900101T000000Z
                 suffix = "_" + datetime2dateiso( params.chunk_rdate )+ ".nc"
-                for wps_file in VCPURL( params.wps_path ).ls("wrf[lbif]*_d\d\d") :
+                for wps_file in VCPURL( params.wrf_run_path ).ls("wrf[lbif]*_d\d\d") :
                     oiring = wps_file
-                    dest   = join( params.real_rea_output_path, basename( wps_file) , suffix )
+                    dest   = join( params.real_rea_output_path, basename( wps_file) + suffix )
                     try:
                         logging.info( "Uploading '%s' file" % oiring )
                         os.chmod( oiring, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH ) 
