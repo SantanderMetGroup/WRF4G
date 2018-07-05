@@ -54,6 +54,7 @@ def get_latlon_dx(start_date, dom):
     #  Try to get dx from the met_em or wrfinput files. Only
     #  required for lat-lon grids, otherwise it is available
     #  in the namelist.wps file
+    dxfile=None
     file_name = "met_em.%s.%s.nc" % ( dom, datetime2datewrf( start_date ) )
     if exists( file_name ) :
         dxfile = file_name
