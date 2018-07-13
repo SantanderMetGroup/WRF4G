@@ -516,7 +516,9 @@ def launch_wrapper( params ):
         os.makedirs( archives_path )
         for app in params.app.split('\n') :
             app_tag, app_type, app_value = app.split( '|', 2 )
-            if 'bundle' in app_type :
+            if app_type.startswith('#'):
+                continue
+            elif 'bundle' in app_type :
                 oring = app_value.strip()
                 dest  = join( archives_path, basename( app_value.strip() ) )
                 try :
