@@ -58,9 +58,11 @@ def get_latlon_dx(start_date, dom):
     file_name = "met_em.%s.%s.nc" % ( dom, datetime2datewrf( start_date ) )
     if exists( file_name ) :
         dxfile = file_name
-    file_name = "wrfinput_%s" % dom
-    if exists( file_name ) :
+        logging.info("Reading dx from %s" % file_name)
+    else:
+        file_name = "wrfinput_%s" % dom
         dxfile = file_name
+        logging.info("Reading dx from %s" % file_name)
     if dxfile:
         shcmd = "ncdump -h %s | grep 'DX =' | sed -e 's/^\t//' | tr '=;' ' ' | awk '{printf \"%%f\", $2}'" % dxfile
         rval = round(float(os.popen(shcmd).read().strip()), 4)
