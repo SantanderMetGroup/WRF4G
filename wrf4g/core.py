@@ -23,9 +23,11 @@ import re
 import glob
 import time
 import copy
+import pkgutil
 import tarfile
 import shutil
 import logging
+from distutils import spawn
 import fortran_namelist as fn
 from fortran_namelist       import coerce_value_list
 from sqlalchemy             import and_, or_
@@ -253,7 +255,8 @@ class Experiment(object):
         Create the files needed to establish a WRF4G experiment
         """
         validate_name( name )
-        if not template in [ 'default', 'single', 'physics' ] :
+        template_dir = join( WRF4G_DIR , 'etc' , 'templates' , 'experiments',  template )
+        if not exists(template_dir):
             raise Exception( "'%s' template does not exist" % template )
         exp_dir = expandvars( expanduser( os.getcwd() if directory == './' else directory ) )
         if not exists( exp_dir ):
@@ -410,14 +413,62 @@ class Experiment(object):
             os.remove( wrf4g_package )
         current_path = os.getcwd()
         try :
-            tar = tarfile.open( wrf4g_package, "w:gz" )
+            tar = tarfile.open( wrf4g_package, "w:gz", dereference=True)
             os.chdir( WRF4G_DEPLOYMENT_DIR )
+
+            bin_list = [
+                "bin/fortnml",
+                "bin/wrf4g",
+                "bin/wrf4g_autocomplete.sh",
+                "bin/wrf4g_init.sh",
+                "bin/wrf_launcher.sh",
+                "bin/wrf_make_bin",
+                "bin/wrf_util.sh",
+                "bin/wrf_wrapper.py"
+            ]
+
+            if os.path.exists("lib/python/fortran_namelist"):
+                lib_list = [
+                    "lib/python/fortran_namelist",
+                    "lib/python/wrf4g"
+                ]
+            elif os.path.exists("lib/python/site-packages/fortran_namelist"):
+                lib_list = [
+                    "lib/python2.7/site-packages/fortran_namelist",
+                    "lib/python2.7/site-packages/wrf4g"
+                ]
+            elif os.path.exists("lib/python/dist-packages/fortran_namelist"):
+                lib_list = [
+                    "lib/python2.7/dist-packages/fortran_namelist",
+                    "lib/python2.7/dist-packages/wrf4g"
+                ]
+            else:
+                raise RuntimeError("WRF4G lib files not found")
+
+            # Adding extra packages which are required by the "core side" part
+            # of WRF4G
+            dependencies = ["drm4g", "sqlalchemy", "docopt", "dateutil"]
+            linked_dependencies = []
+            for dependency in dependencies:
+                lib_basedir = os.path.dirname(lib_list[0])
+                link_destination = lib_basedir + "/" + dependency
+                linked_dependencies.append(link_destination)
+                if not os.path.exists(lib_basedir + dependency):
+                    logging.info(
+                        "Adding dependency {} to the bundle".format(dependency))
+                    depdir = _get_package_location(dependency)
+                    os.symlink(depdir, link_destination)
+                    lib_list.append(link_destination)
+
             logging.debug( "Creating '%s' package" % wrf4g_package )
-            [ tar.add( dir ) for dir in [ "bin", "lib" ] ]
+            
+            [tar.add(ff) for ff in bin_list + lib_list]
         except Exception as err:
             logging.warn( err )
         finally :
             tar.close()
+            for linked_dependency in linked_dependencies:
+                os.remove(linked_dependency)
         # wrf4g_files bundle
         wrf4g_files_dir = join( self.home_directory, 'wrf4g_files' )
         if isdir( wrf4g_files_dir ):
@@ -622,7 +673,7 @@ class Realization( object ):
 
     @staticmethod 
     def status_header(): 
-        logging.info( '\033[1;4m%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s\033[0m'% (
+        logging.info( '%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s'% (
                         'REALIZATION','STATUS','CHUNKS','RESOURCE','RUN STATUS',
                         'JID', 'EXT','%' ) )
  
@@ -1004,3 +1055,5 @@ class Events( object ) :
     pass
 
 
+def _get_package_location(package):
+    return pkgutil.find_loader(package).filename
