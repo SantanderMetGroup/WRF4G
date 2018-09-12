@@ -87,7 +87,7 @@ execution(){
 
     export PATH=.:./bin:$PATH
 
-    export PYTHONPATH=./lib/python*/:./lib/python*/site-packages:$PYTHONPATH
+    export PYTHONPATH=./lib/python/:./lib/python/site-packages:$PYTHONPATH
 
     export LD_LIBRARY_PATH=./lib:./lib64:$LD_LIBRARY_PATH
 
