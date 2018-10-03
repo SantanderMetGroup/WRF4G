@@ -183,9 +183,9 @@ class JobDB( object ) :
         except :
             logging.warning( "Error updating exit code" )
 
-    def close(self, directory ) :
+    def close(self, directory) :
         if self.session :
-           self.session.close()
+            self.session.close()
         save_pkl( self.events, directory, 'events.pkl' )     
 
 class PilotParams( object ):
@@ -445,6 +445,7 @@ def launch_wrapper( params ):
     # Show local path
     logging.info( 'Run path  = %s' % params.local_path )
    
+    print(params)
     ##
     # DRM4G won't remove root_path if clean_after_run is 1
     ##
@@ -502,13 +503,11 @@ def launch_wrapper( params ):
         logging.info( 'Setting PATH and LD_LIBRARY_PATH variables' )
 
         root_bin_path = join( params.root_path, 'bin' )
-        PATH = '%s:%s' % ( root_bin_path, os.environ.get( 'PATH' ) )
-        logging.info( "PATH=%s" % PATH )
+        PATH = '%s:%s' % ( root_bin_path, os.environ.get('PATH'))
         os.environ[ 'PATH' ] = PATH
         LD_LIBRARY_PATH = '%s:%s:%s' % ( join( params.root_path, 'lib' ),
                                          join( params.root_path, 'lib64' ),
                                          os.environ.get( 'LD_LIBRARY_PATH' ) )
-        logging.info( "LD_LIBRARY_PATH=%s" % LD_LIBRARY_PATH )
         os.environ[ 'LD_LIBRARY_PATH' ] = LD_LIBRARY_PATH
         PYTHONPATH = '%s:%s' % ( join( params.root_path, 'lib', 'python' ),
                                  os.environ.get( 'PYTHONPATH' ) )
@@ -516,10 +515,15 @@ def launch_wrapper( params ):
         os.environ[ 'PYTHONPATH' ] = PYTHONPATH
 
         if 'wrf_all_in_one' in params.app :
-            OPAL_PREFIX = params.root_path
-            logging.info( "OPAL_PREFIX=%s" % OPAL_PREFIX )
-            os.environ[ 'OPAL_PREFIX' ] = OPAL_PREFIX
-       
+            OMPIDIR = params.root_path + "/openmpi"
+            OPAL_PREFIX = OMPIDIR
+            os.environ['OPAL_PREFIX'] = OPAL_PREFIX
+            os.environ['PATH'] = "%s/bin:%s" % (OMPIDIR, PATH)
+            os.environ['LD_LIBRARY_PATH'] = "%s/lib:%s" % (OMPIDIR, PATH)
+        if 'OPAL_PREFIX' in os.environ:
+            logging.info("OPAL_PREFIX=%s" % os.environ['OPAL_PREFIX'])
+        logging.info( "PATH=%s" % os.environ['PATH'] )
+        logging.info( "LD_LIBRARY_PATH=%s" % os.environ['LD_LIBRARY_PATH'] )
         ##
         # Configure app 
         ##
@@ -542,6 +546,10 @@ def launch_wrapper( params ):
                 else :
                     logging.info( "Unpacking '%s' to '%s'" % ( dest, params.root_path ) )
                     extract( dest, to_path = params.root_path )
+                    mpibin = "%s/bin/mpirun" % OMPIDIR
+                    st = os.stat(mpibin)
+                    os.chmod(mpibin, st.st_mode | stat.S_IEXEC)
+                    os.system("which mpirun")
             elif 'command' in app_type :
                 logging.info( 'Configuring source script for %s' % app_tag )
                 app_cmd = "{ %s; } && env" % app_value.strip()
@@ -583,7 +591,6 @@ def launch_wrapper( params ):
             os.chmod( join( params.root_path, 'WPS', 'metgrid', 'metgrid.exe' ), stat.S_IRWXU )
             os.chmod( join( params.root_path, 'WRFV3', 'run', 'real.exe' ), stat.S_IRWXU )
             os.chmod( join( params.root_path, 'WRFV3', 'run', 'wrf.exe' ), stat.S_IRWXU )
-
         ##
         # This is a little bit tricky prepare the pallalel environment.
         ##
@@ -599,14 +606,13 @@ def launch_wrapper( params ):
             code, output = exec_cmd( "%s mkdir -p %s" % ( params.parallel_run_pernode, params.local_path ) )
             if code :
                 logging.info( output )
-                raise JobError( "Error creating direcory in all worker nodes", Job.CodeError.COPY_FILE )
+                raise JobError( "Error creating directory in all worker nodes", Job.CodeError.COPY_FILE )
             for directory in [ 'WPS' , 'WRFV3' ] :
                 exec_cmd( "%s cp -r %s %s" % ( params.parallel_run_pernode,
                                           join( params.root_path, directory ), params.local_path ) ) 
                 if not exists( join( params.local_path, directory ) ) :
                     raise JobError( "Error copying '%s' directory to all worker nodes" % directory,
                                     Job.CodeError.COPY_FILE )
-
         ##
         # Binaries for execution  
         ##
@@ -776,7 +782,7 @@ def launch_wrapper( params ):
                 logging.info( "Running preprocessor.%s" % pp )
                 
                 if not which( "preprocessor.%s" % pp ) :
-                   raise JobError( "Preprocessor '%s' does not exist" % pp, Job.CodeError.PREPROCESSOR_FAILED )
+                    raise JobError( "Preprocessor '%s' does not exist" % pp, Job.CodeError.PREPROCESSOR_FAILED )
                 optargs = ""
                 for arg in params.preprocessor_optargs.values() : 
                     optargs = optargs + " " + arg.split( ',' )[ i ]
@@ -796,10 +802,10 @@ def launch_wrapper( params ):
                 try :
                     for grib_file_to_link, suffixe in zip( glob.glob( join( grb_data_path, '*' ) ),
                                                            list( map( ''.join, itertools.product( string.ascii_uppercase, repeat = 3 ) ) ) ) :
-                       try :
-                           os.symlink( grib_file_to_link, join( params.wps_path, "GRIBFILE." + suffixe ) )
-                       except :
-                           raise JobError( "Error linking grib files", Job.CodeError.LINK_GRIB_FAILED )
+                        try :
+                            os.symlink( grib_file_to_link, join( params.wps_path, "GRIBFILE." + suffixe ) )
+                        except :
+                            raise JobError( "Error linking grib files", Job.CodeError.LINK_GRIB_FAILED )
                 except :
                     raise JobError( "Ran out of grib file suffixes", Job.CodeError.LINK_GRIB_FAILED )
 
@@ -878,11 +884,14 @@ def launch_wrapper( params ):
                     raise JobError( "Error copying namelist to all WNs", Job.CodeError.COPY_FILE )
 
             logging.info( "Run real" )
+            logging.info("Real binary: %s" % (real_exe) )
             job_db.set_job_status( Job.Status.REAL )
- 
+            
             if params.parallel_real == 'yes' :
                 real_log = join( params.wrf_run_path, 'rsl.out.0000' )
-                cmd = "%s wrf_launcher.sh %s" % ( params.parallel_run, real_exe ) 
+                launcher = "%s/bin/wrf_launcher.sh" % params.root_path
+                cmd = "%s %s %s" % ( params.parallel_run, launcher, real_exe ) 
+                logging.info("Running: %s" % cmd)
                 code, output = exec_cmd( cmd ) 
                 if isfile( real_log ) :
                     real_rsl_path = join( params.log_path, 'rsl_real' ) 
@@ -1023,5 +1032,6 @@ def launch_wrapper( params ):
         # Close the connection with the database
         ##
         job_db.set_exit_code( exit_code )
-        job_db.close( params.root_path  )
+        print("root_path: {}".format(params.root_path))
+        job_db.close( params.root_path)
         sys.exit( exit_code )

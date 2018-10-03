@@ -107,10 +107,10 @@ def yes_no_choice( message,  default = 'y') :
 
 class Builder(object):
 
-    export_dir=sys.prefix
-    prefix_directory=''
-    arguments=str(sys.argv)
-    arguments=ast.literal_eval(arguments) #convert from string to list
+    export_dir = sys.prefix
+    prefix_directory = ''
+    arguments = str(sys.argv)
+    arguments = ast.literal_eval(arguments) #convert from string to list
 
     def call(self, cmd):
         return subprocess.call(cmd, shell=True)
@@ -120,17 +120,19 @@ class Builder(object):
         #Which is why I'm not using self.arguments.index('--prefix') to find it, since it doesn't check if it's a substring
         #Could also do it with a while and make it stop if it finds '--prefix' or '--home'
         for i in range(len(self.arguments)):
-            option=self.arguments[i]
+            option = self.arguments[i]
             #folder name can't contain '--prefix' or '--home'
             if '--prefix' in option or '--home' in option:
                 #I'm working under the impression that the path passed on to prefix has to be an absolute path
                 #for the moment, if you use a relative path, gridway's binary files will be copied to a directory relative to where ./gridway-5.8 is
                 if '=' in option:
                     self.export_dir=option[option.find('=')+1:]
-                    self.prefix_directory='--prefix '+self.export_dir
+                elif "--user" in option:
+                    self.export_dir = os.environ["HOME"] + ".local"
                 else:
                     self.export_dir=self.arguments[i+1]
-                    self.prefix_directory='--prefix '+self.export_dir
+                
+                self.prefix_directory='--prefix '+ self.export_dir
 
                 global lib_dir
                 global path_dir
@@ -146,33 +148,16 @@ class Builder(object):
                 except OSError:
                     print('\nDirectory {} already exists'.format(lib_dir))
 
-                message="\nWe are about to modify your {} file.\n" \
-                    "If we don't you'll have to define the environment variables PATH and PYTHONPATH" \
-                    " or access your installation directory everytime you wish to execute the WRF4G.\n" \
-                    "Should we proceed?".format(user_shell)
-
-                ans=yes_no_choice(message)
-                if ans[0]=='y':
-                    line_exists=False
-                    home=os.path.expanduser('~') #to ensure that it will find $HOME directory in all platforms
-                    python_export_line='export PYTHONPATH={}:$PYTHONPATH'.format(lib_dir)
-                    path_export_line='export PATH={}:$PATH'.format(path_dir)
-
-                    with open('{}/{}'.format(home,user_shell),'r') as f:
-                        for i in f.readlines():
-                            if python_export_line in i:
-                                line_exists=True
-
-                    if not line_exists :
-                        with open('{}/{}'.format(home,user_shell),'a') as f:
-                            f.write('\n'+python_export_line+'\n'+path_export_line+'\n')
-
     def download_repository(self):
-        response = urlopen('https://meteo.unican.es/work/WRF4G/repository.tar.gz')
-        tar_file = response.read()
-        #the disadvantage of this method is that the entire file is loaded into ram before being saved to disk
-        with open('repository.tar.gz','wb') as output:
-            output.write(tar_file)
+        tar_file_local = "repository.tar.gz"
+        if os.path.exists(tar_file_local):
+            return None
+        else:
+            response = urlopen('https://meteo.unican.es/work/WRF4G/repository.tar.gz')
+            tar_file = response.read()   
+            #the disadvantage of this method is that the entire file is loaded into ram before being saved to disk
+            with open('repository.tar.gz','wb') as output:
+                output.write(tar_file)
 
     def repository_files(self, members):
         for tarinfo in members:
@@ -182,9 +167,8 @@ class Builder(object):
     def extract_repository(self):
         self.download_repository()
         with tarfile.open('repository.tar.gz', 'r') as tar:
-            repository_path = path.dirname( path.dirname( os.environ.get('_', '/usr/bin/python') ) )
+            repository_path = lib_dir
             tar.extractall(path=repository_path, members=self.repository_files(tar))
-        os.remove('repository.tar.gz')
 
     def build(self):
         self.prefix_option()
@@ -222,7 +206,7 @@ setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
     ],
-    install_requires=['drm4g', 'sqlalchemy', 'six', 'python-dateutil'],
+    install_requires=['sqlalchemy', 'six', 'python-dateutil'],
     scripts=bin_scripts,
     cmdclass={
         'install': build_wrapper,
