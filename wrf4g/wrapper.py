@@ -52,6 +52,10 @@ from wrf4g.utils.namelist import wps2wrf, fix_ptop
 from wrf4g.utils.vcplib   import VCPURL, copy_file
 from wrf4g.config         import load_json
 
+__version__  = '2.2.2'
+__author__   = 'Carlos Blanco'
+__revision__ = "$Id$"
+
 lock = __import__('threading').Lock()
 
 PY2 = sys.version_info[0] == 2
@@ -206,6 +210,7 @@ class PilotParams( object ):
     app                  = resource_cfg.get( 'app', '' )
     preprocessor         = resource_cfg[ 'preprocessor' ]
     postprocessor        = resource_cfg.get( 'postprocessor', '' )
+    ungribprocessor      = resource_cfg.get( 'ungribprocessor', '' )
     clean_after_run      = resource_cfg.get( 'clean_after_run', 'no' )
     files_to_save        = resource_cfg[ 'files_to_save' ]
     max_dom              = int( resource_cfg[ 'max_dom' ] )
@@ -535,7 +540,9 @@ def launch_wrapper( params ):
         os.makedirs( archives_path )
         for app in params.app.split('\n') :
             app_tag, app_type, app_value = app.split( '|', 2 )
-            if 'bundle' in app_type :
+            if app_type.startswith('#'):
+                continue
+            elif 'bundle' in app_type :
                 oring = app_value.strip()
                 dest  = join( archives_path, basename( app_value.strip() ) )
                 try :
@@ -591,6 +598,9 @@ def launch_wrapper( params ):
             os.chmod( join( params.root_path, 'WPS', 'metgrid', 'metgrid.exe' ), stat.S_IRWXU )
             os.chmod( join( params.root_path, 'WRFV3', 'run', 'real.exe' ), stat.S_IRWXU )
             os.chmod( join( params.root_path, 'WRFV3', 'run', 'wrf.exe' ), stat.S_IRWXU )
+            os.chmod( join( params.root_path, 'WPS', 'util', 'src','calc_ecmwf_p.exe' ), stat.S_IRWXU )
+            os.chmod( join( params.root_path, 'WPS', 'util', 'src','avg_tsfc.exe' ), stat.S_IRWXU )
+
         ##
         # This is a little bit tricky prepare the pallalel environment.
         ##
@@ -695,30 +705,36 @@ def launch_wrapper( params ):
             
         #Copy namelist.input to wrf_run_path
         shutil.copyfile( join( params.root_path, 'namelist.input' ), params.namelist_input )
-        
+        rerun_wps=False
         if job_db.has_wps() :
-            logging.info( "The boundaries and initial conditions are available" )
-            orig = join( params.domain_path, basename( params.namelist_wps ) )
-            dest = params.namelist_wps
             try :
-                logging.info( "Downloading file 'namelist.wps'" )
-                copy_file( orig, dest )
-            except :
-                raise JobError( "'namelist.wps' has not copied", Job.CodeError.COPY_FILE )
-            wps2wrf( params.namelist_wps, params.namelist_input, params.chunk_rdate, 
-                        params.chunk_edate, params.max_dom, chunk_rerun, params.timestep_dxfactor)
-            job_db.set_job_status( Job.Status.DOWN_WPS )
-            pattern =  "wrf[lbif]*_d\d\d_" + datetime2dateiso( sdate ) + "*" 
-            for file_name in VCPURL( params.real_rea_output_path ).ls( pattern ):
-                orig = join( params.real_rea_output_path, file_name )
-                # From wrflowinp_d08_ we remove the _ at the end
-                dest = join( params.wrf_run_path, WRFFile(file_name).file_name[:-1] )
+                logging.info( "The boundaries and initial conditions are available" )
+                orig = join( params.domain_path, basename( params.namelist_wps ) )
+                dest = params.namelist_wps
                 try :
-                    logging.info( "Downloading file '%s'" % file_name )
+                    logging.info( "Downloading file 'namelist.wps'" )
                     copy_file( orig, dest )
                 except :
-                    raise JobError( "'%s' has not copied" % file_name, Job.CodeError.COPY_REAL_FILE )
-        else :
+                    raise JobError( "'namelist.wps' has not copied", Job.CodeError.COPY_FILE )
+                job_db.set_job_status( Job.Status.DOWN_WPS )
+                pattern =  "wrf[lbif]*_d\d\d_" + datetime2dateiso( params.chunk_sdate ) + "*" 
+                for file_name in VCPURL( params.real_rea_output_path ).ls( pattern ):
+                    orig = join( params.real_rea_output_path, file_name )
+                    # From wrflowinp_d08_ we remove the _ at the end
+                    dest = join( params.wrf_run_path, WRFFile(file_name).file_name[:-1] )
+                    try :
+                        logging.info( "Downloading file '%s'" % file_name )
+                        copy_file( orig, dest )
+                    except :
+                        raise JobError( "'%s' has not copied" % file_name, Job.CodeError.COPY_REAL_FILE )
+                # Change the directory to wrf run path
+                os.chdir( params.wrf_run_path )
+                wps2wrf( params.namelist_wps, params.namelist_input, params.chunk_rdate, 
+                        params.chunk_edate, params.max_dom, chunk_rerun, params.timestep_dxfactor)
+            except :
+                logging.error("There was a problem downloading the boundaries and initial conditions")
+                rerun_wps=True
+        if (not job_db.has_wps() or rerun_wps) :
             logging.info( "The boundaries and initial conditions are not available" )
 
             # Change the directory to wps path
@@ -842,7 +858,24 @@ def launch_wrapper( params ):
                 nmlw.overWriteNamelist()
             except Exception as err :
                 raise JobError( "Error modifying namelist: %s" % err, Job.CodeError.NAMELIST_FAILED )
-          
+            
+            ##
+            # Execute ungribprocessor AL:5-5-2017
+            ##
+            if params.ungribprocessor :
+                for pp in params.ungribprocessor.replace(' ', '').split( ',' ) :
+                    if pp != '' :
+                        logging.info( "Running ungribprocessor.%s" % pp )
+
+                        if not which( "ungribprocessor.%s" % pp ) :
+                            raise JobError( "UngribProcessor '%s' does not exist" % pp, Job.CodeError.UNGRIB_PROCESSOR_FAILED )
+                        preprocessor_log = join( params.log_path, 'ungribprocessor.%s.log' %  pp )
+                        code, output = exec_cmd( "ungribprocessor.%s >& %s" % ( pp, preprocessor_log ) )
+                        if code :
+                            logging.info( output )
+                            raise JobError( "UngribProcessor '%s' has failed" % pp,
+                                    Job.CodeError.UNGRIB_PROCESSOR_FAILED )
+ 
             ##
             # Run Metgrid
             ##
@@ -917,9 +950,9 @@ def launch_wrapper( params ):
                 # The command: $ upload_file wps     1990-01-01_00:00:00
                 # will create in the repositore three files with the following format: wrfinput_d01_19900101T000000Z
                 suffix = "_" + datetime2dateiso( params.chunk_rdate )+ ".nc"
-                for wps_file in VCPURL( params.wps_path ).ls("wrf[lbif]*_d\d\d") :
+                for wps_file in VCPURL( params.wrf_run_path ).ls("wrf[lbif]*_d\d\d") :
                     oiring = wps_file
-                    dest   = join( params.real_rea_output_path, basename( wps_file) , suffix )
+                    dest   = join( params.real_rea_output_path, basename( wps_file) + suffix )
                     try:
                         logging.info( "Uploading '%s' file" % oiring )
                         os.chmod( oiring, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH ) 
