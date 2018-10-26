@@ -78,6 +78,6 @@ class TestWRF4GWrapper(unittest.TestCase):
         except SystemExit as sysexit:
             # This will always happen
             # Clean test folder
-            # shutil.rmtree(tempdir)
+            shutil.rmtree(tempdir)
             # Assert it finished OK
             self.assertEquals(sysexit.code, 0)
