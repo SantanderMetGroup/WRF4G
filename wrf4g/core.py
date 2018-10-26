@@ -401,7 +401,7 @@ class Experiment(object):
             else :
                 shutil.copy( expandvars( file ) , exp_sub_dir )
 
-    def _create_wrf4g_bundles(self, exp_sub_dir ):
+    def _create_wrf4g_bundles(self, exp_sub_dir):
         """
         Create bundles with the necessary software to run WRF on worker nodes.
         """
@@ -413,9 +413,7 @@ class Experiment(object):
             os.remove( wrf4g_package )
         current_path = os.getcwd()
         try :
-            tar = tarfile.open( wrf4g_package, "w:gz", dereference=True)
-            os.chdir( WRF4G_DEPLOYMENT_DIR )
-
+            tar = tarfile.open(wrf4g_package, "w:gz", dereference=True)
             bin_list = [
                 "bin/fortnml",
                 "bin/wrf4g",
@@ -426,49 +424,30 @@ class Experiment(object):
                 "bin/wrf_util.sh",
                 "bin/wrf_wrapper.py"
             ]
-
-            if os.path.exists("lib/python/fortran_namelist"):
-                lib_list = [
-                    "lib/python/fortran_namelist",
-                    "lib/python/wrf4g"
-                ]
-            elif os.path.exists("lib/python/site-packages/fortran_namelist"):
-                lib_list = [
-                    "lib/python2.7/site-packages/fortran_namelist",
-                    "lib/python2.7/site-packages/wrf4g"
-                ]
-            elif os.path.exists("lib/python/dist-packages/fortran_namelist"):
-                lib_list = [
-                    "lib/python2.7/dist-packages/fortran_namelist",
-                    "lib/python2.7/dist-packages/wrf4g"
-                ]
-            else:
-                raise RuntimeError("WRF4G lib files not found")
-
-            # Adding extra packages which are required by the "core side" part
-            # of WRF4G
-            dependencies = ["drm4g", "sqlalchemy", "docopt", "dateutil"]
-            linked_dependencies = []
-            for dependency in dependencies:
-                lib_basedir = os.path.dirname(lib_list[0])
-                link_destination = lib_basedir + "/" + dependency
-                linked_dependencies.append(link_destination)
-                if not os.path.exists(lib_basedir + dependency):
-                    logging.info(
-                        "Adding dependency {} to the bundle".format(dependency))
-                    depdir = _get_package_location(dependency)
-                    os.symlink(depdir, link_destination)
-                    lib_list.append(link_destination)
-
-            logging.debug( "Creating '%s' package" % wrf4g_package )
-            
-            [tar.add(ff) for ff in bin_list + lib_list]
+            bin_abspaths = [join(WRF4G_DEPLOYMENT_DIR, b) for b in bin_list]
+            # Add binaries to the tarfile
+            for bin_abspath, relpath in zip(bin_abspaths, bin_list):
+                strparam = (bin_abspath, relpath)
+                logging.debug("Adding binary {} as {}".format(*strparam))
+                tar.add(bin_abspath, arcname=relpath)
+            # Add required libraries (packages) to the tarfile
+            libs_to_package = ["wrf4g", "fortran_namelist", "drm4g",
+                               "sqlalchemy", "docopt", "dateutil"]
+            for libname in libs_to_package:
+                lib_abspath = _get_package_location(libname)
+                if lib_abspath[-3:] == ".py":
+                    # Needed for docpot as it is just a file
+                    lib_relpath = join("lib/python", libname + ".py")
+                else:
+                    lib_relpath = join("lib/python", libname)
+                strparam = (lib_abspath, lib_relpath)
+                logging.debug("Adding package {} as {}".format(*strparam))
+                tar.add(lib_abspath, arcname=lib_relpath,
+                        exclude=lambda x: x[-4:] == ".pyc")
         except Exception as err:
             logging.warn( err )
         finally :
             tar.close()
-            for linked_dependency in linked_dependencies:
-                os.remove(linked_dependency)
         # wrf4g_files bundle
         wrf4g_files_dir = join( self.home_directory, 'wrf4g_files' )
         if isdir( wrf4g_files_dir ):

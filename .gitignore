@@ -9,6 +9,10 @@ wrf4g.egg-info/
 /logger.conf
 /resources.conf
 /resources_default.conf
+repository
+.idea
+.project
+.pydevproject
 *.o
 *.lo
 *.la

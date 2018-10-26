@@ -18,65 +18,139 @@
 # permissions and limitations under the Licence.
 #
 
-__version__  = '2.3.0'
-__author__   = 'Jesus Fernandez and Carlos Blanco'
+__version__ = '2.3.0'
+__author__ = 'Jesus Fernandez and Carlos Blanco'
 __revision__ = "$Id$"
 
 from setuptools import setup
 from setuptools import find_packages
 from setuptools.command.install import install
 from os import path
-import subprocess
-import urllib2
+import sysconfig
 import tarfile
 import glob
 import sys
 import ast
 import os
 
-#To ensure a script runs with a minimal version requirement of the Python interpreter
-#assert sys.version_info >= (2,5)
-if (sys.version_info[0]==2 and sys.version_info<=(2,5)) or (sys.version_info[0]==3 and sys.version_info<(3,3)):
-    exit( 'The version number of Python has to be >= 2.6 or >= 3.3' )
-
-try: 
-    input = raw_input
-except NameError:
-    pass
 
 try:
-    from urllib.request import urlopen # Python 3 - not verified
+    from urllib.request import urlopen  # Python 3 - not verified
 except ImportError:
-    from urllib2 import urlopen # Python 2
+    from urllib2 import urlopen  # Python 2
 
 
-here = path.abspath(path.dirname(__file__))
-python_ver=sys.version[:3]
-user_shell=os.environ['SHELL']
-lib_dir=''
-path_dir=''
+class WRF4GSetup(object):
+    def __init__(self):
+        self.python_version = "{0}.{1}".format(*sys.version_info)
+        self.sourcedir = path.abspath(path.dirname(__file__))
+        self.moduledir = self.sourcedir + "/wrf4g"
+        self.configdir = self.moduledir + "/etc"
+        self.prefix_dir = None
+        self.has_prefix = False
+        self.lib_dir = None
+        self.bin_dir = None
 
-if 'bash' in user_shell:
-    user_shell='.bashrc'
-else:
-    user_shell='.profile'
+        arguments = str(sys.argv)
+        # convert from string to list
+        self.arguments = ast.literal_eval(arguments)
 
-def get_conf_files(search_dir='etc'):
-    if os.path.exists('./wrf4g'):
-        os.chdir('./wrf4g')
-    directory_list = glob.glob(search_dir)
-    search_dir += '/*'
-    file_list = []
-    if directory_list:
-        for f in directory_list:
-            if os.path.isfile(f):
-                file_list.append(f)
-        file_list += get_conf_files(search_dir)
-    if not os.path.exists('./wrf4g'):
-        print os.getcwd()
-        os.chdir('..')
-        print os.getcwd()
-    return file_list
+    def get_conf_files(self):
+        file_list = []
+        print("Adding configuration files")
+        for dirpath, dirnames, filenames in os.walk(self.configdir):
+            if filenames:
+                filenames_abs = [os.path.join(dirpath, f) for f in filenames]
+                print(filenames_abs)
+                file_list.extend(filenames_abs)
+        return file_list
+
+    def run_preinstallation(self):
+        self.prefix_option()
+        self.extract_repository()
+
+    def prefix_option(self):
+        # Going through the whole list since the options can be defined in
+        # different ways (--prefix=dir> or --prefix <dir>) Which is why I'm not
+        # using self.arguments.index('--prefix') to find it, since it doesn't
+        # check if it's a substring. Could also do it with a while and make it
+        # stop if it finds '--prefix' or '--home'
+        for i in range(len(self.arguments)):
+            option = self.arguments[i]
+            # folder name can't contain '--prefix' or '--home'
+            if '--prefix' in option or '--home' in option:
+                # I'm working under the impression that the path passed on to
+                # prefix has to be an absolute path for the moment, if you use
+                # a relative path, gridway's binary files will be copied to a
+                # directory relative to where ./gridway-5.8 is
+                self.has_prefix = True
+                if '=' in option:
+                    self.prefix_dir = option[option.find('=')+1:]
+                elif "--user" in option:
+                    self.prefix_dir = os.environ["HOME"] + ".local"
+                else:
+                    self.prefix_dir = self.arguments[i+1]
+
+                if '--prefix' in option:
+                    self.lib_dir = os.path.join(
+                        self.prefix_dir,
+                        'lib/python{}/site-packages'.format(self.python_version)
+                    )
+                elif '--home' in option:
+                    self.lib_dir = os.path.join(self.prefix_dir, 'lib/python')
+
+
+                try:
+                    os.makedirs(self.lib_dir)
+                except OSError:
+                    print('\nDirectory {} already exists'.format(self.lib_dir))
+        # Use sysconfig package to get the default install lib path for this
+        # python installation
+        if not self.has_prefix:
+            self.lib_dir = sysconfig.get_path("platlib")
+            self.prefix_dir = sysconfig.get_path("data")
+
+        self.bin_dir = os.path.join(self.prefix_dir, 'bin')
+
+    def download_repository(self):
+        tar_file_local = "repository.tar.gz"
+        if os.path.exists(tar_file_local):
+            return None
+        else:
+            response = urlopen(
+                'https://meteo.unican.es/work/repository.tar.gz')
+            tar_file = response.read()
+            # the disadvantage of this method is that the entire file is loaded
+            # into ram before being saved to disk
+            with open(tar_file_local, 'wb') as output:
+                output.write(tar_file)
+
+    def repository_files(self, members):
+        for tarinfo in members:
+            if "repository" in tarinfo.name:
+                yield tarinfo
+
+    def extract_repository(self):
+        self.download_repository()
+        with tarfile.open('repository.tar.gz', 'r') as tar:
+            repository_path = self.prefix_dir
+            tar.extractall(path=repository_path,
+                           members=self.repository_files(tar))
+
+    def print_final_message(self):
+        print("WRF4G binary files installed in {}".format(self.bin_dir))
+        print("WRF4G library files installed in {}".format(self.lib_dir))
+
+        if self.prefix_dir is None:
+            print(
+                '''
+                To finish with the installation, you have to add the 
+                following paths to your $PYTHONPATH and $PATH:
+                export PYTHONPATH={}:$PYTHONPATH
+                export PATH={}:$PATH
+                '''.format(self.lib_dir, self.bin_dir)
+            )
+
 
 def get_long_description():
     readme_file = 'README'
@@ -93,107 +167,44 @@ def get_long_description():
         description = open(readme_file).read()
     return description
 
-def yes_no_choice( message,  default = 'y') :
+
+def yes_no_choice(message,  default='y'):
     """
     Ask for Yes/No questions
     """
-    choices = 'y/n' if default.lower() in ( 'y', 'yes' ) else 'y/N'
-    values = ( 'y', 'yes', 'n', 'no' )
+    choices = 'y/n' if default.lower() in ('y', 'yes') else 'y/N'
+    values = ('y', 'yes', 'n', 'no')
     choice = ''
     while not choice.strip().lower() in values:
         choice = input("{} ({}) \n".format(message, choices))
     return choice.strip().lower()
 
 
-class Builder(object):
-
-    export_dir = sys.prefix
-    prefix_directory = ''
-    arguments = str(sys.argv)
-    arguments = ast.literal_eval(arguments) #convert from string to list
-
-    def call(self, cmd):
-        return subprocess.call(cmd, shell=True)
-
-    def prefix_option(self):
-        #Going through the whole list since the options can be defined in different ways (--prefix=dir> or --prefix <dir>)
-        #Which is why I'm not using self.arguments.index('--prefix') to find it, since it doesn't check if it's a substring
-        #Could also do it with a while and make it stop if it finds '--prefix' or '--home'
-        for i in range(len(self.arguments)):
-            option = self.arguments[i]
-            #folder name can't contain '--prefix' or '--home'
-            if '--prefix' in option or '--home' in option:
-                #I'm working under the impression that the path passed on to prefix has to be an absolute path
-                #for the moment, if you use a relative path, gridway's binary files will be copied to a directory relative to where ./gridway-5.8 is
-                if '=' in option:
-                    self.export_dir=option[option.find('=')+1:]
-                elif "--user" in option:
-                    self.export_dir = os.environ["HOME"] + ".local"
-                else:
-                    self.export_dir=self.arguments[i+1]
-                
-                self.prefix_directory='--prefix '+ self.export_dir
-
-                global lib_dir
-                global path_dir
-                if '--prefix' in option:
-                    lib_dir=os.path.join(self.export_dir,'lib/python{}/site-packages'.format(python_ver))
-                elif '--home' in option:
-                    lib_dir=os.path.join(self.export_dir,'lib/python')
-
-                path_dir=os.path.join(self.export_dir,'bin')
-
-                try:
-                    os.makedirs(lib_dir)
-                except OSError:
-                    print('\nDirectory {} already exists'.format(lib_dir))
-
-    def download_repository(self):
-        tar_file_local = "repository.tar.gz"
-        if os.path.exists(tar_file_local):
-            return None
-        else:
-            response = urlopen('https://meteo.unican.es/work/WRF4G/repository.tar.gz')
-            tar_file = response.read()   
-            #the disadvantage of this method is that the entire file is loaded into ram before being saved to disk
-            with open('repository.tar.gz','wb') as output:
-                output.write(tar_file)
-
-    def repository_files(self, members):
-        for tarinfo in members:
-            if "repository" in tarinfo.name:
-                yield tarinfo
-
-    def extract_repository(self):
-        self.download_repository()
-        with tarfile.open('repository.tar.gz', 'r') as tar:
-            repository_path = lib_dir
-            tar.extractall(path=repository_path, members=self.repository_files(tar))
-
-    def build(self):
-        self.prefix_option()
-        self.extract_repository()
+wrf4g_setup = WRF4GSetup()
 
 
-class build_wrapper(install):
+class BuildWrapper(install):
     def run(self):
-        Builder().build()
+        wrf4g_setup.run_preinstallation()
         install.run(self)
 
-bin_scripts= glob.glob(os.path.join('bin', '*'))
+
+bin_scripts = glob.glob(os.path.join('bin', '*'))
 bin_scripts.append('LICENSE')
 
 setup(
     name='wrf4g',
     packages=find_packages(),
-    package_data={'wrf4g': get_conf_files()},
+    package_data={'wrf4g': wrf4g_setup.get_conf_files()},
     version='2.3.0',
     author='Meteorology Group UC',
     author_email='josecarlos.blanco@unican.es',
     url='https://meteo.unican.es/trac/wiki/WRF4G2.0',
     license='European Union Public License 1.1',
-    description='WRF for Grid (WRF4G) is a framework for the execution and monitoring of the WRF Modelling System.',
-    long_description = get_long_description(),
+    description='WRF for Grid (WRF4G) is a framework for the execution and '
+                'monitoring of the WRF Modelling System.',
+    long_description=get_long_description(),
+    python_requires='>=2.7,!=3.0.*,!=3.1.*',
     classifiers=[
         "Intended Audience :: Science/Research",
         "Programming Language :: Python",
@@ -206,14 +217,12 @@ setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
     ],
-    install_requires=['sqlalchemy', 'six', 'python-dateutil'],
+    install_requires=['sqlalchemy', 'six', 'requests',
+                      'python-dateutil', 'MySQL-python'],
     scripts=bin_scripts,
     cmdclass={
-        'install': build_wrapper,
+        'install': BuildWrapper,
     },
 )
 
-if lib_dir:
-    print('\n\033[93mTo finish with the installation, you have to add the following paths to your $PYTHONPATH and $PATH:\e[0m\n' \
-        '    export PYTHONPATH={}:$PYTHONPATH\n' \
-        '    export PATH={}:$PATH\033[0m'.format(lib_dir,path_dir))
+wrf4g_setup.print_final_message()
