@@ -1177,7 +1177,7 @@ class WRF4GWrapper(object):
         # Close the connection with the database
         ##
         job_db.set_exit_code(exit_code)
-        print("root_path: {}".format(params.root_path))
+        print("root_path: {0}".format(params.root_path))
         job_db.close(params.root_path)
         sys.exit(exit_code)
 
