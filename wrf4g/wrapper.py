@@ -360,7 +360,7 @@ def clean_wrf_files(job_db, params, clean_all=False):
                                        Job.CodeError.POSTPROCESSOR_FAILED)
                     post_log = join(
                         params.log_path, 'postprocessor.%s.log' % params.postprocessor)
-                    code, output = exec_cmd("postprocessor.%s %s &>> %s" % (
+                    code, output = exec_cmd("postprocessor.%s %s >> %s" % (
                         params.postprocessor, file_name, post_log))
                     if code:
                         logging.info(output)
@@ -886,7 +886,7 @@ class WRF4GWrapper(object):
                 optargs = optargs + " " + arg.split(',')[i]
             preprocessor_log = join(
                 params.log_path, 'preprocessor.%s.log' % pp)
-            code, output = exec_cmd("preprocessor.%s %s %s %s %s &> %s" % (
+            code, output = exec_cmd("preprocessor.%s %s %s %s %s > %s" % (
                 pp, datetime2datewrf(params.chunk_rdate),
                 datetime2datewrf(params.chunk_edate), epath,
                 optargs, preprocessor_log))
@@ -968,7 +968,7 @@ class WRF4GWrapper(object):
                     preprocessor_log = join(
                         params.log_path, 'ungribprocessor.%s.log' % pp)
                     code, output = exec_cmd(
-                        "ungribprocessor.%s >& %s" % (pp, preprocessor_log))
+                        "ungribprocessor.%s > %s" % (pp, preprocessor_log))
                     if code:
                         logging.info(output)
                         raise JobError("UngribProcessor '%s' has failed" % pp,

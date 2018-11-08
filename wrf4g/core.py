@@ -28,6 +28,8 @@ import tarfile
 import shutil
 import logging
 from distutils import spawn
+import shutil
+import tempfile
 import fortran_namelist as fn
 from fortran_namelist       import coerce_value_list
 from sqlalchemy             import and_, or_
@@ -412,7 +414,7 @@ class Experiment(object):
             logging.debug( "Removing '%s' package" % wrf4g_package )
             os.remove( wrf4g_package )
         current_path = os.getcwd()
-        try :
+        try:
             tar = tarfile.open(wrf4g_package, "w:gz", dereference=True)
             bin_list = [
                 "bin/fortnml",
@@ -1037,3 +1039,22 @@ class Events( object ) :
 
 def _get_package_location(package):
     return pkgutil.find_loader(package).filename
+
+
+def _fix_shebang(ipath):
+    """
+    Overwrites the shebangs written by setuptools when installing wrf4g, which
+    point to the local python installation and won't work in a remote cluster.
+    """
+    newshebang = "#!/usr/bin/env python\n"
+
+    with tempfile.NamedTemporaryFile(dir='.', delete=False) as tmp:
+        with open(ipath, "r") as ifile:
+            oldshebang = ifile.readline()
+            print(
+                "Replacing old shebang {} by {}".format(oldshebang, newshebang))
+            tmp.write(newshebang)
+            shutil.copyfileobj(ifile, tmp)
+    # Now files are closed so we can do this
+    shutil.copymode(ipath, tmp.name)
+    shutil.move(tmp.name, ipath)

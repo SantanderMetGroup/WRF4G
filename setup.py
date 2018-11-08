@@ -25,6 +25,7 @@ __revision__ = "$Id$"
 from setuptools import setup
 from setuptools import find_packages
 from setuptools.command.install import install
+from setuptools.command.install_scripts import install_scripts
 from os import path
 import sysconfig
 import tarfile
@@ -38,6 +39,50 @@ try:
     from urllib.request import urlopen  # Python 3 - not verified
 except ImportError:
     from urllib2 import urlopen  # Python 2
+
+
+
+
+# don't touch my shebang
+# from https://stackoverflow.com/questions/1530702/dont-touch-my-shebang
+class BSCommand(install_scripts):
+    def run(self):
+        """
+        Copy, chmod each script listed in 'self.scripts'
+        essentially this is the stripped
+         distutils.command.build_scripts.copy_scripts()
+        routine
+        """
+        from stat import ST_MODE
+        from distutils.dep_util import newer
+        from distutils import log
+        import os
+
+        self.mkpath(self.build_dir)
+        outfiles = []
+        for script in self.scripts:
+            outfile = os.path.join(self.build_dir, os.path.basename(script))
+            outfiles.append(outfile)
+
+            if not self.force and not newer(script, outfile):
+                log.debug("not copying %s (up-to-date)", script)
+                continue
+
+            log.info("copying and NOT adjusting %s -> %s", script,
+                         self.build_dir)
+            self.copy_file(script, outfile)
+
+        if os.name == 'posix':
+            for file in outfiles:
+                if self.dry_run:
+                    log.info("changing mode of %s", file)
+                else:
+                    oldmode = os.stat(file)[ST_MODE] & 0o7777
+                    newmode = (oldmode | 0o555) & 0o7777
+                    if newmode != oldmode:
+                        log.info("changing mode of %s from %o to %o",
+                                 file, oldmode, newmode)
+                        os.chmod(file, newmode)
 
 
 class WRF4GSetup(object):
