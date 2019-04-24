@@ -341,10 +341,10 @@ def copy_file(origin, destination, overwrite=True):
     Copy orig to dest file.
     """
     vcp_matrix = {'file': {'file':   {'verbose'  : '-v', 
-                                  'command'  : "'cp -f %(verbose)s %(orig)s %(dest)s' %param", 
+                                  'command'  : "'cp -f -p %(verbose)s %(orig)s %(dest)s' %param",
                                   'orig'     : "orig.file", 
                                   'dest'     : "dest.file"},
-                       'rsync':  {'verbose'  : '-v', 
+                       'rsync':  {'verbose'  : '-v -p',
                                   'command'  : "'rsync -au %(verbose)s %(orig)s %(dest)s' %param", 
                                   'orig'     : "orig.file", 
                                   'dest'     : "str(dest)"},
