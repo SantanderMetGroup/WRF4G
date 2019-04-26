@@ -567,7 +567,7 @@ class WRF4GWrapper(object):
             vcp_dir = VCPURL(remote_path)
             if not vcp_dir.exists():
                 logging.info("Creating remote directory '%s'" % remote_path)
-                vcp_dir.mkdir()
+                vcp_dir.mkdir(mode="775")
 
     def set_environment_variables(self):
         params = self.params
