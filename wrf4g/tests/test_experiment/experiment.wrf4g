@@ -29,6 +29,7 @@ postprocessor        = SFC
 parallel_env         = MPIRUN
 parallel_real        = yes
 parallel_wrf         = yes
+init_lakes_with_tavsfc = yes
 app                  = wrf_all_in_one | bundle | /home/users/garciam/anaconda2/envs/flowcast/repository/apps/WRF/WRFbin-3.7.1_gfortran_openmpi_3.1.0.tar.gz
 # WRF-namelist parameters. Override namelist.input variables here
 namelist_version     = 3.4.1

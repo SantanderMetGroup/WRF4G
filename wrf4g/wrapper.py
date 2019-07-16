@@ -242,6 +242,7 @@ class PilotParams(object):
         self.extdata_vtable = resource_cfg['extdata_vtable']
         self.extdata_path = resource_cfg['extdata_path']
         self.constants_name = resource_cfg.get('constants_name', '')
+        self.init_lakes_with_tavsfc = resource_cfg.get('init_lakes_with_tavsfc', 'no')
         self.job_id = int(os.environ.get('GW_JOB_ID'))
         self.restarted_id = int(os.environ.get('GW_RESTARTED'))
         exp_name = sys.argv[1]
@@ -446,6 +447,7 @@ class Binaries(object):
     metgrid_exe = None
     real_exe = None
     wrf_exe = None
+    avg_tsfc_exe = None
 
 
 class WRF4GWrapper(object):
@@ -711,6 +713,13 @@ class WRF4GWrapper(object):
             binaries.metgrid_exe = which('metgrid.exe')
             binaries.real_exe = which('real.exe')
             binaries.wrf_exe = which('wrf.exe')
+
+        if self.params.init_lakes_with_tavsfc == "yes":
+            if 'wrf_all_in_one' in params.app:
+                binaries.avg_tsfc_exe = join(params.wps_path, "avg_tsfc.exe")
+            else:
+                binaries.avg_tsfc_exe = which("avg_tsfc.exe")
+
         if (not binaries.ungrib_exe or not binaries.metgrid_exe or
                 not binaries.real_exe or not binaries.wrf_exe):
             raise JobError("Error finding WRF binaries", Job.CodeError.BINARY)
@@ -872,7 +881,6 @@ class WRF4GWrapper(object):
             # This creates a symbolic link
             os.symlink(join(params.wps_path, 'ungrib',
                             'Variable_Tables', 'Vtable.%s' % vt), vtable)
-
             ##
             # Execute preprocesor
             ##
@@ -890,6 +898,7 @@ class WRF4GWrapper(object):
                 pp, datetime2datewrf(params.chunk_rdate),
                 datetime2datewrf(params.chunk_edate), epath,
                 optargs, preprocessor_log))
+
             if code:
                 logging.info(output)
                 raise JobError("Preprocessor '%s' has failed" % pp,
@@ -914,7 +923,6 @@ class WRF4GWrapper(object):
             except:
                 raise JobError("Ran out of grib file suffixes",
                                Job.CodeError.LINK_GRIB_FAILED)
-
             ##
             # Run Ungrib
             ##
@@ -923,6 +931,18 @@ class WRF4GWrapper(object):
 
             ungrib_log = join(params.log_path, 'ungrib_%s.log' % vt)
             code, output = exec_cmd("%s > %s" % (ungrib_exe, ungrib_log))
+
+            if params.init_lakes_with_tavsfc == "yes":
+                avg_tsfc_exe = binaries.avg_tsfc_exe
+                start_date = datetime2datewrf(params.chunk_rdate)
+                end_date = datetime2datewrf(params.chunk_edate)
+                nmlw.setValue("start_date", start_date, "shared")
+                nmlw.setValue("end_date", end_date, "shared")
+                nmlw.setValue("fg_name", vt, "metgrid")
+                nmlw.setValue("constants_name", "TAVGSFC", "metgrid")
+                nmlw.overWriteNamelist()
+                code, output = exec_cmd("%s" % avg_tsfc_exe)
+
             if code or not 'Successful completion' in open(ungrib_log,
                                                            'r').read():
                 logging.info(output)
