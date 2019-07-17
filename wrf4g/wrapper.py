@@ -716,7 +716,8 @@ class WRF4GWrapper(object):
 
         if self.params.init_lakes_with_tavsfc == "yes":
             if 'wrf_all_in_one' in params.app:
-                binaries.avg_tsfc_exe = join(params.wps_path, "avg_tsfc.exe")
+                binaries.avg_tsfc_exe = join(params.wps_path, "util/src",
+                                             "avg_tsfc.exe")
             else:
                 binaries.avg_tsfc_exe = which("avg_tsfc.exe")
 
@@ -941,7 +942,8 @@ class WRF4GWrapper(object):
                 nmlw.setValue("fg_name", vt, "metgrid")
                 nmlw.setValue("constants_name", "TAVGSFC", "metgrid")
                 nmlw.overWriteNamelist()
-                code, output = exec_cmd("%s" % avg_tsfc_exe)
+                print("Running " + avg_tsfc_exe)
+                exec_cmd("%s" % avg_tsfc_exe)
 
             if code or not 'Successful completion' in open(ungrib_log,
                                                            'r').read():
