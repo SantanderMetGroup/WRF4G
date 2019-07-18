@@ -593,6 +593,7 @@ class WRF4GWrapper(object):
             os.environ['OPAL_PREFIX'] = OPAL_PREFIX
             os.environ['PATH'] = "%s/bin:%s" % (self.OMPIDIR, PATH)
             os.environ['LD_LIBRARY_PATH'] = "%s/lib:%s" % (self.OMPIDIR, PATH)
+
         if 'OPAL_PREFIX' in os.environ:
             logging.info("OPAL_PREFIX=%s" % os.environ['OPAL_PREFIX'])
         logging.info("PATH=%s" % os.environ['PATH'])
@@ -624,9 +625,10 @@ class WRF4GWrapper(object):
                     logging.info("Unpacking '%s' to '%s'" %
                                  (dest, params.root_path))
                     extract(dest, to_path=params.root_path)
-                    mpibin = "%s/bin/mpirun" % self.OMPIDIR
-                    st = os_stat(mpibin)
-                    os.chmod(mpibin, st.st_mode | stat.S_IEXEC)
+                    if self.OMPIDIR is not None:
+                        mpibin = "%s/bin/mpirun" % self.OMPIDIR
+                        st = os_stat(mpibin)
+                        os.chmod(mpibin, st.st_mode | stat.S_IEXEC)
             elif 'command' in app_type:
                 logging.info('Configuring source script for %s' % app_tag)
                 app_cmd = "{ %s; } && env" % app_value.strip()
