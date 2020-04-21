@@ -30,16 +30,15 @@ Options:
    --disc-jobs          All available jobs on WRF4G will be discared. 
 """
 
+import glob
 import os
 import sys
-import glob
 import socket
 import logging
-from os.path              import exists, join
+from os.path              import exists, join, abspath, join, dirname
 from drm4g                import DRM4G_DIR
 from drm4g.commands       import Daemon, Agent
-from wrf4g                import ( WRF4G_DIR, WRF4G_DEPLOYMENT_DIR,
-                                   DB4G_CONF, WRF4G_LOGGER )
+from wrf4g                import WRF4G_DIR, DB4G_CONF, WRF4G_LOGGER
 from wrf4g.db             import DEFAULT_DB_CONF
 
 def run( arg ) :
