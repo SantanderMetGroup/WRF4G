@@ -99,7 +99,9 @@ def wps2wrf( namelist_wps, namelist_input, sdate, edate, maxdom, chunk_is_restar
     nmli.setMaxDomValue("end_month",   edate.month)
     nmli.setMaxDomValue("end_day",     edate.day)
     nmli.setMaxDomValue("end_hour",    edate.hour)
-    for var in [ "parent_grid_ratio", "i_parent_start", "j_parent_start", "e_we", "e_sn"]:
+    vars_to_copy = ["parent_grid_ratio", "i_parent_start", "j_parent_start",
+                    "e_we", "e_sn", "interval_seconds"]
+    for var in vars_to_copy:
         nmli.setValue(var, nmlw.getValue(var))
     nmli.setValue("parent_time_step_ratio", nmlw.getValue("parent_grid_ratio"))
     if exists("met_em.d01.%s.nc" % datetime2datewrf( sdate ) ):
