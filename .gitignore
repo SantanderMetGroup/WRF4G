@@ -1,24 +1,8 @@
-setup_minimalista.py
-setup\ \(another\ copy\).py 
-setup\ \(copy\).py
-.eggs/
-dist/
-build/
-wrf4g.egg-info/
-/gw_drm4g_wrapper.sh
-/logger.conf
-/resources.conf
-/resources_default.conf
-repository
-.idea
-.project
-.pydevproject
 *.o
 *.lo
 *.la
 *.dirstamp
 *.log
 *.pyc
-Makefile
 *.swp
 

@@ -1,9 +1,12 @@
+WRF4G
+=====
 
 WRF4G can be installed in any Linux Computer. It provides the services needed to prepare, run and monitor experiments and it can manage many computing resources and use them at the same time to run different simulations of a WRF experiment.
 
 Although in the following examples we will use the same computer to manage the experiments and to run them, usually scientists use a computer to prepare and manage the experiments (where WRF4G has to be installed) and different computing resources to run them (PBS or SGE Clusters, HPC infrastructures, stand-alone servers). We call User Interface (UI) to the computer where WRF4G is installed and Computing Resources (CR) to the nodes where a WRF experiment can run. In the following experiments the Computer where the UI role is installed will act as CR.
 
 Required Software
+-----------------
 
 WRF4G needs the following software preinstalled both in the UI and the CR:
 
@@ -11,6 +14,7 @@ WRF4G needs the following software preinstalled both in the UI and the CR:
  * Python, version >= 2.6 and >= 3.3
 
 Platform Notes
+--------------
 
 WRF4G has been run only in 64bits platforms. Currently has been tested under the following O.S.:
 
@@ -18,3 +22,20 @@ WRF4G has been run only in 64bits platforms. Currently has been tested under the
  * Centos 5 and 6: No known issues.
  * Debian 6.0: No known issues.
 
+Installation
+------------
+The simplest way to install WRF4G along with all dependencies is to use this installation script:
+
+```bash
+wget --no-check-certificate https://meteo.unican.es/work/WRF4G/install.sh
+bash ./install.sh [options]
+```
+The options available are:
+
+ * `-d, --dir DIRECTORY`: Install WRF4G into a directory.
+ * `-V, --version`: Version to install.
+ * `-h, --help`: Print help text. 
+
+Usage
+-----
+Check https://meteo.unican.es/trac/wiki/WRF4G2.0 for detailed documentation.
