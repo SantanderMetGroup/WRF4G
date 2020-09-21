@@ -433,7 +433,7 @@ class Experiment(object):
                 logging.debug("Adding binary {} as {}".format(*strparam))
                 tar.add(bin_abspath, arcname=relpath)
             # Add required libraries (packages) to the tarfile
-            libs_to_package = ["wrf4g", "fortran_namelist", "drm4g",
+            libs_to_package = ["wrf4g", "fortran_namelist", "drm4g", "pymysql",
                                "sqlalchemy", "docopt", "dateutil", "six"]
             for libname in libs_to_package:
                 lib_abspath = _get_package_location(libname)
