@@ -61,7 +61,8 @@ if 'bash' in user_shell:
 else:
     user_shell='.profile'
 
-def get_conf_files(search_dir='etc'):
+# Get every file under search_dir, including subdirectories. Needs to be improved
+def get_conf_files(search_dir='data'):
     if os.path.exists('./wrf4g'):
         os.chdir('./wrf4g')
     directory_list = glob.glob(search_dir)
@@ -197,7 +198,6 @@ class build_wrapper(install):
         install.run(self)
 
 bin_scripts= glob.glob(os.path.join('bin', '*'))
-bin_scripts.append('LICENSE')
 
 setup(
     name='wrf4g',

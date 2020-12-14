@@ -413,7 +413,9 @@ class Experiment(object):
             tar = tarfile.open( wrf4g_package, "w:gz" )
             os.chdir( WRF4G_DEPLOYMENT_DIR )
             logging.debug( "Creating '%s' package" % wrf4g_package )
-            [ tar.add( dir ) for dir in [ "bin", "lib" ] ]
+            # Anadir modulos necesarios. Primero ver cuales son
+            #for module in [ 'sqlalchemy','' ]
+            [ tar.add( dir ) for dir in [ "/tmp/pepe" ] ]
         except Exception as err:
             logging.warn( err )
         finally :
