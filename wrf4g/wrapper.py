@@ -505,9 +505,10 @@ def launch_wrapper( params ):
         PATH = '%s:%s' % ( root_bin_path, os.environ.get( 'PATH' ) )
         logging.info( "PATH=%s" % PATH )
         os.environ[ 'PATH' ] = PATH
-        LD_LIBRARY_PATH = '%s:%s:%s' % ( join( params.root_path, 'lib' ),
-                                         join( params.root_path, 'lib64' ),
-                                         os.environ.get( 'LD_LIBRARY_PATH' ) )
+        LD_LIBRARY_PATH = '%s:%s:%s' % ( os.environ.get( 'LD_LIBRARY_PATH' ),
+                                         join( params.root_path, 'lib' ),
+                                         join( params.root_path, 'lib64' )
+                                          )
         logging.info( "LD_LIBRARY_PATH=%s" % LD_LIBRARY_PATH )
         os.environ[ 'LD_LIBRARY_PATH' ] = LD_LIBRARY_PATH
         PYTHONPATH = '%s:%s' % ( join( params.root_path, 'lib', 'python' ),
