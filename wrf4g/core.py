@@ -272,6 +272,7 @@ class Experiment(object):
         data_updated = data % {
                                'WRF4G_EXPERIMENT_HOME' : exp_dir_config ,
                                'WRF4G_DEPLOYMENT_DIR'  : WRF4G_DEPLOYMENT_DIR ,
+                               'WRF4G_DIR'             : WRF4G_DIR ,
                                'exp_name'              : name ,
                                }
         with open(dest_path, 'w') as f :
