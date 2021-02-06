@@ -18,23 +18,38 @@ Platform Notes
 
 WRF4G has been run only in 64bits platforms. Currently has been tested under the following O.S.:
 
- * Ubuntu 10.04, 11.04 and 12.04 : No known issues.
- * Centos 5 and 6: No known issues.
- * Debian 6.0: No known issues.
+ * Ubuntu 16.04, 18.04, 20.04 : No known issues.
+ * Centos 6 and 7: No known issues.
 
 Installation
 ------------
-The simplest way to install WRF4G along with all dependencies is to use this installation script:
+WRF4G can be downloaded from github and installed using the following code:
 
 ```bash
-wget --no-check-certificate https://meteo.unican.es/work/WRF4G/install.sh
-bash ./install.sh [options]
+git clone https://github.com/SantanderMetGroup/WRF4G.git
+cd WRF4G
+pip install .
 ```
-The options available are:
+It is advisable to use conda enviroments to avoid python packages dependecy problems. 
 
- * `-d, --dir DIRECTORY`: Install WRF4G into a directory.
- * `-V, --version`: Version to install.
- * `-h, --help`: Print help text. 
+```bash
+conda create -n wrf4g-py36 python=3.6
+conda activate wrf4g-py36
+```
+
+QuickStart
+------------
+
+Example for deploy WRF4G and run a simple test experiment
+
+```
+wrf4g start
+wrf4g resource
+wrf4g exp test define --from-template=single
+wrf4g exp test create --dir test
+wrf4g exp test submit
+wrf4g exp test1 submit --rerun
+```
 
 Usage
 -----
