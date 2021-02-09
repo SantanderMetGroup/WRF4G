@@ -18,8 +18,8 @@
 # permissions and limitations under the Licence.
 #
 
-__version__  = '2.3.0'
-__author__   = 'Jesus Fernandez and Carlos Blanco'
+__version__  = '2.3.1'
+__author__   = 'Valvanuz Fernández, Jesus Fernandez, Carlos Blanco and Antonio S. Cofiño'
 __revision__ = "$Id$"
 
 from setuptools import setup
@@ -53,9 +53,7 @@ def get_conf_files(search_dir='data'):
                 file_list.append(f)
         file_list += get_conf_files(search_dir)
     if not os.path.exists('./wrf4g'):
-        print os.getcwd()
         os.chdir('..')
-        print os.getcwd()
     return file_list
 
 def get_long_description():
@@ -79,9 +77,9 @@ setup(
     name='wrf4g',
     packages=find_packages(),
     package_data={'wrf4g': get_conf_files()},
-    version='2.3.0',
+    version='__version__',
     author='Meteorology Group UC',
-    author_email='josecarlos.blanco@unican.es',
+    author_email='meteo@unican.es',
     url='https://meteo.unican.es/trac/wiki/WRF4G2.0',
     license='European Union Public License 1.1',
     description='WRF for Grid (WRF4G) is a framework for the execution and monitoring of the WRF Modelling System.',
