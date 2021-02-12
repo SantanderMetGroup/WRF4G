@@ -272,6 +272,7 @@ class Experiment(object):
         data_updated = data % {
                                'WRF4G_EXPERIMENT_HOME' : exp_dir_config ,
                                'WRF4G_DEPLOYMENT_DIR'  : WRF4G_DEPLOYMENT_DIR ,
+                               'WRF4G_DIR'             : WRF4G_DIR ,
                                'exp_name'              : name ,
                                }
         with open(dest_path, 'w') as f :
@@ -411,9 +412,15 @@ class Experiment(object):
         current_path = os.getcwd()
         try :
             tar = tarfile.open( wrf4g_package, "w:gz" )
-            os.chdir( WRF4G_DEPLOYMENT_DIR )
-            logging.debug( "Creating '%s' package" % wrf4g_package )
-            [ tar.add( dir ) for dir in [ "bin", "lib" ] ]
+            # Add wn/bin
+            tar.add('%s/data/wn/bin' % (WRF4G_DEPLOYMENT_DIR),arcname='bin')
+            # Add python packages to lib/python
+            for package in [ 'sqlalchemy','dateutil','wrf4g','fortran_namelist']:
+                ipackage = __import__(package)
+                tar.add(os.path.dirname(ipackage.__file__),arcname='lib/python/%s' % (package) )
+            for module in ['six']:
+                imodule = __import__(module)
+                tar.add('%s/%s.py' %(os.path.dirname(imodule.__file__),module), arcname='lib/python/%s' % ('%s.py' %(module)))    
         except Exception as err:
             logging.warn( err )
         finally :
