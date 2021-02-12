@@ -27,7 +27,7 @@ jobs:
       run: |	
         # $CONDA is an environment variable pointing to the root of the miniconda directory	
         echo $CONDA/bin >> $GITHUB_PATH
-    - run: conda install paramiko docopt sqlalchemy python-dateutil
+    - run: conda install paramiko<2.0 docopt sqlalchemy python-dateutil
     - run: SHELL=/bin/sh pip install .
 #    - name: Install dependencies
 #      run: |
