@@ -6,7 +6,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 5
+      max-parallel: 1
       matrix: 
         os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
         python-version: [3.5, 3.6, 3.7, 3.8]
@@ -27,7 +27,7 @@ jobs:
       run: |	
         # $CONDA is an environment variable pointing to the root of the miniconda directory	
         echo $CONDA/bin >> $GITHUB_PATH
-    - run: conda install paramiko<2.0 docopt sqlalchemy python-dateutil
+    - run: conda install paramiko=1.18 docopt sqlalchemy python-dateutil
     - run: SHELL=/bin/sh pip install .
 #    - name: Install dependencies
 #      run: |
