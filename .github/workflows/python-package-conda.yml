@@ -27,6 +27,7 @@ jobs:
       run: |	
         # $CONDA is an environment variable pointing to the root of the miniconda directory	
         echo $CONDA/bin >> $GITHUB_PATH
+    - run: conda install paramiko, docopt, sqlalchemy, python-dateutil
     - run: SHELL=/bin/sh pip install .
 #    - name: Install dependencies
 #      run: |
@@ -42,3 +43,9 @@ jobs:
 #      run: |
 #        conda install pytest
 #        pytest
+
+    - run: wrf4g resource
+    - run: wrf4g exp test define --from-template=single
+    - run: wrf4g exp test create --dir test
+    - run: wrf4g exp test submit
+    - run: wrf4g exp test1 submit --rerun
