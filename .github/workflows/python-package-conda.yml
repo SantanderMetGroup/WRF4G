@@ -14,17 +14,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Conda
-      uses: actions/setup-python@v2
+      uses: s-weigand/setup-conda@v1
       with:
           update-conda: true
           python-version: ${{ matrix.python-version }}
           conda-channels: anaconda
-    - name: Add conda to system path
-      run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
-    - run: conda --version
-    - run: which python
+    - run: pip install .
 #    - name: Install dependencies
 #      run: |
 #        conda env update --file environment.yml --name base
