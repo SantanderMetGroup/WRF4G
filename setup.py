@@ -77,7 +77,7 @@ setup(
     name='wrf4g',
     packages=find_packages(),
     package_data={'wrf4g': get_conf_files()},
-    version='__version__',
+    version=__version__,
     author='Meteorology Group UC',
     author_email='meteo@unican.es',
     url='https://meteo.unican.es/trac/wiki/WRF4G2.0',
