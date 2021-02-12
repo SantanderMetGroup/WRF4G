@@ -3,21 +3,28 @@ name: Python Package using Conda
 on: [push]
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 5
-
+      matrix: 
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        python-version: [3.6, 3.7, 3.8]
+    name: Python ${{ matrix.python-version }} example
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.8
+    - name: Set up Conda
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+          update-conda: true
+          python-version: ${{ matrix.python-version }}
+          conda-channels: anaconda
     - name: Add conda to system path
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
         echo $CONDA/bin >> $GITHUB_PATH
+    - run: conda --version
+    - run: which python
 #    - name: Install dependencies
 #      run: |
 #        conda env update --file environment.yml --name base
