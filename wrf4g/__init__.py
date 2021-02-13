@@ -33,3 +33,4 @@ DB4G_CONF            = os.environ.get( 'DB4G_CONF',  join( WRF4G_DIR , 'etc' , '
 WRF4G_LOGGER         = join( WRF4G_DIR, 'etc', 'logger.conf')
 
 import wrf4g.orm
+from ._version import __version__
