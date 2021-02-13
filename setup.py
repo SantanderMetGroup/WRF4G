@@ -34,12 +34,6 @@ import os
 if (sys.version_info[0]==2 and sys.version_info<=(2,5)) or (sys.version_info[0]==3 and sys.version_info<(3,3)):
     exit( 'The version number of Python has to be >= 2.6 or >= 3.3' )
 
-# Python 2/3 compatibility
-try: 
-    input = raw_input
-except NameError:
-    pass
-
 # Get every file under search_dir, including subdirectories. Needs to be improved
 def get_conf_files(search_dir='data'):
     if os.path.exists('./wrf4g'):
@@ -83,7 +77,7 @@ setup(
     packages=find_packages(),
     package_data={'wrf4g': get_conf_files()},
     version=version,
-    author='Meteorology Group UC',
+    author='Santander Meteorology Group',
     author_email='meteo@unican.es',
     url='https://meteo.unican.es/trac/wiki/WRF4G2.0',
     license='European Union Public License 1.1',
