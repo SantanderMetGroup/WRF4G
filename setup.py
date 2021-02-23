@@ -163,7 +163,7 @@ class WRF4GSetup(object):
             return None
         else:
             response = urlopen(
-                'https://meteo.unican.es/work/repository.tar.gz')
+                'https://meteo.unican.es/work/WRF4G/repository.tar.gz')
             tar_file = response.read()
             # the disadvantage of this method is that the entire file is loaded
             # into ram before being saved to disk
