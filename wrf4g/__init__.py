@@ -17,19 +17,20 @@
 # See the Licence for the specific language governing
 # permissions and limitations under the Licence.
 #
-import os
-from distutils import spawn
-from os.path import dirname, join
 
-__version__ = '2.3.0'
-__author__ = 'Carlos Blanco'
+import os
+import sys
+from os.path      import dirname, join, abspath, exists
+
+__version__  = '2.3.0'
+__author__   = 'Carlos Blanco'
 __revision__ = "$Id$"
 
-HOME = os.environ.get('HOME')
-WRF4G_DIR = join(os.environ.get('WRF4G_DIR', HOME), '.wrf4g')
-os.environ['GW_LOCATION'] = WRF4G_DIR
-WRF4G_DEPLOYMENT_DIR = spawn.find_executable("wrf4g").replace("/bin/wrf4g", "")
-DB4G_CONF = os.environ.get('DB4G_CONF', join(WRF4G_DIR, 'etc', 'db.conf'))
-WRF4G_LOGGER = join(WRF4G_DIR, 'etc', 'logger.conf')
+HOME                 = os.environ.get( 'HOME' )
+WRF4G_DIR            = os.environ[ 'GW_LOCATION' ] = join( os.environ.get( 'WRF4G_DIR', HOME ), '.wrf4g' )
+WRF4G_DEPLOYMENT_DIR = os.path.dirname(os.path.realpath(__file__))
+DB4G_CONF            = os.environ.get( 'DB4G_CONF',  join( WRF4G_DIR , 'etc' , 'db.conf' ) )
+WRF4G_LOGGER         = join( WRF4G_DIR, 'etc', 'logger.conf')
 
 import wrf4g.orm
+from ._version import __version__

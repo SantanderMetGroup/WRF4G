@@ -53,10 +53,6 @@ from wrf4g.utils.namelist import wps2wrf, fix_ptop
 from wrf4g.utils.vcplib import VCPURL, copy_file
 from wrf4g.config import load_json
 
-__version__ = '2.2.2'
-__author__ = 'Carlos Blanco'
-__revision__ = "$Id$"
-
 lock = __import__('threading').Lock()
 
 PY2 = sys.version_info[0] == 2

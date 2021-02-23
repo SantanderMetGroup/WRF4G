@@ -18,256 +18,85 @@
 # permissions and limitations under the Licence.
 #
 
-__version__ = '2.3.0'
-__author__ = 'Jesus Fernandez and Carlos Blanco'
+__version__  = '2.3.1'
+__author__   = 'Valvanuz Fernández, Jesus Fernandez, Carlos Blanco and Antonio S. Cofiño'
 __revision__ = "$Id$"
 
 from setuptools import setup
 from setuptools import find_packages
 from setuptools.command.install import install
-from setuptools.command.install_scripts import install_scripts
-from os import path
-import sysconfig
-import tarfile
 import glob
 import sys
-import ast
 import os
 
+#To ensure a script runs with a minimal version requirement of the Python interpreter
+#assert sys.version_info >= (2,5)
+if (sys.version_info[0]==2 and sys.version_info<=(2,5)) or (sys.version_info[0]==3 and sys.version_info<(3,3)):
+    exit( 'The version number of Python has to be >= 2.6 or >= 3.3' )
 
-try:
-    from urllib.request import urlopen  # Python 3 - not verified
-except ImportError:
-    from urllib2 import urlopen  # Python 2
+# Get every file under search_dir, including subdirectories. Needs to be improved
+def get_conf_files(search_dir='data'):
+    if os.path.exists('./wrf4g'):
+        os.chdir('./wrf4g')
+    directory_list = glob.glob(search_dir)
+    search_dir += '/*'
+    file_list = []
+    if directory_list:
+        for f in directory_list:
+            if os.path.isfile(f):
+                file_list.append(f)
+        file_list += get_conf_files(search_dir)
+    if not os.path.exists('./wrf4g'):
+        os.chdir('..')
+    return file_list
 
-
-
-
-# don't touch my shebang
-# from https://stackoverflow.com/questions/1530702/dont-touch-my-shebang
-class BSCommand(install_scripts):
-    def run(self):
-        """
-        Copy, chmod each script listed in 'self.scripts'
-        essentially this is the stripped
-         distutils.command.build_scripts.copy_scripts()
-        routine
-        """
-        from stat import ST_MODE
-        from distutils.dep_util import newer
-        from distutils import log
-        import os
-
-        self.mkpath(self.build_dir)
-        outfiles = []
-        for script in self.scripts:
-            outfile = os.path.join(self.build_dir, os.path.basename(script))
-            outfiles.append(outfile)
-
-            if not self.force and not newer(script, outfile):
-                log.debug("not copying %s (up-to-date)", script)
-                continue
-
-            log.info("copying and NOT adjusting %s -> %s", script,
-                         self.build_dir)
-            self.copy_file(script, outfile)
-
-        if os.name == 'posix':
-            for file in outfiles:
-                if self.dry_run:
-                    log.info("changing mode of %s", file)
-                else:
-                    oldmode = os.stat(file)[ST_MODE] & 0o7777
-                    newmode = (oldmode | 0o555) & 0o7777
-                    if newmode != oldmode:
-                        log.info("changing mode of %s from %o to %o",
-                                 file, oldmode, newmode)
-                        os.chmod(file, newmode)
-
-
-class WRF4GSetup(object):
-    def __init__(self):
-        self.python_version = "{0}.{1}".format(*sys.version_info)
-        self.sourcedir = path.abspath(path.dirname(__file__))
-        self.moduledir = self.sourcedir + "/wrf4g"
-        self.configdir = self.moduledir + "/etc"
-        self.prefix_dir = None
-        self.has_prefix = False
-        self.lib_dir = None
-        self.bin_dir = None
-
-        arguments = str(sys.argv)
-        # convert from string to list
-        self.arguments = ast.literal_eval(arguments)
-
-    def get_conf_files(self):
-        file_list = []
-        print("Adding configuration files")
-        for dirpath, dirnames, filenames in os.walk(self.configdir):
-            if filenames:
-                filenames_abs = [os.path.join(dirpath, f) for f in filenames]
-                print(filenames_abs)
-                file_list.extend(filenames_abs)
-        return file_list
-
-    def run_preinstallation(self):
-        self.prefix_option()
-        self.extract_repository()
-
-    def prefix_option(self):
-        # Going through the whole list since the options can be defined in
-        # different ways (--prefix=dir> or --prefix <dir>) Which is why I'm not
-        # using self.arguments.index('--prefix') to find it, since it doesn't
-        # check if it's a substring. Could also do it with a while and make it
-        # stop if it finds '--prefix' or '--home'
-        for i in range(len(self.arguments)):
-            option = self.arguments[i]
-            # folder name can't contain '--prefix' or '--home'
-            if '--prefix' in option or '--home' in option:
-                # I'm working under the impression that the path passed on to
-                # prefix has to be an absolute path for the moment, if you use
-                # a relative path, gridway's binary files will be copied to a
-                # directory relative to where ./gridway-5.8 is
-                self.has_prefix = True
-                if '=' in option:
-                    self.prefix_dir = option[option.find('=')+1:]
-                elif "--user" in option:
-                    self.prefix_dir = os.environ["HOME"] + ".local"
-                else:
-                    self.prefix_dir = self.arguments[i+1]
-
-                if '--prefix' in option:
-                    self.lib_dir = os.path.join(
-                        self.prefix_dir,
-                        'lib/python{}/site-packages'.format(self.python_version)
-                    )
-                elif '--home' in option:
-                    self.lib_dir = os.path.join(self.prefix_dir, 'lib/python')
-
-
-                try:
-                    os.makedirs(self.lib_dir)
-                except OSError:
-                    print('\nDirectory {} already exists'.format(self.lib_dir))
-        # Use sysconfig package to get the default install lib path for this
-        # python installation
-        if not self.has_prefix:
-            self.lib_dir = sysconfig.get_path("platlib")
-            self.prefix_dir = sysconfig.get_path("data")
-
-        self.bin_dir = os.path.join(self.prefix_dir, 'bin')
-
-    def download_repository(self):
-        tar_file_local = "repository.tar.gz"
-        if os.path.exists(tar_file_local):
-            return None
-        else:
-            response = urlopen(
-                'https://meteo.unican.es/work/WRF4G/repository.tar.gz')
-            tar_file = response.read()
-            # the disadvantage of this method is that the entire file is loaded
-            # into ram before being saved to disk
-            with open(tar_file_local, 'wb') as output:
-                output.write(tar_file)
-
-    def repository_files(self, members):
-        for tarinfo in members:
-            if "repository" in tarinfo.name:
-                yield tarinfo
-
-    def extract_repository(self):
-        self.download_repository()
-        with tarfile.open('repository.tar.gz', 'r') as tar:
-            repository_path = self.prefix_dir
-            tar.extractall(path=repository_path,
-                           members=self.repository_files(tar))
-
-    def print_final_message(self):
-        print("WRF4G binary files installed in {}".format(self.bin_dir))
-        print("WRF4G library files installed in {}".format(self.lib_dir))
-
-        if self.prefix_dir is None:
-            print(
-                '''
-                To finish with the installation, you have to add the 
-                following paths to your $PYTHONPATH and $PATH:
-                export PYTHONPATH={}:$PYTHONPATH
-                export PATH={}:$PATH
-                '''.format(self.lib_dir, self.bin_dir)
-            )
-
-
-def get_long_description():
-    readme_file = 'README'
-    if not os.path.isfile(readme_file):
-        return ''
-    # Try to transform the README from Markdown to reStructuredText.
-    try:
-        import pandoc
-        pandoc.core.PANDOC_PATH = 'pandoc'
-        doc = pandoc.Document()
-        doc.markdown = open(readme_file).read()
-        description = doc.rst
-    except Exception:
-        description = open(readme_file).read()
-    return description
-
-
-def yes_no_choice(message,  default='y'):
-    """
-    Ask for Yes/No questions
-    """
-    choices = 'y/n' if default.lower() in ('y', 'yes') else 'y/N'
-    values = ('y', 'yes', 'n', 'no')
-    choice = ''
-    while not choice.strip().lower() in values:
-        choice = input("{} ({}) \n".format(message, choices))
-    return choice.strip().lower()
-
-
-wrf4g_setup = WRF4GSetup()
-
-
-class BuildWrapper(install):
-    def run(self):
-        wrf4g_setup.run_preinstallation()
-        install.run(self)
-
+this_directory = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 bin_scripts = glob.glob(os.path.join('bin', '*'))
-bin_scripts.append('LICENSE')
+
+def get_version_and_cmdclass(package_path):
+    """Load version.py module without importing the whole package.
+
+    Template code from miniver
+    """
+    import os
+    from importlib.util import module_from_spec, spec_from_file_location
+
+    spec = spec_from_file_location("version", os.path.join(package_path, "_version.py"))
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.__version__, module.cmdclass
+
+
+version, cmdclass = get_version_and_cmdclass("wrf4g")
 
 setup(
     name='wrf4g',
     packages=find_packages(),
-    package_data={'wrf4g': wrf4g_setup.get_conf_files()},
-    version='2.3.0',
-    author='Meteorology Group UC',
-    author_email='josecarlos.blanco@unican.es',
+    package_data={'wrf4g': get_conf_files()},
+    version=version,
+    author='Santander Meteorology Group',
+    author_email='meteo@unican.es',
     url='https://meteo.unican.es/trac/wiki/WRF4G2.0',
     license='European Union Public License 1.1',
-    description='WRF for Grid (WRF4G) is a framework for the execution and '
-                'monitoring of the WRF Modelling System.',
-    long_description=get_long_description(),
-    python_requires='>=2.7,!=3.0.*,!=3.1.*',
+    description='WRF for Grid (WRF4G) is a framework for the execution and monitoring of the WRF Modelling System.',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     classifiers=[
         "Intended Audience :: Science/Research",
         "Programming Language :: Python",
         "Topic :: Scientific/Engineering",
         "Topic :: Office/Business :: Scheduling",
-        "Programming Language :: Python :: 2.6",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.3",
-        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
-    install_requires=['sqlalchemy', 'six', 'requests', 'drm4g', 'docopt',
-                      'python-dateutil', 'MySQL-python'],
+    install_requires=['drm4g', 'sqlalchemy', 'six', 'python-dateutil','requests'],
     scripts=bin_scripts,
-    cmdclass={
-        'install': BuildWrapper,
-    },
+    cmdclass=cmdclass,    
 )
-
-wrf4g_setup.print_final_message()

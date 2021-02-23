@@ -23,13 +23,9 @@ import re
 import glob
 import time
 import copy
-import pkgutil
 import tarfile
 import shutil
 import logging
-from distutils import spawn
-import shutil
-import tempfile
 import fortran_namelist as fn
 from fortran_namelist       import coerce_value_list
 from sqlalchemy             import and_, or_
@@ -277,6 +273,7 @@ class Experiment(object):
         data_updated = data % {
                                'WRF4G_EXPERIMENT_HOME' : exp_dir_config ,
                                'WRF4G_DEPLOYMENT_DIR'  : WRF4G_DEPLOYMENT_DIR ,
+                               'WRF4G_DIR'             : WRF4G_DIR ,
                                'exp_name'              : name ,
                                }
         with open(dest_path, 'w') as f :
@@ -414,38 +411,17 @@ class Experiment(object):
             logging.debug( "Removing '%s' package" % wrf4g_package )
             os.remove( wrf4g_package )
         current_path = os.getcwd()
-        try:
-            tar = tarfile.open(wrf4g_package, "w:gz", dereference=True)
-            bin_list = [
-                "bin/fortnml",
-                "bin/wrf4g",
-                "bin/wrf4g_autocomplete.sh",
-                "bin/wrf4g_init.sh",
-                "bin/wrf_launcher.sh",
-                "bin/wrf_make_bin",
-                "bin/wrf_util.sh",
-                "bin/wrf_wrapper.py"
-            ]
-            bin_abspaths = [join(WRF4G_DEPLOYMENT_DIR, b) for b in bin_list]
-            # Add binaries to the tarfile
-            for bin_abspath, relpath in zip(bin_abspaths, bin_list):
-                strparam = (bin_abspath, relpath)
-                logging.debug("Adding binary {} as {}".format(*strparam))
-                tar.add(bin_abspath, arcname=relpath)
-            # Add required libraries (packages) to the tarfile
-            libs_to_package = ["wrf4g", "fortran_namelist", "drm4g", "pymysql",
-                               "sqlalchemy", "docopt", "dateutil", "six"]
-            for libname in libs_to_package:
-                lib_abspath = _get_package_location(libname)
-                if lib_abspath[-3:] == ".py":
-                    # Needed for docpot as it is just a file
-                    lib_relpath = join("lib/python", libname + ".py")
-                else:
-                    lib_relpath = join("lib/python", libname)
-                strparam = (lib_abspath, lib_relpath)
-                logging.debug("Adding package {} as {}".format(*strparam))
-                tar.add(lib_abspath, arcname=lib_relpath,
-                        exclude=lambda x: x[-4:] == ".pyc")
+        try :
+            tar = tarfile.open( wrf4g_package, "w:gz" )
+            # Add wn/bin
+            tar.add('%s/data/wn/bin' % (WRF4G_DEPLOYMENT_DIR),arcname='bin')
+            # Add python packages to lib/python
+            for package in [ 'sqlalchemy','dateutil','wrf4g','fortran_namelist']:
+                ipackage = __import__(package)
+                tar.add(os.path.dirname(ipackage.__file__),arcname='lib/python/%s' % (package) )
+            for module in ['six']:
+                imodule = __import__(module)
+                tar.add('%s/%s.py' %(os.path.dirname(imodule.__file__),module), arcname='lib/python/%s' % ('%s.py' %(module)))
         except Exception as err:
             logging.warn( err )
         finally :
@@ -1037,24 +1013,3 @@ class Events( object ) :
     pass
 
 
-def _get_package_location(package):
-    return pkgutil.find_loader(package).filename
-
-
-def _fix_shebang(ipath):
-    """
-    Overwrites the shebangs written by setuptools when installing wrf4g, which
-    point to the local python installation and won't work in a remote cluster.
-    """
-    newshebang = "#!/usr/bin/env python\n"
-
-    with tempfile.NamedTemporaryFile(dir='.', delete=False) as tmp:
-        with open(ipath, "r") as ifile:
-            oldshebang = ifile.readline()
-            print(
-                "Replacing old shebang {} by {}".format(oldshebang, newshebang))
-            tmp.write(newshebang)
-            shutil.copyfileobj(ifile, tmp)
-    # Now files are closed so we can do this
-    shutil.copymode(ipath, tmp.name)
-    shutil.move(tmp.name, ipath)
