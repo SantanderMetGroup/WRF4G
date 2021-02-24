@@ -245,7 +245,7 @@ def save_pkl( obj_config, directory, file_name ) :
     """
     Save a python object into a pickle file.
     """
-    with open( join( directory, file_name ), "w" ) as f :
+    with open( join( directory, file_name ), "wb" ) as f :
         pickle.dump( obj_config, f )
 
 def load_pkl( directory, file_name ) :
