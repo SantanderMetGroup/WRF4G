@@ -21,7 +21,8 @@
 import os
 import logging
 import subprocess
-from distutils  import spawn
+from distutils import spawn
+
 
 def cls():
     os.system( "clear" )
@@ -51,6 +52,11 @@ def exec_cmd( cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE, env = os.
     logging.debug( "Executing command ... " + cmd )
     p      = subprocess.Popen( cmd, shell = True, stdout = stdout,
                                stderr = stderr, env = env )
-    output = p.stdout.read().strip() + p.stderr.read().strip()
-    code   = p.wait()
-    return code, output
+    out, err = p.communicate()
+    output = out.strip() + err.strip()
+    return p.returncode, output
+
+def os_stat(ifile):
+    return os.stat(ifile)
+
+
