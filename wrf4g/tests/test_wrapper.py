@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from wrf4g.wrapper import PilotParams, WRF4GWrapper
+from unittest import mock
 from mocked_functions import mock_rmtree, mock_exec_cmd
 
 log = logging.getLogger()

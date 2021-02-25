@@ -25,38 +25,58 @@ from distutils import spawn
 
 
 def cls():
-    os.system( "clear" )
+    os.system("clear")
 
-def which( command ):
+
+def which(command):
     """
     Locate commands
     """
-    return spawn.find_executable( command )
+    return spawn.find_executable(command)
 
-def exec_cmd_advance( cmd, nohup=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-              stderr=subprocess.STDOUT, env=os.environ ):
+
+def exec_cmd_advance(
+    cmd,
+    nohup=False,
+    stdin=subprocess.PIPE,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
+    env=os.environ,
+):
     """
     Execute shell commands
     """
-    logging.debug( "Executing command ... " + cmd )
-    cmd_to_exec = subprocess.Popen( cmd, shell = True, stdin = stdin,
-                                    stdout = stdout, stderr = stderr,
-                                    env = env )
-    if not nohup :
-        out , err =  cmd_to_exec.communicate()
-    else :
-        out = err = ''
-    return out , err
+    logging.debug("Executing command ... " + cmd)
+    cmd_to_exec = subprocess.Popen(
+        cmd,
+        shell=True,
+        stdin=stdin,
+        stdout=stdout,
+        stderr=stderr,
+        env=env,
+        universal_newlines=True,
+    )
+    if not nohup:
+        out, err = cmd_to_exec.communicate()
+    else:
+        out = err = ""
+    return out, err
 
-def exec_cmd( cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE, env = os.environ ):
-    logging.debug( "Executing command ... " + cmd )
-    p      = subprocess.Popen( cmd, shell = True, stdout = stdout,
-                               stderr = stderr, env = env )
+
+def exec_cmd(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=os.environ):
+    logging.debug("Executing command ... " + cmd)
+    p = subprocess.Popen(
+        cmd,
+        shell=True,
+        stdout=stdout,
+        stderr=stderr,
+        env=env,
+        universal_newlines=True
+    )
     out, err = p.communicate()
     output = out.strip() + err.strip()
     return p.returncode, output
 
+
 def os_stat(ifile):
     return os.stat(ifile)
-
-
