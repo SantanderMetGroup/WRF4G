@@ -28,6 +28,7 @@ from setuptools.command.install import install
 import glob
 import sys
 import os
+from io import open
 
 #To ensure a script runs with a minimal version requirement of the Python interpreter
 #assert sys.version_info >= (2,5)
