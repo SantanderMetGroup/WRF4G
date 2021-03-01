@@ -253,7 +253,8 @@ class Experiment(object):
         Create the files needed to establish a WRF4G experiment
         """
         validate_name( name )
-        if not template in [ 'default', 'single', 'physics' ] :
+        template_dir = join( WRF4G_DIR , 'etc' , 'templates' , 'experiments',  template )
+        if not exists(template_dir):
             raise Exception( "'%s' template does not exist" % template )
         exp_dir = expandvars( expanduser( os.getcwd() if directory == './' else directory ) )
         if not exists( exp_dir ):
@@ -399,7 +400,7 @@ class Experiment(object):
             else :
                 shutil.copy( expandvars( file ) , exp_sub_dir )
 
-    def _create_wrf4g_bundles(self, exp_sub_dir ):
+    def _create_wrf4g_bundles(self, exp_sub_dir):
         """
         Create bundles with the necessary software to run WRF on worker nodes.
         """
@@ -420,7 +421,7 @@ class Experiment(object):
                 tar.add(os.path.dirname(ipackage.__file__),arcname='lib/python/%s' % (package) )
             for module in ['six']:
                 imodule = __import__(module)
-                tar.add('%s/%s.py' %(os.path.dirname(imodule.__file__),module), arcname='lib/python/%s' % ('%s.py' %(module)))    
+                tar.add('%s/%s.py' %(os.path.dirname(imodule.__file__),module), arcname='lib/python/%s' % ('%s.py' %(module)))
         except Exception as err:
             logging.warn( err )
         finally :
@@ -629,7 +630,7 @@ class Realization( object ):
 
     @staticmethod 
     def status_header(): 
-        logging.info( '\033[1;4m%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s\033[0m'% (
+        logging.info( '%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s'% (
                         'REALIZATION','STATUS','CHUNKS','RESOURCE','RUN STATUS',
                         'JID', 'EXT','%' ) )
  
@@ -921,6 +922,7 @@ class JobCodeError():
     PREPROCESSOR_FAILED  = 14
     LINK_GRIB_FAILED     = 15
     UNGRIB_FAILED        = 16
+    UNGRIB_PROCESSOR_FAILED  = 31
     METGRID_FAILED       = 17
     REAL_FAILED          = 18
     COPY_UPLOAD_WPS      = 19

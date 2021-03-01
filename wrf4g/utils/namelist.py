@@ -69,12 +69,15 @@ def get_latlon_dx(start_date, dom):
     #  Try to get dx from the met_em or wrfinput files. Only
     #  required for lat-lon grids, otherwise it is available
     #  in the namelist.wps file
+    dxfile=None
     file_name = "met_em.%s.%s.nc" % ( dom, datetime2datewrf( start_date ) )
     if exists( file_name ) :
         dxfile = file_name
-    file_name = "wrfinput_%s" % dom
-    if exists( file_name ) :
+        logging.info("Reading dx from %s" % file_name)
+    else:
+        file_name = "wrfinput_%s" % dom
         dxfile = file_name
+        logging.info("Reading dx from %s" % file_name)
     if dxfile:
         shcmd = "ncdump -h %s | grep 'DX =' | sed -e 's/^\t//' | tr '=;' ' ' | awk '{printf \"%%f\", $2}'" % dxfile
         rval = round(float(os.popen(shcmd).read().strip()), 4)
@@ -96,7 +99,9 @@ def wps2wrf( namelist_wps, namelist_input, sdate, edate, maxdom, chunk_is_restar
     nmli.setMaxDomValue("end_month",   edate.month)
     nmli.setMaxDomValue("end_day",     edate.day)
     nmli.setMaxDomValue("end_hour",    edate.hour)
-    for var in [ "parent_grid_ratio", "i_parent_start", "j_parent_start", "e_we", "e_sn"]:
+    vars_to_copy = ["parent_grid_ratio", "i_parent_start", "j_parent_start",
+                    "e_we", "e_sn", "interval_seconds"]
+    for var in vars_to_copy:
         nmli.setValue(var, nmlw.getValue(var))
     nmli.setValue("parent_time_step_ratio", nmlw.getValue("parent_grid_ratio"))
     if exists("met_em.d01.%s.nc" % datetime2datewrf( sdate ) ):
