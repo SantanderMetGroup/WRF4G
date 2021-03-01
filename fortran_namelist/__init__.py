@@ -26,11 +26,9 @@ import logging
 
 def listify(item):
   if type(item) == type([]):
-    return [ str(elem) if type(elem) == unicode else elem for elem in item ]
+    return [ elem for elem in item ]
   else:
-    if type(item) == unicode :
-      item = str( item )
-    return [item,]
+    return [item,] 
 
 def flat_list(l):
   rval = []
