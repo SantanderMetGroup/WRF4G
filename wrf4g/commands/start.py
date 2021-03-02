@@ -72,7 +72,7 @@ def run( arg ) :
             copy_tree( src , WRF4G_DIR )
             
             logging.debug('Downloading and extracting data repository')
-            r = requests.get('https://meteo.unican.es/work/WRF4G/repository.tar.gz')
+            r = requests.get('personales.gestion.unican.es/fernanqv/repository.tar.gz')
             open('repository.tar.gz', 'wb').write(r.content)
             tar = tarfile.open('repository.tar.gz')
             tar.extractall(path=WRF4G_DIR)
