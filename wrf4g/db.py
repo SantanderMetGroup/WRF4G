@@ -32,7 +32,7 @@ from wrf4g.utils.command        import exec_cmd_advance as exec_cmd
 from wrf4g.utils.file           import VarEnv
 
 DEFAULT_DB_CONF = """[DEFAULT]
-URL = sqlite:///%(WRF4G_DIR)s/etc/wrf4g.db
+URL = sqlite:////%(WRF4G_DIR)s/etc/wrf4g.db
 """
 
 def process_is_runnig( pid ):
