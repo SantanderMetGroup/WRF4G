@@ -667,10 +667,10 @@ class WRF4GWrapper(object):
                           'run', 'real.exe'), stat.S_IRWXU)
             os.chmod(join(params.root_path, 'WRFV3',
                           'run', 'wrf.exe'), stat.S_IRWXU)
-            os.chmod(join(params.root_path, 'WPS', 'util',
-                          'src', 'calc_ecmwf_p.exe'), stat.S_IRWXU)
-            os.chmod(join(params.root_path, 'WPS', 'util',
-                          'src', 'avg_tsfc.exe'), stat.S_IRWXU)
+#            os.chmod(join(params.root_path, 'WPS', 'util'
+#                          'src', 'calc_ecmwf_p.exe'), stat.S_IRWXU)
+#            os.chmod(join(params.root_path, 'WPS', 'util',
+#                          'src', 'avg_tsfc.exe'), stat.S_IRWXU)
 
     def prepare_parallel_environment(self):
         params = self.params

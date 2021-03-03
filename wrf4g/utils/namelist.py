@@ -62,7 +62,8 @@ def get_time_step(coarse_dx, factor):
         720,900,1200
         ]
     tstep = int(factor*coarse_dx/1000)
-    ival = map(lambda x: x<=tstep, HOUR_DIVISORS).index(0) - 1
+    # Added list to fix execution in python 3
+    ival = list(map(lambda x: x<=tstep, HOUR_DIVISORS)).index(0) - 1
     return HOUR_DIVISORS[ival]
 
 def get_latlon_dx(start_date, dom):
