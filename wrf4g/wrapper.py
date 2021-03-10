@@ -1058,10 +1058,10 @@ class WRF4GWrapper(object):
                 for rsl_file in rsl_files:
                     shutil.copyfile(rsl_file, join(
                         real_rsl_path, basename(rsl_file)))
-        else:
-            real_log = join(params.log_path, 'real.log')
-            code, output = exec_cmd(
-                "wrf_launcher.sh %s > %s" % (real_exe, real_log))
+            else:
+                real_log = join(params.log_path, 'real.log')
+                code, output = exec_cmd(
+                    "wrf_launcher.sh %s > %s" % (real_exe, real_log))
         if code or not 'SUCCESS COMPLETE' in open(real_log, 'r').read():
             logging.info(output)
             raise JobError("'%s' has failed" %
