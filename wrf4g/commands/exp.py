@@ -188,6 +188,8 @@ def run( arg ) :
             session.rollback()
         except Exception as err :
             session.rollback()
-            logging.error( str( err ) )
+            #logging.error( str( err ) )
+            session.close()
+            exit(str(err))
         finally:
             session.close()
