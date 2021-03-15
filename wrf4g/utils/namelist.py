@@ -26,7 +26,8 @@ from wrf4g.utils.time import datetime2datewrf
 
 def get_ptop():
     shcmd = "ncdump -v PRES $(\ls met_em.d??.????-??-??_??:00:00.nc | head -1) | tail -2 | head -1 | tr -d ',;' | awk '{printf $1}'"
-    return int(os.popen(shcmd).read().strip())
+    out=os.popen(shcmd).read().strip()
+    return int(out)
 
 def fix_ptop( namelist_input ):
     top_press = get_ptop()
@@ -49,11 +50,13 @@ def fix_ptop( namelist_input ):
 
 def get_num_metgrid_levels():
     shcmd = "ncdump -h $(\ls -1 met_em*.nc | head -1) | grep 'num_metgrid_levels =' | sed -e 's/^\t//' | tr '=;' '  ' | awk '{print $2}'"
-    return int(os.popen(shcmd).read().strip())
+    out=os.popen(shcmd).read().strip()
+    return int(out)
 
 def get_num_metgrid_soil_levels():
     shcmd = "ncdump -h $(\ls -1 met_em*.nc | head -1) | grep 'NUM_METGRID_SOIL_LEVELS' | sed -e 's/^\t//' | tr '=:;' '   ' | awk '{print $2}'"
-    return int(os.popen(shcmd).read().strip())
+    out=os.popen(shcmd).read().strip()
+    return int(out)
 
 def get_time_step(coarse_dx, factor):
     HOUR_DIVISORS = [
@@ -62,7 +65,8 @@ def get_time_step(coarse_dx, factor):
         720,900,1200
         ]
     tstep = int(factor*coarse_dx/1000)
-    ival = map(lambda x: x<=tstep, HOUR_DIVISORS).index(0) - 1
+    # Added list to fix execution in python 3
+    ival = list(map(lambda x: x<=tstep, HOUR_DIVISORS)).index(0) - 1
     return HOUR_DIVISORS[ival]
 
 def get_latlon_dx(start_date, dom):

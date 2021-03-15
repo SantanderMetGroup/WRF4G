@@ -61,7 +61,7 @@ class MySQLDB( object ):
 
     def _port_is_free( self ):
         sock = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-        if sock.connect_ex( ( '127.0.0.1', int( self.mysql_port ) ) ) is 0 :
+        if sock.connect_ex( ( '127.0.0.1', int( self.mysql_port ) ) ) == 0 :
             return False
         else :
             return True

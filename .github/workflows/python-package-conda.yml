@@ -50,8 +50,9 @@ jobs:
 #        pytest
 
     - run: wrf4g start
+    - run: wrf4g stop
+    - run: wrf4g start
     - run: wrf4g resource
     - run: wrf4g exp test define --from-template=single
     - run: wrf4g exp test create --dir test
     - run: wrf4g exp test submit
-    - run: wrf4g exp test1 submit --rerun
