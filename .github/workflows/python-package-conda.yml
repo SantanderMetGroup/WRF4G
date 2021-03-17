@@ -60,7 +60,5 @@ jobs:
     - run: wrf4g exp test create --dir test
     - run: wrf4g exp test submit
     - run: wrf4g exp test status
-    - run: sleep 30
-    - run: wrf4g exp test status
-    - run: sleep 60
-    - run: wrf4g exp test status
+    - run: sleep 120
+    - run: wrf4g exp test status | tail -1 | awk '{print $5}' |grep FINISHED
