@@ -62,3 +62,4 @@ jobs:
     - run: wrf4g exp test status
     - run: sleep 120
     - run: wrf4g exp test status | tail -1 | awk '{print $5}' |grep FINISHED
+    - run: wrf4g exp test status 
