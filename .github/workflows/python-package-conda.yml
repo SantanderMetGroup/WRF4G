@@ -50,9 +50,11 @@ jobs:
 #        pytest
 
     - run: wrf4g start
-    - run: drm4g status
     - run: sleep 10
+    - run: wrf4g status
     - run: drm4g start
+    - run: sleep 10
+    - run: drm4g status
     - run: wrf4g resource
     - run: wrf4g exp test define --from-template=single
     - run: wrf4g exp test create --dir test
