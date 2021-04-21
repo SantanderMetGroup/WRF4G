@@ -1,6 +1,6 @@
 [DEFAULT]
 # Experiment configuration
-name                 = %(exp_name)s
+name                 = test2
 
 # Simulation domain
 max_dom              = 1
@@ -12,7 +12,7 @@ timestep_dxfactor    = 6
 # Running options 
 np                   = 1
 requirements         = ARCH = "x86_64"
-clean_after_run      = yes
+clean_after_run      = no
 save_wps             = no
 # Input data
 domain_path          = %(WRF4G_DIR)s/repository/domains/Santander_50km
@@ -27,11 +27,14 @@ output_path          = %(WRF4G_EXPERIMENT_HOME)s/output
 postprocessor        = SFC
 # app setup
 parallel_env         = MPIRUN
-parallel_real        = yes
-parallel_wrf         = yes
-app                  = wrf_all_in_one | bundle | %(WRF4G_DIR)s/repository/apps/WRF/WRFbin-4.1.2_INTEL_OMPI.tar.gz
+parallel_real        = no
+parallel_wrf         = no
+app                  = wps | command | cp -R %(WRF4G_DIR)s/repository/apps/WRF/WPS .
+                       wrf | command | cp -R %(WRF4G_DIR)s/repository/apps/WRF/WRFV3 .
+                       path | command | export PATH=%(WRF4G_DIR)s/repository/apps/WRF/bin:$PATH
+                       ld_library_path | command | export LD_LIBRARY_PATH=%(WRF4G_DIR)s/repository/apps/WRF/lib:$LD_LIBRARY_PATH
 # WRF-namelist parameters. Override namelist.input variables here
-namelist_version     = 4.1.2
+namelist_version     = 4.2.2
 namelist_values      = bdy_control.spec_bdy_width     | 10
                        bdy_control.spec_zone          | 1
 	               bdy_control.relax_zone         | 9

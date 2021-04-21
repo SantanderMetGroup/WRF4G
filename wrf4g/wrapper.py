@@ -235,6 +235,9 @@ class PilotParams(object):
         resource_cfg = cfg["ensemble/default"].copy()
         # Find if there is a specific section for this resource
         resource_name = os.environ.get("GW_HOSTNAME")
+        if not resource_name:
+            raise NameError('Environment variable: GW_HOSTNAME not defined')
+        # TODO: Check resource_name in not empty
         resource_section = "resource/" + resource_name
         if resource_section in cfg:
             resource_cfg.update(resource_section)
@@ -1168,8 +1171,9 @@ class WRF4GWrapper(object):
         logging.info("Run real")
         logging.info("Real binary: %s" % (real_exe))
         job_db.set_job_status(Job.Status.REAL)
-
-        if params.parallel_real == "yes":
+        
+        
+        if "no" == "yes":
             real_log = join(params.wrf_run_path, "rsl.out.0000")
             launcher = "%s/bin/wrf_launcher.sh" % params.root_path
             cmd = "%s %s %s" % (params.parallel_run, launcher, real_exe)
@@ -1181,11 +1185,12 @@ class WRF4GWrapper(object):
                 rsl_files = glob.glob(join(params.wrf_run_path, "rsl.*"))
                 for rsl_file in rsl_files:
                     shutil.copyfile(rsl_file, join(real_rsl_path, basename(rsl_file)))
-            else:
-                real_log = join(params.log_path, "real.log")
-                code, output = exec_cmd(
-                    "wrf_launcher.sh %s > %s" % (real_exe, real_log)
-                )
+        else:
+            real_log = join(params.log_path, "real.log")
+            code, output = exec_cmd(
+                "wrf_launcher.sh %s > %s" % (real_exe, real_log)
+            )     
+        
         if code or not "SUCCESS COMPLETE" in open(real_log, "r").read():
             logging.info(output)
             raise JobError("'%s' has failed" % real_exe, Job.CodeError.REAL_FAILED)
