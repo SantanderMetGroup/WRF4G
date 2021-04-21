@@ -1,6 +1,6 @@
 [DEFAULT]
 # Experiment configuration
-name                 = test2
+name                 = %(exp_name)s
 
 # Simulation domain
 max_dom              = 1
