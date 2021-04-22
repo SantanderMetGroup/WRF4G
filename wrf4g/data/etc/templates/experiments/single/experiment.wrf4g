@@ -12,7 +12,7 @@ timestep_dxfactor    = 6
 # Running options 
 np                   = 1
 requirements         = ARCH = "x86_64"
-clean_after_run      = no
+clean_after_run      = yes
 save_wps             = no
 # Input data
 domain_path          = %(WRF4G_DIR)s/repository/domains/Santander_50km
@@ -26,7 +26,6 @@ preprocessor         = default
 output_path          = %(WRF4G_EXPERIMENT_HOME)s/output
 postprocessor        = SFC
 # app setup
-parallel_env         = MPIRUN
 parallel_real        = no
 parallel_wrf         = no
 app                  = wps | command | cp -R %(WRF4G_DIR)s/repository/apps/WRF/WPS .

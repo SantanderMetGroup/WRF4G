@@ -282,29 +282,32 @@ class PilotParams(object):
         else:
             local_path = root_path
         self.local_path = local_path
-        # Parallel enviroment
+        
+        # Parallel environment
         self.parallel_real = resource_cfg.get("parallel_real", "no")
         self.parallel_wrf = resource_cfg.get("parallel_wrf", "yes")
 
-        parallel_env = ParallelEnvironment.launcher_map.get(
-            resource_cfg.get("parallel_env", "MPIRUN")
-        )
-        if resource_cfg["parallel_env"] == "DUMMY":
-            parallel_run = resource_cfg["parallel_run"]
-            parallel_run_pernode = resource_cfg["parallel_run_pernode"]
-        else:
-            parallel_run = "%s %s %s " % (
-                parallel_env.launcher,
-                parallel_env.np,
-                os.environ.get("GW_NP"),
+        if ("parallel_env" in resource_cfg):
+            parallel_env = ParallelEnvironment.launcher_map.get(
+                resource_cfg.get("parallel_env")
             )
-            parallel_run_pernode = "%s %s " % (
-                parallel_env.launcher,
-                parallel_env.pernode,
-            )
-        self.parallel_env = parallel_env
-        self.parallel_run = parallel_run
-        self.parallel_run_pernode = parallel_run_pernode
+            if resource_cfg["parallel_env"] == "DUMMY":
+                parallel_run = resource_cfg["parallel_run"]
+                parallel_run_pernode = resource_cfg["parallel_run_pernode"]
+            else:
+                parallel_run = "%s %s %s " % (
+                    parallel_env.launcher,
+                    parallel_env.np,
+                    os.environ.get("GW_NP"),
+                )
+                parallel_run_pernode = "%s %s " % (
+                    parallel_env.launcher,
+                    parallel_env.pernode,
+                )
+            self.parallel_env = parallel_env
+            self.parallel_run = parallel_run
+            self.parallel_run_pernode = parallel_run_pernode
+            
         # WRF path variables
         self.wps_path = join(local_path, "WPS")
         self.wrf_path = join(local_path, "WRFV3")
@@ -662,14 +665,14 @@ class WRF4GWrapper(object):
                 dest = join(archives_path, basename(app_value.strip()))
                 try:
                     logging.info("Trying to copy '%s'" % oring)
-                    copy_file(oring, dest)
+                    #copy_file(oring, dest)
                 except:
                     raise JobError(
                         "'%s' has not copied" % oring, Job.CodeError.COPY_APP
                     )
                 else:
                     logging.info("Unpacking '%s' to '%s'" % (dest, params.root_path))
-                    extract(dest, to_path=params.root_path)
+                    #extract(dest, to_path=params.root_path)
                     if self.OMPIDIR is not None:
                         mpibin = "%s/bin/mpirun" % self.OMPIDIR
                         st = os_stat(mpibin)
@@ -1173,7 +1176,7 @@ class WRF4GWrapper(object):
         job_db.set_job_status(Job.Status.REAL)
         
         
-        if "no" == "yes":
+        if params.parallel_real == 'yes' :
             real_log = join(params.wrf_run_path, "rsl.out.0000")
             launcher = "%s/bin/wrf_launcher.sh" % params.root_path
             cmd = "%s %s %s" % (params.parallel_run, launcher, real_exe)
