@@ -63,3 +63,8 @@ jobs:
     - run: sleep 120
     - run: wrf4g exp test status | tail -1 | awk '{print $5}' |grep FINISHED
     - run: wrf4g exp test status 
+    - run: wrf4g exp testp define --from-template=physics
+    - run: wrf4g exp testp create --dir testp
+    - run: wrf4g exp testp submit
+    - run: sleep 60
+    - run: wrf4g exp testp status 
