@@ -416,7 +416,7 @@ class Experiment(object):
             # Add wn/bin
             tar.add('%s/data/wn/bin' % (WRF4G_DEPLOYMENT_DIR),arcname='bin')
             # Add python packages to lib/python
-            for package in [ 'sqlalchemy','dateutil','wrf4g','fortran_namelist']:
+            for package in [ 'sqlalchemy','dateutil','wrf4g','fortran_namelist','drm4g']:
                 ipackage = __import__(package)
                 tar.add(os.path.dirname(ipackage.__file__),arcname='lib/python/%s' % (package) )
             for module in ['six']:

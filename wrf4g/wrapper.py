@@ -310,7 +310,7 @@ class PilotParams(object):
             
         # WRF path variables
         self.wps_path = join(local_path, "WPS")
-        self.wrf_path = join(local_path, "WRFV3")
+        self.wrf_path = join(local_path, "WRF")
         self.wrf_run_path = join(self.wrf_path, "run")
         # logging configuration
         self.log_path = join(root_path, "log")
@@ -710,6 +710,9 @@ class WRF4GWrapper(object):
         root_bin_path = join(params.root_path, "bin")
         for exe_file in os.listdir(root_bin_path):
             os.chmod(join(root_bin_path, exe_file), stat.S_IRWXU)
+        # Remove WRF/run/namelist.input. The namelist.input will be copied by WRF4G
+        os.remove('WRF/run/namelist.input')
+        
 
         if "wrf_all_in_one" in params.app:
             os.chmod(
@@ -718,8 +721,8 @@ class WRF4GWrapper(object):
             os.chmod(
                 join(params.root_path, "WPS", "metgrid", "metgrid.exe"), stat.S_IRWXU
             )
-            os.chmod(join(params.root_path, "WRFV3", "run", "real.exe"), stat.S_IRWXU)
-            os.chmod(join(params.root_path, "WRFV3", "run", "wrf.exe"), stat.S_IRWXU)
+            os.chmod(join(params.root_path, "WRF", "run", "real.exe"), stat.S_IRWXU)
+            os.chmod(join(params.root_path, "WRF", "run", "wrf.exe"), stat.S_IRWXU)
 
     #            os.chmod(join(params.root_path, 'WPS', 'util'
     #                          'src', 'calc_ecmwf_p.exe'), stat.S_IRWXU)
@@ -753,7 +756,7 @@ class WRF4GWrapper(object):
                     "Error creating directory in all worker nodes",
                     Job.CodeError.COPY_FILE,
                 )
-            for directory in ["WPS", "WRFV3"]:
+            for directory in ["WPS", "WRF"]:
                 exec_cmd(
                     "%s cp -r %s %s"
                     % (
