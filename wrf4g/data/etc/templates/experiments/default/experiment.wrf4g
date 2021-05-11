@@ -27,7 +27,7 @@ postprocessor        =
 parallel_real        = no
 parallel_wrf         = no
 app                  = wps | command | cp -R /home/valva/.wrf4g/repository/apps/WRF/WPS .
-                       wrf | command | cp -R /home/valva/.wrf4g/repository/apps/WRF/WRFV3 .
+                       wrf | command | cp -R /home/valva/.wrf4g/repository/apps/WRF/WRF .
                        path | command | export PATH=/home/valva/.wrf4g/repository/apps/WRF/bin:$PATH
                        ld_library_path | command | export LD_LIBRARY_PATH=/home/valva/.wrf4g/repository/apps/WRF/lib:$LD_LIBRARY_PATH
 # WRF-namelist parameters. Override namelist.input variables here

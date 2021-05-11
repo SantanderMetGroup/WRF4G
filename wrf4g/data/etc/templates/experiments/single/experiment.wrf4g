@@ -29,7 +29,7 @@ postprocessor        = SFC
 parallel_real        = no
 parallel_wrf         = no
 app                  = wps | command | cp -R %(WRF4G_DIR)s/repository/apps/WRF/WPS .
-                       wrf | command | cp -R %(WRF4G_DIR)s/repository/apps/WRF/WRFV3 .
+                       wrf | command | cp -R %(WRF4G_DIR)s/repository/apps/WRF/WRF .
                        path | command | export PATH=%(WRF4G_DIR)s/repository/apps/WRF/bin:$PATH
                        ld_library_path | command | export LD_LIBRARY_PATH=%(WRF4G_DIR)s/repository/apps/WRF/lib:$LD_LIBRARY_PATH
 # WRF-namelist parameters. Override namelist.input variables here
