@@ -1,0 +1,26 @@
+#! /bin/bash
+set -e
+#
+# Sample preprocessor in shell.
+
+sformateddate=$1     # initial date to process as YYYY-MM-DD_HH:MM:SS (Ex. 1983-08-27_00:00:00)
+eformateddate=$2     # end date to process
+extdata_path=$3      # Path to the data
+#
+# and creating a directory grbData with grib data for those dates and ready to
+# be linked by 'link_grib.csh grbData/*.grb'
+#
+source wrf_util.sh 
+read iyy imm trash <<< `echo $sformateddate | tr '_T:-' '    '`
+read fyy fmm trash <<< `echo $eformateddate | tr '_T:-' '    '`
+
+
+echo "Linking global data from: ${extdata_path}"
+mkdir -p grbData
+for yearmon in $(get_yearmons $iyy $imm $fyy $fmm) 
+do
+     year=${yearmon:0:4}
+     wrf4g vcp ${extdata_path}/${year}/'*'${yearmon}'*'.grb ln://`pwd`/grbData/ 
+done
+
+

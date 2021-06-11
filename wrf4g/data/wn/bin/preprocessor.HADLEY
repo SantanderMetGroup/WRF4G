@@ -1,0 +1,76 @@
+#! /bin/bash
+set -e
+#
+# Sample preprocessor in shell.
+#
+# This can be any kind of executable accepting three arguments:
+#
+sformateddate=$1     # initial date to process as YYYY-MM-DD_HH:MM:SS (Ex. 1983-08-27_00:00:00)
+eformateddate=$2     # end date to process
+extdata_path=$3      # Path to the data
+fakesoilgrb=FAKESOIL.grb
+#
+# and creating a directory grbData with grib data for those dates and ready to
+# be linked by 'link_grib.csh grbData/*.grb'
+#
+source wrf_util.sh 
+read iyy imm trash <<< `echo $sformateddate | tr '_T:-' '    '`
+read fyy fmm trash <<< `echo $eformateddate | tr '_T:-' '    '`
+
+cat << EOF > echam_grib.table
+ 139   STL1         T of 0-7 cm ground layer                 [K]
+ 170   STL2         T of 7-28 cm ground layer                [K]
+ 183   STL3         T of 28-100 cm ground layer              [K]
+ 236   STL4         T of 100-255 cm ground layer             [K]
+  39   SWVL1        Soil water c. of 0-7 cm ground layer     [m3/m-3] 
+  40   SWVL2        Soil water c. of 7-28 cm ground layer    [m3/m-3]
+  41   SWVL3        Soil water c. of 28-100 cm ground layer  [m3/m-3]
+  42   SWVL4        Soil water c. of 100-255 cm ground layer [m3/m-3]
+  43   SM000007     Soil moisture of 0-7 cm ground layer     [fraction]
+  44   SM007028     Soil moisture of 7-28 cm ground layer    [fraction]
+  45   SM028100     Soil moisture of 28-100 cm ground layer  [fraction]
+  46   SM100255     Soil moisture of 100-255 cm ground layer [fraction]
+EOF
+
+function get_fake_soil(){
+  infile=$1
+  outfile=grbData/`basename ${infile/mm5/soil.grb}`
+  ndates=$(cdo ntime ${infile})
+  cdo remapbil,${infile} ${fakesoilgrb} ${fakesoilgrb}.echam
+  cdo -t echam_grib.table -f grb setpartab,echam_grib.table ${fakesoilgrb}.echam tmp.grb # este comando hace algo realmente???
+  cdo sinfov tmp.grb
+  cp LANDSEA.grb ls.grb
+  idate=1
+  rm -f tmp2.grb ls2.grb
+  while test "${idate}" -le "${ndates}"
+  do
+    cdo -s cat tmp.grb tmp2.grb
+    cdo -s cat ls.grb ls2.grb
+    let idate++
+  done
+  read date_s time_s <<< $(echo ${sformateddate} | tr '_' ' ')
+  cdo settaxis,${date_s},${time_s},6hours tmp2.grb ${outfile}
+  cdo settaxis,${date_s},${time_s},6hours ls2.grb grbData/`basename ${infile/mm5/landsea.grb}`
+  rm tmp*.grb
+  rm ls*.grb
+  rm ${fakesoilgrb}.echam
+}
+
+echo "Linking global data from: ${extdata_path}"
+mkdir -p grbData
+
+for yearmon in $(get_yearmons $iyy $imm $fyy $fmm)
+do
+  year=${yearmon:0:4}
+  wrf4g vcp ${extdata_path}/HADLEY-*_${yearmon}.grb file://`pwd`/grbData/
+  ifile=$(ls grbData/*_${yearmon}.grb)
+  test -f "${ifile}" || exit
+  get_fake_soil $ifile
+  # get a separate code for the SST
+  # cdo setcode,177 -selcode,169 $ifile grbData/`basename ${infile/mm5/sst.grb}`
+done
+for f in grbData/*
+do
+  mv $f $f.grb
+done
+

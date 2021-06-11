@@ -1,0 +1,14 @@
+#! /bin/bash
+set -e
+#
+# Sample postprocessor
+#
+# This can be any kind of executable accepting one argument:
+#
+wrfnc_file=$1        # The WRF file to postprocess
+#
+# and creating a postprocessed file with the same name to be uploaded by register_file
+#
+
+ncks -O -v Q2,T2,PSFC,U10,V10,RAINC,RAINNC,SNOWNC,SWDOWN,Times "${wrfnc_file}" tmp.nc
+mv tmp.nc "${wrfnc_file}"
