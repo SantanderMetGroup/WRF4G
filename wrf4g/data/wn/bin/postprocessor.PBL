@@ -1,0 +1,45 @@
+#! /bin/bash
+set -e
+#
+# Postprocessor to get all the variables of interest for a PBL multiphysics.
+#
+# This can be any kind of executable accepting one argument:
+#
+wrfnc_file=$1        # The WRF file to postprocess
+#
+# and creating a postprocessed file with the same name to be uploaded by register_file
+#
+
+function pintnml(){
+  idir=$1
+  ifile=$2
+  cat << EOF > namelist.pinterp
+&io
+  path_to_input            = '${idir}/',
+  input_name               = '${ifile}',
+  path_to_output           = '${idir}/',
+  fields                   = 'Times,Q2,QVAPOR,T2,GHT,TT,U,V,W,RH,MSLP,PSFC,U10,V10,RAINC,RAINNC,PRES,ACLHF,ACHFX,LH,QFX,HFX,PBLH,UST,TKE_MYJ,EL_MYJ,QKE,Z0,POTEVP,REGIME'
+  process                  = 'list',
+  debug                    = .FALSE.,
+/
+  path_to_geofile          = '/oceano/gmeteo/DATA/WRF/domains/Europe_15k',
+  geofile                  = 'geo_em.d01.nc'
+
+&interp_in
+  interp_levels            = 1000.,987.5,975.,962.5,950.,937.5,925.,912.5,900.,887.5,875.,850.,825.,800.,750.,700.,650.,600.,500.
+  extrapolate              = 1,
+  interp_method            = 1,      
+  unstagger_grid           = .TRUE., 
+/
+
+EOF
+}
+
+pintnml . ${wrfnc_file}
+p_interp
+rm namelist.pinterp
+
+xptdsize=$( echo "print int($(stat -c %s ${wrfnc_file})*0.025)" | python )
+if test "$(stat -c %s ${wrfnc_file}_PLEV)" -ge ${xptdsize}; then
+  mv "${wrfnc_file}_PLEV" "${wrfnc_file}" 
+fi
