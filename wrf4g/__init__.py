@@ -29,7 +29,7 @@ __revision__ = "$Id$"
 HOME                 = os.environ.get( 'HOME' )
 #WRF4G_DIR            = os.environ[ 'GW_LOCATION' ] = join( os.environ.get( 'WRF4G_DIR', HOME ), '.wrf4g' )
 WRF4G_DIR            = join( os.environ.get( 'WRF4G_DIR', HOME ), '.wrf4g' )
-os.environ[ 'DRM4G_DIR' ] =  os.environ.get( 'HOME' )
+os.environ[ 'DRM4G_DIR' ] =  join(os.environ.get( 'HOME' ), '.drm4g')
 #os.environ[ 'GW_LOCATION' ]= join( os.environ.get( 'DRM4G_DIR'), '.drm4g' )
 WRF4G_DEPLOYMENT_DIR = os.path.dirname(os.path.realpath(__file__))
 DB4G_CONF            = os.environ.get( 'DB4G_CONF',  join( WRF4G_DIR , 'etc' , 'db.conf' ) )

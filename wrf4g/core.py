@@ -287,30 +287,33 @@ class Experiment(object):
         logging.debug( "Updating parameter 'max_dom' in the namelist" )
         nmli.setValue( "max_dom", int( self.cfg[ section ][ 'max_dom' ] ) )
         max_dom = single = False
-        for mnl_variable, mnl_values in self.cfg[ section ][ 'namelist_values' ].items() :
-            # Update the namelist per each combination
-            logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
-            # Modify the namelist with the parameters available in the namelist description
-            if mnl_variable.startswith( "max_dom:" ) :
-                mnl_variable = mnl_variable[ 8: ]
-                max_dom      = True
-            elif mnl_variable.startswith( "single:" ) :
-                mnl_variable = mnl_variable[ 7: ]
-                single       = True
-            if '.' in mnl_variable :
-                nml_section, val = mnl_variable.split( '.' )
-            else :
-                nml_section, val = "",  mnl_variable
-            if max_dom and not val in nmli.MAX_DOM_VARIABLES :
-                nmli.MAX_DOM_VARIABLES.extend( val  )
-            if single and val in nmli.MAX_DOM_VARIABLES :
-                nmli.MAX_DOM_VARIABLES.remove( val  )
-            try :
-                nmli.setValue( val, coerce_value_list( mnl_values.strip( ',' ).split( ',' ) ), nml_section )
-            except IndexError:
-                raise Exception( "'%s' does not have values for all namelist combinations." % mnl_variable )
-            except Exception as err:
-                raise Exception( err )
+
+        # If namelist_values is empty, do not modify namelist variables
+        if (len(self.cfg[ section ][ 'namelist_values']) != 0):
+            for mnl_variable, mnl_values in self.cfg[ section ][ 'namelist_values' ].items() :
+                # Update the namelist per each combination
+                logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
+                # Modify the namelist with the parameters available in the namelist description
+                if mnl_variable.startswith( "max_dom:" ) :
+                    mnl_variable = mnl_variable[ 8: ]
+                    max_dom      = True
+                elif mnl_variable.startswith( "single:" ) :
+                    mnl_variable = mnl_variable[ 7: ]
+                    single       = True
+                if '.' in mnl_variable :
+                    nml_section, val = mnl_variable.split( '.' )
+                else :
+                    nml_section, val = "",  mnl_variable
+                if max_dom and not val in nmli.MAX_DOM_VARIABLES :
+                    nmli.MAX_DOM_VARIABLES.extend( val  )
+                if single and val in nmli.MAX_DOM_VARIABLES :
+                    nmli.MAX_DOM_VARIABLES.remove( val  )
+                try :
+                    nmli.setValue( val, coerce_value_list( mnl_values.strip( ',' ).split( ',' ) ), nml_section )
+                except IndexError:
+                    raise Exception( "'%s' does not have values for all namelist combinations." % mnl_variable )
+                except Exception as err:
+                    raise Exception( err )
         nmli.trimMaxDom()
         nmli.extendMaxDomVariables()
         if nmli.wrfCheck() :

@@ -507,12 +507,12 @@ class WRF4GWrapper(object):
 
     def launch(self):
         params = self.params
+        self.create_log_directory()
         logging.basicConfig(
             format="%(asctime)s %(message)s",
             filename=params.log_file,
             level=params.log_level,
         )
-        self.create_log_directory()
         # Log path information
         logging.info("Information about directories")
         logging.info("Root path = %s" % params.root_path)
