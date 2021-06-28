@@ -33,7 +33,7 @@ jobs:
         # $CONDA is an environment variable pointing to the root of the miniconda directory	
         echo $CONDA/bin >> $GITHUB_PATH
     - run: conda install pycrypto docopt sqlalchemy python-dateutil
-    - run: cd ..; git clone https://github.com/SantanderMetGroup/DRM4G; cd DRM4G; find ./ | xargs touch -c -r ./configure; ; pip install .; cd -
+    - run: cd ..; git clone https://github.com/SantanderMetGroup/DRM4G; cd DRM4G; find ./ | xargs touch -c -r ./configure; pip install .; cd -
     - run: SHELL=/bin/sh pip install .
 #    - name: Install dependencies
 #      run: |
