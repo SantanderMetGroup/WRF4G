@@ -27,6 +27,7 @@ import tarfile
 import shutil
 import logging
 import fortran_namelist as fn
+import re
 from fortran_namelist       import coerce_value_list
 from sqlalchemy             import and_, or_
 from os.path                import ( exists, expandvars, 
@@ -43,6 +44,7 @@ from wrf4g.utils.file       import validate_name, edit_file
 from wrf4g.utils.command    import exec_cmd
 from wrf4g.utils.vcplib     import VCPURL
 from wrf4g.utils.gridwaylib import GWJob
+
 
 class Experiment(object):
     """ 
@@ -84,8 +86,15 @@ class Experiment(object):
         Copy the namelist from the template directory 
         """
         logging.info( "Preparing namelist %s version ... " % namelist_version )
-        namelist_template = join( WRF4G_DIR, 'etc', 'templates', 'namelist',
-                                  'namelist.input-%s' % namelist_version )
+
+        if not namelist_version.startswith("/"):
+            if re.match("^\d+.\d+.\d+",namelist_version):
+                namelist_template = join( WRF4G_DIR, 'etc', 'templates', 'namelist',
+                                  'namelist.input-%s' % namelist_version )    
+            else:
+                raise Exception( "namelist version: %s is not an accepted value. It should point to a file or to a WRF version"  %namelist_version)
+        else: 
+            namelist_template=namelist_version    
         namelist_input    = join( self.home_directory, 'namelist.input' )
         try :
             logging.debug( "Copying '%s' to '%s'" % ( namelist_template, namelist_input ) )
