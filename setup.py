@@ -18,9 +18,7 @@
 # permissions and limitations under the Licence.
 #
 
-__version__  = '2.3.1'
 __author__   = 'Valvanuz Fernández, Jesus Fernandez, Carlos Blanco and Antonio S. Cofiño'
-__revision__ = "$Id$"
 
 from setuptools import setup
 from setuptools import find_packages

@@ -46,14 +46,13 @@ wrf4g commands are:
  
 See 'wrf4g <command> --help' for more information on a specific command.
 """
-__version__  = '2.3.0'
-__author__   = 'Carlos Blanco'
-__revision__ = "$Id$"
+__author__   = 'Valvanuz Fernández, Jesus Fernandez, Carlos Blanco and Antonio S. Cofiño'
 
 from docopt import docopt
+import wrf4g
 
 if __name__ == "__main__":
-    args = docopt( __doc__, version = __version__ , options_first = True )
+    args = docopt( __doc__, version = wrf4g.__version__ , options_first = True )
     argv = [ args[ '<command>' ] ] + args[ '<args>' ]
     sub_commands = [ 'start', 'stop', 'status', 'syncdb', 'conf', 'resource', 'host', 'job', 'id', 'rea', 'exp', 'vcp' ]
     if args['<command>'] in sub_commands :

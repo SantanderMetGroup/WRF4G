@@ -22,9 +22,7 @@ import os
 import sys
 from os.path      import dirname, join, abspath, exists
 
-__version__  = '2.3.0'
-__author__   = 'Carlos Blanco'
-__revision__ = "$Id$"
+__author__   = 'Valvanuz Fernández, Jesus Fernandez, Carlos Blanco and Antonio S. Cofiño'
 
 HOME                 = os.environ.get( 'HOME' )
 #WRF4G_DIR            = os.environ[ 'GW_LOCATION' ] = join( os.environ.get( 'WRF4G_DIR', HOME ), '.wrf4g' )
