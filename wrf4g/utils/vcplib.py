@@ -230,15 +230,18 @@ class VCPURL(object):
         file_list.sort()
         return file_list
     
-    def mkdir(self):
+    def mkdir(self, mode=None):
         """
-        Create the directory pointed by self
+        Create the directory pointed by self with mode permissions if required
+
         """
         if http_ftp_protocol(self.protocol):
             out="This method is not available for " + self.protocol + " protocol"
             raise Exception(out)
         
         command = eval(self.command[self.protocol]['mkdir'])
+        if mode is not None:
+            command = command.replace("mkdir", "mkdir -m {}".format(mode))
         (err, out) = exec_cmd(command)
         if err :
             out = "Error creating dir: " + str(out)
@@ -341,10 +344,10 @@ def copy_file(origin, destination, overwrite=True):
     Copy orig to dest file.
     """
     vcp_matrix = {'file': {'file':   {'verbose'  : '-v', 
-                                  'command'  : "'cp -f %(verbose)s %(orig)s %(dest)s' %param", 
+                                  'command'  : "'cp -f -p %(verbose)s %(orig)s %(dest)s' %param",
                                   'orig'     : "orig.file", 
                                   'dest'     : "dest.file"},
-                       'rsync':  {'verbose'  : '-v', 
+                       'rsync':  {'verbose'  : '-v -p',
                                   'command'  : "'rsync -au %(verbose)s %(orig)s %(dest)s' %param", 
                                   'orig'     : "orig.file", 
                                   'dest'     : "str(dest)"},

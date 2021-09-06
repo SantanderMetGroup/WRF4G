@@ -15,10 +15,10 @@ requirements         = ARCH = "x86_64"
 clean_after_run      = yes
 save_wps             = no
 # Input data
-domain_path          = %(WRF4G_DEPLOYMENT_DIR)s/repository/domains/Santander_50km
+domain_path          = %(WRF4G_DIR)s/repository/domains/Santander_50km
 # Vtables must exist as Vtable.[input_extdata]
 extdata_vtable       = GFS 
-extdata_path         = %(WRF4G_DEPLOYMENT_DIR)s/repository/input/NCEP/GFS
+extdata_path         = %(WRF4G_DIR)s/repository/input/NCEP/GFS
 # Seconds between global analysis input times
 extdata_interval     = 21600     
 preprocessor         = default
@@ -26,19 +26,21 @@ preprocessor         = default
 output_path          = %(WRF4G_EXPERIMENT_HOME)s/output
 postprocessor        = SFC
 # app setup
-parallel_env         = MPIRUN
-parallel_real        = yes
-parallel_wrf         = yes
-app                  = wrf_all_in_one | bundle | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/WRF/WRFbin-3.4.1_r2265_gfortran.tar.gz
+parallel_real        = no
+parallel_wrf         = no
+app                  = wps | command | cp -R %(WRF4G_DIR)s/repository/apps/WRF/WPS .
+                       wrf | command | cp -R %(WRF4G_DIR)s/repository/apps/WRF/WRF .
+                       path | command | export PATH=%(WRF4G_DIR)s/repository/apps/WRF/bin:$PATH
+                       ld_library_path | command | export LD_LIBRARY_PATH=%(WRF4G_DIR)s/repository/apps/WRF/lib:$LD_LIBRARY_PATH
 # WRF-namelist parameters. Override namelist.input variables here
-namelist_version     = 3.4.1
-namelist_values      = spec_bdy_width     | 10
-                       spec_zone          | 1
-	               relax_zone         | 9
+namelist_version     = 4.2.2
+namelist_values      = bdy_control.spec_bdy_width     | 10
+                       bdy_control.spec_zone          | 1
+	               bdy_control.relax_zone         | 9
 		       feedback           | 0
 		       history_interval   | 180
 		       frames_per_outfile | 3
-		       e_vert             | 28
+		       e_vert             | 35
 		       mp_physics         | 4   
 		       radt               | 15
 		       ra_lw_physics      | 3

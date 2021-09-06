@@ -23,9 +23,7 @@ import sys
 import logging
 from wrf4g.wrapper   import launch_wrapper, JobError, PilotParams
 
-__version__  = '2.3.0'
-__author__   = 'Carlos Blanco'
-__revision__ = "$Id$"
+__author__   = 'Valvanuz Fernández, Jesus Fernandez, Carlos Blanco and Antonio S. Cofiño'
 
 if __name__ == '__main__':
     try :

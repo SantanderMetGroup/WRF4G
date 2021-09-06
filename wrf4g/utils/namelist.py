@@ -26,7 +26,8 @@ from wrf4g.utils.time import datetime2datewrf
 
 def get_ptop():
     shcmd = "ncdump -v PRES $(\ls met_em.d??.????-??-??_??:00:00.nc | head -1) | tail -2 | head -1 | tr -d ',;' | awk '{printf $1}'"
-    return int(os.popen(shcmd).read().strip())
+    out=os.popen(shcmd).read().strip()
+    return int(out)
 
 def fix_ptop( namelist_input ):
     top_press = get_ptop()
@@ -49,11 +50,13 @@ def fix_ptop( namelist_input ):
 
 def get_num_metgrid_levels():
     shcmd = "ncdump -h $(\ls -1 met_em*.nc | head -1) | grep 'num_metgrid_levels =' | sed -e 's/^\t//' | tr '=;' '  ' | awk '{print $2}'"
-    return int(os.popen(shcmd).read().strip())
+    out=os.popen(shcmd).read().strip()
+    return int(out)
 
 def get_num_metgrid_soil_levels():
     shcmd = "ncdump -h $(\ls -1 met_em*.nc | head -1) | grep 'NUM_METGRID_SOIL_LEVELS' | sed -e 's/^\t//' | tr '=:;' '   ' | awk '{print $2}'"
-    return int(os.popen(shcmd).read().strip())
+    out=os.popen(shcmd).read().strip()
+    return int(out)
 
 def get_time_step(coarse_dx, factor):
     HOUR_DIVISORS = [
@@ -62,19 +65,23 @@ def get_time_step(coarse_dx, factor):
         720,900,1200
         ]
     tstep = int(factor*coarse_dx/1000)
-    ival = map(lambda x: x<=tstep, HOUR_DIVISORS).index(0) - 1
+    # Added list to fix execution in python 3
+    ival = list(map(lambda x: x<=tstep, HOUR_DIVISORS)).index(0) - 1
     return HOUR_DIVISORS[ival]
 
 def get_latlon_dx(start_date, dom):
     #  Try to get dx from the met_em or wrfinput files. Only
     #  required for lat-lon grids, otherwise it is available
     #  in the namelist.wps file
+    dxfile=None
     file_name = "met_em.%s.%s.nc" % ( dom, datetime2datewrf( start_date ) )
     if exists( file_name ) :
         dxfile = file_name
-    file_name = "wrfinput_%s" % dom
-    if exists( file_name ) :
+        logging.info("Reading dx from %s" % file_name)
+    else:
+        file_name = "wrfinput_%s" % dom
         dxfile = file_name
+        logging.info("Reading dx from %s" % file_name)
     if dxfile:
         shcmd = "ncdump -h %s | grep 'DX =' | sed -e 's/^\t//' | tr '=;' ' ' | awk '{printf \"%%f\", $2}'" % dxfile
         rval = round(float(os.popen(shcmd).read().strip()), 4)
@@ -96,7 +103,9 @@ def wps2wrf( namelist_wps, namelist_input, sdate, edate, maxdom, chunk_is_restar
     nmli.setMaxDomValue("end_month",   edate.month)
     nmli.setMaxDomValue("end_day",     edate.day)
     nmli.setMaxDomValue("end_hour",    edate.hour)
-    for var in [ "parent_grid_ratio", "i_parent_start", "j_parent_start", "e_we", "e_sn"]:
+    vars_to_copy = ["parent_grid_ratio", "i_parent_start", "j_parent_start",
+                    "e_we", "e_sn", "interval_seconds"]
+    for var in vars_to_copy:
         nmli.setValue(var, nmlw.getValue(var))
     nmli.setValue("parent_time_step_ratio", nmlw.getValue("parent_grid_ratio"))
     if exists("met_em.d01.%s.nc" % datetime2datewrf( sdate ) ):

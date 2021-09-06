@@ -27,6 +27,7 @@ import tarfile
 import shutil
 import logging
 import fortran_namelist as fn
+import re
 from fortran_namelist       import coerce_value_list
 from sqlalchemy             import and_, or_
 from os.path                import ( exists, expandvars, 
@@ -43,6 +44,7 @@ from wrf4g.utils.file       import validate_name, edit_file
 from wrf4g.utils.command    import exec_cmd
 from wrf4g.utils.vcplib     import VCPURL
 from wrf4g.utils.gridwaylib import GWJob
+
 
 class Experiment(object):
     """ 
@@ -84,8 +86,15 @@ class Experiment(object):
         Copy the namelist from the template directory 
         """
         logging.info( "Preparing namelist %s version ... " % namelist_version )
-        namelist_template = join( WRF4G_DIR, 'etc', 'templates', 'namelist',
-                                  'namelist.input-%s' % namelist_version )
+
+        if not namelist_version.startswith("/"):
+            if re.match("^\d+.\d+.\d+",namelist_version):
+                namelist_template = join( WRF4G_DIR, 'etc', 'templates', 'namelist',
+                                  'namelist.input-%s' % namelist_version )    
+            else:
+                raise Exception( "namelist version: %s is not an accepted value. It should point to a file or to a WRF version"  %namelist_version)
+        else: 
+            namelist_template=namelist_version    
         namelist_input    = join( self.home_directory, 'namelist.input' )
         try :
             logging.debug( "Copying '%s' to '%s'" % ( namelist_template, namelist_input ) )
@@ -253,7 +262,8 @@ class Experiment(object):
         Create the files needed to establish a WRF4G experiment
         """
         validate_name( name )
-        if not template in [ 'default', 'single', 'physics' ] :
+        template_dir = join( WRF4G_DIR , 'etc' , 'templates' , 'experiments',  template )
+        if not exists(template_dir):
             raise Exception( "'%s' template does not exist" % template )
         exp_dir = expandvars( expanduser( os.getcwd() if directory == './' else directory ) )
         if not exists( exp_dir ):
@@ -272,6 +282,7 @@ class Experiment(object):
         data_updated = data % {
                                'WRF4G_EXPERIMENT_HOME' : exp_dir_config ,
                                'WRF4G_DEPLOYMENT_DIR'  : WRF4G_DEPLOYMENT_DIR ,
+                               'WRF4G_DIR'             : WRF4G_DIR ,
                                'exp_name'              : name ,
                                }
         with open(dest_path, 'w') as f :
@@ -285,30 +296,33 @@ class Experiment(object):
         logging.debug( "Updating parameter 'max_dom' in the namelist" )
         nmli.setValue( "max_dom", int( self.cfg[ section ][ 'max_dom' ] ) )
         max_dom = single = False
-        for mnl_variable, mnl_values in self.cfg[ section ][ 'namelist_values' ].items() :
-            # Update the namelist per each combination
-            logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
-            # Modify the namelist with the parameters available in the namelist description
-            if mnl_variable.startswith( "max_dom:" ) :
-                mnl_variable = mnl_variable[ 8: ]
-                max_dom      = True
-            elif mnl_variable.startswith( "single:" ) :
-                mnl_variable = mnl_variable[ 7: ]
-                single       = True
-            if '.' in mnl_variable :
-                nml_section, val = mnl_variable.split( '.' )
-            else :
-                nml_section, val = "",  mnl_variable
-            if max_dom and not val in nmli.MAX_DOM_VARIABLES :
-                nmli.MAX_DOM_VARIABLES.extend( val  )
-            if single and val in nmli.MAX_DOM_VARIABLES :
-                nmli.MAX_DOM_VARIABLES.remove( val  )
-            try :
-                nmli.setValue( val, coerce_value_list( mnl_values.strip( ',' ).split( ',' ) ), nml_section )
-            except IndexError:
-                raise Exception( "'%s' does not have values for all namelist combinations." % mnl_variable )
-            except Exception as err:
-                raise Exception( err )
+
+        # If namelist_values is empty, do not modify namelist variables
+        if (len(self.cfg[ section ][ 'namelist_values']) != 0):
+            for mnl_variable, mnl_values in self.cfg[ section ][ 'namelist_values' ].items() :
+                # Update the namelist per each combination
+                logging.debug( "Updating parameter '%s' in the namelist" % mnl_variable )
+                # Modify the namelist with the parameters available in the namelist description
+                if mnl_variable.startswith( "max_dom:" ) :
+                    mnl_variable = mnl_variable[ 8: ]
+                    max_dom      = True
+                elif mnl_variable.startswith( "single:" ) :
+                    mnl_variable = mnl_variable[ 7: ]
+                    single       = True
+                if '.' in mnl_variable :
+                    nml_section, val = mnl_variable.split( '.' )
+                else :
+                    nml_section, val = "",  mnl_variable
+                if max_dom and not val in nmli.MAX_DOM_VARIABLES :
+                    nmli.MAX_DOM_VARIABLES.extend( val  )
+                if single and val in nmli.MAX_DOM_VARIABLES :
+                    nmli.MAX_DOM_VARIABLES.remove( val  )
+                try :
+                    nmli.setValue( val, coerce_value_list( mnl_values.strip( ',' ).split( ',' ) ), nml_section )
+                except IndexError:
+                    raise Exception( "'%s' does not have values for all namelist combinations." % mnl_variable )
+                except Exception as err:
+                    raise Exception( err )
         nmli.trimMaxDom()
         nmli.extendMaxDomVariables()
         if nmli.wrfCheck() :
@@ -398,7 +412,7 @@ class Experiment(object):
             else :
                 shutil.copy( expandvars( file ) , exp_sub_dir )
 
-    def _create_wrf4g_bundles(self, exp_sub_dir ):
+    def _create_wrf4g_bundles(self, exp_sub_dir):
         """
         Create bundles with the necessary software to run WRF on worker nodes.
         """
@@ -411,9 +425,15 @@ class Experiment(object):
         current_path = os.getcwd()
         try :
             tar = tarfile.open( wrf4g_package, "w:gz" )
-            os.chdir( WRF4G_DEPLOYMENT_DIR )
-            logging.debug( "Creating '%s' package" % wrf4g_package )
-            [ tar.add( dir ) for dir in [ "bin", "lib" ] ]
+            # Add wn/bin
+            tar.add('%s/data/wn/bin' % (WRF4G_DEPLOYMENT_DIR),arcname='bin')
+            # Add python packages to lib/python
+            for package in [ 'sqlalchemy','dateutil','wrf4g','fortran_namelist','drm4g']:
+                ipackage = __import__(package)
+                tar.add(os.path.dirname(ipackage.__file__),arcname='lib/python/%s' % (package) )
+            for module in ['six']:
+                imodule = __import__(module)
+                tar.add('%s/%s.py' %(os.path.dirname(imodule.__file__),module), arcname='lib/python/%s' % ('%s.py' %(module)))
         except Exception as err:
             logging.warn( err )
         finally :
@@ -476,9 +496,9 @@ class Realization( object ):
             logging.error( "\tERROR: The last chunk to run is '%d'." % last_chunk_run )
         elif ( last_chunk_run and first_chunk_run ) and last_chunk_run < first_chunk_run :
             logging.error( "\tERROR: The last chunk to run is greater than the fist one." )
-        elif last_chunk_run > self.nchunks :
+        elif last_chunk_run and last_chunk_run > self.nchunks :
             logging.error( "\tERROR: The last chunk does not exist." )
-        elif first_chunk_run > self.nchunks :
+        elif first_chunk_run and first_chunk_run > self.nchunks :
             logging.error( "\tERROR: The first chunk does not exist." )
         else :
             # search first chunk to run
@@ -622,7 +642,7 @@ class Realization( object ):
 
     @staticmethod 
     def status_header(): 
-        logging.info( '\033[1;4m%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s\033[0m'% (
+        logging.info( '%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s'% (
                         'REALIZATION','STATUS','CHUNKS','RESOURCE','RUN STATUS',
                         'JID', 'EXT','%' ) )
  
@@ -914,6 +934,7 @@ class JobCodeError():
     PREPROCESSOR_FAILED  = 14
     LINK_GRIB_FAILED     = 15
     UNGRIB_FAILED        = 16
+    UNGRIB_PROCESSOR_FAILED  = 31
     METGRID_FAILED       = 17
     REAL_FAILED          = 18
     COPY_UPLOAD_WPS      = 19

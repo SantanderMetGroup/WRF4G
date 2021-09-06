@@ -24,11 +24,13 @@ preprocessor         = default
 output_path          = 
 postprocessor        = 
 # app setup
-parallel_env         = MPIRUN
-parallel_real        = yes
-parallel_wrf         = yes
-app                  = wrf_all_in_one | bundle | %(WRF4G_DEPLOYMENT_DIR)s/repository/apps/WRF/WRFbin-3.4.1_r2265_gfortran.tar.gz
+parallel_real        = no
+parallel_wrf         = no
+app                  = wps | command | cp -R /home/valva/.wrf4g/repository/apps/WRF/WPS .
+                       wrf | command | cp -R /home/valva/.wrf4g/repository/apps/WRF/WRF .
+                       path | command | export PATH=/home/valva/.wrf4g/repository/apps/WRF/bin:$PATH
+                       ld_library_path | command | export LD_LIBRARY_PATH=/home/valva/.wrf4g/repository/apps/WRF/lib:$LD_LIBRARY_PATH
 # WRF-namelist parameters. Override namelist.input variables here
-namelist_version     = 3.4.1
+namelist_version     = 4.2.2
 namelist_values      =
 

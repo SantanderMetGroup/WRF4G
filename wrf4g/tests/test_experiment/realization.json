@@ -1,0 +1,57 @@
+{
+  "ensemble/default": {
+    "name": "single_test",
+    "max_dom": "1",
+    "date_time": [
+      [
+        "1314525600",
+        "1314655200",
+        "1 day, 12:00:00",
+        "1 day, 12:00:00",
+        "relativedelta(hours=+12)",
+        720
+      ]
+    ],
+    "calendar": "standard",
+    "timestep_dxfactor": "6",
+    "np": "1",
+    "requirements": "ARCH = \"x86_64\"",
+    "clean_after_run": "yes",
+    "save_wps": "no",
+    "domain_path": "/home/users/garciam/anaconda2/envs/flowcast/repository/domains/Santander_50km",
+    "extdata_vtable": "GFS",
+    "extdata_path": "/home/users/garciam/anaconda2/envs/flowcast/repository/input/NCEP/GFS",
+    "extdata_interval": "21600",
+    "preprocessor": "default",
+    "output_path": "/tmp/wrf4g_tests/single_test/output",
+    "postprocessor": "SFC",
+    "parallel_env": "MPIRUN",
+    "parallel_real": "yes",
+    "parallel_wrf": "yes",
+    "init_lakes_with_tavsfc": "yes",
+    "app": "wrf_all_in_one | bundle | /home/users/garciam/anaconda2/envs/flowcast/repository/apps/WRF/WRFbin-3.7.1_gfortran_openmpi_3.1.0.tar.gz",
+    "namelist_version": "3.4.1",
+    "namelist_values": {
+      "relax_zone": "9",
+      "ra_lw_physics": "3",
+      "feedback": "0",
+      "frames_per_outfile": "3",
+      "spec_zone": "1",
+      "history_interval": "180",
+      "e_vert": "28",
+      "radt": "15",
+      "ra_sw_physics": "3",
+      "spec_bdy_width": "10",
+      "mp_physics": "4"
+    },
+    "files_to_save": [
+      "wrfout",
+      "wrfzout",
+      "wrfz2out",
+      "wrfrst",
+      "wrfrain",
+      "wrfxtrm",
+      "wrf24hc"
+    ]
+  }
+}

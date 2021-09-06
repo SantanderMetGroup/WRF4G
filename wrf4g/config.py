@@ -157,7 +157,7 @@ class SanityCheck():
                         simult_interval = simult_length = end_date - start_date
                     # Defining restart_interval
                     # To avoid chunk restart we add 1 hour to restart_interval variable
-                    restart_interval = timedelta_total_seconds( chunk_size ) / 60
+                    restart_interval = int(timedelta_total_seconds( chunk_size ) / 60)
                     if self.cfg[ section ].get( 'chunk_restart' ) or self.cfg[ section ].get( 'chunk_restart' ) == 'no' :
                         restart_interval = restart_interval + 3600
                     self.cfg_final[ section ][ 'date_time' ].append( [ start_date, end_date, 
@@ -245,7 +245,7 @@ def save_pkl( obj_config, directory, file_name ) :
     """
     Save a python object into a pickle file.
     """
-    with open( join( directory, file_name ), "w" ) as f :
+    with open( join( directory, file_name ), "wb" ) as f :
         pickle.dump( obj_config, f )
 
 def load_pkl( directory, file_name ) :

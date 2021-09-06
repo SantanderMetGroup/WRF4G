@@ -22,14 +22,16 @@ import os
 import sys
 from os.path      import dirname, join, abspath, exists
 
-__version__  = '2.3.0'
-__author__   = 'Carlos Blanco'
-__revision__ = "$Id$"
+__author__   = 'Valvanuz Fernández, Jesus Fernandez, Carlos Blanco and Antonio S. Cofiño'
 
 HOME                 = os.environ.get( 'HOME' )
-WRF4G_DIR            = os.environ[ 'GW_LOCATION' ] = join( os.environ.get( 'WRF4G_DIR', HOME ), '.wrf4g' )
-WRF4G_DEPLOYMENT_DIR = dirname( dirname( os.environ['_'] ) )
+#WRF4G_DIR            = os.environ[ 'GW_LOCATION' ] = join( os.environ.get( 'WRF4G_DIR', HOME ), '.wrf4g' )
+WRF4G_DIR            = join( os.environ.get( 'WRF4G_DIR', HOME ), '.wrf4g' )
+os.environ[ 'DRM4G_DIR' ] =  join(os.environ.get( 'HOME' ), '.drm4g')
+#os.environ[ 'GW_LOCATION' ]= join( os.environ.get( 'DRM4G_DIR'), '.drm4g' )
+WRF4G_DEPLOYMENT_DIR = os.path.dirname(os.path.realpath(__file__))
 DB4G_CONF            = os.environ.get( 'DB4G_CONF',  join( WRF4G_DIR , 'etc' , 'db.conf' ) )
 WRF4G_LOGGER         = join( WRF4G_DIR, 'etc', 'logger.conf')
 
 import wrf4g.orm
+from ._version import __version__

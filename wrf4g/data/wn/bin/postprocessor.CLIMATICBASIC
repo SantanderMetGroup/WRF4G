@@ -1,0 +1,44 @@
+#! /bin/bash
+set -e
+#
+# Sample postprocessor
+#
+# This can be any kind of executable accepting one argument:
+#
+wrfnc_file=$1        # The WRF file to postprocess
+#
+# and creating a postprocessed file with the same name to be uploaded by register_file
+#
+
+function pintnml(){
+  idir=$1
+  ifile=$2
+  cat << EOF > namelist.pinterp
+&io
+  path_to_input            = '${idir}/',
+  input_name               = '${ifile}',
+  path_to_output           = '${idir}/',
+  fields                   = 'RAINTOT,U,V,T2,Q2,PSFC,U10,V10,SINALPHA,COSALPHA,QVAPOR,QCLOUD,QICE,RH,VIM,VIQC,VIWIND,VIMWIND,VIQI,CLT,RAINCV,RAINNCV,SFCEVP,POTEVP,QFX,GLW,SWDOWN,RAINC,RAINNC,HGT,SMOIS,PH,PHB,GHT,T,TT,PRES,MSLPF,MSLP,PLEV,GSW,ALBEDO,ACLWDNB,ACSWDNB,SST,TSK,SKINTEMP,ACSNOW,GRDFLX,SFROFF,OLR,ACLWDNT,ACSWDNT,ACSWUPT,ACLWUPT,CLDFRA,SMSTOT,LH,ACLHF,HFX,ACHFX,ACSWUPB,ACLWUPB,EMISS,TSLB,SH2O,UDROFF,SNOW,SNOWH,ACSNOM,PBLH,LANDMASK,LU_INDEX,UST,SNOWNC,SNOWNCV,Times',
+  process                  = 'list',
+  debug                    = .FALSE.,
+  grid_filt                = 3,
+  ntimes_filt              = 10,
+/
+
+&interp_in
+  interp_levels            = 1000.0, 975., 925., 850.0, 700., 600., 500.0, 400, 300, 250., 200.0, 100.,
+  extrapolate              = 1,
+  interp_method            = 1,
+  unstagger_grid           = .TRUE.,
+/
+EOF
+}
+
+pintnml . ${wrfnc_file}
+p_interp
+rm namelist.pinterp
+
+xptdsize=$( echo "print int($(stat -c %s ${wrfnc_file})*0.025)" | python )
+if test "$(stat -c %s ${wrfnc_file}_PLEV)" -ge ${xptdsize}; then
+  mv "${wrfnc_file}_PLEV" "${wrfnc_file}" 
+fi
