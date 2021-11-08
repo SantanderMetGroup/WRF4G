@@ -37,14 +37,15 @@ class GWJob( object ):
         ftemplate = join( directory,  name + ".gw" )
         f = open(ftemplate,'w')
         template="""NAME = %s
-EXECUTABLE   = /usr/bin/env python 
+EXECUTABLE   = /usr/bin/env python3
 ARGUMENTS    = ./bin/wrf_wrapper.py %s
-WRAPPER      = etc/wrf4g_wrapper.sh
+WRAPPER      = %s/etc/wrf4g_wrapper.sh
 INPUT_FILES  = %s
 OUTPUT_FILES = %s
 REQUIREMENTS = %s
 ENVIRONMENT  = %s
-NP           = %d""" % (name,arguments,inputsandbox,outputsandbox,req,environ,np)
+RESCHEDULE_ON_FAILURE = no
+NP           = %d""" % (name,arguments,WRF4G_DIR,inputsandbox,outputsandbox,req,environ,np)
         f.write(template)
         f.close()
         return ftemplate
