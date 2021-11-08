@@ -104,7 +104,16 @@ execution(){
     else
        STDIN_FILE=/dev/null
     fi
-      
+    
+    # Create output files to avoid TM error (Issue #62)
+    IFS1=$IFS
+    IFS=","
+    for file in $GW_OUTPUT_FILES
+    do
+        touch $file
+    done
+    IFS=$IFS1
+
     ${GW_EXECUTABLE} ${GW_ARGUMENTS} $@ < ${STDIN_FILE} >> stdout.execution 2>> stderr.execution &
     
     JOB_PID=$!
