@@ -28,11 +28,6 @@ import sys
 import os
 from io import open
 
-#To ensure a script runs with a minimal version requirement of the Python interpreter
-#assert sys.version_info >= (2,5)
-if (sys.version_info[0]==2 and sys.version_info<=(2,5)) or (sys.version_info[0]==3 and sys.version_info<(3,3)):
-    exit( 'The version number of Python has to be >= 2.6 or >= 3.3' )
-
 # Get every file under search_dir, including subdirectories. Needs to be improved
 def get_conf_files(search_dir='data'):
     if os.path.exists('./wrf4g'):
@@ -75,6 +70,7 @@ setup(
     name='wrf4g',
     packages=find_packages(),
     package_data={'wrf4g': get_conf_files()},
+    python_requires='>=3.5',
     version=version,
     author='Santander Meteorology Group',
     author_email='meteo@unican.es',
