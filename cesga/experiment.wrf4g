@@ -1,0 +1,49 @@
+[DEFAULT]
+# Experiment configuration
+name                 = test
+
+# Simulation domain
+max_dom              = 1
+# Experiment time-specification
+#                      start_date          | end_date            | chunk_size
+date_time            = 2011-08-28_12:00:00 | 2011-08-30_00:00:00 | 12 hours
+calendar             = standard
+timestep_dxfactor    = 6
+# Running options 
+np                   = 1
+requirements         = ARCH = "x86_64"
+clean_after_run      = no
+save_wps             = no
+# Input data
+domain_path          = /home/csic/mym/jmi/.wrf4g/repository/domains/Santander_50km
+# Vtables must exist as Vtable.[input_extdata]
+extdata_vtable       = GFS 
+extdata_path         = /home/csic/mym/jmi/.wrf4g/repository/input/NCEP/GFS
+# Seconds between global analysis input times
+extdata_interval     = 21600     
+preprocessor         = default
+# Output
+output_path          = /mnt/netapp2/Home_FT2/home/csic/mym/jmi/valva/test/output
+postprocessor        = SFC
+# app setup
+parallel_real        = no
+parallel_wrf         = no
+app                  = wps | command | cp -R /home/csic/mym/jmi/.wrf4g/repository/apps/WRF/WPS .
+                       wrf | command | cp -R /home/csic/mym/jmi/.wrf4g/repository/apps/WRF/WRF .
+                       path | command | export PATH="/home/csic/mym/jmi/.wrf4g/repository/apps/WRF/bin:$PATH"
+                       ld_library_path | command | export LD_LIBRARY_PATH="/home/csic/mym/jmi/.wrf4g/repository/apps/WRF/lib:$LD_LIBRARY_PATH"
+# WRF-namelist parameters. Override namelist.input variables here
+namelist_version     = 4.2.2
+namelist_values      = bdy_control.spec_bdy_width     | 10
+                       bdy_control.spec_zone          | 1
+	               bdy_control.relax_zone         | 9
+		       feedback           | 0
+		       history_interval   | 180
+		       frames_per_outfile | 3
+		       e_vert             | 35
+		       mp_physics         | 4   
+		       radt               | 15
+		       ra_lw_physics      | 3
+		       ra_sw_physics      | 3
+
+environment          = WALLTIME = 00:10:00,PPN = 1

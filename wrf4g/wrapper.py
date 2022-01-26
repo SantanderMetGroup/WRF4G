@@ -688,7 +688,7 @@ class WRF4GWrapper(object):
                         Job.CodeError.SOURCE_SCRIPT,
                     )
                 for line in output.splitlines():
-                    if "=" in line in line:
+                    if "=" in line and not "(" in line:
                         try:
                             key, value = line.split("=", 1)
                         except:
@@ -918,7 +918,9 @@ class WRF4GWrapper(object):
         logging.info("Download geo_em files and namelist.wps")
 
         for file_name in VCPURL(params.domain_path).ls("*"):
+            logging.info(file_name)
             if ".nc" in file_name or "namelist" in file_name:
+                logging.info(file_name)
                 orig = join(params.domain_path, file_name)
                 dest = join(params.wps_path, file_name)
                 try:
