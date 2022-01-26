@@ -24,7 +24,7 @@ Manage computing resources on WRF4G.
 Usage: 
     wrf4g resource [ --dbg ] [ list | edit | check ]
     
- Options:
+Options:
     --dbg     Debug mode.
     
 Commands:
