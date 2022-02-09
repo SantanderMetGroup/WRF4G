@@ -688,7 +688,7 @@ class WRF4GWrapper(object):
                         Job.CodeError.SOURCE_SCRIPT,
                     )
                 for line in output.splitlines():
-                    if "=" in line and not "(" in line:
+                    if "=" in line and not "BASH_FUNC" in line:
                         try:
                             key, value = line.split("=", 1)
                         except:
