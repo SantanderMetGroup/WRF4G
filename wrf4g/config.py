@@ -89,7 +89,7 @@ class SanityCheck():
             logging.error( "ERROR: 'name' variable is mandatory" )
             self.total_errors += 1
   
-    _YES_NO_VARIABLES = ( 'clean_after_run', 'save_wps', 'parallel_real',
+    _YES_NO_VARIABLES = ( 'clean_after_run', 'save_wps', 'parallel_real','parallel_metgrid'
                           'parallel_wrf' , 'wrfout_name_end_date', 'chunk_restart' )
 
     def yes_no_vars(self):
