@@ -284,7 +284,7 @@ class PilotParams(object):
         self.local_path = local_path
         
         # Parallel environment
-        self.parallel_megrid = resource_cfg.get("parallel_metgrid", "no")
+        self.parallel_metgrid = resource_cfg.get("parallel_metgrid", "no")
         self.parallel_real = resource_cfg.get("parallel_real", "no")
         self.parallel_wrf = resource_cfg.get("parallel_wrf", "yes")
 
@@ -1148,34 +1148,6 @@ class WRF4GWrapper(object):
             )
         else:
                 logging.info("metgrid has successfully finished")
-
-
-        if params.parallel_real == 'yes' :
-            real_log = join(params.wrf_run_path, "rsl.out.0000")
-            launcher = "%s/bin/wrf_launcher.sh" % params.root_path
-            cmd = "%s %s %s" % (params.parallel_run, launcher, real_exe)
-            logging.info("Running: %s" % cmd)
-            code, output = exec_cmd(cmd)
-            if isfile(real_log):
-                real_rsl_path = join(params.log_path, "rsl_real")
-                os.mkdir(real_rsl_path)
-                rsl_files = glob.glob(join(params.wrf_run_path, "rsl.*"))
-                for rsl_file in rsl_files:
-                    shutil.copyfile(rsl_file, join(real_rsl_path, basename(rsl_file)))
-        else:
-            real_log = join(params.log_path, "real.log")
-            code, output = exec_cmd(
-                "wrf_launcher.sh %s > %s" % (real_exe, real_log)
-            )     
-        
-        if code or not "SUCCESS COMPLETE" in open(real_log, "r").read():
-            logging.info(output)
-            raise JobError("'%s' has failed" % real_exe, Job.CodeError.REAL_FAILED)
-        else:
-            logging.info("real has successfully finished")
-
-
-
 
         ##
         # Run real
