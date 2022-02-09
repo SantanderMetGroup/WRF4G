@@ -1126,17 +1126,17 @@ class WRF4GWrapper(object):
         job_db.set_job_status(Job.Status.METGRID)
 
         if params.parallel_metgrid == 'yes' :
-            metgrid_log = join(params.wrf_run_path, "rsl.out.0000")
+            metgrid_log = "metgrid.log.0000"
             launcher = "%s/bin/wrf_launcher.sh" % params.root_path
             cmd = "%s %s %s" % (params.parallel_run, launcher, metgrid_exe)
             logging.info("Running: %s" % cmd)
             code, output = exec_cmd(cmd)
             if isfile(metgrid_log):
-                real_rsl_path = join(params.log_path, "rsl_real")
-                os.mkdir(real_rsl_path)
-                rsl_files = glob.glob(join(params.wrf_run_path, "rsl.*"))
+                metgrid_rsl_path = join(params.log_path, "rsl_metgrid")
+                os.mkdir(metgrid_rsl_path)
+                rsl_files = glob.glob("metgrid.log.*")
                 for rsl_file in rsl_files:
-                    shutil.copyfile(rsl_file, join(real_rsl_path, basename(rsl_file)))
+                    shutil.copyfile(rsl_file, join(metgrid_rsl_path, basename(rsl_file)))
         else:
             metgrid_log = join(params.log_path, "metgrid.log") 
             code, output = exec_cmd("%s > %s" % (metgrid_exe, metgrid_log))
