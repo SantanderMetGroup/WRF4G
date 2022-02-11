@@ -135,11 +135,11 @@ class WRFFile( object ) :
         # wrfrst_d01_1991-01-01_12:00:00
         if edate:
             self.edate = datewrf2datetime(edate)
-        g = re.search("(.*)(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})", url)
+        g = re.search("(.*)(\d{4}-\d{2}-\d{2}_\d{2}[:_]\d{2}[:_]\d{2})", url)
         if g:
             base_file, date_file = g.groups()
             self.date = datewrf2datetime(date_file)
-        else :
+        else:
             # wrfrst_d01_19910101T120000Z.nc
             g = re.search("(.*)(\d{8}T\d{6}Z)", url)
             if not g:

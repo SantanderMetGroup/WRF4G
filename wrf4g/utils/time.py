@@ -24,7 +24,7 @@ from datetime                import datetime, timedelta
 from dateutil.relativedelta  import relativedelta
 
 def datewrf2datetime( date_wrf ):
-    mo = re.match("(\d{4})-(\d{2})-(\d{2})_(\d{2}):(\d{2}):(\d{2})", date_wrf )
+    mo = re.match("(\d{4})-(\d{2})-(\d{2})_(\d{2})[:_](\d{2})[:_](\d{2})", date_wrf )
     if not mo :
         raise Exception("Date is not well formed")
     date_tuple  = mo.groups()
