@@ -1,0 +1,2 @@
+fortran_namelist
+wrf4g
