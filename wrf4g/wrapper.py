@@ -408,9 +408,7 @@ def clean_wrf_files(job_db, params, clean_all=False):
                     restart_date = WRFFile(file_name).date_datetime()
                     logging.info("Setting restart date to '%s'" % restart_date)
                     job_db.set_restart_date(restart_date)
-                ##
-                # Uploading "wrfout", "wrfrst", "wrfzout", "wrfz2out", "wrfrain", "wrfxtrm", "wrf24hc" files
-                ##
+           
                 if (
                     patt != "wrfrst"
                     and params.wrfout_name_end_date == "yes"

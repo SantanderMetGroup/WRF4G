@@ -180,9 +180,7 @@ class SanityCheck():
                                        "'parallel_run' and 'parallel_run_pernode' variables" )
                         self.total_errors += 1  
  
-    _files_to_save = ( 'wrfout', 'wrfzout', 'wrfz2out',
-                       'wrfrst', 'wrfrain', 'wrfxtrm',
-                       'wrf24hc' )
+    _files_to_save = ( 'wrfout', 'wrfrst')
 
     def files_to_save(self) :
         """
