@@ -133,6 +133,19 @@ class JobDB(object):
         except:
             logging.warning("Error setting job status")
 
+    def set_job_resource(self, resource_name ):
+        self.check_db()
+        try:
+            if self.session and self.job:
+                self.job.resource = resource_name
+                try:
+                    self.session.commit()
+                except:
+                    logging.warning("Error updating resource on the database")
+                    self.session.rollback()
+        except:
+            logging.warning("Error updating resource on the database")
+
     def get_restart_date(self):
         self.check_db()
         if self.session and self.job:
@@ -234,11 +247,11 @@ class PilotParams(object):
         self.cfg = cfg
         resource_cfg = cfg["ensemble/default"].copy()
         # Find if there is a specific section for this resource
-        resource_name = os.environ.get("GW_HOSTNAME")
-        if not resource_name:
+        self.resource_name = os.environ.get("GW_HOSTNAME")
+        if not self.resource_name:
             raise NameError('Environment variable: GW_HOSTNAME not defined')
         # TODO: Check resource_name in not empty
-        resource_section = "resource/" + resource_name
+        resource_section = "resource/" + self.resource_name
         if resource_section in cfg:
             resource_cfg.update(resource_section)
         self.output_path = resource_cfg["output_path"]
@@ -541,6 +554,7 @@ class WRF4GWrapper(object):
     def main_workflow(self):
         # Prepare the environment
         self.exit_if_the_job_is_canceled()
+        self.set_resource_in_db()
         self.create_remote_directory_tree()
         self.copy_configuration_files()
         self.set_environment_variables()
@@ -576,6 +590,11 @@ class WRF4GWrapper(object):
             raise JobError(
                 "Error this job should not run", Job.CodeError.JOB_SHOULD_NOT_RUN
             )
+
+    def set_resource_in_db(self):
+        params = self.params
+        self.job_db.set_job_status( Job.Status.RUNNING )
+        self.job_db.set_job_resource(params.resource_name)
 
     def copy_configuration_files(self):
         # Copy configured files to the ouput path

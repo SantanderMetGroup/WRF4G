@@ -976,7 +976,8 @@ class Job( object ):
                 elif ( status == Job.Status.FINISHED and \
                        self.chunk.realization.status != Realization.Status.FINISHED and \
                        self.chunk.realization.status != Realization.Status.FAILED ) :
-                    self.chunk.realization.current_chunk = self.chunk.chunk_id + 1
+                    self.chunk.realization.current_chunk = self.chunk.chunk_id + 1                    
+                    self.chunk.realization.status = Realization.Status.SUBMITTED
                 elif status != Job.Status.FINISHED :
                     self.chunk.realization.status = status
         #Add event
