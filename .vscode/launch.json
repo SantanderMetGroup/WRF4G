@@ -11,6 +11,22 @@
             "program": "bin/wrf4g",
             "console": "integratedTerminal",
             "args": ["resource"]
+        },
+        {
+            "name": "wrf4g rea devel-default-20110828T120000 status",
+            "type": "python",
+            "request": "launch",
+            "program": "bin/wrf4g",
+            "console": "integratedTerminal",
+            "args": ["rea","devel-default-20110828T120000","status","--chunks"]
+        },
+        {
+            "name": "wrf4g exp devel status",
+            "type": "python",
+            "request": "launch",
+            "program": "bin/wrf4g",
+            "console": "integratedTerminal",
+            "args": ["exp","devel","status","--chunk"]
         }
     ]
 }

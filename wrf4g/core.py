@@ -172,7 +172,7 @@ class Experiment(object):
             # Create software bundles to use on the WN
             self._create_wrf4g_bundles( exp_sub_dir  )
     
-    def get_status(self, rea_pattern = False, rea_status = False ):
+    def get_status(self, rea_pattern = False, rea_status = False, verbose= False ):
         """ 
         Show information about realizations of the experiment for example:
         
@@ -193,10 +193,14 @@ class Experiment(object):
         #Header of the information
         if not ( l_realizations ):
             raise Exception ( 'There are not realizations to check.' )
-        Realization.status_header()
+        if verbose:
+            Realization.status_chunk_header()
+        else:
+            Realization.status_header()
+
         for rea in l_realizations.order_by( Realization.name ) :
             #Print information of each realization
-            rea.get_status( )
+            rea.get_status(verbose)
     
     def cancel(self, rea_pattern = False, rea_status = False, hard = False ):
         """
@@ -645,8 +649,12 @@ class Realization( object ):
         logging.info( '%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s'% (
                         'REALIZATION','STATUS','CHUNKS','RESOURCE','RUN STATUS',
                         'JID', 'EXT','%' ) )
+    @staticmethod 
+    def status_chunk_header(): 
+        logging.info( '%-60s %-10s %-20s %-20s %-10s %16s'% (
+                        'REALIZATION','CHUNK_ID','START','END','WPS','STATUS' ) )
  
-    def get_status(self):
+    def get_status(self,verbose=0):
         """ 
         Show information about the realization for example:
             Realization Status    Chunks     Comp.Res       Run.Sta     JID   ext      %
@@ -663,29 +671,37 @@ class Realization( object ):
         """                
         #Select parameters:job_status,rea_status,resource,exitcode,nchunks
         #Last job of current chunk
-        resource, exitcode, gw_job = '-', '-', '-'
-        status = Realization.Status.PREPARED
-        if self.status != Realization.Status.PREPARED :
-            ch = self.chunk.filter_by( chunk_id = self.current_chunk ).one()
-            try :
-                last_job = ch.job[ -1 ]
-            except :
-                pass
-            else :
-                resource = last_job.resource
-                exitcode = last_job.exitcode
-                status   = last_job.status
-                gw_job   = last_job.gw_job
-        chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
-        #Format chunks run / chunks total
-        runt   = int( self.current_date.strftime("%s") ) - int( self.start_date.strftime("%s") ) 
-        totalt = int( self.end_date.strftime("%s") )     - int( self.start_date.strftime("%s") )
-        #Percentage
-        per = runt * 100.0 / totalt
-        #Print output
-        logging.info( "%-60s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
-                    self.name, self.status, chunk_distribution, resource, status, 
-                    gw_job, exitcode, per ) )
+
+        if not verbose:
+            resource, exitcode, gw_job = '-', '-', '-'
+            status = Realization.Status.PREPARED
+            if self.status != Realization.Status.PREPARED :
+                ch = self.chunk.filter_by( chunk_id = self.current_chunk ).one()
+                try :
+                    last_job = ch.job[ -1 ]
+                except :
+                    pass
+                else :
+                    resource = last_job.resource
+                    exitcode = last_job.exitcode
+                    status   = last_job.status
+                    gw_job   = last_job.gw_job
+            chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
+            #Format chunks run / chunks total
+            runt   = int( self.current_date.strftime("%s") ) - int( self.start_date.strftime("%s") ) 
+            totalt = int( self.end_date.strftime("%s") )     - int( self.start_date.strftime("%s") )
+            #Percentage
+            per = runt * 100.0 / totalt
+            #Print output
+            logging.info( "%-60s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
+                        self.name, self.status, chunk_distribution, resource, status, 
+                        gw_job, exitcode, per ) )
+
+        else:
+            for ch in self.chunk:
+                logging.info( "%-60s %-10s %-20s %-20s %-10s %16s"% (
+                    self.name, ch.chunk_id, ch.start_date, ch.end_date, ch.wps, ch.status ) )
+
 
     def information( self ) :
         """
