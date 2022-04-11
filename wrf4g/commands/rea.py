@@ -23,7 +23,7 @@ Manage WRF4G realizations.
     
 Usage: 
      wrf4g rea <name> submit       [ --dbg ] [ --dry-run ] [ --priority=<value> ] [ --rerun ] [ <first_ch> [ <last_ch> ] ]
-     wrf4g rea <name> status       [ --dbg ] [ --delay=<seconds> ]
+     wrf4g rea <name> status       [ --dbg ] [ --delay=<seconds> ] [ --verbose ] [ --chunks ]
      wrf4g rea <name> info
      wrf4g rea <name> log          [ --dbg ] [ --dir=<directory> ] <chunk_id>
      wrf4g rea <name> set-priority [ --dbg ] [ --dry-run ] <priority>
@@ -39,6 +39,7 @@ Options:
     --delay=<seconds>      Refresh experiment information every delay seconds.    
     -d --dir=<directory>   Directory to unpack log files [default: ./].
     --hard                 Remove jobs from without synchronizing.
+    --chunks               Show advanced information about the chunks status
   
 Commands:
     submit                 Submit the realization.       
@@ -84,6 +85,7 @@ EXIT CODES
 import logging
 import sys
 import time
+from wsgiref.handlers import read_environ
 from sqlalchemy.orm.exc   import NoResultFound
 from sqlalchemy.exc       import OperationalError
 from wrf4g.utils.command  import cls
@@ -111,15 +113,23 @@ def run( arg ) :
                          rerun           = arg[ '--rerun' ],
                          priority        = int( arg[ '--priority' ] ) )
             elif arg[ 'status' ] :
+                if arg['--chunks']: 
+                    rea_vchunks=1
+                else:
+                    rea_vchunks=0
                 if not arg[ '--delay' ] :
-                    rea.status_header( )
-                    rea.get_status( )
+                    if rea_vchunks == 0:
+                        rea.status_header( )
+                    else:
+                        rea.status_chunk_header()
+
+                    rea.get_status(rea_vchunks)
                 else :
                     try:
                         while True :
                             cls()
                             rea.status_header()
-                            rea.get_status( )
+                            rea.get_status(rea_vchunks)
                             time.sleep( int( arg[ '--delay' ] ) )
                     except KeyboardInterrupt :
                         pass

@@ -28,7 +28,7 @@ Usage:
     wrf4g exp <name> create       [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
     wrf4g exp <name> update       [ --dbg ] [ --dry-run ] 
     wrf4g exp <name> submit       [ --dbg ] [ --dry-run ] [ --priority=<value> ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --rerun ] 
-    wrf4g exp <name> status       [ --dbg ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --delay=<seconds> ]  
+    wrf4g exp <name> status       [ --dbg ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --delay=<seconds> ]  [ --chunk ]
     wrf4g exp <name> statistics   [ --pattern=<name> ]
     wrf4g exp <name> cancel       [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --hard ]
     wrf4g exp <name> set-priority [ --dbg ] [ --dry-run ] [ --pattern=<name> ] <priority>
@@ -47,6 +47,7 @@ Options:
     --delay=<seconds>         Refresh experiment information every delay seconds.
     --rerun                   Force to run although this realization or experiment has finished.
     --hard                    Remove jobs from without synchronizing.
+    --chunk                   Show advanced information about the chunks status
   
 Commands:
     list                      Show all the experiments available.
@@ -153,7 +154,7 @@ def run( arg ) :
                                  int( arg[ '--priority' ] ) )
                     elif arg[ 'status' ] :
                         if not arg[ '--delay' ] :
-                            exp.get_status( arg[ '--pattern' ], arg[ '--rea-state' ] )
+                            exp.get_status( arg[ '--pattern' ], arg[ '--rea-state' ],arg['--chunk'] )
                         else :
                             try:
                                 while True :
