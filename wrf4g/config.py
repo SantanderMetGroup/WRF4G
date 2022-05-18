@@ -115,7 +115,7 @@ class SanityCheck():
         for section in list( self.cfg.keys( ) ) :
             if self.cfg[ section ].get( 'log_level' ) and section.startswith( 'ensemble/' ) :
                 if not self.cfg[ section ].get( 'log_level' ) in [ 'ERROR', 'WARNING', 'INFO', 'DEBUG' ] :
-                    logging.error( "log_level variale has to be ERROR, WARNING, INFO or DEBUG" )
+                    logging.error( "log_level variable has to be ERROR, WARNING, INFO or DEBUG" )
                     self.total_errors += 1
 
     def calendar(self):
@@ -125,7 +125,7 @@ class SanityCheck():
         for section in list( self.cfg.keys( ) ) :
             if self.cfg[ section ].get( 'calendar' ) and section.startswith( 'ensemble/' ) :
                 if not self.cfg[ section ][ 'calendar' ] in Calendar.available_types :
-                    logging.error( "'%s' calendar type is not avariable" % self.cfg[ default ][ 'calendar' ] )
+                    logging.error( "'%s' calendar type is not available" % self.cfg[ default ][ 'calendar' ] )
                     self.total_errors += 1
     
     def dates(self):

@@ -155,6 +155,7 @@ class JobDB(object):
     def has_wps(self):
         self.check_db()
         if self.session and self.job:
+            logging.info("has_wps: %d" %(self.job.chunk.wps))
             return self.job.chunk.wps
         else:
             return 0
@@ -282,6 +283,7 @@ class PilotParams(object):
         self.chunk_rdate = self.chunk_sdate
         # Variable to rerun the chunk
         self.rerun = int(sys.argv[6])
+        self.mode = sys.argv[7]
         # Preprocessor parameters
         self.preprocessor_optargs = dict()
         if "preprocessor_optargs" in resource_cfg:
@@ -525,6 +527,7 @@ class WRF4GWrapper(object):
             filename=params.log_file,
             level=params.log_level,
         )
+
         # Log path information
         logging.info("Information about directories")
         logging.info("Root path = %s" % params.root_path)
@@ -561,7 +564,8 @@ class WRF4GWrapper(object):
         self.configure_app()
         binaries = self.define_binaries_for_execution()
         self.get_working_node_information()
-        self.check_restart_date()
+        if self.params.mode != "wps-only": 
+            self.check_restart_date()
         # Handle WRF Preprocessing System
         # Copy namelist.input to wrf_run_path
         shutil.copyfile(
@@ -576,14 +580,22 @@ class WRF4GWrapper(object):
                     "There was a problem downloading the boundaries and initial conditions"
                 )
                 self.rerun_wps = True
-        if not self.job_db.has_wps() or self.rerun_wps:
+        if not (self.job_db.has_wps()) or self.rerun_wps:
             logging.info("The boundaries and initial conditions are not available")
             self.run_wps(binaries)
-        # Run WRF
-        self.run_wrf(binaries)
+        
+        if (self.params.mode=='wrf'):
+            # Run WRF
+            self.run_wrf(binaries)
+        
         self.clean_working_nodes()
         # Update the status
-        self.job_db.set_job_status(Job.Status.FINISHED)
+        if self.params.mode=='wrf':
+            self.job_db.set_job_status(Job.Status.FINISHED)
+        else: 
+            self.job_db.set_job_status(Job.Status.WPS_FINISHED)
+
+
 
     def exit_if_the_job_is_canceled(self):
         if self.job_db.get_job_status() == Job.Status.CANCEL:
@@ -593,7 +605,8 @@ class WRF4GWrapper(object):
 
     def set_resource_in_db(self):
         params = self.params
-        self.job_db.set_job_status( Job.Status.RUNNING )
+        if params.mode != "wps-only":
+            self.job_db.set_job_status( Job.Status.RUNNING )
         self.job_db.set_job_resource(params.resource_name)
 
     def copy_configuration_files(self):
@@ -747,6 +760,7 @@ class WRF4GWrapper(object):
     #            os.chmod(join(params.root_path, 'WPS', 'util',
     #                          'src', 'avg_tsfc.exe'), stat.S_IRWXU)
 
+    # This function is not used 
     def prepare_parallel_environment(self):
         params = self.params
         if (params.parallel_metgrid == "yes" or params.parallel_real == "yes" or params.parallel_wrf == "yes") and (
@@ -843,10 +857,12 @@ class WRF4GWrapper(object):
 
     def check_restart_date(self):
         params = self.params
-        job_db = self.job_db
+        job_db = self.job_db       
         # Check the restart date
         logging.info("Checking restart date")
         rdate = job_db.get_restart_date()
+        # If realization.restart is empty or chunk has to be rerun.
+        # self.chunk_rerun='.T.' means the chunk will use a rst file
         if not rdate or params.rerun:
             logging.info("Restart date will be '%s'" % params.chunk_sdate)
             if params.nchunk > 1:
@@ -866,7 +882,7 @@ class WRF4GWrapper(object):
                 "There is a mismatch in the restart date",
                 Job.CodeError.RESTART_MISMATCH,
             )
-
+        # Download rst files
         if self.chunk_rerun == ".T.":
             pattern = "wrfrst*" + datetime2dateiso(params.chunk_rdate) + "*"
             files_downloaded = 0
@@ -1237,7 +1253,7 @@ class WRF4GWrapper(object):
         ##
         # Check if wps files has to be storaged
         ##
-        if params.save_wps == "yes":
+        if params.save_wps == "yes" or params.mode=='wps-only':
             logging.info("Saving wps")
             job_db.set_job_status(Job.Status.UPLOAD_WPS)
             # If the files are WPS, add the date to the name. Three files have to be uploaded: wrfinput_d0?,wrfbdy_d0? and wrflowinp_d0?

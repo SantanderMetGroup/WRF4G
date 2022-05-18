@@ -13,12 +13,12 @@
             "args": ["resource"]
         },
         {
-            "name": "wrf4g rea devel-default-20110828T120000 status",
+            "name": "wrf4g rea release1-default-20110828T120000 status --show-chunks",
             "type": "python",
             "request": "launch",
             "program": "bin/wrf4g",
             "console": "integratedTerminal",
-            "args": ["rea","devel-default-20110828T120000","status","--chunks"]
+            "args": ["rea","release1-default-20110828T120000","status","--show-chunks"]
         },
         {
             "name": "wrf4g exp devel status",
@@ -27,6 +27,30 @@
             "program": "bin/wrf4g",
             "console": "integratedTerminal",
             "args": ["exp","devel","status","--chunk"]
+        },
+        {
+            "name": "wrf4g rea release1-default-20110828T120000 submit --wps-only",
+            "type": "python",
+            "request": "launch",
+            "program": "bin/wrf4g",
+            "console": "integratedTerminal",
+            "args": ["rea","release1-default-20110828T120000","submit","--wps-only"]
+        },
+        {
+            "name": "wrf4g exp release1 submit --wps-only",
+            "type": "python",
+            "request": "launch",
+            "program": "bin/wrf4g",
+            "console": "integratedTerminal",
+            "args": ["exp","release1","submit","--wps-only"]
+        },
+        {
+            "name": "wrf4g exp release1 submit",
+            "type": "python",
+            "request": "launch",
+            "program": "bin/wrf4g",
+            "console": "integratedTerminal",
+            "args": ["exp","release1","submit"]
         }
     ]
 }

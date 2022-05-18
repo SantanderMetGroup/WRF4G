@@ -22,8 +22,8 @@
 Manage WRF4G realizations. 
     
 Usage: 
-     wrf4g rea <name> submit       [ --dbg ] [ --dry-run ] [ --priority=<value> ] [ --rerun ] [ <first_ch> [ <last_ch> ] ]
-     wrf4g rea <name> status       [ --dbg ] [ --delay=<seconds> ] [ --verbose ] [ --chunks ]
+     wrf4g rea <name> submit       [ --dbg ] [ --dry-run ] [ --priority=<value> ] [ --rerun ] [ --wps-only ] [ --mode=<value> ] [ <first_ch> [ <last_ch> ] ]
+     wrf4g rea <name> status       [ --dbg ] [ --delay=<seconds> ] [ --verbose ] [ --show-chunks ]
      wrf4g rea <name> info
      wrf4g rea <name> log          [ --dbg ] [ --dir=<directory> ] <chunk_id>
      wrf4g rea <name> set-priority [ --dbg ] [ --dry-run ] <priority>
@@ -35,11 +35,13 @@ Options:
     --dbg                  Debug mode.
     -n --dry-run           Dry run.
     --rerun                Force to run although the realization has finished.
+    --wps-only             Only run wps, not wrf 
     -P --priority=<value>  Fix-priority for scheduling [default: 0].
     --delay=<seconds>      Refresh experiment information every delay seconds.    
     -d --dir=<directory>   Directory to unpack log files [default: ./].
     --hard                 Remove jobs from without synchronizing.
-    --chunks               Show advanced information about the chunks status
+    -m --mode=<value>      0 (default): run whole workflow, 1: only WPS and real, 2: only WRF [default: 0]
+    --show-chunks               Show advanced information about the chunks status
   
 Commands:
     submit                 Submit the realization.       
@@ -108,28 +110,36 @@ def run( arg ) :
             raise Exception( "'%s' realization does not exist" % arg[ '<name>' ] )
         else :
             if arg[ 'submit' ] :
-                rea.run( first_chunk_run = arg[ '<first_ch>' ], 
-                         last_chunk_run  = arg[ '<last_ch>' ], 
-                         rerun           = arg[ '--rerun' ],
-                         priority        = int( arg[ '--priority' ] ) )
-            elif arg[ 'status' ] :
-                if arg['--chunks']: 
-                    rea_vchunks=1
+                if arg['--wps-only']:
+                    rea.run_wps(first_chunk_run = arg[ '<first_ch>' ], 
+                            last_chunk_run  = arg[ '<last_ch>' ], 
+                            rerun           = arg[ '--rerun' ],
+                            priority        = int( arg[ '--priority' ] ), 
+                            )
                 else:
-                    rea_vchunks=0
+                    rea.run( first_chunk_run = arg[ '<first_ch>' ], 
+                            last_chunk_run  = arg[ '<last_ch>' ], 
+                            rerun           = arg[ '--rerun' ],
+                            priority        = int( arg[ '--priority' ] ) 
+                            )
+            elif arg[ 'status' ] :
+                if arg['--show-chunks']: 
+                    showchunks=1
+                else:
+                    showchunks=0
                 if not arg[ '--delay' ] :
-                    if rea_vchunks == 0:
+                    if showchunks == 0:
                         rea.status_header( )
                     else:
                         rea.status_chunk_header()
 
-                    rea.get_status(rea_vchunks)
+                    rea.get_status(showchunks)
                 else :
                     try:
                         while True :
                             cls()
                             rea.status_header()
-                            rea.get_status(rea_vchunks)
+                            rea.get_status(showchunks)
                             time.sleep( int( arg[ '--delay' ] ) )
                     except KeyboardInterrupt :
                         pass
@@ -150,8 +160,12 @@ def run( arg ) :
             else :
                 session.commit()
                 if arg[ 'submit' ] :
-                    rea.release()
+                    if arg["--wps-only"]:
+                        rea.release_wps()
+                    else:
+                        rea.release()
                     session.commit()
+                
     except OperationalError as err :
         logging.error( err.message )
     except KeyboardInterrupt :
