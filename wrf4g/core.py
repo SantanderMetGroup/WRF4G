@@ -104,20 +104,19 @@ class Experiment(object):
         """
         edit_file( join( self.home_directory, 'experiment.wrf4g' )  )
 
-    def _copy_namelist_template( self, namelist_version ):
+    def _copy_namelist_template( self, namelist_template ):
         """
         Copy the namelist from the template directory 
         """
-        logging.info( "Preparing namelist %s version ... " % namelist_version )
+        logging.info( "Preparing namelist %s version ... " % namelist_template )
 
-        if not namelist_version.startswith("/"):
-            if re.match("^\d+.\d+.\d+",namelist_version):
+        if not namelist_template.startswith("/"):
+            if re.match("^\d+.\d+.\d+",namelist_template):
                 namelist_template = join( WRF4G_DIR, 'etc', 'templates', 'namelist',
-                                  'namelist.input-%s' % namelist_version )    
+                                  'namelist.input-%s' % namelist_template )    
             else:
-                raise Exception( "namelist version: %s is not an accepted value. It should point to a file or to a WRF version"  %namelist_version)
-        else: 
-            namelist_template=namelist_version    
+                raise Exception( "namelist version: %s is not an accepted value. It should point to a file or to a WRF version"  %namelist_template)
+           
         namelist_input    = join( self.home_directory, 'namelist.input' )
         try :
             logging.debug( "Copying '%s' to '%s'" % ( namelist_template, namelist_input ) )
@@ -182,7 +181,7 @@ class Experiment(object):
             if section.startswith( "ensemble" ) :
                 try :
                     # Copy the namelist from the template directory 
-                    namelist_input = self._copy_namelist_template( self.cfg[ section ][ 'namelist_version' ] )
+                    namelist_input = self._copy_namelist_template( self.cfg[ section ][ 'namelist_template' ] )
                     self.update_namelist( namelist_input, section )
                     self.cycle_time( namelist_input, section )
                 except KeyError as err :

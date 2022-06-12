@@ -30,7 +30,7 @@
     "parallel_wrf": "yes",
     "init_lakes_with_tavsfc": "yes",
     "app": "wrf_all_in_one | bundle | /home/users/garciam/anaconda2/envs/flowcast/repository/apps/WRF/WRFbin-3.7.1_gfortran_openmpi_3.1.0.tar.gz",
-    "namelist_version": "3.4.1",
+    "namelist_template": "3.4.1",
     "namelist_values": {
       "relax_zone": "9",
       "ra_lw_physics": "3",

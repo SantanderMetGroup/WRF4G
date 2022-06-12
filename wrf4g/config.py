@@ -63,6 +63,7 @@ def get_conf( directory = './' ):
     sanity_check.parallel_env() 
     sanity_check.files_to_save()
     sanity_check.app()
+    sanity_check.namelist_template()
     sanity_check.ensembles()
     if sanity_check.total_errors :
         raise Exception( "Please review your experiment configuration" )
@@ -180,6 +181,22 @@ class SanityCheck():
                                        "'parallel_run' and 'parallel_run_pernode' variables" )
                         self.total_errors += 1  
  
+
+    def namelist_template(self) :
+        """
+        Check the namelist template
+        """
+        for section in list( self.cfg.keys( ) ) :
+            if self.cfg[section].get('namelist_template') or self.cfg[section].get('namelist_version'):
+                if self.cfg[section].get('namelist_version'):
+                    logging.warn('namelist_version variable is deprecated. Use namelist_template instead')
+                    self.cfg[section]['namelist_template']=self.cfg[section].get('namelist_version')
+                    self.cfg[section].pop('namelist_version')
+                
+            else :
+                logging.error( "ERROR: 'namelist_template' variable is mandatory" )
+                self.total_errors += 1
+
     _files_to_save = ( 'wrfout', 'wrfrst')
 
     def files_to_save(self) :
