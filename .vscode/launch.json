@@ -45,12 +45,21 @@
             "args": ["exp","release1","submit","--wps-only"]
         },
         {
-            "name": "wrf4g exp release1 submit",
+            "name": "wrf4g exp test submit",
             "type": "python",
             "request": "launch",
             "program": "bin/wrf4g",
             "console": "integratedTerminal",
-            "args": ["exp","release1","submit"]
+            "args": ["exp","test","submit"]
+        },
+        {
+            "name": "wrf4g exp test create",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/valva/WRF4G/bin/wrf4g",
+            "console": "integratedTerminal",
+            "args": ["exp","test","create"],
+            "cwd": "/home/valva/experimentos/test"
         }
     ]
 }
