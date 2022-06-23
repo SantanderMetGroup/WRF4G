@@ -133,6 +133,19 @@ class JobDB(object):
         except:
             logging.warning("Error setting job status")
 
+    def set_job_resource(self, resource_name ):
+        self.check_db()
+        try:
+            if self.session and self.job:
+                self.job.resource = resource_name
+                try:
+                    self.session.commit()
+                except:
+                    logging.warning("Error updating resource on the database")
+                    self.session.rollback()
+        except:
+            logging.warning("Error updating resource on the database")
+
     def get_restart_date(self):
         self.check_db()
         if self.session and self.job:
@@ -142,6 +155,7 @@ class JobDB(object):
     def has_wps(self):
         self.check_db()
         if self.session and self.job:
+            logging.info("has_wps: %d" %(self.job.chunk.wps))
             return self.job.chunk.wps
         else:
             return 0
@@ -234,11 +248,11 @@ class PilotParams(object):
         self.cfg = cfg
         resource_cfg = cfg["ensemble/default"].copy()
         # Find if there is a specific section for this resource
-        resource_name = os.environ.get("GW_HOSTNAME")
-        if not resource_name:
+        self.resource_name = os.environ.get("GW_HOSTNAME")
+        if not self.resource_name:
             raise NameError('Environment variable: GW_HOSTNAME not defined')
         # TODO: Check resource_name in not empty
-        resource_section = "resource/" + resource_name
+        resource_section = "resource/" + self.resource_name
         if resource_section in cfg:
             resource_cfg.update(resource_section)
         self.output_path = resource_cfg["output_path"]
@@ -269,6 +283,7 @@ class PilotParams(object):
         self.chunk_rdate = self.chunk_sdate
         # Variable to rerun the chunk
         self.rerun = int(sys.argv[6])
+        self.mode = sys.argv[7]
         # Preprocessor parameters
         self.preprocessor_optargs = dict()
         if "preprocessor_optargs" in resource_cfg:
@@ -284,6 +299,7 @@ class PilotParams(object):
         self.local_path = local_path
         
         # Parallel environment
+        self.parallel_metgrid = resource_cfg.get("parallel_metgrid", "no")
         self.parallel_real = resource_cfg.get("parallel_real", "no")
         self.parallel_wrf = resource_cfg.get("parallel_wrf", "yes")
 
@@ -407,9 +423,7 @@ def clean_wrf_files(job_db, params, clean_all=False):
                     restart_date = WRFFile(file_name).date_datetime()
                     logging.info("Setting restart date to '%s'" % restart_date)
                     job_db.set_restart_date(restart_date)
-                ##
-                # Uploading "wrfout", "wrfrst", "wrfzout", "wrfz2out", "wrfrain", "wrfxtrm", "wrf24hc" files
-                ##
+           
                 if (
                     patt != "wrfrst"
                     and params.wrfout_name_end_date == "yes"
@@ -542,13 +556,15 @@ class WRF4GWrapper(object):
     def main_workflow(self):
         # Prepare the environment
         self.exit_if_the_job_is_canceled()
+        self.set_resource_in_db()
         self.create_remote_directory_tree()
         self.copy_configuration_files()
         self.set_environment_variables()
         self.configure_app()
         binaries = self.define_binaries_for_execution()
         self.get_working_node_information()
-        self.check_restart_date()
+        if self.params.mode != "wps-only": 
+            self.check_restart_date()
         # Handle WRF Preprocessing System
         # Copy namelist.input to wrf_run_path
         shutil.copyfile(
@@ -563,20 +579,34 @@ class WRF4GWrapper(object):
                     "There was a problem downloading the boundaries and initial conditions"
                 )
                 self.rerun_wps = True
-        if not self.job_db.has_wps() or self.rerun_wps:
+        if not (self.job_db.has_wps()) or self.rerun_wps:
             logging.info("The boundaries and initial conditions are not available")
             self.run_wps(binaries)
-        # Run WRF
-        self.run_wrf(binaries)
+        
+        if (self.params.mode=='wrf'):
+            # Run WRF
+            self.run_wrf(binaries)
+        
         self.clean_working_nodes()
         # Update the status
-        self.job_db.set_job_status(Job.Status.FINISHED)
+        if self.params.mode=='wrf':
+            self.job_db.set_job_status(Job.Status.FINISHED)
+        else: 
+            self.job_db.set_job_status(Job.Status.WPS_FINISHED)
+
+
 
     def exit_if_the_job_is_canceled(self):
         if self.job_db.get_job_status() == Job.Status.CANCEL:
             raise JobError(
                 "Error this job should not run", Job.CodeError.JOB_SHOULD_NOT_RUN
             )
+
+    def set_resource_in_db(self):
+        params = self.params
+        if params.mode != "wps-only":
+            self.job_db.set_job_status( Job.Status.RUNNING )
+        self.job_db.set_job_resource(params.resource_name)
 
     def copy_configuration_files(self):
         # Copy configured files to the ouput path
@@ -688,7 +718,7 @@ class WRF4GWrapper(object):
                         Job.CodeError.SOURCE_SCRIPT,
                     )
                 for line in output.splitlines():
-                    if "=" in line in line:
+                    if "=" in line and not "BASH_FUNC" in line:
                         try:
                             key, value = line.split("=", 1)
                         except:
@@ -729,9 +759,10 @@ class WRF4GWrapper(object):
     #            os.chmod(join(params.root_path, 'WPS', 'util',
     #                          'src', 'avg_tsfc.exe'), stat.S_IRWXU)
 
+    # This function is not used 
     def prepare_parallel_environment(self):
         params = self.params
-        if (params.parallel_real == "yes" or params.parallel_wrf == "yes") and (
+        if (params.parallel_metgrid == "yes" or params.parallel_real == "yes" or params.parallel_wrf == "yes") and (
             params.local_path != params.root_path
         ):
             logging.info(
@@ -825,10 +856,12 @@ class WRF4GWrapper(object):
 
     def check_restart_date(self):
         params = self.params
-        job_db = self.job_db
+        job_db = self.job_db       
         # Check the restart date
         logging.info("Checking restart date")
         rdate = job_db.get_restart_date()
+        # If realization.restart is empty or chunk has to be rerun.
+        # self.chunk_rerun='.T.' means the chunk will use a rst file
         if not rdate or params.rerun:
             logging.info("Restart date will be '%s'" % params.chunk_sdate)
             if params.nchunk > 1:
@@ -848,7 +881,7 @@ class WRF4GWrapper(object):
                 "There is a mismatch in the restart date",
                 Job.CodeError.RESTART_MISMATCH,
             )
-
+        # Download rst files
         if self.chunk_rerun == ".T.":
             pattern = "wrfrst*" + datetime2dateiso(params.chunk_rdate) + "*"
             files_downloaded = 0
@@ -1124,15 +1157,29 @@ class WRF4GWrapper(object):
         logging.info("Run metgrid")
         job_db.set_job_status(Job.Status.METGRID)
 
-        metgrid_log = join(params.log_path, "metgrid.log")
-        code, output = exec_cmd("%s > %s" % (metgrid_exe, metgrid_log))
+        if params.parallel_metgrid == 'yes' :
+            metgrid_log = "metgrid.log.0000"
+            launcher = "%s/bin/wrf_launcher.sh" % params.root_path
+            cmd = "%s %s %s" % (params.parallel_run, launcher, metgrid_exe)
+            logging.info("Running: %s" % cmd)
+            code, output = exec_cmd(cmd)
+            if isfile(metgrid_log):
+                metgrid_rsl_path = join(params.log_path, "rsl_metgrid")
+                os.mkdir(metgrid_rsl_path)
+                rsl_files = glob.glob("metgrid.log.*")
+                for rsl_file in rsl_files:
+                    shutil.copyfile(rsl_file, join(metgrid_rsl_path, basename(rsl_file)))
+        else:
+            metgrid_log = join(params.log_path, "metgrid.log") 
+            code, output = exec_cmd("%s > %s" % (metgrid_exe, metgrid_log))
+           
         if code or not "Successful completion" in open(metgrid_log, "r").read():
             logging.info(output)
             raise JobError(
-                "'%s' has failed" % metgrid_exe, Job.CodeError.METGRID_FAILED
+               "'%s' has failed" % metgrid_exe, Job.CodeError.METGRID_FAILED
             )
         else:
-            logging.info("metgrid has successfully finished")
+                logging.info("metgrid has successfully finished")
 
         ##
         # Run real
@@ -1205,7 +1252,7 @@ class WRF4GWrapper(object):
         ##
         # Check if wps files has to be storaged
         ##
-        if params.save_wps == "yes":
+        if params.save_wps == "yes" or params.mode=='wps-only':
             logging.info("Saving wps")
             job_db.set_job_status(Job.Status.UPLOAD_WPS)
             # If the files are WPS, add the date to the name. Three files have to be uploaded: wrfinput_d0?,wrfbdy_d0? and wrflowinp_d0?
@@ -1300,7 +1347,7 @@ class WRF4GWrapper(object):
         # Wipe after run
         ##
         if (
-            (params.parallel_real == "yes" or params.parallel_wrf == "yes")
+            (params.parallel_metgrid == "yes" or params.parallel_real == "yes" or params.parallel_wrf == "yes")
             and (params.local_path != params.root_path)
             and (params.clean_after_run == "yes")
         ):

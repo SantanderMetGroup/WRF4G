@@ -25,7 +25,7 @@ from os.path          import exists
 from wrf4g.utils.time import datetime2datewrf
 
 def get_ptop():
-    shcmd = "ncdump -v PRES $(\ls met_em.d??.????-??-??_??:00:00.nc | head -1) | tail -2 | head -1 | tr -d ',;' | awk '{printf $1}'"
+    shcmd = "ncdump -v PRES $(\ls met_em.d??.????-??-??_??[:_]00[:_]00.nc | head -1) | tail -2 | head -1 | tr -d ',;' | awk '{printf $1}'"
     out=os.popen(shcmd).read().strip()
     return int(out)
 

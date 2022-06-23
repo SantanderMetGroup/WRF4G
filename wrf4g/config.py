@@ -63,6 +63,7 @@ def get_conf( directory = './' ):
     sanity_check.parallel_env() 
     sanity_check.files_to_save()
     sanity_check.app()
+    sanity_check.namelist_template()
     sanity_check.ensembles()
     if sanity_check.total_errors :
         raise Exception( "Please review your experiment configuration" )
@@ -89,7 +90,7 @@ class SanityCheck():
             logging.error( "ERROR: 'name' variable is mandatory" )
             self.total_errors += 1
   
-    _YES_NO_VARIABLES = ( 'clean_after_run', 'save_wps', 'parallel_real',
+    _YES_NO_VARIABLES = ( 'clean_after_run', 'save_wps', 'parallel_real','parallel_metgrid'
                           'parallel_wrf' , 'wrfout_name_end_date', 'chunk_restart' )
 
     def yes_no_vars(self):
@@ -115,7 +116,7 @@ class SanityCheck():
         for section in list( self.cfg.keys( ) ) :
             if self.cfg[ section ].get( 'log_level' ) and section.startswith( 'ensemble/' ) :
                 if not self.cfg[ section ].get( 'log_level' ) in [ 'ERROR', 'WARNING', 'INFO', 'DEBUG' ] :
-                    logging.error( "log_level variale has to be ERROR, WARNING, INFO or DEBUG" )
+                    logging.error( "log_level variable has to be ERROR, WARNING, INFO or DEBUG" )
                     self.total_errors += 1
 
     def calendar(self):
@@ -125,7 +126,7 @@ class SanityCheck():
         for section in list( self.cfg.keys( ) ) :
             if self.cfg[ section ].get( 'calendar' ) and section.startswith( 'ensemble/' ) :
                 if not self.cfg[ section ][ 'calendar' ] in Calendar.available_types :
-                    logging.error( "'%s' calendar type is not avariable" % self.cfg[ default ][ 'calendar' ] )
+                    logging.error( "'%s' calendar type is not available" % self.cfg[ default ][ 'calendar' ] )
                     self.total_errors += 1
     
     def dates(self):
@@ -180,9 +181,23 @@ class SanityCheck():
                                        "'parallel_run' and 'parallel_run_pernode' variables" )
                         self.total_errors += 1  
  
-    _files_to_save = ( 'wrfout', 'wrfzout', 'wrfz2out',
-                       'wrfrst', 'wrfrain', 'wrfxtrm',
-                       'wrf24hc' )
+
+    def namelist_template(self) :
+        """
+        Check the namelist template
+        """
+        for section in list( self.cfg.keys( ) ) :
+            if self.cfg[section].get('namelist_template') or self.cfg[section].get('namelist_version'):
+                if self.cfg[section].get('namelist_version'):
+                    logging.warn('namelist_version variable is deprecated. Use namelist_template instead')
+                    self.cfg[section]['namelist_template']=self.cfg[section].get('namelist_version')
+                    self.cfg[section].pop('namelist_version')
+                
+            else :
+                logging.error( "ERROR: 'namelist_template' variable is mandatory" )
+                self.total_errors += 1
+
+    _files_to_save = ( 'wrfout', 'wrfrst')
 
     def files_to_save(self) :
         """

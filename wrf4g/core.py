@@ -73,7 +73,30 @@ class Experiment(object):
                    first_chunk_run = 1
                 else :
                    first_chunk_run = None
-                rea.run( first_chunk_run = first_chunk_run, rerun = rerun, priority = priority )
+                rea.run( first_chunk_run = first_chunk_run, rerun = rerun, priority = priority )    
+
+    def run_wps(self, rerun = False, rea_pattern = False, rea_status = False, priority = 0 ):
+        """
+        Run the realizations of this experiment
+        n_chunk is the number of chunks to run. 
+        If there are not n_chunk, run every chunk since the last one finished 
+        """
+        #Check if the experiment have some realization to run
+        #list of realizations of the experiment
+        l_realizations  = self._filter_realizations( rea_pattern, rea_status )
+        if not ( l_realizations ):
+            logging.warn( 'There are not realizations to run.' )
+        else:
+            #if there are realizations to run
+            for rea in l_realizations :
+                logging.info( "---> Submitting Realization %s" % rea.name )
+                #Run every realization
+                rea.dryrun = self.dryrun
+                if rerun :
+                   first_chunk_run = 1
+                else :
+                   first_chunk_run = None
+                rea.run_wps( rerun = rerun, priority = priority )
 
     def edit(self):
         """
@@ -81,20 +104,19 @@ class Experiment(object):
         """
         edit_file( join( self.home_directory, 'experiment.wrf4g' )  )
 
-    def _copy_namelist_template( self, namelist_version ):
+    def _copy_namelist_template( self, namelist_template ):
         """
         Copy the namelist from the template directory 
         """
-        logging.info( "Preparing namelist %s version ... " % namelist_version )
+        logging.info( "Preparing namelist %s version ... " % namelist_template )
 
-        if not namelist_version.startswith("/"):
-            if re.match("^\d+.\d+.\d+",namelist_version):
+        if not namelist_template.startswith("/"):
+            if re.match("^\d+.\d+.\d+",namelist_template):
                 namelist_template = join( WRF4G_DIR, 'etc', 'templates', 'namelist',
-                                  'namelist.input-%s' % namelist_version )    
+                                  'namelist.input-%s' % namelist_template )    
             else:
-                raise Exception( "namelist version: %s is not an accepted value. It should point to a file or to a WRF version"  %namelist_version)
-        else: 
-            namelist_template=namelist_version    
+                raise Exception( "namelist version: %s is not an accepted value. It should point to a file or to a WRF version"  %namelist_template)
+           
         namelist_input    = join( self.home_directory, 'namelist.input' )
         try :
             logging.debug( "Copying '%s' to '%s'" % ( namelist_template, namelist_input ) )
@@ -159,7 +181,7 @@ class Experiment(object):
             if section.startswith( "ensemble" ) :
                 try :
                     # Copy the namelist from the template directory 
-                    namelist_input = self._copy_namelist_template( self.cfg[ section ][ 'namelist_version' ] )
+                    namelist_input = self._copy_namelist_template( self.cfg[ section ][ 'namelist_template' ] )
                     self.update_namelist( namelist_input, section )
                     self.cycle_time( namelist_input, section )
                 except KeyError as err :
@@ -172,7 +194,7 @@ class Experiment(object):
             # Create software bundles to use on the WN
             self._create_wrf4g_bundles( exp_sub_dir  )
     
-    def get_status(self, rea_pattern = False, rea_status = False ):
+    def get_status(self, rea_pattern = False, rea_status = False, showchunks= False ):
         """ 
         Show information about realizations of the experiment for example:
         
@@ -193,10 +215,14 @@ class Experiment(object):
         #Header of the information
         if not ( l_realizations ):
             raise Exception ( 'There are not realizations to check.' )
-        Realization.status_header()
+        if showchunks:
+            Realization.status_chunk_header()
+        else:
+            Realization.status_header()
+
         for rea in l_realizations.order_by( Realization.name ) :
             #Print information of each realization
-            rea.get_status( )
+            rea.get_status(showchunks)
     
     def cancel(self, rea_pattern = False, rea_status = False, hard = False ):
         """
@@ -219,6 +245,14 @@ class Experiment(object):
         l_realizations  = self._filter_realizations( False, Realization.Status.SUBMITTED )
         for rea in l_realizations :
             rea.release( ) 
+
+    def release_wps(self):
+        """
+        Check created job to be release
+        """
+        l_realizations  = self._filter_realizations( False, Realization.wps_only_Status.WPS_SUBMITTED, wps_only=True )
+        for rea in l_realizations :
+            rea.release_wps( ) 
 
     def statistics(self, rea_pattern = False ):
         """
@@ -296,7 +330,7 @@ class Experiment(object):
         logging.debug( "Updating parameter 'max_dom' in the namelist" )
         nmli.setValue( "max_dom", int( self.cfg[ section ][ 'max_dom' ] ) )
         max_dom = single = False
-
+        
         # If namelist_values is empty, do not modify namelist variables
         if (len(self.cfg[ section ][ 'namelist_values']) != 0):
             for mnl_variable, mnl_values in self.cfg[ section ][ 'namelist_values' ].items() :
@@ -453,7 +487,7 @@ class Experiment(object):
             tar.close()
         os.chdir( current_path )
 
-    def _filter_realizations(self, pattern, status ):
+    def _filter_realizations(self, pattern, status, wps_only=False):
         """
         Filter realizations from the experiment
         """
@@ -462,9 +496,12 @@ class Experiment(object):
             l_realizations = l_realizations.\
                              filter( Realization.name.like( pattern.replace( '*', '%' )\
                                                                    .replace( '?', '_' ) ) ) 
-        if status :
+        if status and not wps_only:
             l_realizations = l_realizations.\
                              filter_by( status = status )
+        elif status and wps_only:
+            l_realizations = l_realizations.\
+                             filter_by( wps_only_status = status )
         return l_realizations
     
 class Realization( object ):
@@ -473,8 +510,14 @@ class Realization( object ):
     """
     dryrun = False
 
+    # Status = Enumerate( 'PREPARED', 'SUBMITTED','WPS_SUBMITTED', 'RUNNING',
+    #                     'PENDING', 'FAILED', 'FINISHED','WPS_FINISHED' )
+
     Status = Enumerate( 'PREPARED', 'SUBMITTED', 'RUNNING',
-                        'PENDING', 'FAILED', 'FINISHED' )
+                         'PENDING', 'FAILED', 'FINISHED')
+    
+    wps_only_Status = Enumerate( 'PREPARED', 'WPS_SUBMITTED', 'RUNNING',
+                         'PENDING', 'FAILED', 'WPS_FINISHED')
         
     def run(self, first_chunk_run = None , last_chunk_run = None, rerun = False, priority = 0 ):
         """ 
@@ -485,7 +528,7 @@ class Realization( object ):
         first_chunk_run = int( first_chunk_run ) if first_chunk_run else None 
         last_chunk_run  = int( last_chunk_run  ) if last_chunk_run  else None
         #Check the status of the realization
-        if self.status == Realization.Status.FINISHED and not rerun :
+        if self.status == Realization.Status.FINISHED and not rerun:
             logging.warn( "\tRealization '%s' already finished." % self.name )
         elif ( self.status == Realization.Status.SUBMITTED or 
                self.status == Realization.Status.RUNNING ) and not rerun :
@@ -546,11 +589,65 @@ class Realization( object ):
                                                               datetime2datewrf(chunk.start_date), 
                                                               datetime2datewrf(chunk.end_date) ) )
                 if not self.dryrun :
-                    chunk.run( index, rerun, priority )
+                    chunk.run( index, rerun, priority,mode='wrf' )
             if not self.dryrun :
-                # Update reealizaiton status
+                # Update realizaiton status
                 self.status = Realization.Status.SUBMITTED
             
+    
+    def run_wps(self, first_chunk_run = None , last_chunk_run = None, rerun = False, priority = 0 ):
+        """ 
+        Run n_chunk of the realization.
+        If n_chunk=0 run every chunk of the realization which haven't finished yet
+        else run (n_chunk) chunks since the last one finished
+        """
+        first_chunk_run = int( first_chunk_run ) if first_chunk_run else None 
+        last_chunk_run  = int( last_chunk_run  ) if last_chunk_run  else None
+        #Check the status of the realization
+        #if self.status == Realization.Status.WPS_FINISHED and not rerun:
+        #    logging.warn( "\tWPS step of Realization '%s' already finished." % self.name )
+        if self.status == Realization.Status.FINISHED and not rerun:
+            logging.warn( "\tRealization '%s' already finished." % self.name )
+        elif ( self.status == Realization.Status.SUBMITTED or 
+               self.status == Realization.Status.RUNNING ) and not rerun :
+            logging.warn( "\tRealization '%s' has been submitted." % self.name )
+        elif first_chunk_run and first_chunk_run < 0 :
+            logging.error( "\tERROR: The first chunk to run is '%d'." % first_chunk_run ) 
+        elif last_chunk_run and last_chunk_run  < 0 :
+            logging.error( "\tERROR: The last chunk to run is '%d'." % last_chunk_run )
+        elif ( last_chunk_run and first_chunk_run ) and last_chunk_run < first_chunk_run :
+            logging.error( "\tERROR: The last chunk to run is greater than the fist one." )
+        elif last_chunk_run and last_chunk_run > self.nchunks :
+            logging.error( "\tERROR: The last chunk does not exist." )
+        elif first_chunk_run and first_chunk_run > self.nchunks :
+            logging.error( "\tERROR: The first chunk does not exist." )
+        else :
+            # search first chunk to run
+            if not first_chunk_run :
+                first_chunk_run = 1
+            
+            #search last chunk to run
+            if not last_chunk_run :
+                #run every chunk
+                #Search last chunk of the realization
+                last_chunk_run = self.nchunks
+
+            #Search chunks to run
+            l_chunks = self.chunk.filter( and_( Chunk.chunk_id >= first_chunk_run, 
+                                                Chunk.chunk_id <= last_chunk_run )
+                                        ).all()
+            #run chunks
+            for index, chunk in enumerate( l_chunks ) :
+                #print data of chunks
+                logging.info( '\t---> Submitting Chunk %d %s %s' % ( chunk.chunk_id, 
+                                                              datetime2datewrf(chunk.start_date), 
+                                                              datetime2datewrf(chunk.end_date) ) )
+                if not self.dryrun :
+                    chunk.run( index, rerun, priority, mode='wps-only' )
+            if not self.dryrun :
+                # Update realizaiton status
+                self.wps_only_status = Realization.wps_only_Status.WPS_SUBMITTED
+    
     def _prepare_sub_files(self):
         """
         Prepare the files needed to submit the realization. 
@@ -645,8 +742,12 @@ class Realization( object ):
         logging.info( '%-60s %-10s %-10s %-16s %-10s %6s %-3s %6s'% (
                         'REALIZATION','STATUS','CHUNKS','RESOURCE','RUN STATUS',
                         'JID', 'EXT','%' ) )
+    @staticmethod 
+    def status_chunk_header(): 
+        logging.info( '%-60s %-10s %-20s %-20s %-10s %16s'% (
+                        'REALIZATION','CHUNK_ID','START','END','WPS','STATUS' ) )
  
-    def get_status(self):
+    def get_status(self,showchunks=0):
         """ 
         Show information about the realization for example:
             Realization Status    Chunks     Comp.Res       Run.Sta     JID   ext      %
@@ -663,29 +764,37 @@ class Realization( object ):
         """                
         #Select parameters:job_status,rea_status,resource,exitcode,nchunks
         #Last job of current chunk
-        resource, exitcode, gw_job = '-', '-', '-'
-        status = Realization.Status.PREPARED
-        if self.status != Realization.Status.PREPARED :
-            ch = self.chunk.filter_by( chunk_id = self.current_chunk ).one()
-            try :
-                last_job = ch.job[ -1 ]
-            except :
-                pass
-            else :
-                resource = last_job.resource
-                exitcode = last_job.exitcode
-                status   = last_job.status
-                gw_job   = last_job.gw_job
-        chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
-        #Format chunks run / chunks total
-        runt   = int( self.current_date.strftime("%s") ) - int( self.start_date.strftime("%s") ) 
-        totalt = int( self.end_date.strftime("%s") )     - int( self.start_date.strftime("%s") )
-        #Percentage
-        per = runt * 100.0 / totalt
-        #Print output
-        logging.info( "%-60s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
-                    self.name, self.status, chunk_distribution, resource, status, 
-                    gw_job, exitcode, per ) )
+
+        if not showchunks:
+            resource, exitcode, gw_job = '-', '-', '-'
+            status = Realization.Status.PREPARED
+            if self.status != Realization.Status.PREPARED :
+                ch = self.chunk.filter_by( chunk_id = self.current_chunk ).one()
+                try :
+                    last_job = ch.job[ -1 ]
+                except :
+                    pass
+                else :
+                    resource = last_job.resource
+                    exitcode = last_job.exitcode
+                    status   = last_job.status
+                    gw_job   = last_job.gw_job
+            chunk_distribution = '%d/%d' % ( 0 if not self.current_chunk else self.current_chunk, self.nchunks )
+            #Format chunks run / chunks total
+            runt   = int( self.current_date.strftime("%s") ) - int( self.start_date.strftime("%s") ) 
+            totalt = int( self.end_date.strftime("%s") )     - int( self.start_date.strftime("%s") )
+            #Percentage
+            per = runt * 100.0 / totalt
+            #Print output
+            logging.info( "%-60s %-10.10s %-10.10s %-16.16s %-10.10s %6.6s %-3.3s %6.2f" % (
+                        self.name, self.status, chunk_distribution, resource, status, 
+                        gw_job, exitcode, per ) )
+
+        else:
+            for ch in self.chunk:
+                logging.info( "%-60s %-10s %-20s %-20s %-10s %16s"% (
+                    self.name, ch.chunk_id, ch.start_date, ch.end_date, ch.wps, ch.status ) )
+
 
     def information( self ) :
         """
@@ -759,6 +868,23 @@ class Realization( object ):
                 logging.debug( "Releasing job %s" % job.gw_job )
                 GWJob().release( job.gw_job  )
                 job.set_status( Job.Status.RELEASED )
+    
+    def release_wps(self):
+        """
+        Check created job to be release
+        """
+        current_ch = self.chunk.filter(Chunk.status==Chunk.Status.WPS_SUBMITTED).all()
+        for chunk in current_ch:
+            l_jobs     = chunk.job.filter( Job.status == Job.Status.SUBMITTED )
+            try :
+                job = l_jobs[ -1 ]
+            except :
+                pass
+            else :
+                logging.debug( "Releasing job %s" % job.gw_job )
+                GWJob().release( job.gw_job  )
+                job.set_status( Job.Status.RELEASED )
+
 
     def statistics(self):
         """
@@ -817,11 +943,11 @@ class Chunk( object ):
     """
     dryrun = False 
 
-    Status = Enumerate( 'PREPARED', 'SUBMITTED', 'RUNNING',
-                        'PENDING', 'FAILED', 'FINISHED' )
+    Status = Enumerate( 'PREPARED', 'SUBMITTED','WPS_SUBMITTED', 'RUNNING',
+                        'PENDING', 'FAILED', 'FINISHED','WPS_FINISHED' )
  
     #METHODS
-    def run (self, index, rerun = False, priority = 0 ):
+    def run (self, index, rerun = False, priority = 0, mode='wrf' ):
         """ 
         Run a chunk is run a drm4g job
         """
@@ -847,10 +973,12 @@ class Chunk( object ):
             inputsandbox += ",file://%s" % ( input_files )
         # files to add for the outputsandbox
         outputsandbox = "log_%d_${JOB_ID}.tar.gz, events.pkl" % self.chunk_id
-        arguments = '%s %s %d %s %s %d' % ( exp_name, rea_name, self.chunk_id,
+        arguments = '%s %s %d %s %s %d %s' % ( exp_name, rea_name, self.chunk_id,
                                             datetime2datewrf( self.start_date ),
                                             datetime2datewrf( self.end_date ),
-                                            1 if rerun else 0 )
+                                            1 if rerun else 0,
+                                            mode
+                                             )
         # Create the job template
         file_template = gw_job.create_template( name          = rea_name,
                                                 directory     = rea_path,
@@ -864,7 +992,7 @@ class Chunk( object ):
         job = Job()  #create an object "job"
         time.sleep( 0.1 )
         # if the first chunk of the realization
-        if index == 0 :
+        if index == 0 or mode == 'wps-only':
             job.gw_job    = gw_job.submit( priority = priority, file_template = file_template )
         else:
             # if the chunk is not the first of the realization, 
@@ -880,8 +1008,12 @@ class Chunk( object ):
         job.chunk_id = self.chunk_id
         job.run( rerun ) 
         self.job.append( job )
-        # Update realizaiton status
-        self.status = Chunk.Status.SUBMITTED
+
+        # Update realization status
+        if mode=='wrf':
+            self.status = Chunk.Status.SUBMITTED
+        else:
+            self.status=Chunk.Status.WPS_SUBMITTED
 
     def cancel(self, hard = False ):
         """
@@ -948,8 +1080,8 @@ class Job( object ):
     """
     dryrun = False
 
-    Status = Enumerate( 'UNKNOWN', 'PREPARED', 'SUBMITTED', 'RELEASED', 'RUNNING', 'PENDING', 
-                        'CANCEL', 'FAILED', 'FINISHED', 'CREATE_OUTPUT_PATH', 
+    Status = Enumerate( 'UNKNOWN', 'PREPARED', 'SUBMITTED','WPS_SUBMITTED', 'RELEASED', 'RUNNING', 'PENDING', 
+                        'CANCEL', 'FAILED', 'FINISHED','WPS_FINISHED', 'CREATE_OUTPUT_PATH', 
                         'CONF_APP', 'DOWN_RESTART', 'DOWN_WPS', 'DOWN_BOUND', 'UNGRIB', 
                         'METGRID', 'REAL', 'UPLOAD_WPS', 'ICBCPROCESOR', 'WRF' )
 
@@ -970,13 +1102,16 @@ class Job( object ):
             self.chunk.status = status
             #if it is an status of the REALIZATION STATUS 
             if status in Realization.Status and status != Realization.Status.SUBMITTED :
+                # Last chunk has finished
                 if ( status == Job.Status.FINISHED and \
                      self.chunk.chunk_id == self.chunk.realization.nchunks ) :
                     self.chunk.realization.status = Realization.Status.FINISHED
+                # Finished chunk other than last
                 elif ( status == Job.Status.FINISHED and \
                        self.chunk.realization.status != Realization.Status.FINISHED and \
                        self.chunk.realization.status != Realization.Status.FAILED ) :
-                    self.chunk.realization.current_chunk = self.chunk.chunk_id + 1
+                    self.chunk.realization.current_chunk = self.chunk.chunk_id + 1                    
+                    self.chunk.realization.status = Realization.Status.SUBMITTED
                 elif status != Job.Status.FINISHED :
                     self.chunk.realization.status = status
         #Add event

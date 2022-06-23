@@ -262,7 +262,7 @@ function clean_wps(){
 }
 
 function clean_real(){
-  rm -f met_em.d??.????-??-??_??:00:00.nc
+  rm -f met_em.d??.????-??-??_??[:_]00[:_]00.nc
   rm -f namelist.wps
 }
 
@@ -385,7 +385,7 @@ function get_timestep(){
 }
 
 function get_ptop(){
-  ncdump -v PRES $(ls met_em.d??.????-??-??_??:00:00.nc | head -1) \
+  ncdump -v PRES $(ls met_em.d??.????-??-??_??[:_]00[:_]00.nc | head -1) \
     | tail -2 | head -1 \
     | tr -d ',;' \
     | awk '{printf "%d", $1}'

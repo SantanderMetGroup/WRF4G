@@ -34,6 +34,10 @@ from drm4g.commands       import Daemon, Agent
 
 def run( arg ) :
     try:
+        # El logger no funcionaba porque el import logging se hace varias veces y coge la primera. Hacemos un reload para que funcione
+        # https://stackoverflow.com/questions/20240464/python-logging-file-is-not-working-when-using-logging-basicconfig
+        from imp import reload
+        reload(logging)
         logging.basicConfig( format = '%(message)s',
                          level  = logging.DEBUG if arg[ '--dbg' ] else logging.INFO,
                          stream = sys.stdout )

@@ -48,7 +48,7 @@ See 'wrf4g <command> --help' for more information on a specific command.
 """
 __author__   = 'Valvanuz Fernández, Jesus Fernandez, Carlos Blanco and Antonio S. Cofiño'
 
-from docopt import docopt
+from drm4g.commands.docopt import docopt
 import wrf4g
 import sys
 

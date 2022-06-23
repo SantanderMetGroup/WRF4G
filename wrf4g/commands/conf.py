@@ -30,8 +30,8 @@ Options:
 
 import logging
 import sys
-from wrf4g            import DB4G_CONF, WRF4G_LOGGER 
-from drm4g            import DRM4G_DAEMON, DRM4G_SCHED
+from wrf4g            import DB4G_CONF
+from drm4g            import DRM4G_GWD_CONF, DRM4G_SCHED_CONF, DRM4G_LOGGER_CONF
 from wrf4g.utils.file import edit_file
 
 def run( arg ) :
@@ -39,11 +39,11 @@ def run( arg ) :
                          level  = logging.DEBUG if arg[ '--dbg' ] else logging.INFO,
                          stream = sys.stdout )
     if arg[ 'daemon' ] :
-        conf_file = DRM4G_DAEMON
+        conf_file = DRM4G_GWD_CONF
     elif arg[ 'logger' ]:
-        conf_file = WRF4G_LOGGER
+        conf_file = DRM4G_LOGGER_CONF
     elif arg[ 'database' ]:
         conf_file = DB4G_CONF
     else :
-        conf_file = DRM4G_SCHED
+        conf_file = DRM4G_SCHED_CONF
     edit_file( conf_file )

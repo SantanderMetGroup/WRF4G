@@ -31,6 +31,6 @@ app                  = wps | command | cp -R /home/valva/.wrf4g/repository/apps/
                        path | command | export PATH="%(WRF4G_DIR)s/repository/apps/WRF/bin:$PATH"
                        ld_library_path | command | export LD_LIBRARY_PATH="%(WRF4G_DIR)s/repository/apps/WRF/lib:$LD_LIBRARY_PATH"
 # WRF-namelist parameters. Override namelist.input variables here
-namelist_version     = 4.2.2
+namelist_template     = 4.2.2
 namelist_values      =
 

@@ -27,8 +27,8 @@ Usage:
     wrf4g exp <name> edit         [ --dbg ] 
     wrf4g exp <name> create       [ --dbg ] [ --dry-run ] [ --dir=<directory> ]
     wrf4g exp <name> update       [ --dbg ] [ --dry-run ] 
-    wrf4g exp <name> submit       [ --dbg ] [ --dry-run ] [ --priority=<value> ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --rerun ] 
-    wrf4g exp <name> status       [ --dbg ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --delay=<seconds> ]  
+    wrf4g exp <name> submit       [ --dbg ] [ --dry-run ] [ --priority=<value> ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --rerun ]  [ --wps-only ] [ --mode=<value> ] 
+    wrf4g exp <name> status       [ --dbg ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --delay=<seconds> ] [ --show-chunks ]
     wrf4g exp <name> statistics   [ --pattern=<name> ]
     wrf4g exp <name> cancel       [ --dbg ] [ --dry-run ] [ --pattern=<name> ] [ --rea-state=<state> ] [ --hard ]
     wrf4g exp <name> set-priority [ --dbg ] [ --dry-run ] [ --pattern=<name> ] <priority>
@@ -47,6 +47,8 @@ Options:
     --delay=<seconds>         Refresh experiment information every delay seconds.
     --rerun                   Force to run although this realization or experiment has finished.
     --hard                    Remove jobs from without synchronizing.
+    -m --mode=<value>         0: run whole workflow, 1: only WPS and real, 2: only WRF [default: 0]
+    --show-chunks                  Show advanced information about the chunks status
   
 Commands:
     list                      Show all the experiments available.
@@ -105,7 +107,7 @@ from wrf4g.utils.time     import datetime2datewrf
 
 def run( arg ) :
     logging.basicConfig( format = '%(message)s', 
-                         level  = logging.DEBUG if arg[ '--dbg' ] else logging.INFO,  
+                         level  = logging.DEBUG if arg[ '--dbg' ] else logging.DEBUG,  
                          stream = sys.stdout )
     if arg[ 'define' ] :
         Experiment.create_files( arg[ '<name>' ], 
@@ -147,13 +149,20 @@ def run( arg ) :
                     if arg[ 'update' ] :
                         exp.prepare( update = True )
                     elif arg[ 'submit' ] :
-                        exp.run( arg[ '--rerun' ], 
+                        if arg['--wps-only']:
+                            exp.run_wps( 
+                                rerun           = arg[ '--rerun' ],
+                                priority        = int( arg[ '--priority' ] ), 
+                                )
+                        else:
+                            exp.run( arg[ '--rerun' ], 
                                  arg[ '--pattern' ], 
                                  arg[ '--rea-state' ],
-                                 int( arg[ '--priority' ] ) )
+                                 int( arg[ '--priority' ] )
+                                 )
                     elif arg[ 'status' ] :
                         if not arg[ '--delay' ] :
-                            exp.get_status( arg[ '--pattern' ], arg[ '--rea-state' ] )
+                            exp.get_status( arg[ '--pattern' ], arg[ '--rea-state' ],arg['--show-chunks'] )
                         else :
                             try:
                                 while True :
@@ -180,7 +189,10 @@ def run( arg ) :
             else :
                 session.commit()
                 if arg[ 'submit' ] :
-                    exp.release()
+                    if arg["--wps-only"]:
+                        exp.release_wps()
+                    else:
+                        exp.release()
                     session.commit()
         except OperationalError as err :
             logging.error( err.message )
