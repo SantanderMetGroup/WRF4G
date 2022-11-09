@@ -45,6 +45,7 @@ OUTPUT_FILES = %s
 REQUIREMENTS = %s
 ENVIRONMENT  = %s
 RESCHEDULE_ON_FAILURE = no
+RESTART_FILES = wrf4g.db
 NP           = %d""" % (name,arguments,WRF4G_DIR,inputsandbox,outputsandbox,req,environ,np)
         f.write(template)
         f.close()

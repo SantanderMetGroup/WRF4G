@@ -122,8 +122,18 @@ def get_session():
     """
     Create a sqlalchemy session to connect with WRF4G database
     """
-    logging.debug( "Reading database configuration from '%s' file" % DB4G_CONF  )
+    logging.info( "Reading database configuration from '%s' file" % DB4G_CONF  )
     db4g_urls = VarEnv( DB4G_CONF ).get_var( 'URL' )
+    db4g_file=db4g_urls.replace('sqlite:','')
+    if not os.path.exists(db4g_file):
+        logging.info( "%s file missing: Trying with local database" % db4g_file  )
+        pwd=os.getcwd()
+        db4g_file='%s/wrf4g.db' % pwd
+        db4g_urls='sqlite:////%s' % db4g_file
+        if os.path.exists(db4g_file):
+            logging.info(db4g_file)
+
+
     # an Engine, which the Session will use for connection
     engine = create_engine( db4g_urls )
     # create a configured "Session" class

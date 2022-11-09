@@ -97,6 +97,12 @@ class JobDB(object):
                 logging.warning("Error creating database session: %s" % str(err))
             else:
                 try:
+                    # from sqlalchemy import select
+                    # s=select(Job)
+                    # user_obj = self.session.scalars(s).all()
+                    # for i in user_obj:
+                    #     logging.warning(i.gw_job)
+                    
                     self.job = (
                         self.session.query(Job)
                         .filter(Job.gw_job == self.job_id)
@@ -864,13 +870,13 @@ class WRF4GWrapper(object):
         # If realization.restart is empty or chunk has to be rerun.
         # self.chunk_rerun='.T.' means the chunk will use a rst file
         if not rdate or params.rerun:
-            logging.info("Restart date will be '%s'" % params.chunk_sdate)
+            logging.info("Restart date will be (from start_date) '%s'" % params.chunk_sdate)
             if params.nchunk > 1:
                 self.chunk_rerun = ".T."
             else:
                 self.chunk_rerun = ".F."
         elif rdate >= params.chunk_sdate and rdate < params.chunk_edate:
-            logging.info("Restart date will be '%s'" % rdate)
+            logging.info("Restart date will be (from restart date) '%s'" % rdate)
             params.chunk_rdate = rdate
             self.chunk_rerun = ".T."
         elif rdate == params.chunk_edate:

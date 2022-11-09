@@ -966,13 +966,14 @@ class Chunk( object ):
         inputsandbox += "file://%s/db.conf,"          % exp_path
         inputsandbox += "file://%s/experiment.wrf4g," % exp_path
         inputsandbox += "file://%s/realization.json," % rea_path  
-        inputsandbox += "file://%s/namelist.input"    % rea_path  
+        inputsandbox += "file://%s/namelist.input,"   % rea_path  
+        inputsandbox += "file://%s/etc/wrf4g.db"      % WRF4G_DIR
         # Add input file if it is exist
         input_files = join( exp_path, 'wrf4g_files.tar.gz' )
         if exists( input_files ):
             inputsandbox += ",file://%s" % ( input_files )
         # files to add for the outputsandbox
-        outputsandbox = "log_%d_${JOB_ID}.tar.gz, events.pkl" % self.chunk_id
+        outputsandbox = "log_%d_${JOB_ID}.tar.gz, wrf4g.db wrf4g.db.${JOB_ID}" % self.chunk_id
         arguments = '%s %s %d %s %s %d %s' % ( exp_name, rea_name, self.chunk_id,
                                             datetime2datewrf( self.start_date ),
                                             datetime2datewrf( self.end_date ),
