@@ -34,6 +34,8 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
 #    - run: conda install pycrypto docopt sqlalchemy python-dateutil
 #    - run: cd ..; git clone https://github.com/SantanderMetGroup/DRM4G; cd DRM4G; find ./ -name *.c| xargs touch ;find ./ -name *.h| xargs touch; pip install .; cd -
+    - run: SHELL=/bin/sh pip install SQLAlchemy==1.4.41
+    - run: SHELL=/bin/sh pip install pyopenssl --upgrade
     - run: SHELL=/bin/sh pip install -e .
 #    - name: Install dependencies
 #      run: |
