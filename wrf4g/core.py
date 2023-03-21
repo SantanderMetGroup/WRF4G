@@ -1073,6 +1073,7 @@ class JobCodeError():
     WRF_FAILED           = 20
     POSTPROCESSOR_FAILED = 21
     COPY_OUTPUT_FILE     = 22
+    WRFPREPROCESSOR_FAILED  = 23
    
 class Job( object ):
     """
