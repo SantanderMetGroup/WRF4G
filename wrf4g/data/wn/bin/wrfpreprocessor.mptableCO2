@@ -2,15 +2,15 @@
 set -e
 # Processor to insert CO2 level corresponding to date into NOAH-MP, via the
 # MPTABLE.TBL file
-
 sformateddate=$1     # initial date to process as YYYY-MM-DD_HH:MM:SS (Ex. 1983-08-27_00:00:00)
 eformateddate=$2     # end date to process
-tblpath=$3           # run directory where CAMtr_volume_mixing_ratio and MPTABLE.TBL are located
 
 read iyy imm trash <<< `echo $sformateddate | tr '_T:-' '    '`
 read fyy fmm trash <<< `echo $eformateddate | tr '_T:-' '    '`
 
 # Extract CO2 level for current chunk (just the year, no interpolation)
-co2ppm=$(awk '$1 == '${iyy}' {print $2}' ${tblpath}/CAMtr_volume_mixing_ratio)
+co2ppm=$(grep ^$iyy CAMtr_volume_mixing_ratio | awk {'print $2'})
+#co2ppm=$(awk '$1 == '${iyy}' {print $2}' CAMtr_volume_mixing_ratio)
+
 # Replace CO2 level in MPTABLE
-sed -i -e 's/  CO2    = .*e-06/  CO2    = '${co2ppm}'e-06/' ${tblpath}/MPTABLE.TBL
+sed -i -e 's/  CO2    = .*e-06/  CO2    = '${co2ppm}'e-06/' MPTABLE.TBL

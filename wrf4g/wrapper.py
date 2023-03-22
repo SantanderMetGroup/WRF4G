@@ -259,6 +259,7 @@ class PilotParams(object):
         self.domain_path = resource_cfg["domain_path"]
         self.app = resource_cfg.get("app", "")
         self.preprocessor = resource_cfg["preprocessor"]
+        self.wrfpreprocessor = resource_cfg.get("wrfpreprocessor", "")
         self.postprocessor = resource_cfg.get("postprocessor", "")
         self.ungribprocessor = resource_cfg.get("ungribprocessor", "")
         self.clean_after_run = resource_cfg.get("clean_after_run", "no")
@@ -1286,6 +1287,36 @@ class WRF4GWrapper(object):
         wrf_exe = binaries.wrf_exe
         # Change the directory to wrf run path
         os.chdir(params.wrf_run_path)
+
+        if params.wrfpreprocessor:
+
+            for pp in params.wrfpreprocessor.replace(" ", "").split(","):
+                if pp != "":
+                    logging.info("Running wrfpreprocessor.%s" % pp)
+
+                    if not which("wrfpreprocessor.%s" % pp):
+                        raise JobError(
+                            "wrfpreprocessor '%s' does not exist" % pp,
+                            Job.CodeError.WRFPREPROCESSOR_FAILED,
+                        )
+                    preprocessor_log = join(
+                        params.log_path, "wrfpreprocessor.%s.log" % pp
+                    )
+                    code, output = exec_cmd(
+                        "wrfpreprocessor.%s %s %s> %s" % (
+                            pp, 
+                            datetime2datewrf(params.chunk_rdate),
+                            datetime2datewrf(params.chunk_edate),
+                            preprocessor_log)
+                    )
+                    if code:
+                        logging.info(output)
+                        raise JobError(
+                            "wrfpreprocessor '%s' has failed" % pp,
+                            Job.CodeError.WRFPREPROCESSOR_FAILED,
+                        )
+
+
         ##
         # Start a thread to monitor wrf
         ##
